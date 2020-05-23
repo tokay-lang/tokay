@@ -1,0 +1,272 @@
+#!/usr/bin/unicc2
+# Tokay Programming Language
+# (C) 2020 by Jan Max Meyer, Phorward Software Technologies
+
+%skip		/[ \t\r]+/
+%skip		/\/\*([^*]|\*[^\/])*\*\//
+%skip		/#[^\n]*/
+%skip		/\\\n/
+
+<			'=' '+=' '-=' '*=' '/=' '%=' '^='
+<           '||'
+<           '&&'
+<			'==' '!=' '<' '<=' '>' '>='
+<           '|'
+<           '&'
+<			'+' '-'
+<			'*'	'/'
+<			'%'
+<			'^'
+
+@Integer	:	/\d+/
+@Float		:	/\d*\.\d+|\d+\.\d*/
+@Identifier	:	/[a-z]\w*/
+@Parselet	:	/[A-Z_]\w*/
+
+@String 	:	/"[^"]*"/
+@LightString:	/'[^']*'/
+@Regex 		:	/\/(\\.|[^\\\/])*\//
+@Chars		:	/\|[^|]+\|/
+
+@context    :	'$' (Identifier = name) tail*				= context_named
+			|	'$' Integer tail*							= context
+
+@global		:	'@' (Identifier = global) tail*
+
+@EOL        :	'\n' | ';'
+
+@tail       :	'.' (Identifier = attribute)
+            |	'[' expr ']'								= index
+
+@variable	:	(Identifier = name) tail*
+			|	'self'										= self
+
+@lvalue		:=	variable
+			|	context
+			|	global
+
+@call_argument
+			:	(Identifier = name) '=' expr				= arg_named_value
+			|	expr										= arg_positional_value
+
+@call_argument_list
+			:	call_argument_list ',' call_argument
+            |	call_argument
+
+@call		: 	variable '(' call_argument_list? ')'		= call_function
+
+@call_parselet_argument
+			: 	(Identifier = name) '=' expr_static			= arg_named_value
+			|	(Parselet = name) '=' token					= arg_named_parselet
+			| 	expr_static									= arg_positional_value
+			| 	token										= arg_positional_parselet
+
+@call_parselet_argument_list
+			:	call_parselet_argument_list ',' call_parselet_argument
+            |	call_parselet_argument
+
+@call_parselet_arguments
+			:	'(' call_parselet_argument_list? ')'
+
+@call_parselet
+			:	Parselet call_parselet_arguments?			= call_parselet
+			|	'Self' call_parselet_arguments?				= call_parselet_self
+
+
+@string		:	String										= value_string
+			|	LightString									= value_string
+
+@literal	:	Integer										= value_integer
+			|	Float										= value_float
+			|	'true'										= value_boolean_true
+			|	'false'										= value_boolean_false
+			|	'void'										= value_void
+
+@complex	:	'[' EOL* complex_values? EOL* ']'			= complex
+
+@complex_values
+			:	complex_value ',' EOL* complex_values?
+			|	complex_value EOL*
+
+@complex_value
+			:	expr '=' expr								= complex_key_value
+			|	expr 										= complex_value
+
+@argument_definition
+			:	(Identifier = name) ('=' expr_static)?		= argdef_value
+			|	(Parselet = name) ('=' token)?				= argdef_parselet
+
+@argument_definition_list
+			:	argument_definition_list
+					',' argument_definition
+			|	argument_definition
+
+@block		:	'{' EOL* pattern* '}'						= block
+
+@expr_static:
+			'(' expr_static ')'
+
+			//|	variable '=' expr_static					= assign	//experimental!
+
+			| 	expr_static '==' expr_static				= op_binary_eq
+			|	expr_static '!=' expr_static				= op_binary_uneq
+			|	expr_static '<' expr_static					= op_binary_lower
+			|	expr_static '<=' expr_static				= op_binary_lowereq
+			|	expr_static '>' expr_static					= op_binary_greater
+			|	expr_static '>=' expr_static				= op_binary_greatereq
+			|	expr_static '||' expr_static				= op_binary_or
+			|	expr_static '&&' expr_static				= op_binary_and
+		    |	expr_static '|' expr_static					= op_binary_bitor
+			|	expr_static '&' expr_static					= op_binary_bitand
+			|	expr_static '+' expr_static					= op_binary_add
+			|	expr_static '-' expr_static					= op_binary_sub
+			|	expr_static '*' expr_static					= op_binary_mul
+			|	expr_static '/' expr_static					= op_binary_div
+			|	expr_static '%' expr_static					= op_binary_mod
+			|	expr_static '^' expr_static					= op_binary_pow
+			|   '!' expr_static								= op_unary_not
+			|   '~' expr_static								= op_unary_compl
+			|	'-' expr_static								= op_unary_sub
+			|	'+' expr_static								= op_unary_add
+			|	literal
+
+@assign_expr: 	lvalue '=' expr								= assign
+			|	lvalue '|=' expr							= assign_bitor
+			|	lvalue '&=' expr							= assign_bitand
+			|	lvalue '+=' expr							= assign_add
+			|	lvalue '-=' expr							= assign_sub
+			|	lvalue '*=' expr							= assign_mul
+			|	lvalue '/=' expr							= assign_div
+			|	lvalue '%=' expr							= assign_mod
+			|	lvalue '^=' expr							= assign_pow
+			|	lvalue '++' 								= op_unary_post_increment
+			|	lvalue '--'									= op_unary_post_decrement
+			|	'++' lvalue  								= op_unary_pre_increment
+			|	'--' lvalue									= op_unary_pre_decrement
+
+/*
+@for_variant:	expr? ';' expr? ';' expr?
+			|	variable "in" expr
+*/
+
+@flow_expr	:	'if' (expr = condition) EOL?
+					(stmt_or_expr = then) EOL?
+			        	('else' EOL? stmt_or_expr = else)?	= if
+			/*
+			|	'while' expr expr  						    = while
+			|	'do' EOL* expr EOL* 'while' expr 	        = do
+			|	'for' for_variant EOL* expr      	        = for
+			|	'for' '(' EOL* for_variant EOL* ')'
+			        EOL* expr 		                        = for
+
+			// Takeover
+
+			|	expr '=>' statement							= takeover
+			*/
+
+@binary_expr:	expr '==' expr								= op_binary_eq
+			|	expr '!=' expr								= op_binary_uneq
+			|	expr '<' expr								= op_binary_lower
+			|	expr '<=' expr								= op_binary_lowereq
+			|	expr '>' expr								= op_binary_greater
+			|	expr '>=' expr								= op_binary_greatereq
+			|	expr '||' expr								= op_binary_or
+			|	expr '&&' expr								= op_binary_and
+		    |	expr '|' expr								= op_binary_bitor
+			|	expr '&' expr								= op_binary_bitand
+			|	expr '+' expr								= op_binary_add
+			|	expr '-' expr								= op_binary_sub
+			|	expr '*' expr								= op_binary_mul
+			|	expr '/' expr								= op_binary_div
+			|	expr '%' expr								= op_binary_mod
+			|	expr '^' expr								= op_binary_pow
+
+@unary_expr	:	'!' expr                                    = op_unary_not
+			|   '~' expr                                    = op_unary_compl
+			|	'-' expr									= op_unary_sub
+			|	'+' expr									= op_unary_add
+
+@expr		:
+			// Grouped expressions	
+			'(' expr ')'
+			
+			// Flow
+			|	flow_expr
+
+			// Operators
+			|	assign_expr
+			|	binary_expr
+			|	unary_expr
+
+			// Atomics
+			|	atomic
+			|	string										# string can be here in full expr!
+
+@atomic		:	literal
+			|   call
+			|	block
+			|	complex
+			|	variable									= rvalue
+			|	global										= rvalue
+			|	context										= rvalue
+
+
+@token		: 	Regex										= call_parselet_builtin_regex
+			| 	'.'											= call_parselet_builtin_any
+			|	'EOF'										= call_parselet_builtin_eof
+			|	'None'										= call_parselet_builtin_none
+			| 	String										= call_parselet_builtin_match
+			| 	LightString									= call_parselet_builtin_touch
+			|	Chars										= call_parselet_builtin_chars
+			|	'?{' EOL* pattern* '}'						= block_optional
+			|	'+{' EOL* pattern* '}'						= block_positive
+			|	'*{' EOL* pattern* '}'						= block_kleene
+			|	call_parselet
+
+@stmt		:	'return' expr?								= return
+			|   'accept' expr?								= accept
+			|	'extend' expr? 								= extend
+			|	'reject'									= reject
+			|	'escape'									= escape
+			|	'break'										= break
+			|	'continue'							    	= continue
+
+@stmt_or_expr
+			:	stmt
+			|	expr
+
+@result		:	stmt
+
+			|	'(' expr ')'
+			
+			// Flow
+			|	flow_expr
+
+			// Operators
+			|	assign_expr
+			|	binary_expr
+			|	unary_expr
+
+			// Atomics without strings!
+			|	atomic
+
+@aliased_token
+			:	token
+			|	token ':' Identifier						= alias
+
+@pattern	:	aliased_token+ result? EOL?					= pattern
+			|	'begin'	expr EOL?							= begin
+			|	'end' expr EOL?								= end
+			|	result EOL?
+			|	EOL
+
+@callable_definitions
+			:	'parselet' EOL* (Parselet = name) EOL*
+					('(' EOL* argument_definition_list? EOL* ')' EOL*)?
+						(token EOL+ | block)				= parselet
+			|	'function' EOL* (Identifier = name) EOL*
+					('(' EOL* argument_definition_list? EOL* ')' EOL*)?
+						block								= function
+
+@tokay$		:	(callable_definitions | pattern)*
+
