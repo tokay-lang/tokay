@@ -1,0 +1,32 @@
+# Brainstorming & Todo
+
+- [ ] Parser/Reader
+  - [ ] Work with an Offset data structure rather than usize to additionally track row + col numbers
+  - [x] Improve tokay! macro definition
+- [x] Charsets
+  - [ ] Charset parser written in Tokay²
+  - [x] std::fmt::Debug and std::fmt::Display trait
+- [x] Rewriting grammar and parselet attribute determination
+  - [x] Left-recursion
+  - [x] Nullability
+  - [x] FIRST-set
+    - [ ] Some(FIRST) ?
+  - [ ] Lexemes¹
+  - [ ] Whitespace¹
+- [ ] Runtime
+  - [x] Value for tree values instead of Range, as referenced counts (std::rc::Rc)
+  - [x] Stacked captures with different severity
+  - [x] Named captures
+- [ ] Values
+  - [x] std::fmt::Debug and std::fmt::Display trait (especially for Value::Complex)
+- [ ] Tokay Language Implementation in Tokay
+  - [ ] Conrete syntax as Program structure (maybe using Rust macros?)
+- [ ] Tokay Virtual Machine
+  - [ ] Instruction set
+  - [ ] Stack handling & Runtime
+- [ ] Implement more Ops (this is brainstorming only!)
+  - [ ] `Summarize()` only capture entire pattern
+  - [ ] `Touch()` match string without capture `'touch'`-syntax
+  - [ ] `Silent()` match any subsequent pattern without capture
+  - [ ] `Until()` built-in parselet
+  - [ ] `Surround()` built-in parselet (ex `String`)
