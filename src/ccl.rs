@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 type CclRange = std::ops::RangeInclusive<char>;
 
+#[derive(Clone)]
 pub struct Ccl {
     ranges: Vec<CclRange>
 }

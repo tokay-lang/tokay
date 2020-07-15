@@ -12,109 +12,186 @@ use crate::value::{Value, RefValue, Complex};
             - which is a sequence of Tokens...
 */
 
-// --- State ---
-
-pub enum State {
-    Capture(Option<RefValue>),  // Soft accept, capture & continue
-    Accept(Option<RefValue>),   // Hard accept, take value & continue
-    Reject                      // Reject
-    // todo: Escape?
-}
-
-impl State {
-    fn finalize<T: Read> (self, runtime: &mut Runtime<T>) -> State {
-        match self {
-            State::Capture(Some(value)) => State::Accept(Some(value)),
-
-            // Take determined Accept or any Reject as is...
-            State::Accept(Some(_)) | State::Reject => self,
-
-            // otherwise, automatically determine return value from captures
-            State::Accept(None) | State::Capture(None) => {
-                if runtime.capture_start == runtime.capture.len() {
-                    // There is no capture!
-                    State::Accept(None)
-                }
-                else {
-                    let mut complex = Complex::new();
-
-                    // Collect any significant captures and values
-                    for capture in runtime.capture.drain(runtime.capture_start..) {
-                        let value = match capture.0 {
-                            // Skip unsignificant capture.
-                            Capture::Capture(_) | Capture::Value(_) => {
-                                continue
-                            },
-                            // Turn significant capture into string
-                            Capture::SigCapture(range) => {
-                                Value::String(
-                                    runtime.reader.extract(&range)
-                                ).into_ref()
-                            },
-                            // Take value as is
-                            Capture::SigValue(value) => {
-                                value.clone()
-                            }
-                        };
-
-                        // Named capture becomes complex key
-                        if let Some(name) = capture.1 {
-                            complex.push_key_value(Value::String(name), value);
-                        }
-                        else {
-                            complex.push_value(value);
-                        }
-                    }
-
-                    /* When there is only one value without a key in the map,
-                        return this single value only! */
-                    if complex.len() == 1 {
-                        if let Some((None, value)) = complex.get(0) {
-                            return State::Accept(Some(value.clone()))
-                        }
-                    }
-
-                    if complex.len() > 0 {
-                        // Return the complex when it contains something
-                        State::Accept(Some(Value::Complex(complex).into_ref()))
-                    }
-                    else {
-                        State::Accept(None)
-                    }
-                }
-            }
-        }
-    }
-}
-
-impl Clone for State {
-    fn clone(&self) -> Self {
-        match self {
-            State::Capture(Some(value)) => State::Capture(Some(value.clone())),
-            State::Capture(None) => State::Capture(None),
-            State::Accept(Some(value)) => State::Accept(Some(value.clone())),
-            State::Accept(None) => State::Accept(None),
-            State::Reject => State::Reject
-        }
-    }
-}
-
 // --- Token ---
 
+pub type Sequence<T> = Vec<(Token<T>, Option<String>)>;
+
+#[derive(Clone, Debug)]
 pub enum CallBy {
     Index(usize),
     Name(String)
 }
 
+#[derive(Clone)]
 pub enum Token<T> {
     None,
     Any,
-    Touch(String),
+    Touch(String), // todo: merge with Match
     Match(String),
     Char(Ccl),
-    Chars(Ccl),
+    Chars(Ccl),  // todo: remove soon
     Call(CallBy),
-    Rust(fn(&mut Runtime<T>) -> State),
+    Rust(fn(&mut Runtime<T>) -> Return),
+    Sequence(Vec<Token<T>>),
+    Positive(Box<Token<T>>),
+    Optional(Box<Token<T>>),
+    Kleene(Box<Token<T>>),
+}
+
+impl<T: Read> Token<T> {
+    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+        let reader_start = runtime.reader.tell();
+
+        match self {
+            Token::None => {
+                Return::Capture(
+                    Capture::Range(runtime.reader.capture(reader_start), 1)
+                )
+            },
+
+            Token::Any => {
+                if runtime.reader.next().is_none() {
+                    return Return::Reject;
+                }
+
+                Return::Capture(
+                    Capture::Range(runtime.reader.capture(reader_start), 1),
+                )
+            },
+
+            Token::Match(string) | Token::Touch(string) => {
+                for ch in string.chars() {
+                    if let Some(c) = runtime.reader.next() {
+                        if c != ch {
+                            return Return::Reject;
+                        }
+                    }
+                    else {
+                        return Return::Reject;
+                    }
+                }
+
+                Return::Capture(
+                    Capture::Range(
+                        runtime.reader.capture(reader_start),
+                        matches!(self, Token::Match(_)) as u8
+                    )
+                )
+            },
+
+            Token::Char(accept) => {
+                if let Some(c) = runtime.reader.next() {
+                    if !accept.test(&(c..=c)) {
+                        return Return::Reject;
+                    }
+                }
+                else {
+                    return Return::Reject;
+                }
+
+                Return::Capture(
+                    Capture::Range(
+                        runtime.reader.capture(reader_start), 0
+                    )
+                )
+            },
+
+            Token::Chars(accept) => {
+                while let Some(c) = runtime.reader.peek() {
+                    if !accept.test(&(c..=c)) {
+                        break;
+                    }
+
+                    runtime.reader.next();
+                }
+
+                if reader_start == runtime.reader.tell() {
+                    return Return::Reject;
+                }
+
+                Return::Capture(
+                    Capture::Range(
+                        runtime.reader.capture(reader_start),
+                        1
+                    )
+                )
+            },
+
+            Token::Call(p) => {
+                let parselet = program.get_parselet(p).unwrap();
+
+                if let Return::Accept(value) = parselet.run(program, runtime) {
+                    Return::Capture(
+                        match value {
+                            Some(value) => Capture::Value(value, 1),
+                            None => Capture::Range(
+                                runtime.reader.capture(reader_start), 0
+                            )
+                        }
+                    )
+                }
+                else {
+                    Return::Reject
+                }
+            },
+
+            Token::Rust(func) => {
+                func(runtime)
+            },
+
+            // Todo: Positive, Optional & Kleene
+
+            _ => {
+                Return::Reject
+            }
+        }
+    }
+}
+
+impl<T: Read + Clone> Token<T> {
+
+    /** Creates a positive closure on the provided token,
+        by introducing a new, repeating parselet.
+    */
+    pub fn into_positive(self, program: &mut Program<T>) -> Token<T> {
+        let parselet = program.new_embedded_parselet();
+
+        parselet.new_rule(
+            vec![
+                (parselet.to_call(), None),
+                (self.clone(), None)
+            ]
+        );
+
+        parselet.new_rule(
+            vec![
+                (self, None)
+            ]
+        );
+
+        parselet.to_call()
+    }
+
+    /** Creates an optional closure on the provided token,
+        by introducing a new, differencing parselet.
+    */
+    pub fn into_optional(self, program: &mut Program<T>) -> Token<T> {
+        let parselet = program.new_embedded_parselet();
+
+        parselet.new_rule(
+            vec![
+                (self, None)
+            ]
+        );
+
+        parselet.new_rule(
+            vec![
+                (Token::None, None),
+            ]
+        );
+
+        parselet.to_call()
+    }
 }
 
 impl<T> std::fmt::Debug for Token<T> {
@@ -133,6 +210,16 @@ impl<T> std::fmt::Debug for Token<T> {
                 }
             },
             Token::Rust(_) => write!(f, "{{rust-function}}"),
+            Token::Sequence(seq) => {
+                for item in seq {
+                    write!(f, "{:?} ", item)?;
+                }
+
+                Ok(())
+            },
+            Token::Positive(t) => write!(f, "{:?}+", t),
+            Token::Optional(t) => write!(f, "{:?}?", t),
+            Token::Kleene(t) => write!(f, "{:?}*", t),
         }
     }
 }
@@ -141,158 +228,106 @@ impl<T> std::fmt::Debug for Token<T> {
 
 #[derive(Debug)]
 pub struct Rule<T> {
-    pub sequence: Vec<(Token<T>, Option<String>)>,
-
+    sequence: Sequence<T>,
     nullable: bool,
     leftrec: bool,
     first: Ccl
 }
 
 impl<T: Read> Rule<T> {
-    pub fn new() -> Self {
+    fn new(sequence: Option<Sequence<T>>) -> Self {
         return Self{
-            sequence: Vec::new(),
+            sequence: sequence.unwrap_or_else(|| Vec::new()),
             nullable: false,
             leftrec: false,
             first: Ccl::new()
         };
     }
 
-    pub fn push_token(&mut self, token: Token<T>, alias: Option<&str>) {
-        if let Some(alias) = alias {
-            self.sequence.push((token, Some(alias.to_string())));
-        }
-        else {
-            self.sequence.push((token, None));
-        }
-    }
+    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+        let reader_start = runtime.reader.tell();
+        let capture_start = runtime.capture.len();
 
-    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> State {
-        for (token, alias) in &self.sequence {
-            let reader_start = runtime.reader.tell();
-
-            match token {
-                Token::None => {
-                    runtime.capture.push((
-                        Capture::Capture(runtime.reader.capture(reader_start)),
-                        alias.clone()));
+        // Try to parse along sequence
+        for (item, alias) in &self.sequence {
+            match item.run(program, runtime) {
+                Return::Reject => {
+                    runtime.capture.truncate(capture_start);
+                    runtime.reader.reset(reader_start);
+                    return Return::Reject;
                 },
 
-                Token::Any => {
-                    if runtime.reader.next().is_none() {
-                        return State::Reject;
-                    }
-
-                    runtime.capture.push((
-                        Capture::SigCapture(runtime.reader.capture(reader_start)),
-                        alias.clone()));
+                Return::Capture(capture) => {
+                    runtime.capture.push(
+                        (capture, alias.clone())
+                    );
                 },
 
-                Token::Match(string) | Token::Touch(string) => {
-                    for ch in string.chars() {
-                        if let Some(c) = runtime.reader.next() {
-                            if c != ch {
-                                return State::Reject;
-                            }
-                        }
-                        else {
-                            return State::Reject;
-                        }
-                    }
-
-                    runtime.capture.push((
-                        if matches!(token, Token::Match(_)) {
-                            Capture::SigCapture(
-                                runtime.reader.capture(reader_start)
-                            )
-                        } else {
-                            Capture::Capture(
-                                runtime.reader.capture(reader_start)
-                            )
-                        },
-                        alias.clone()));
-                },
-
-                Token::Char(accept) => {
-                    if let Some(c) = runtime.reader.next() {
-                        if !accept.test(&(c..=c)) {
-                            return State::Reject;
-                        }
-                    }
-                    else {
-                        return State::Reject;
-                    }
-
-                    runtime.capture.push((
-                        Capture::Capture(runtime.reader.capture(reader_start)),
-                        alias.clone()));
-                },
-
-                Token::Chars(accept) => {
-                    while let Some(c) = runtime.reader.peek() {
-                        if !accept.test(&(c..=c)) {
-                            break;
-                        }
-
-                        runtime.reader.next();
-                    }
-
-                    if reader_start == runtime.reader.tell() {
-                        return State::Reject;
-                    }
-
-                    runtime.capture.push((
-                        Capture::SigCapture(
-                            runtime.reader.capture(reader_start)
-                        ),
-                        alias.clone()));
-                },
-
-                Token::Call(p) => {
-                    let p = match p {
-                        CallBy::Index(p) => *p,
-                        CallBy::Name(p) => program.named_parselets[p]
-                    };
-
-                    if let State::Accept(value) = program.run(runtime, p) {
-                        runtime.capture.push((
-                            Capture::SigValue(
-                                value.or(
-                                    Some(Value::None.into_ref())
-                                ).unwrap()),
-                                alias.clone()));
-                    }
-                    else {
-                        return State::Reject;
-                    }
-                },
-
-                Token::Rust(func) => {
-                    match func(runtime) {
-                        State::Capture(value) => {
-                            if let Some(value) = value {
-                                runtime.capture.push((
-                                    Capture::SigValue(value),
-                                    alias.clone()
-                                ));
-                            }
-                            else {
-                                runtime.capture.push((
-                                    Capture::Value(Value::None.into_ref()),
-                                    alias.clone()
-                                ));
-                            }
-                        },
-
-                        other => {
-                            return other
-                        }
-                    }
+                Return::Accept(value) => {
+                    return Return::Accept(value);
                 }
             }
         }
 
-        State::Accept(None)
+        // Empty sequence?
+        if self.sequence.len() == 0 {
+            Return::Accept(None)
+        }
+        // When sequence length is only one without an alias, return this value!
+        /*
+        else if runtime.capture.last().unwrap().1.is_none() {
+            Return::Accept(Some(runtime.capture.pop().unwrap().0))
+        }
+        */
+        // todo: What happens with $0, when explicitly set?
+        else {
+            let mut complex = Complex::new();
+
+            // Collect any significant captures and values
+            for (value, alias) in runtime.capture.drain(capture_start..) {
+                let value = match value {
+                    // Turn significant capture into string
+                    Capture::Range(range, severity) if severity > 0 => {
+                        Value::String(
+                            runtime.reader.extract(&range)
+                        ).into_ref()
+                    },
+                    
+                    // Take value as is
+                    Capture::Value(value, severity) if severity > 0 => {
+                        value.clone()
+                    },
+
+                    _ => {
+                        continue
+                    }
+                };
+
+                // Named capture becomes complex key
+                if let Some(name) = alias {
+                    complex.push_key_value(Value::String(name), value);
+                }
+                else {
+                    complex.push_value(value);
+                }
+            }
+
+            /* When there is only one value without a key in the map,
+                return this single value only! */
+            if complex.len() == 1 {
+                if let Some((None, value)) = complex.get(0) {
+                    return Return::Accept(Some(value.clone()))
+                }
+            }
+
+            if complex.len() > 0 {
+                // Return the complex when it contains something
+                Return::Accept(Some(Value::Complex(complex).into_ref()))
+            }
+            else {
+                Return::Accept(None)
+            }
+        }
     }
 }
 
@@ -300,9 +335,10 @@ impl<T: Read> Rule<T> {
 
 #[derive(Debug)]
 pub struct Parselet<T> {
-    pub rules: Vec<Rule<T>>,
+    index: usize,
+    rules: Vec<Rule<T>>,
 
-    //embedded: bool,
+    embedded: bool,
     nullable: bool,
     leftrec: bool,
 
@@ -311,10 +347,11 @@ pub struct Parselet<T> {
 }
 
 impl<T: Read> Parselet<T> {
-    pub fn new() -> Self {
+    fn new(index: usize) -> Self {
         Self{
+            index,
             rules: Vec::new(),
-            //embedded: false,
+            embedded: false,
             nullable: false,
             leftrec: false,
             lexem: false,
@@ -322,45 +359,222 @@ impl<T: Read> Parselet<T> {
         }
     }
 
-    pub fn push_rule(&mut self, rule: Rule<T>) {
-        self.rules.push(rule);
+    /// Returns the index of the parselet, which is unique in a separate program.
+    pub fn get_index(&self) -> usize {
+        self.index
     }
 
-    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>, leftrec: bool)
-        -> State {
-        
+    /** Makes a new rule inside the parselet, with an optional sequence.
+
+    When a new rule was added, Program.finalize() should be recalled. */
+    pub fn new_rule(&mut self, sequence: Sequence<T>) {
+        self.rules.push(Rule::new(Some(sequence)));
+    }
+
+    /// Return a Token::Call instance to this function.
+    pub fn to_call(&self) -> Token<T> {
+        Token::Call(CallBy::Index(self.index))
+    }
+
+    // Sequentially executes all rules of the parselet until one succeeds.
+    fn exec(&self, program: &Program<T>, runtime: &mut Runtime<T>,
+        leftrec: bool) -> Return
+    {
         for rule in &self.rules {
             // Skip left-recursive rules?
             if rule.leftrec != leftrec {
                 continue
             }
 
-            if let State::Accept(value) = rule.run(program, runtime) {
-                //println!("{:?} accepts with {:?}, values={:?}", rule.sequence, value, runtime.capture);
-                return State::Accept(value)
+            if let Return::Accept(value) = rule.run(program, runtime) {
+                return Return::Accept(value)
             }
 
             runtime.reader.reset(runtime.reader_start);
             runtime.capture.truncate(runtime.capture_start);
         }
 
-        State::Reject
+        Return::Reject
+    }
+
+    /// Run parselet with a given runtime.
+    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+        let mut state = Return::Reject;
+        let reader_start = runtime.reader.tell();
+        let mut reader_end: Option<usize> = None;
+
+        // Check for an existing memo-entry, and return it in case of a match
+        if let Some((mem_end, mem_state)) =
+            runtime.memo.get(&(reader_start, self.index))
+        {
+            reader_end = Some(*mem_end);
+            state = mem_state.clone();
+        }
+
+        if let Some(reader_end) = reader_end {
+            runtime.reader.reset(reader_end);
+            return state;
+        }
+
+        // Perform parselet call
+        runtime.level += 1;
+        let prev_top_reader_start = runtime.top_reader_start;
+        let prev_top_capture_start = runtime.top_capture_start;
+        let prev_reader_start = runtime.reader_start;
+        let prev_capture_start = runtime.capture_start;
+
+        let prev_flag_capture = runtime.flag_capture;
+
+        runtime.reader_start = reader_start;
+
+        if !self.embedded {
+            runtime.top_capture_start = runtime.capture.len();
+            runtime.top_reader_start = reader_start;
+            runtime.capture.push((Capture::None, None));
+        }
+
+        runtime.capture_start = runtime.capture.len();
+
+        if self.lexem {
+            runtime.flag_capture = false;
+        }
+
+        if self.leftrec {
+            // Left-recursive parselet is called in a loop until no more input
+            // is consumed.
+
+            let mut reader_end = reader_start;
+           
+            // Insert a fake memo entry to avoid endless recursion
+            
+            /* info: removing this fake entry does not affect program run!
+
+            This is because of the leftrec parameter to Parselet::run(), 
+            which only accepts non-left-recursive calls on the first run.
+            As an additional fuse, this fake memo entry should anyway be kept.
+            */
+            runtime.memo.insert(
+                (reader_start, self.index),
+                (reader_end, Return::Reject)
+            );
+            
+            let mut loops = 0;
+
+            loop {
+                let rec_state = self.exec(program, runtime, loops > 0);
+
+                // Stop either on reject or when no more input was consumed
+                if matches!(rec_state, Return::Reject)
+                    || runtime.reader.tell() <= reader_end {
+                    break;
+                }
+
+                state = rec_state;
+
+                reader_end = runtime.reader.tell();
+                runtime.memo.insert(
+                    (reader_start, self.index),
+                    (reader_end, state.clone())
+                );
+
+                runtime.reader.reset(runtime.reader_start);
+                runtime.capture.truncate(runtime.capture_start);
+                loops += 1;
+            }
+
+            runtime.reader.reset(reader_end);
+        }
+        else {
+            // Non-left-recursive parselet can be called directly.
+            state = self.exec(program, runtime, false);
+        }
+
+        // Top-level call with empty result saves capture.
+        if runtime.level == 1 && matches!(state, Return::Accept(None)) {
+            state = Return::Accept(runtime.get_capture(0));
+        }
+
+        // Clear captures and memoize current position and state.
+        runtime.capture.truncate(runtime.capture_start);
+        runtime.memo.insert(
+            (reader_start, self.index),
+            (runtime.reader.tell(), state.clone())
+        );
+
+        // Restore runtime positions
+        runtime.top_reader_start = prev_top_reader_start;
+        runtime.top_capture_start = prev_top_capture_start;
+        runtime.reader_start = prev_reader_start;
+        runtime.capture_start = prev_capture_start;
+
+        runtime.flag_capture = prev_flag_capture;
+        runtime.level -= 1;
+
+        // Return state
+        state
     }
 }
 
 #[macro_export]
 macro_rules! token {
-    (|$var:ident| $code:block) => {
+    ($program:expr, |$var:ident| $code:block) => {
         Token::Rust(|$var| $code)
     };
-    ($ident:ident) => {
+    ($program:expr, $ident:ident) => {
         Token::Call(CallBy::Name(stringify!($ident).to_string()))
     };
-    ($literal:literal) => {
+    ($program:expr, $literal:literal) => {
         Token::Touch($literal.to_string())
     };
-    ($expr:expr) => {
+    ($program:expr, $expr:expr) => {
         $expr
+    };
+}
+
+#[macro_export]
+macro_rules! modifier {
+    ($program:expr, pos( $( $token:tt )+ ) ) => {
+        {
+            let token = modifier!($program, $($token)+);
+            token.into_positive($program)
+        }
+    };
+    ($program:expr, opt( $( $token:tt )+ ) ) => {
+        {
+            let token = modifier!($program, $($token)+);
+            token.into_optional($program)
+        }
+    };
+    ($program:expr, kle( $( $token:tt )+ ) ) => {
+        {
+            let token = modifier!($program, $($token)+);
+            let token = token.into_positive($program);
+            token.into_optional($program)
+        }
+    };
+    ($program:expr, $( ( $( $token:tt )+ ) )* ) => {
+        {
+            let rule = sequence!($program, [ $( ( $($token)+ ) ),* ] );
+            let parselet = $program.new_embedded_parselet();
+            parselet.new_rule(rule);
+            parselet.to_call()
+        }
+    };
+    ($program:expr, $( $token:tt )+) => {
+        token!($program, $($token)+)
+    };
+}
+
+#[macro_export]
+macro_rules! sequence {
+    ($program:expr, [ $( ( $( $token:tt )+ ) ),* ] ) => {
+        {
+            vec![
+                $(
+                    (modifier!($program, $( $token )+), None)
+                ),*
+            ]
+        }
     };
 }
 
@@ -368,22 +582,21 @@ macro_rules! token {
 macro_rules! tokay {
     ($program:expr, $( $name:ident { $( => $( ( $( $token:tt )+ ) )* )+ } )+ )
         => {
-                {
-                    $(
-                        let mut parselet = $crate::tokay::Parselet::new();
-                        $(
-                            let mut rule = $crate::tokay::Rule::new();
-                            $(
-                                rule.push_token(token!($($token)*), None);
-                            )*
-                            parselet.push_rule(rule);
-                        )+
+        {
+            $(
+                let parselet = $program.new_parselet(
+                    Some(stringify!($name))
+                ).get_index();
 
-                        $program.push_parselet(
-                            Some(stringify!($name)), parselet
-                        );
-                    )+
-                }
+                $(
+                    let rule = sequence!($program, [ $( ( $($token)+ ) ),* ] );
+
+                    $program.get_parselet_mut(
+                        &CallBy::Index(parselet)
+                    ).unwrap().new_rule(rule);
+                )+
+            )+
+        }
     }
 }
 
@@ -402,20 +615,63 @@ impl<T: Read> Program<T> {
         }
     }
 
-    pub fn push_parselet(&mut self, name: Option<&str>, parselet: Parselet<T>)
-        -> usize
+    /// Creates a new parselet with an optional name.
+    pub fn new_parselet(&mut self, name: Option<&str>) -> &mut Parselet<T>
     {
-        let id = self.parselets.len();
-
         if let Some(name) = name {
             self.named_parselets.insert(
                 name.to_string(),
-                id
+                self.parselets.len()
             );
         }
-        
-        self.parselets.push(parselet);
-        id
+
+        self.parselets.push(Parselet::new(self.parselets.len()));
+        self.parselets.last_mut().unwrap()
+    }
+
+    /// Create a new embedded parselet.
+    pub fn new_embedded_parselet(&mut self) -> &mut Parselet<T> {
+        let parselet = self.new_parselet(None);
+        parselet.embedded = true;
+        parselet
+    }
+
+    fn get_parselet_idx(&self, id: &CallBy) -> Option<usize> {
+        match id {
+            CallBy::Name(name) => {
+                if let Some(idx) = self.named_parselets.get(name) {
+                    Some(*idx)
+                } else {
+                    None
+                }
+            },
+
+            CallBy::Index(idx) => {
+                if *idx < self.parselets.len() {
+                    Some(*idx)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Returns a parselet either by index or name.
+    pub fn get_parselet(&self, id: &CallBy) -> Option<&Parselet<T>> {
+        if let Some(idx) = self.get_parselet_idx(id) {
+            Some(&self.parselets[idx])
+        } else {
+            None
+        }
+    }
+
+    /// Returns a mutable parselet either by index or name.
+    pub fn get_parselet_mut(&mut self, id: &CallBy) -> Option<&mut Parselet<T>> {
+        if let Some(idx) = self.get_parselet_idx(id) {
+            Some(&mut self.parselets[idx])
+        } else {
+            None
+        }
     }
 
     /** Finalizes the program, by finding nullable and left-recursive parselets
@@ -462,10 +718,7 @@ impl<T: Read> Program<T> {
                                 },
 
                                 Token::Call(p) => {
-                                    let p = match p {
-                                        CallBy::Index(p) => *p,
-                                        CallBy::Name(p) => self.named_parselets[p]
-                                    };
+                                    let p = self.get_parselet_idx(p).unwrap();
 
                                     // Calling something from the done stack,
                                     // then this parselet is left-recursive.
@@ -520,137 +773,47 @@ impl<T: Read> Program<T> {
         }
     }
 
-    /** Run the program with the given runtime and parselet. */
-    pub fn run(&self, runtime: &mut Runtime<T>, index: usize) -> State {
-        let mut state = State::Reject;
-        let reader_start = runtime.reader.tell();
-        let mut reader_end: Option<usize> = None;
-
-        // Check for an existing memo-entry, and return it in case of a match
-        if let Some((mem_end, mem_state)) =
-                runtime.memo.get(&(reader_start, index))
-        {
-            reader_end = Some(*mem_end);
-            state = mem_state.clone();
-        }
-
-        if let Some(reader_end) = reader_end {
-            runtime.reader.reset(reader_end);
-            return state;
-        }
-
-        // Perform parselet call
-        let parselet = &self.parselets[index];
-
-        runtime.level += 1;
-        let prev_value = runtime.value.clone();
-        let prev_reader_start = runtime.reader_start;
-        let prev_capture_start = runtime.capture_start;
-        let prev_flag_capture = runtime.flag_capture;
-
-        runtime.reader_start = reader_start;
-        runtime.capture_start = runtime.capture.len();
-
-        if parselet.lexem {
-            runtime.flag_capture = false;
-        }
-
-        if parselet.leftrec {
-            // Left-recursive parselet is called in a loop until no more input
-            // is consumed.
-
-            let mut reader_end = reader_start;
-           
-            // Insert a fake memo entry to avoid endless recursion
-            
-            /* info: removing this fake entry does not affect program run!
-
-            This is because of the leftrec parameter to Parselet::run(), 
-            which only accepts non-left-recursive calls on the first run.
-            As an additional fuse, this fake memo entry should anyway be kept.
-            */
-            runtime.memo.insert(
-                (reader_start, index),
-                (reader_end, State::Reject)
-            );
-            
-            let mut loops = 0;
-
-            loop {
-                let rec_state = parselet.run(self, runtime, loops > 0);
-
-                // Stop either on reject or when no more input was consumed
-                if matches!(rec_state, State::Reject)
-                    || runtime.reader.tell() <= reader_end {
-                    break;
-                }
-
-                state = rec_state.finalize(runtime);
-
-                reader_end = runtime.reader.tell();
-                runtime.memo.insert(
-                    (reader_start, index),
-                    (reader_end, state.clone())
-                );
-
-                runtime.reader.reset(runtime.reader_start);
-                runtime.capture.truncate(runtime.capture_start);
-                loops += 1;
-            }
-
-            runtime.reader.reset(reader_end);
-        }
-        else {
-            // Non-left-recursive parselet can be called directly.
-            state = parselet.run(self, runtime, false).finalize(runtime);
-        }
-
-        // Clear captures and memoize current position and state.
-        runtime.capture.truncate(runtime.capture_start);
-        runtime.memo.insert(
-            (reader_start, index),
-            (runtime.reader.tell(), state.clone())
-        );
-
-        // Restore runtime
-        runtime.value = prev_value;
-        runtime.reader_start = prev_reader_start;
-        runtime.capture_start = prev_capture_start;
-        runtime.flag_capture = prev_flag_capture;
-        runtime.level -= 1;
-
-        // Return state
-        state
-    }
-
-    /** Skips until execution of the given parselet is reasonable. */
-    pub fn skip(&self, runtime: &mut Runtime<T>, parselet: usize) {
-        let parselet = &self.parselets[parselet];
-
-        while let Some(c) = runtime.reader.peek() {
-            if parselet.first.test(&(c..=c)) {
-                break
-            }
-
-            runtime.reader.next();
-        }
+    /// Run the program with the given runtime and parselet.
+    pub fn run(&self, runtime: &mut Runtime<T>) -> Return {
+        self.parselets[0].run(&self, runtime)
     }
 }
 
 
 // --- Runtime ---
 
+
+#[derive(Debug, Clone)]
+pub enum Return {
+    Capture(Capture),           // Soft accept, capture & continue
+    Accept(Option<RefValue>),   // Hard accept, take value & continue
+    Reject                      // Reject
+    // todo: Escape?
+}
+
+/*
+impl Clone for Return {
+    fn clone(&self) -> Self {
+        match self {
+            State::Capture(c) => State::Capture(Some(value.clone())),
+            State::Capture(None) => State::Capture(None),
+            State::Accept(Some(value)) => State::Accept(Some(value.clone())),
+            State::Accept(None) => State::Accept(None),
+            State::Reject => State::Reject
+        }
+    }
+}
+*/
+
 /**
     Represents captures with different severities, mostly used for
     automatic syntax tree construction from rules.
 */
-#[derive(Debug)]
-enum Capture {
-    Capture(Range),     // non-significant range, just used by semantics
-    SigCapture(Range),  // significant range, turned into a parse tree leaf
-    Value(RefValue),    // non-significant value
-    SigValue(RefValue)  // significant value, turned into a parse tree leaf
-                        // (or node, when using Value::Complex)
+#[derive(Debug, Clone)]
+pub enum Capture {
+    None,                   // Empty capture
+    Range(Range, u8),       // Range with severity
+    Value(RefValue, u8),    // Value with severity
 }
 
 /**
@@ -665,15 +828,19 @@ enum Capture {
 pub struct Runtime<T> {
     // Input & memoization
     reader: Reader<T>,
-    memo: HashMap<(usize, usize), (usize, State)>,
+    memo: HashMap<(usize, usize), (usize, Return)>,
 
     // Captures and overall value $0
     capture: Vec<(Capture, Option<String>)>,
-    value: Option<RefValue>,
+
+    // Positions per top-level parselet
+    top_reader_start: usize,    // Reader offset at current top-level parselet
+    top_capture_start: usize,   // Capture offset at current top-level parselet
 
     // Positions per parselet
-    reader_start: usize,
-    capture_start: usize,
+    reader_start: usize,        // Reader offset at current parselet
+    capture_start: usize,       // Capture offset at current parselet
+
     flag_capture: bool,
     level: usize
 }
@@ -684,7 +851,8 @@ impl <T: Read> Runtime<T> {
             reader,
             memo: HashMap::new(),
             capture: Vec::new(),
-            value: None,
+            top_reader_start: 0,
+            top_capture_start: 0,
             reader_start: 0,
             capture_start: 0,
             flag_capture: true,
@@ -692,67 +860,72 @@ impl <T: Read> Runtime<T> {
         }
     }
 
-    // Returns true when eof is reached
-    pub fn is_eof(&self) -> bool {
-        self.reader.eof
-    }
+    // Skip one character, clear any memoization in front of new offset
+    pub fn skip(&mut self) {
+        self.reader.next();
 
-    // Unfinished...
-    pub fn clean(&mut self) {
         let offset = self.reader.tell();
         self.memo.retain(|&(start, _), _| start >= offset);
         self.reader.commit();
+    }
+
+    // Returns true when eof is reached
+    pub fn is_eof(&self) -> bool {
+        self.reader.eof
     }
 
     // Runtime state 
     pub fn stats(&self) {
         println!("---");
         println!("{} memo entries", self.memo.len());
-        println!("current {:?}", &self.capture[self.capture_start..]);
+        println!("current {:?}", &self.capture[self.top_capture_start..]);
         println!("capture {:?} (full)", self.capture);
         println!("---");
     }
 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
+        // Capture $0 is specially handled.
         if pos == 0 {
             return Some(self.get_value());
         }
 
-        let pos = self.capture_start + pos - 1;
+        // Anything else by position.
+        let pos = self.top_capture_start + pos;
 
         if pos >= self.capture.len() {
             return None
         }
 
         let replace = match &self.capture[pos].0 {
-            Capture::Capture(range) => {
+            Capture::None => {
                 Capture::Value(
-                    Value::String(self.reader.extract(range)).into_ref()
-                )
-            },
-            
-            Capture::SigCapture(range) => {
-                Capture::SigValue(
-                    Value::String(self.reader.extract(range)).into_ref()
+                    Value::None.into_ref(), 0
                 )
             },
 
-            Capture::Value(value) | Capture::SigValue(value) => {
+            Capture::Range(range, sig) => {
+                Capture::Value(
+                    Value::String(self.reader.extract(range)).into_ref(), *sig
+                )
+            },
+            
+            Capture::Value(value, _) => {
                 return Some(value.clone())
             }
         };
 
         self.capture[pos].0 = replace;
-        self.get_capture(pos - self.capture_start + 1)
+        self.get_capture(pos - self.top_capture_start)
     }
 
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
-        for (i, capture) in self.capture[self.capture_start..].iter().enumerate() {
+        // fixme: Maybe this should be examined in reversed order?
+        for (i, capture) in self.capture[self.top_capture_start..].iter().enumerate() {
             if let Some(alias) = &capture.1 {
                 if alias == name {
-                    return self.get_capture(i + 1);
+                    return self.get_capture(i);
                 }
             }
         }
@@ -760,21 +933,21 @@ impl <T: Read> Runtime<T> {
         None
     }
 
-    /** Returns the current reference value */
+    /** Returns the current $0 value */
     pub fn get_value(&self) -> RefValue {
-        if let Some(value) = &self.value {
+        if let Capture::Value(value, _) = &self.capture[self.top_capture_start].0 {
             return value.clone()
         }
 
         Value::String(
             self.reader.extract(
-                &(self.reader_start..self.reader.tell())
+                &(self.top_reader_start..self.reader.tell())
             )).into_ref()
     }
 
-    /** Save current reference value */
+    /** Save current $0 value */
     pub fn set_value(&mut self, value: RefValue) {
-        self.value = Some(value)
+        self.capture[self.top_capture_start].0 = Capture::Value(value, 2)
     }
 
 }
