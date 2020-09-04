@@ -20,67 +20,46 @@
 
 @Integer	:	/\d+/
 @Float		:	/\d*\.\d+|\d+\.\d*/
-@Identifier	:	/[a-z]\w*/
-@Parselet	:	/[A-Z_]\w*/
+@Variable	:=	/[a-z]\w*/
+@Constant	:=	/[A-Z_]\w*/
+@Identifier	:	/\w+/										# This doesn't work because unicc2 is not context-sensitive
 
 @String 	:	/"[^"]*"/
 @LightString:	/'[^']*'/
-@Regex 		:	/\/(\\.|[^\\\/])*\//
-@Chars		:	/\|[^|]+\|/
+@Charset	:	/\|[^|]+\|/
 
-@context    :	'$' (Identifier = name) tail*				= context_named
-			|	'$' Integer tail*							= context
-
-@global		:	'@' (Identifier = global) tail*
+@context    :	'$' Identifier 								= context_named
+			|	'$' Integer 								= context
 
 @EOL        :	'\n' | ';'
 
-@tail       :	'.' (Identifier = attribute)
+@tail       :	'.' ( Variable = attribute )				# fixme: Should be Identifier!
             |	'[' expr ']'								= index
 
-@variable	:	(Identifier = name) tail*
-			|	'self'										= self
-
-@lvalue		:=	variable
-			|	context
-			|	global
+@lvalue		:=	Variable tail*
+			|	context tail*
 
 @call_argument
-			:	(Identifier = name) '=' expr				= arg_named_value
-			|	expr										= arg_positional_value
+			:	Variable '=' expr							= arg_variable
+			|	Constant '=' constant						= arg_constant
+			|	expr										= arg
 
 @call_argument_list
 			:	call_argument_list ',' call_argument
             |	call_argument
 
-@call		: 	variable '(' call_argument_list? ')'		= call_function
-
-@call_parselet_argument
-			: 	(Identifier = name) '=' expr_static			= arg_named_value
-			|	(Parselet = name) '=' token					= arg_named_parselet
-			| 	expr_static									= arg_positional_value
-			| 	token										= arg_positional_parselet
-
-@call_parselet_argument_list
-			:	call_parselet_argument_list ',' call_parselet_argument
-            |	call_parselet_argument
-
-@call_parselet_arguments
-			:	'(' call_parselet_argument_list? ')'
-
-@call_parselet
-			:	Parselet call_parselet_arguments?			= call_parselet
-			|	'Self' call_parselet_arguments?				= call_parselet_self
-
+@call_argument_def
+			:	'(' call_argument_list? ')'
 
 @string		:	String										= value_string
 			|	LightString									= value_string
 
-@literal	:	Integer										= value_integer
-			|	Float										= value_float
+@literal	:	Integer										= value_Integer
+			|	Float										= value_Float
 			|	'true'										= value_boolean_true
 			|	'false'										= value_boolean_false
 			|	'void'										= value_void
+			|	'unset'										= value_unset
 
 @complex	:	'[' EOL* complex_values? EOL* ']'			= complex
 
@@ -93,44 +72,26 @@
 			|	expr 										= complex_value
 
 @argument_definition
-			:	(Identifier = name) ('=' expr_static)?		= argdef_value
-			|	(Parselet = name) ('=' token)?				= argdef_parselet
+			:	Constant ('=' constant)?					= argdef_constant
+			|	Variable ('=' atomic)?						= argdef_variable
 
 @argument_definition_list
-			:	argument_definition_list
-					',' argument_definition
+			:	argument_definition_list ',' argument_definition
 			|	argument_definition
 
-@block		:	'{' EOL* pattern* '}'						= block
+@argument_definition_def
+			:	'(' EOL* argument_definition_list? EOL* ')' EOL*
 
-@expr_static:
-			'(' expr_static ')'
+@block		:	'{' EOL* pattern* '}'
 
-			//|	variable '=' expr_static					= assign	//experimental!
+@parselet	:=	'@' argument_definition_def? block
 
-			| 	expr_static '==' expr_static				= op_binary_eq
-			|	expr_static '!=' expr_static				= op_binary_uneq
-			|	expr_static '<' expr_static					= op_binary_lower
-			|	expr_static '<=' expr_static				= op_binary_lowereq
-			|	expr_static '>' expr_static					= op_binary_greater
-			|	expr_static '>=' expr_static				= op_binary_greatereq
-			|	expr_static '||' expr_static				= op_binary_or
-			|	expr_static '&&' expr_static				= op_binary_and
-		    |	expr_static '|' expr_static					= op_binary_bitor
-			|	expr_static '&' expr_static					= op_binary_bitand
-			|	expr_static '+' expr_static					= op_binary_add
-			|	expr_static '-' expr_static					= op_binary_sub
-			|	expr_static '*' expr_static					= op_binary_mul
-			|	expr_static '/' expr_static					= op_binary_div
-			|	expr_static '%' expr_static					= op_binary_mod
-			|	expr_static '^' expr_static					= op_binary_pow
-			|   '!' expr_static								= op_unary_not
-			|   '~' expr_static								= op_unary_compl
-			|	'-' expr_static								= op_unary_sub
-			|	'+' expr_static								= op_unary_add
-			|	literal
+@constant	:	literal
+			|	parselet
 
-@assign_expr: 	lvalue '=' expr								= assign
+@assign_expr: 	(Constant '=')+ constant					= define
+			|	(lvalue '=')+ expr							= assign
+			/*
 			|	lvalue '|=' expr							= assign_bitor
 			|	lvalue '&=' expr							= assign_bitand
 			|	lvalue '+=' expr							= assign_add
@@ -139,6 +100,7 @@
 			|	lvalue '/=' expr							= assign_div
 			|	lvalue '%=' expr							= assign_mod
 			|	lvalue '^=' expr							= assign_pow
+			*/
 			|	lvalue '++' 								= op_unary_post_increment
 			|	lvalue '--'									= op_unary_post_decrement
 			|	'++' lvalue  								= op_unary_pre_increment
@@ -146,7 +108,7 @@
 
 /*
 @for_variant:	expr? ';' expr? ';' expr?
-			|	variable "in" expr
+			|	Variable "in" expr
 */
 
 @flow_expr	:	'if' (expr = condition) EOL?
@@ -187,14 +149,15 @@
 			|	'+' expr									= op_unary_add
 
 @expr		:
+
 			// Grouped expressions	
-			'(' expr ')'
+				'(' expr ')'
 			
 			// Flow
 			|	flow_expr
 
 			// Operators
-			|	assign_expr
+			//|	assign_expr
 			|	binary_expr
 			|	unary_expr
 
@@ -202,26 +165,34 @@
 			|	atomic
 			|	string										# string can be here in full expr!
 
-@atomic		:	literal
-			|   call
-			|	block
-			|	complex
-			|	variable									= rvalue
-			|	global										= rvalue
+			// Variables
+			|	Variable									= rvalue
+			|	Constant									= rvalue
 			|	context										= rvalue
 
+			//Full-qualified calls
+			|	Constant call_argument_def					= call
+			|	Variable call_argument_def					= call
 
-@token		: 	Regex										= call_parselet_builtin_regex
-			| 	'.'											= call_parselet_builtin_any
+@atomic		:	literal
+			|	block										= block
+			|	parselet
+			|	complex
+
+@token		: 	'.'											= call_parselet_builtin_any
 			|	'EOF'										= call_parselet_builtin_eof
-			|	'None'										= call_parselet_builtin_none
+			|	'Empty'										= call_parselet_builtin_empty
 			| 	String										= call_parselet_builtin_match
 			| 	LightString									= call_parselet_builtin_touch
-			|	Chars										= call_parselet_builtin_chars
-			|	'?{' EOL* pattern* '}'						= block_optional
-			|	'+{' EOL* pattern* '}'						= block_positive
-			|	'*{' EOL* pattern* '}'						= block_kleene
-			|	call_parselet
+			|	Charset										= call_parselet_builtin_chars
+			
+			// Direct token calls (must be in separate productions to get distinct handle)
+			|	Constant call_argument_def?					= call
+
+@modifier	:	token '+'									= mod_positive
+			|	token '?'									= mod_optional
+			|	token '*'									= mod_kleene
+			|	token
 
 @stmt		:	'return' expr?								= return
 			|   'accept' expr?								= accept
@@ -235,8 +206,9 @@
 			:	stmt
 			|	expr
 
-@result		:	stmt
+@action		:	stmt
 
+			// Full-qualified expr must be wrapped!
 			|	'(' expr ')'
 			
 			// Flow
@@ -251,22 +223,55 @@
 			|	atomic
 
 @aliased_token
-			:	token
-			|	token ':' Identifier						= alias
+			:	modifier
+			|	modifier ':' Identifier						= alias
 
-@pattern	:	aliased_token+ result? EOL?					= pattern
-			|	'begin'	expr EOL?							= begin
-			|	'end' expr EOL?								= end
-			|	result EOL?
+@pattern	:	aliased_token* action? EOL?					= pattern
+			|	action EOL?
 			|	EOL
 
-@callable_definitions
-			:	'parselet' EOL* (Parselet = name) EOL*
-					('(' EOL* argument_definition_list? EOL* ')' EOL*)?
-						(token EOL+ | block)				= parselet
-			|	'function' EOL* (Identifier = name) EOL*
-					('(' EOL* argument_definition_list? EOL* ')' EOL*)?
-						block								= function
+@tokay$		:	pattern*
 
-@tokay$		:	(callable_definitions | pattern)*
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+Later this is a nice to have...
+
+@constant_expr:
+			'(' constant_expr ')'
+
+			| 	constant_expr '==' constant_expr			= op_binary_eq
+			|	constant_expr '!=' constant_expr			= op_binary_uneq
+			|	constant_expr '<' constant_expr				= op_binary_lower
+			|	constant_expr '<=' constant_expr			= op_binary_lowereq
+			|	constant_expr '>' constant_expr				= op_binary_greater
+			|	constant_expr '>=' constant_expr			= op_binary_greatereq
+			|	constant_expr '||' constant_expr			= op_binary_or
+			|	constant_expr '&&' constant_expr			= op_binary_and
+		    |	constant_expr '|' constant_expr				= op_binary_bitor
+			|	constant_expr '&' constant_expr				= op_binary_bitand
+			|	constant_expr '+' constant_expr				= op_binary_add
+			|	constant_expr '-' constant_expr				= op_binary_sub
+			|	constant_expr '*' constant_expr				= op_binary_mul
+			|	constant_expr '/' constant_expr				= op_binary_div
+			|	constant_expr '%' constant_expr				= op_binary_mod
+			|	constant_expr '^' constant_expr				= op_binary_pow
+			|   '!' constant_expr							= op_unary_not
+			|   '~' constant_expr							= op_unary_compl
+			|	'-' constant_expr							= op_unary_sub
+			|	'+' constant_expr							= op_unary_add
+
+			|	literal
+*/

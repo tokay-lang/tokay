@@ -2,6 +2,111 @@
 
 This document is a scribble and draft for the syntax and semantics for Tokay, a new programming language for text-processing, influenced by AWK, Python and Rust.
 
+---
+## Constants
+
+```tokay
+# Basic constant values
+Pi = 3.1415
+Aircraft = "Arcus"
+Debug = true
+Leet = 1337
+
+# Parselets
+Digit = |0-9|                       # Shortcut for a parselet @{ |0-9| }
+
+Part = @{
+    Digit{1,3} if int($Digit) <= 255 accept
+}
+
+IPv4 = @{
+    Part '.' Part '.' Part '.' Part
+}
+
+
+# Scoping
+
+# `Hold = 1` here would make the scoped Hold below an error!
+
+if true {
+    Hold = 1
+    print(Hold)
+} # Hold is gone now!
+
+# Hold could be defined here again...
+
+
+# Invalid
+Debug = !Debug                      # Debug is already defined in this scope!
+Reload = a                          # Dynamic expression based on variable
+StopAt = if a > 10 100              # same like above
+```
+
+- Constants begin with an upper-case letter `A-Z`, or an underscore `_`
+- Once defined, cannot be re-assigned or modified, except when in different scopes
+- They may contain either atomic Values or Parselets; Expressions, Objects or Blocks are not allowed!
+- They are scoped, as shown above
+
+---
+## Variables
+
+```
+x = 23
+y = if x > 14 -200 else 200
+z = y + 3 + "strings"
+f = @x {
+    x * 2
+}
+ten = range(10)
+names = [
+    "Sabrina" = 1,
+    "Piddy" = 2,
+    8883 = 42
+]
+
+g = f(x)
+ip = IPv4
+```
+
+- Variables begin with a lower-case letter `a-z`. They may not start with an underscore.
+- May contain any value or object.
+
+---
+## Patterns
+
+```
+# Simple Match
+"Hello World"
+
+# Chars A to Z multiple times
+|A-Z|+
+
+# Call parselet IP, followed by call parselet String with params
+IP String("'")
+
+# Touch Hello, match multiple "World", print $0
+'Hello' "World"+    print
+
+# Inline parselet
+'Hello' {
+    'Worlds'+
+    'World'
+}
+
+# Whitespace matters, because symbols + and * have different meanings.
+IP + a * 3  # calculation
+IP+ a * 3   # Match IP multiple times, calculate a * 3
+IP+ a* 3    # Match IP mutliple times, match a optionally or multiple times, 3
+(IP+ a* 3)  # Enforced expression is just calculating IP + a * 3
+```
+
+- Sequence of Tokens from the input
+- "Match", 'Touch', |Char-class|, Parselet, @{ inline parselet }, everything else is an expression
+- Quantifying modifiers ?, +, * must directly stick to a token (whitespace matters!)
+- Expressions are threatened as match to Empty
+
+---
+
 ## Hello World
 
 ```
@@ -16,8 +121,10 @@ i = 42                                      # Integer (i64, bigint)
 b = true                                    # boolean (bool)
 s = "Tokay"                                 # String (String)
 f = 1.337                                   # Float (f64)
-v = void                                    # Defines "set to nothing"
-u = unset                                   # Defines "not even void"
+v = void                                    # Defines "nothing"
+
+i = unset                                   # Can be used to "unset" a variable;
+                                            # i is not known afterwards.
 ```
 
 ## Complex values
@@ -148,9 +255,9 @@ else
 }
 ```
 
-## Repeatable blocks
+## Parselet
 
-Tokays fundamental building block is the repeatable block ```@{...}```, which is also the way functions are being represented. A repeatable block runs like a loop over the input, when it is accordingly. When a repeatable block occurs as a token without being assigned to a variable, it is immediatelly called.
+Tokays fundamental building block is the parselet ```@{...}```, which is also the way functions are being expressed. A parselet runs like a loop over the input, when it is accordingly. When a parselet occurs as a token without being assigned to a variable, it is immediatelly called.
 
 This block has the following features:
 

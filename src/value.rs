@@ -2,25 +2,29 @@ use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
 use crate::map::Map;
 
+
 pub type Complex = Map<Value, RefValue>;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub enum Value {
-    None,               // the unset value
-    Void,               // the void value
-    Bool(bool),         // booleans
+    Unset,              // unse
+    Void,               // void
+    True,               // true
+    False,              // false
     Integer(i64),       // integers
     //Float(f64),       //todo: Implement a hashable Float (i32, i32) or so...
     String(String),     // string
-    Complex(Complex)    // combined map/array type
+    Complex(Complex),   // combined map/array type
+    Parselet(usize)     // Reference to parselet
 }
 
 impl std::fmt::Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::None => write!(f, "None"),
-            Value::Void => write!(f, "Void"),
-            Value::Bool(_) => write!(f, "{}", self.to_string().unwrap()),
+            Value::Unset => write!(f, "unset"),
+            Value::Void => write!(f, "void"),
+            Value::True => write!(f, "true"),
+            Value::False => write!(f, "false"),
             Value::Integer(i) => write!(f, "{}", i),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Complex(c) => {
@@ -39,7 +43,8 @@ impl std::fmt::Debug for Value {
                 write!(f, "]")?;
 
                 Ok(())
-            }
+            },
+            Value::Parselet(p) => write!(f, "@{}", p)
         }
     }
 }
@@ -50,22 +55,27 @@ impl Value {
         RefValue::new(self)
     }
 
+    /* todo: Implement standard traits for this ... */
+
     // Get Value's boolean representation.
     pub fn to_bool(&self) -> Option<bool> {
         match self {
-            Self::None | Self::Void => Some(false),
-            Self::Bool(b) => Some(*b),
+            Self::Unset | Self::Void => Some(false),
+            Self::True => Some(true),
+            Self::False => Some(false),
             Self::Integer(i) => Some(*i != 0),
             //Self::Float(f) => *f as i64,
             Self::String(s) => Some(s.len() != 0),
-            Self::Complex(c) => Some(c.len() > 0)
+            Self::Complex(c) => Some(c.len() > 0),
+            Value::Parselet(p) => Some(*p > 0)
         }
     }
 
     // Get Value's integer representation.
     pub fn to_integer(&self) -> Option<i64> {
         match self {
-            Self::Bool(b) => if *b { Some(1) } else { Some(0) },
+            Self::True => Some(1),
+            Self::False => Some(0),
             Self::Integer(i) => Some(*i),
             //Self::Float(f) => *f as i64,
             Self::String(s) => {
@@ -81,7 +91,8 @@ impl Value {
     // Get Value's float representation.
     pub fn to_float(&self) -> Option<f64> {
         match self {
-            Self::Bool(b) => if *b { Some(1.0) } else { Some(0.0) },
+            Self::True => Some(1.0),
+            Self::False => Some(0.0),
             Self::Integer(i) => Some(*i as f64),
             //Self::Float(f) => *f
             Self::String(s) => {
@@ -97,19 +108,15 @@ impl Value {
     // Get Value's string representation.
     pub fn to_string(&self) -> Option<String> {
         match self {
-            Self::None => Some("none".to_string()), 
+            Self::Unset => Some("unset".to_string()), 
             Self::Void => Some("void".to_string()),
-            Self::Bool(b) => {
-                if *b {
-                    Some("true".to_string())
-                } else {
-                    Some("false".to_string())
-                }
-            },
+            Self::True => Some("true".to_string()),
+            Self::False => Some("false".to_string()),
             Self::Integer(i) => Some(format!("{}", i)),
             //Self::Float(f) => format!("{}", f),
             Self::String(s) => Some(s.clone()),
-            Self::Complex(c) => Some(format!("{:?}", c))
+            Self::Complex(c) => Some(format!("{:?}", c)),
+            Self::Parselet(p) => Some(format!("{:?}", *p))
         }
     }
 }

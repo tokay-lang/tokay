@@ -14,7 +14,7 @@ use crate::value::{Value, RefValue, Complex};
 
 // --- Token ---
 
-pub type Sequence<T> = Vec<(Token<T>, Option<String>)>;
+pub type Sequence = Vec<(Token, Option<String>)>;
 
 #[derive(Clone, Debug)]
 pub enum CallBy {
@@ -23,7 +23,7 @@ pub enum CallBy {
 }
 
 #[derive(Clone)]
-pub enum Token<T> {
+pub enum Token {
     None,
     Any,
     Touch(String), // todo: merge with Match
@@ -31,15 +31,15 @@ pub enum Token<T> {
     Char(Ccl),
     Chars(Ccl),  // todo: remove soon
     Call(CallBy),
-    Rust(fn(&mut Runtime<T>) -> Return),
-    Sequence(Vec<Token<T>>),
-    Positive(Box<Token<T>>),
-    Optional(Box<Token<T>>),
-    Kleene(Box<Token<T>>),
+    Rust(fn(&mut Runtime) -> Return),
+    Sequence(Vec<Token>),
+    Positive(Box<Token>),
+    Optional(Box<Token>),
+    Kleene(Box<Token>),
 }
 
-impl<T: Read> Token<T> {
-    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+impl Token {
+    fn run(&self, program: &Program, runtime: &mut Runtime) -> Return {
         let reader_start = runtime.reader.tell();
 
         match self {
@@ -148,12 +148,12 @@ impl<T: Read> Token<T> {
     }
 }
 
-impl<T: Read + Clone> Token<T> {
+impl Token {
 
     /** Creates a positive closure on the provided token,
         by introducing a new, repeating parselet.
     */
-    pub fn into_positive(self, program: &mut Program<T>) -> Token<T> {
+    pub fn into_positive(self, program: &mut Program) -> Token {
         let parselet = program.new_embedded_parselet();
 
         parselet.new_rule(
@@ -175,7 +175,7 @@ impl<T: Read + Clone> Token<T> {
     /** Creates an optional closure on the provided token,
         by introducing a new, differencing parselet.
     */
-    pub fn into_optional(self, program: &mut Program<T>) -> Token<T> {
+    pub fn into_optional(self, program: &mut Program) -> Token {
         let parselet = program.new_embedded_parselet();
 
         parselet.new_rule(
@@ -194,7 +194,7 @@ impl<T: Read + Clone> Token<T> {
     }
 }
 
-impl<T> std::fmt::Debug for Token<T> {
+impl std::fmt::Debug for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Token::None => write!(f, "None"),
@@ -227,15 +227,15 @@ impl<T> std::fmt::Debug for Token<T> {
 // --- Rule ---
 
 #[derive(Debug)]
-pub struct Rule<T> {
-    sequence: Sequence<T>,
+pub struct Rule {
+    sequence: Sequence,
     nullable: bool,
     leftrec: bool,
     first: Ccl
 }
 
-impl<T: Read> Rule<T> {
-    fn new(sequence: Option<Sequence<T>>) -> Self {
+impl Rule {
+    fn new(sequence: Option<Sequence>) -> Self {
         return Self{
             sequence: sequence.unwrap_or_else(|| Vec::new()),
             nullable: false,
@@ -244,7 +244,7 @@ impl<T: Read> Rule<T> {
         };
     }
 
-    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+    fn run(&self, program: &Program, runtime: &mut Runtime) -> Return {
         let reader_start = runtime.reader.tell();
         let capture_start = runtime.capture.len();
 
@@ -334,9 +334,9 @@ impl<T: Read> Rule<T> {
 // --- Parselet ---
 
 #[derive(Debug)]
-pub struct Parselet<T> {
+pub struct Parselet {
     index: usize,
-    rules: Vec<Rule<T>>,
+    rules: Vec<Rule>,
 
     embedded: bool,
     nullable: bool,
@@ -346,7 +346,7 @@ pub struct Parselet<T> {
     pub first: Ccl
 }
 
-impl<T: Read> Parselet<T> {
+impl Parselet {
     fn new(index: usize) -> Self {
         Self{
             index,
@@ -367,17 +367,17 @@ impl<T: Read> Parselet<T> {
     /** Makes a new rule inside the parselet, with an optional sequence.
 
     When a new rule was added, Program.finalize() should be recalled. */
-    pub fn new_rule(&mut self, sequence: Sequence<T>) {
+    pub fn new_rule(&mut self, sequence: Sequence) {
         self.rules.push(Rule::new(Some(sequence)));
     }
 
     /// Return a Token::Call instance to this function.
-    pub fn to_call(&self) -> Token<T> {
+    pub fn to_call(&self) -> Token {
         Token::Call(CallBy::Index(self.index))
     }
 
     // Sequentially executes all rules of the parselet until one succeeds.
-    fn exec(&self, program: &Program<T>, runtime: &mut Runtime<T>,
+    fn exec(&self, program: &Program, runtime: &mut Runtime,
         leftrec: bool) -> Return
     {
         for rule in &self.rules {
@@ -398,7 +398,7 @@ impl<T: Read> Parselet<T> {
     }
 
     /// Run parselet with a given runtime.
-    fn run(&self, program: &Program<T>, runtime: &mut Runtime<T>) -> Return {
+    fn run(&self, program: &Program, runtime: &mut Runtime) -> Return {
         let mut state = Return::Reject;
         let reader_start = runtime.reader.tell();
         let mut reader_end: Option<usize> = None;
@@ -602,12 +602,12 @@ macro_rules! tokay {
 
 // --- Program ---
 
-pub struct Program<T> {
+pub struct Program {
     named_parselets: HashMap<String, usize>,
-    parselets: Vec<Parselet<T>>
+    parselets: Vec<Parselet>
 }
 
-impl<T: Read> Program<T> {
+impl Program {
     pub fn new() -> Self {
         Self{
             named_parselets: HashMap::new(),
@@ -616,7 +616,7 @@ impl<T: Read> Program<T> {
     }
 
     /// Creates a new parselet with an optional name.
-    pub fn new_parselet(&mut self, name: Option<&str>) -> &mut Parselet<T>
+    pub fn new_parselet(&mut self, name: Option<&str>) -> &mut Parselet
     {
         if let Some(name) = name {
             self.named_parselets.insert(
@@ -630,7 +630,7 @@ impl<T: Read> Program<T> {
     }
 
     /// Create a new embedded parselet.
-    pub fn new_embedded_parselet(&mut self) -> &mut Parselet<T> {
+    pub fn new_embedded_parselet(&mut self) -> &mut Parselet {
         let parselet = self.new_parselet(None);
         parselet.embedded = true;
         parselet
@@ -657,7 +657,7 @@ impl<T: Read> Program<T> {
     }
 
     /// Returns a parselet either by index or name.
-    pub fn get_parselet(&self, id: &CallBy) -> Option<&Parselet<T>> {
+    pub fn get_parselet(&self, id: &CallBy) -> Option<&Parselet> {
         if let Some(idx) = self.get_parselet_idx(id) {
             Some(&self.parselets[idx])
         } else {
@@ -666,7 +666,7 @@ impl<T: Read> Program<T> {
     }
 
     /// Returns a mutable parselet either by index or name.
-    pub fn get_parselet_mut(&mut self, id: &CallBy) -> Option<&mut Parselet<T>> {
+    pub fn get_parselet_mut(&mut self, id: &CallBy) -> Option<&mut Parselet> {
         if let Some(idx) = self.get_parselet_idx(id) {
             Some(&mut self.parselets[idx])
         } else {
@@ -774,7 +774,7 @@ impl<T: Read> Program<T> {
     }
 
     /// Run the program with the given runtime and parselet.
-    pub fn run(&self, runtime: &mut Runtime<T>) -> Return {
+    pub fn run(&self, runtime: &mut Runtime) -> Return {
         self.parselets[0].run(&self, runtime)
     }
 }
@@ -825,9 +825,9 @@ pub enum Capture {
 
     It is shared by several functions in this module during a parse.
 */
-pub struct Runtime<T> {
+pub struct Runtime {
     // Input & memoization
-    reader: Reader<T>,
+    reader: Reader,
     memo: HashMap<(usize, usize), (usize, Return)>,
 
     // Captures and overall value $0
@@ -845,8 +845,8 @@ pub struct Runtime<T> {
     level: usize
 }
 
-impl <T: Read> Runtime<T> {
-    pub fn new(reader: Reader<T>) -> Self {
+impl Runtime {
+    pub fn new(reader: Reader) -> Self {
         Self{
             reader,
             memo: HashMap::new(),
@@ -900,7 +900,7 @@ impl <T: Read> Runtime<T> {
         let replace = match &self.capture[pos].0 {
             Capture::None => {
                 Capture::Value(
-                    Value::None.into_ref(), 0
+                    Value::Void.into_ref(), 0
                 )
             },
 

@@ -1,21 +1,20 @@
 use std::io::prelude::*;
-use std::io::BufReader;
 
 pub type Range = std::ops::Range<usize>;
 
-pub struct Reader<T> {
-    reader: BufReader<T>,
+pub struct Reader {
+    reader: Box<dyn BufRead>,
     buffer: Vec<char>,
     offset: usize,
     pub eof: bool
 }
 
-impl<T: Read> Reader<T> {
+impl Reader {
 
     /// Creates a new reader on buffer read.
-    pub fn new(read: T) -> Self {
+    pub fn new(reader: Box<dyn BufRead>) -> Self {
         Self{
-            reader: BufReader::new(read),
+            reader,
             buffer: Vec::new(),
             offset: 0,
             eof: false

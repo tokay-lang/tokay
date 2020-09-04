@@ -12,7 +12,7 @@ fn main() {
     println!("{}", s);
 
     let reader = Reader::new(
-        std::io::Cursor::new(s)
+        Box::new(std::io::Cursor::new(s))
     );
 
     let mut program = Program::new();
