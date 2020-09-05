@@ -1,0 +1,15 @@
+Factor = @{
+    Float
+    '-' Expr            -$Expr
+    '(' Expr ')'
+}
+
+Expr = @{
+    Expr '+' Factor     $Expr + $Factor
+    Expr '-' Factor     $Expr - $Factor
+    Factor
+}
+
+Expr                    print $Expr
+
+
