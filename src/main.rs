@@ -1,20 +1,39 @@
+use std::cell::RefCell;
+
+use std::io::prelude::*;
 use ::tokay::reader::Reader;
-use ::tokay::tokay::{Return, Program, Token, CallBy, Runtime};
-use ::tokay::{ccl, tokay, sequence, modifier, token};
+use ::tokay::tokay::*;
+use ::tokay::token::*;
+use ::tokay::ccl;
 use ::tokay::value::Value;
 
 
 fn main() {
     let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
+    let s = "HelloWorld".to_string();
     //let s = "a(1+2)b".to_string();
     //let s = "1+2+3";
     //let s = "23".to_string();
     println!("{}", s);
 
-    let reader = Reader::new(
+    let mut reader = Reader::new(
         Box::new(std::io::Cursor::new(s))
     );
 
+    let program = Program::new();
+    let mut runtime = Runtime::new(&program, &mut reader);
+
+    let p = Parselet::new(
+        Op::Block(vec![
+            Op::Sequence(vec![(Op::Token(Match::new("Hello")), None), (Op::Token(Match::new("World")), None)]),
+            //Op::Sequence(vec![(Op::Token(Match::new("Hello")), None), (Op::Token(Match::new("Trorld")), None)])
+        ])
+    );
+    let ret = p.run(&mut runtime);
+
+    println!("{:?}", ret);
+
+    /*
     let mut program = Program::new();
 
     //trace_macros!(true);
@@ -85,4 +104,5 @@ fn main() {
             runtime.skip();
         }
     }
+    */
 }

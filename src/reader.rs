@@ -77,13 +77,22 @@ impl Reader {
         self.offset = offset;
     }
 
-    pub fn capture(&self, start: usize) -> Range {
-        if start < self.offset {
-            start..self.offset
+    /// Capture last length characters.
+    pub fn capture_last(&self, mut length: usize) -> Range {
+        if length > self.offset {
+            length = self.offset;
         }
-        else {
-            self.offset..self.offset
+
+        self.offset - length..self.offset
+    }
+
+    // Capture all characters from start to current offset.
+    pub fn capture_from(&self, mut start: usize) -> Range {
+        if start > self.offset {
+            start = self.offset;
         }
+
+        start..self.offset
     }
 
     pub fn print(&self, start: usize) {

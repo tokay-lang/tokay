@@ -13,7 +13,7 @@ Debug = true
 Leet = 1337
 
 # Parselets
-Digit = |0-9|                       # Shortcut for a parselet @{ |0-9| }
+Digit = [0-9]                       # Shortcut for a parselet @{ [0-9] }
 
 Part = @{
     Digit{1,3} if int($Digit) <= 255 accept
@@ -58,11 +58,11 @@ f = @x {
     x * 2
 }
 ten = range(10)
-names = [
-    "Sabrina" = 1,
-    "Piddy" = 2,
-    8883 = 42
-]
+names = (
+    "Sabrina": 1,
+    "Piddy": 2,
+    8883: 42
+)
 
 g = f(x)
 ip = IPv4
@@ -132,13 +132,13 @@ i = unset                                   # Can be used to "unset" a variable;
 The complex object is a combination of a list and an ordered map.
 
 ```
-c = [1, 2, 3]                               # List
-c = [2 = "a", 1 = "b"]                      # Ordered map (order 2, 1 is kept)
-c = [                                       # Mixed list and map with different keys
-    "Hello" = 42,
-    1337 = "World",
+c = (1, 2, 3)                               # List
+c = (2: "a", 1: "b")                        # Ordered map (order 2, 1 is kept)
+c = (                                       # Mixed list and map with different keys
+    "Hello": 42,
+    1337: "World",
     23                                      # this is even with unset=23
-]
+)
 ```
 
 ## Expressions

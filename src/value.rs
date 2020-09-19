@@ -28,10 +28,10 @@ impl std::fmt::Debug for Value {
             Value::Integer(i) => write!(f, "{}", i),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Complex(c) => {
-                write!(f, "[")?;
+                write!(f, "(")?;
                 for (i, (k, v)) in c.iter().enumerate() {
                     if k.is_some() {
-                        write!(f, "{:?}={:?}", k.unwrap(), v)?;
+                        write!(f, "{:?}: {:?}", k.unwrap(), v)?;
                     } else {
                         write!(f, "{:?}", v)?;
                     }
@@ -40,7 +40,7 @@ impl std::fmt::Debug for Value {
                         write!(f, ", ")?;
                     }
                 }
-                write!(f, "]")?;
+                write!(f, ")")?;
 
                 Ok(())
             },
@@ -230,8 +230,8 @@ fn test_literal() {
     //assert_eq!(Value::Float(-13.37).to_float(), -13.37);
     assert_eq!(Value::String("hello world".to_string()).to_string(), Some("hello world".to_string()));
     assert_eq!(Value::Void.to_string(), Some("void".to_string()));
-    assert_eq!(Value::Bool(true).to_string(), Some("true".to_string()));
-    assert_eq!(Value::Bool(false).to_string(), Some("false".to_string()));
+    assert_eq!(Value::True.to_string(), Some("true".to_string()));
+    assert_eq!(Value::False.to_string(), Some("false".to_string()));
 }
 
 #[test]
