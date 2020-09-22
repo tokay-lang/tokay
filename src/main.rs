@@ -4,44 +4,29 @@ use std::io::prelude::*;
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::token::*;
-use ::tokay::ccl;
 use ::tokay::value::Value;
+use ::tokay::{ccl, tokay, sequence, modifier, token};
 
 
 fn main() {
-    let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
-    let s = "HelloWorld".to_string();
-    //let s = "a(1+2)b".to_string();
-    //let s = "1+2+3";
-    //let s = "23".to_string();
+    let s = "DoppelHelloRoflpommes".to_string();
     println!("{}", s);
 
-    let mut reader = Reader::new(
-        Box::new(std::io::Cursor::new(s))
-    );
-
-    let program = Program::new();
-    let mut runtime = Runtime::new(&program, &mut reader);
-
-    let p = Parselet::new(
-        Op::Block(vec![
-            Op::Sequence(vec![(Op::Token(Match::new("Hello")), None), (Op::Token(Match::new("World")), None)]),
-            //Op::Sequence(vec![(Op::Token(Match::new("Hello")), None), (Op::Token(Match::new("Trorld")), None)])
-        ])
-    );
-    let ret = p.run(&mut runtime);
-
-    println!("{:?}", ret);
-
-    /*
     let mut program = Program::new();
 
     //trace_macros!(true);
-    //sequence!(&mut program, [(positive("hello"))]);
 
     tokay!(
         &mut program,
 
+        main {
+            => ("Hello") ("World")
+            => ("Hello") ("Rofl")
+            => ("Doppel") (main)
+            => ("Hello") ("Ralf")
+        }
+
+        /*
         main {
             => (expr)
             => (("hello") ((kle("world")) (|runtime| {
@@ -49,7 +34,7 @@ fn main() {
                 let world = runtime.get_capture(2).unwrap().borrow().to_string().unwrap();
         
                 println!("{} {} {}", runtime.get_capture(0).unwrap().borrow().to_string().unwrap(), hello, world);
-                Return::Accept(None)
+                Ok(Accept::Next)
             })))
         }
 
@@ -76,33 +61,25 @@ fn main() {
                     //println!("{:?}", runtime.get_capture(0));
 
                     if let Some(i) = runtime.get_capture(1).unwrap().borrow().to_integer() {
-                        Return::Accept(Some(Value::Integer(i).into_ref()))
+                        Ok(Accept::Return(Some(Value::Integer(i).into_ref())))
                     }
                     else {
-                        Return::Reject
+                        Err(Reject::Return)
                     }
                 })
         }
+        */
     );
     //trace_macros!(false);
+    
+    //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
+    let mut reader = Reader::new(
+        Box::new(std::io::Cursor::new(s))
+    );
 
-    program.finalize();
+    let mut runtime = Runtime::new(&program, &mut reader);
+    let ret = program.run(&mut runtime);
 
-    /*
-    for (i, p) in program.parselets.iter().enumerate() {
-        println!("{} => {:?}", i, p);
-    }
-    */
+    println!("{:?}", ret);
 
-    let mut runtime = Runtime::new(reader);
-
-    while !runtime.is_eof() {
-        if let Return::Accept(result) = program.run(&mut runtime) {
-            println!("match {:?}", result);
-            //runtime.stats();
-        } else {
-            runtime.skip();
-        }
-    }
-    */
 }
