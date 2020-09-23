@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::collections::HashMap;
+
 use crate::map::Map;
 use crate::value::{Value, RefValue};
 use crate::token::{Token, Capture, Match};
@@ -19,125 +23,83 @@ pub enum Reject {
     Error(String)
 }
 
-#[derive(Clone, Debug)]
-pub enum CallBy {
-    Index(usize),
-    Name(String)
-}
 
+// --- Item --------------------------------------------------------------------
 
-// --- Op ----------------------------------------------------------------------
-
-//#[derive(Debug)]
-pub enum Op {
+#[derive(Debug)]
+pub enum Item {
     // Semantics
     Accept(Option<RefValue>),
     Reject,
 
-    // Items
+    // Atomics
+    Empty,
     Token(Box<dyn Token>),
-    Call(Box<CallBy>),
+    Call(usize),
+    //Goto(usize),
+    Name(String),
 
     // Operators
     Sequence(Box<Sequence>),
     Block(Box<Block>),
-    //Kleene(Box<Op>),
-    //Positive(Box<Op>),
-    //Optional(Box<Op>),
-    //And(Box<Op>),
-    //Not(Box<Op>),
+    //Kleene(Box<Item>),
+    //Positive(Box<Item>),
+    //Optional(Box<Item>),
+    //And(Box<Item>),
+    //Not(Box<Item>),
 
-    Rust(fn(&mut Scope) -> Result<Accept, Reject>),
+    //Rust(fn(&mut Context) -> Result<Accept, Reject>),
 }
 
-impl Op {
-    fn run(&self, scope: &mut Scope) -> Result<Accept, Reject> {
+impl Item {
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
-            Op::Accept(value) => {
+            Item::Accept(value) => {
                 Ok(Accept::Return(value.clone()))
             },
-            Op::Reject => {
+
+            Item::Reject => {
                 Err(Reject::Return)
             },
 
-            Op::Token(token) => {
-                let reader_start = scope.runtime.reader.tell();
+            Item::Empty => {
+                Ok(Accept::Push(Capture::Empty))
+            },
 
-                if let Some(capture) = token.read(&mut scope.runtime.reader) {
+            Item::Token(token) => {
+                let reader_start = context.runtime.reader.tell();
+
+                if let Some(capture) = token.read(&mut context.runtime.reader) {
                     Ok(Accept::Push(capture))
                 } else {
-                    scope.runtime.reader.reset(reader_start);
+                    context.runtime.reader.reset(reader_start);
                     Err(Reject::Next)
                 }
             },
 
-            Op::Call(callee) => {
-                let parselet = match callee.as_ref() {
-                    CallBy::Name(name) => {
-                        if let Some(p) = scope.runtime.program.parselets.get_by_key(name) {
-                            p
-                        } else {
-                            return Err(Reject::Error(format!("The parselet {} does not exist!", name)));
-                        }
-                    },
-                    CallBy::Index(idx) => scope.runtime.program.parselets.get(*idx).unwrap().1
-                };
-
-                parselet.run(scope.runtime)
+            Item::Call(parselet) => {
+                context.runtime.program.parselets[*parselet].run(context.runtime)
             },
 
-            Op::Sequence(sequence) => sequence.run(scope),
-            Op::Block(block) => block.run(scope),
-            Op::Rust(callback) => callback(scope)
+            Item::Sequence(sequence) => sequence.run(context),
+            Item::Block(block) => block.run(context),
+            Item::Name(_) => panic!("{:?} cannot be executed", self)
+            //Item::Rust(callback) => callback(context)
         }
     }
-
-    /*
-    fn is_nullable(&mut self) -> bool {
-        match self {
-            Op::Token(token) => token.is_nullable(),
-            Op::Sequence(sequence) => sequence.nullable,
-            Op::Block(block) => block.nullablle,
-            Op::Rust(_) => true
-            _ => false
-        }
-    }
-
-    fn is_leftrec(&mut self, origin: usize) -> bool {
-        if let Op::Call(callee) = self {
-            let mut parselet = match callee.as_ref() {
-                CallBy::Name(name) => {
-                    if let Some(p) = scope.runtime.program.parselets.get_by_key(name) {
-                        p
-                    } else {
-                        return Err(Reject::Error(format!("The parselet {} does not exist!", name)));
-                    }
-                },
-                CallBy::Index(idx) => scope.runtime.program.parselets.get(*idx).unwrap().1
-            };
-
-            if parselet.id() == origin {
-                return true;
-            } else {
-                parselet.body.is_leftrec()
-            }
-        }
-
-        false
-    }
-    */
 }
 
 // --- Sequence ----------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct Sequence {
     leftrec: bool,
     nullable: bool,
-    items: Vec<(Op, Option<String>)>
+    items: Vec<(Item, Option<String>)>
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Op, Option<String>)>) -> Self {
+    pub fn new(items: Vec<(Item, Option<String>)>) -> Self {
         Self{
             leftrec: false,
             nullable: false,
@@ -145,41 +107,24 @@ impl Sequence {
         }
     }
 
-    /*
-    fn is_leftrec(&mut self, origin: usize) -> bool {
-        for item in &self.items.iter_mut() {
-            if item.is_leftrec(target) {
-                self.leftrec |= true;
-            }
-
-            if !item.is_nullable() {
-                return self.leftrec;
-            }
-        }
-
-        self.nullable = true;
-        self.leftrec
-    }
-    */
-
-    fn run(&self, scope: &mut Scope) -> Result<Accept, Reject> {
-        let capture_start = scope.runtime.capture.len();
-        let reader_start = scope.runtime.reader.tell();
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        let capture_start = context.runtime.capture.len();
+        let reader_start = context.runtime.reader.tell();
         
         for (item, alias) in &self.items {
-            match item.run(scope) {
+            match item.run(context) {
                 Err(reject) => {
-                    scope.runtime.capture.truncate(capture_start);
-                    scope.runtime.reader.reset(reader_start);
+                    context.runtime.capture.truncate(capture_start);
+                    context.runtime.reader.reset(reader_start);
                     return Err(reject);
                 }
 
                 Ok(accept) => {
                     match accept {
-                        Accept::Next => scope.runtime.capture.push((Capture::Empty, alias.clone())),
-                        Accept::Push(capture) => scope.runtime.capture.push((capture, alias.clone())),
+                        Accept::Next => context.runtime.capture.push((Capture::Empty, alias.clone())),
+                        Accept::Push(capture) => context.runtime.capture.push((capture, alias.clone())),
                         Accept::Return(value) => {
-                            scope.runtime.capture.truncate(capture_start);
+                            context.runtime.capture.truncate(capture_start);
                             return Ok(Accept::Return(value));
                         }
                     }
@@ -188,20 +133,21 @@ impl Sequence {
         }
 
         // todo: generate a value or dingens
-        Ok(Accept::Push(Capture::Range(scope.runtime.reader.capture_from(reader_start), 1)))
+        Ok(Accept::Push(Capture::Range(context.runtime.reader.capture_from(reader_start), 1)))
     }
 }
 
 // --- Block -------------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct Block {
     leftrec: bool,
     nullable: bool,
-    items: Vec<Op>
+    items: Vec<Item>
 }
 
 impl Block {
-    pub fn new(items: Vec<Op>) -> Self {
+    pub fn new(items: Vec<Item>) -> Self {
         Self{
             leftrec: false,
             nullable: false,
@@ -209,25 +155,9 @@ impl Block {
         }
     }
 
-    /*
-    fn is_leftrec(&mut self, origin: usize) -> bool {
-        for item in &self.items.iter_mut() {
-            if item.is_leftrec(origin) {
-                self.leftrec |= true;
-            }
-
-            if item.is_nullable() {
-                self.nullable |= true;
-            }
-        }
-
-        self.leftrec
-    }
-    */
-
-    pub fn run(&self, scope: &mut Scope) -> Result<Accept, Reject> {
+    pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         for item in &self.items {
-            match item.run(scope) {
+            match item.run(context) {
                 Err(reject) => {
                     if let Reject::Next = reject {
                         continue
@@ -252,40 +182,29 @@ impl Block {
 
 // --- Parselet ----------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct Parselet {
-    id: usize,
     leftrec: bool,
-    body: Block
+    body: Item
 }
 
 impl Parselet {
-    fn new(id: usize, body: Block) -> Self {
+    fn new(body: Item) -> Self {
         Self{
-            id,
             leftrec: false,
             body
         }
     }
 
-    /*
-    fn is_leftrec(&mut self) {
-        if !self.leftrec {
-            self.leftrec = self.body.is_leftrec(self.id());
-        }
-
-        self.leftrec
-    }
-    */
-
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
-        self.body.run(&mut Scope::new(runtime))
+        self.body.run(&mut Context::new(runtime))
     }
 }
 
 
-// --- Scope -------------------------------------------------------------------
+// --- Context -----------------------------------------------------------------
 
-pub struct Scope<'runtime, 'program, 'reader> {
+pub struct Context<'runtime, 'program, 'reader> {
     runtime: &'runtime mut Runtime<'program, 'reader>,
 
     stack_start: usize,
@@ -293,7 +212,7 @@ pub struct Scope<'runtime, 'program, 'reader> {
     reader_start: usize
 }
 
-impl<'runtime, 'program, 'reader> Scope<'runtime, 'program, 'reader> {
+impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>) -> Self {
         let ret = Self{
             stack_start: runtime.stack.len(),
@@ -374,7 +293,7 @@ impl<'runtime, 'program, 'reader> Scope<'runtime, 'program, 'reader> {
     }
 }
 
-impl<'runtime, 'program, 'reader> Drop for Scope<'runtime, 'program, 'reader> {
+impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
         self.runtime.capture.truncate(self.capture_start);
         self.runtime.stack.truncate(self.stack_start);
@@ -406,16 +325,17 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
 // --- Program -----------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct Program {
     // Input & memoization
     //memo: HashMap<(usize, usize), (usize, State)>,
-    pub parselets: Map<String, Parselet>
+    pub parselets: Vec<Parselet>
 }
 
 impl Program {
     pub fn new() -> Self {
         Self{
-            parselets: Map::new()
+            parselets: Vec::new()
         }
     }
 
@@ -423,36 +343,67 @@ impl Program {
         self.parselets[0].run(runtime)
     }
 
-    //pub fn finalize(&mut self)
-
-    pub fn new_parselet(&mut self, name: Option<String>, body: Block) -> usize {
-        let id = self.parselets.len();
-        let parselet = Parselet::new(id, body);
-
-        if let Some(name) = name {
-            self.parselets.push_key_value(name, parselet);
-        }
-        else {
-            self.parselets.push_value(parselet);
-        }
-        
-        id
+    pub fn new_parselet(&mut self, body: Item) -> usize {
+        self.parselets.push(Parselet::new(body));
+        self.parselets.len() - 1
     }
 }
 
 
+
+pub struct Scope<'scope> {
+    program: Rc<RefCell<Program>>,
+    parent: Option<&'scope Scope<'scope>>,
+    locals: u32,
+    symbols: HashMap<String, usize>
+}
+
+impl<'scope> Scope<'scope> {
+    pub fn new(program: Rc<RefCell<Program>>) -> Self {
+        Self {
+            program,
+            parent: None,
+            locals: 0,
+            symbols: HashMap::new()
+        }
+    }
+
+    pub fn new_below(scope: &'scope Scope) -> Self {
+        Self {
+            program: scope.program.clone(),
+            parent: Some(scope),
+            locals: 0,
+            symbols: HashMap::new()
+        }
+    }
+
+    pub fn get_name(&self, name: &str) -> Option<usize> {
+        println!("get {:?}", name);
+        self.symbols.get(name).cloned()
+    }
+
+    pub fn set_name(&mut self, name: String, addr: usize) {
+        println!("set {:?} to {:?}", name, addr);
+        self.symbols.insert(name, addr);
+    }
+}
+
 #[macro_export]
-macro_rules! token {
-    (|$var:ident| $code:block) => {
-        Op::Rust(|$var| $code)
+macro_rules! item {
+    ($scope:expr, |$var:ident| $code:block) => {
+        Item::Rust(|$var| $code)
     };
-    ($ident:ident) => {
-        Op::Call(Box::new(CallBy::Name(stringify!($ident).to_string())))
+    ($scope:expr, $ident:ident) => {
+        if let Some(addr) = $scope.get_name(stringify!($ident)) {
+            Item::Call(addr)
+        } else {
+            Item::Name(stringify!($ident).to_string())
+        }
     };
-    ($literal:literal) => {
-        Op::Token(Match::new_touch($literal))
+    ($scope:expr, $literal:literal) => {
+        Item::Token(Match::new_touch($literal))
     };
-    ($expr:expr) => {
+    ($scope:expr, $expr:expr) => {
         $expr
     };
 }
@@ -460,43 +411,43 @@ macro_rules! token {
 #[macro_export]
 macro_rules! modifier {
     /*
-    ($program:expr, pos( $( $token:tt )+ ) ) => {
+    ($scope:expr, pos( $( $token:tt )+ ) ) => {
         {
-            let token = modifier!($program, $($token)+);
-            token.into_positive($program)
+            let token = modifier!($scope, $($token)+);
+            token.into_positive($scope)
         }
     };
-    ($program:expr, opt( $( $token:tt )+ ) ) => {
+    ($scope:expr, opt( $( $token:tt )+ ) ) => {
         {
-            let token = modifier!($program, $($token)+);
-            token.into_optional($program)
+            let token = modifier!($scope, $($token)+);
+            token.into_optional($scope)
         }
     };
-    ($program:expr, kle( $( $token:tt )+ ) ) => {
+    ($scope:expr, kle( $( $token:tt )+ ) ) => {
         {
-            let token = modifier!($program, $($token)+);
-            let token = token.into_positive($program);
-            token.into_optional($program)
+            let token = modifier!($scope, $($token)+);
+            let token = token.into_positive($scope);
+            token.into_optional($scope)
         }
     };
     */
-    ( $( ( $( $token:tt )+ ) )* ) => {
-        sequence!([ $( ( $($token)+ ) ),* ] )
+    ($scope:expr, $( ( $( $token:tt )+ ) )*) => {
+        sequence!($scope, [ $( ( $($token)+ ) ),* ] )
     };
-    ($( $token:tt )+) => {
-        token!($($token)+)
+    ($scope:expr, $( $token:tt )+) => {
+        item!($scope, $($token)+)
     };
 }
 
 #[macro_export]
 macro_rules! sequence {
-    ([ $( ( $( $token:tt )+ ) ),* ] ) => {
+    ($scope:expr, [ $( ( $( $token:tt )+ ) ),* ]) => {
         {
-            Op::Sequence(
+            Item::Sequence(
                 Box::new(
                     Sequence::new(vec![
                         $(
-                            ( modifier!($( $token )+), None )
+                            ( modifier!($scope, $( $token )+), None )
                         ),*
                     ])
                 )
@@ -507,17 +458,29 @@ macro_rules! sequence {
 
 #[macro_export]
 macro_rules! tokay {
-    ($program:expr, $( $name:ident { $( => $( ( $( $token:tt )+ ) )* )+ } )+ )
-        => {
+    ( $( $name:ident { $( => $( ( $( $token:tt )+ ) )* )+ } )+ ) => {
         {
-            $(
-                $program.new_parselet(
-                    Some(stringify!($name).to_string()),
-                    Block::new(vec![
-                        $( sequence!([ $( ( $($token)+ ) ),* ] ) ),+
-                    ])
-                );
-            )+
+            let program = Rc::new(RefCell::new(Program::new()));
+
+            {
+                let mut scope = Scope::new(program.clone());
+
+                $(
+                    scope.set_name(stringify!($name).to_string(), program.borrow().parselets.len());
+
+                    let block = Item::Block(
+                        Box::new(
+                            Block::new(vec![
+                                $( sequence!(scope, [ $( ( $($token)+ ) ),* ] ) ),+
+                            ])
+                        )
+                    );
+
+                    program.borrow_mut().new_parselet(block);
+                )+
+            }
+
+            Rc::try_unwrap(program).unwrap().into_inner()
         }
     }
 }

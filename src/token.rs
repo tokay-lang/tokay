@@ -18,39 +18,10 @@ pub enum Capture {
 pub trait Token: std::fmt::Debug {
     fn read(&self, reader: &mut Reader) -> Option<Capture>;
 
-    fn is_nullable(&self) -> bool {
-        false
-    }
-
     fn into_box(self) -> Box<dyn Token>
         where Self: std::marker::Sized + 'static
     {
         Box::new(self)
-    }
-}
-
-
-pub struct Empty;
-
-impl Empty {
-    pub fn new() -> Box<dyn Token> {
-        Self.into_box()
-    }
-}
-
-impl Token for Empty {
-    fn read(&self, _: &mut Reader) -> Option<Capture> {
-        Some(Capture::Empty)
-    }
-
-    fn is_nullable(&self) -> bool {
-        true
-    }
-}
-
-impl std::fmt::Debug for Empty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "/*empty*/")
     }
 }
 

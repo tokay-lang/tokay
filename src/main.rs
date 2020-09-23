@@ -1,11 +1,13 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use std::io::prelude::*;
+
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::token::*;
 use ::tokay::value::Value;
-use ::tokay::{ccl, tokay, sequence, modifier, token};
+use ::tokay::{ccl, tokay, sequence, modifier, item};
 
 
 fn main() {
@@ -16,14 +18,13 @@ fn main() {
 
     //trace_macros!(true);
 
-    tokay!(
-        &mut program,
-
+    let program = tokay!(
         main {
             => ("Hello") ("World")
             => ("Hello") ("Rofl")
             => ("Doppel") (main)
             => ("Hello") ("Ralf")
+            => (franz)
         }
 
         /*
