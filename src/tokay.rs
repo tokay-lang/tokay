@@ -29,7 +29,7 @@ pub enum Reject {
 #[derive(Debug)]
 pub enum Item {
     // Semantics
-    Accept(Option<RefValue>),
+    Accept,
     Reject,
 
     // Atomics
@@ -54,8 +54,8 @@ pub enum Item {
 impl Item {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
-            Item::Accept(value) => {
-                Ok(Accept::Return(value.clone()))
+            Item::Accept => {
+                Ok(Accept::Return(None))
             },
 
             Item::Reject => {
@@ -102,7 +102,7 @@ impl Sequence {
     pub fn new(items: Vec<(Item, Option<String>)>) -> Self {
         Self{
             leftrec: false,
-            nullable: false,
+            nullable: true,
             items
         }
     }
@@ -141,16 +141,12 @@ impl Sequence {
 
 #[derive(Debug)]
 pub struct Block {
-    leftrec: bool,
-    nullable: bool,
     items: Vec<Item>
 }
 
 impl Block {
     pub fn new(items: Vec<Item>) -> Self {
         Self{
-            leftrec: false,
-            nullable: false,
             items
         }
     }
@@ -185,6 +181,7 @@ impl Block {
 #[derive(Debug)]
 pub struct Parselet {
     leftrec: bool,
+    nullable: bool,
     body: Item
 }
 
@@ -192,12 +189,54 @@ impl Parselet {
     fn new(body: Item) -> Self {
         Self{
             leftrec: false,
+            nullable: true,
             body
         }
     }
 
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.body.run(&mut Context::new(runtime))
+    }
+
+    pub fn resolve(&mut self, scope: &Scope) {
+        fn walk(scope: &Scope, mut item: &mut Item) {
+            match item {
+                Item::Name(name) => {
+                    if let Some(addr) = scope.get_name(&name) {
+                        *item = Item::Call(addr)
+                    }
+                    else {
+                        panic!("Calling undefined symbol {:?}", name)
+                    }
+                },
+    
+                Item::Sequence(ref mut sequence) => {
+                    /*
+                    sequence.items =
+                        sequence.items.drain(..).map(
+                            |(item, alias)| (walk(scope, item), alias)).collect();
+                    */
+                    for (item, _) in sequence.items.iter_mut() {
+                        walk(scope, item);
+                    }
+                },
+    
+                Item::Block(ref mut block) => {
+                    /*
+                    block.items =
+                        block.items.drain(..).map(
+                            |item| walk(scope, item)).collect();
+                    */
+                    for item in block.items.iter_mut() {
+                        walk(scope, item);
+                    }
+                },
+    
+                _ => {}
+            };
+        }
+
+        walk(scope, &mut self.body);
     }
 }
 
@@ -339,6 +378,194 @@ impl Program {
         }
     }
 
+    pub fn finalize(&mut self) {
+        let parselets: Vec<RefCell<Parselet>> =
+            self.parselets.drain(..).map(|item| RefCell::new(item)).collect();
+
+        fn walk(parselets: &Vec<RefCell<Parselet>>, 
+                leftrec: &mut bool,
+                nullable: &mut bool,
+                item: &mut Item) -> bool
+        {
+            match item {
+                Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
+                Item::Token(_) => {
+                    if *nullable {
+                        *nullable = false;
+                        true
+                    } else {
+                        false
+                    }
+                },
+                Item::Call(idx) => {
+                    if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
+                        let mut my_leftrec = parselet.leftrec;
+                        let mut my_nullable = parselet.nullable;
+
+                        walk(
+                            parselets,
+                            &mut my_leftrec,
+                            &mut my_nullable,
+                            &mut parselet.body
+                        );
+
+                        parselet.leftrec = my_leftrec;
+                        parselet.nullable = my_nullable;
+
+                        if *nullable && !parselet.nullable {
+                            *nullable = false;
+                        }
+
+                        true
+                    }
+                    else if !*leftrec {
+                        *leftrec = true;
+                        true
+                    }
+                    else {
+                        false
+                    }
+                },
+
+                Item::Sequence(sequence) => {
+                    let mut changes = false;
+
+                    for (item, _) in sequence.items.iter_mut() {
+                        walk(
+                            parselets,
+                            &mut sequence.leftrec,
+                            &mut sequence.nullable,
+                            item
+                        );
+
+                        if !sequence.nullable {
+                            break
+                        }
+                    }
+
+                    if !*leftrec && sequence.leftrec {
+                        *leftrec = true;
+                        changes = true;
+                    }
+
+                    if *nullable && !sequence.nullable {
+                        *nullable = false;
+                        changes = true;
+                    }
+
+                    changes
+                },
+
+                Item::Block(block) => {
+                    let mut changes = false;
+                    let mut nullables = 0;
+
+                    for item in block.items.iter_mut() {
+                        let mut my_nullable = true;
+                        let mut my_leftrec = false;
+
+                        walk(parselets, &mut my_leftrec, &mut my_nullable, item);
+                        
+                        if my_nullable {
+                            nullables += 1;
+                        }
+
+                        if !*leftrec && my_leftrec {
+                            *leftrec = true;
+                            changes = true;
+                        }
+                    }
+
+                    if *nullable && nullables == 0 {
+                        *nullable = false;
+                        changes = true;
+                    }
+
+                    changes
+                }
+
+                _ => false
+            }
+        }
+
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..parselets.len() {
+                let mut parselet = parselets[i].borrow_mut();
+                let mut leftrec = parselet.leftrec;
+                let mut nullable = parselet.nullable;
+    
+                walk(
+                    &parselets,
+                    &mut leftrec,
+                    &mut nullable,
+                    &mut parselet.body
+                );
+
+                if !parselet.leftrec && leftrec {
+                    parselet.leftrec = true;
+                    changes = true;
+                }
+
+                if parselet.nullable && !nullable {
+                    parselet.nullable = nullable;
+                    changes = true;
+                }
+            }
+
+            loops += 1;
+        }
+
+        println!("{} loops", loops);
+
+        self.parselets = parselets.into_iter().map(|item| item.into_inner()).collect();
+        self.dump();
+    }
+
+    pub fn dump(&self) {
+        fn dump(item: &Item, level: usize) {
+            match item {
+                Item::Block(block) => {
+                    for item in &block.items {
+                        print!("{}", " ".repeat(level));
+                        dump(item, level + 1);
+                        print!("\n");
+                    }
+                },
+                Item::Sequence(sequence) => {
+                    if sequence.leftrec {
+                        print!("{}", "* ");
+                    }
+                    else {
+                        print!("{}", "  ");
+                    }
+
+                    for (item, alias) in &sequence.items {
+                        dump(item, level + 1);
+                        if let Some(alias) = alias {
+                            print!(":{} ", alias);
+                        }
+                        else {
+                            print!(" ");
+                        }
+                    }
+                },
+                _ => {
+                    print!("{:?}", item)
+                }
+            }
+        }
+
+        for i in 0..self.parselets.len() {
+            println!("-- {}{} --", i, if self.parselets[i].nullable { "?" } else { "" });
+            dump(&self.parselets[i].body, 0);
+        }
+    }
+
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets[0].run(runtime)
     }
@@ -468,16 +695,21 @@ macro_rules! tokay {
                 $(
                     scope.set_name(stringify!($name).to_string(), program.borrow().parselets.len());
 
-                    let block = Item::Block(
+                    let mut block = Item::Block(
                         Box::new(
                             Block::new(vec![
                                 $( sequence!(scope, [ $( ( $($token)+ ) ),* ] ) ),+
                             ])
                         )
                     );
-
+                    
                     program.borrow_mut().new_parselet(block);
                 )+
+
+                /* Resolve all symbols here. Might change later on. */
+                for p in program.borrow_mut().parselets.iter_mut() {
+                    p.resolve(&scope);
+                }
             }
 
             Rc::try_unwrap(program).unwrap().into_inner()

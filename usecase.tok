@@ -39,13 +39,13 @@ Char | \t\r\n|
 #1
 Pattern
 Match("Hello")
-Call 2
+Goto 2
 
 #2
 Pattern
 Match("Friend")
 Pattern
-Call 3
+Goto 3
 Pattern
 Call 4
 Pattern

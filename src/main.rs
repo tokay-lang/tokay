@@ -18,18 +18,38 @@ fn main() {
 
     //trace_macros!(true);
 
-    let program = tokay!(
+    let mut program = tokay!(
+        /*
+        main {
+            => (sub)
+            => ("A")
+        }
+
+        sub {
+            => (subsub)
+            => ("B")
+        }
+
+        subsub {
+            => (main)
+        }
+
+        x {
+            => ("Y")  (main)
+        }
+
         main {
             => ("Hello") ("World")
             => ("Hello") ("Rofl")
             => ("Doppel") (main)
+            => (main) ("bla")
             => ("Hello") ("Ralf")
-            => (franz)
         }
+        */
 
-        /*
         main {
             => (expr)
+            /*
             => (("hello") ((kle("world")) (|runtime| {
                 let hello = runtime.get_capture(1).unwrap().borrow().to_string().unwrap();
                 let world = runtime.get_capture(2).unwrap().borrow().to_string().unwrap();
@@ -37,6 +57,7 @@ fn main() {
                 println!("{} {} {}", runtime.get_capture(0).unwrap().borrow().to_string().unwrap(), hello, world);
                 Ok(Accept::Next)
             })))
+            */
         }
 
         factor {
@@ -57,7 +78,9 @@ fn main() {
         }
 
         int {
-            =>  (Token::Chars(ccl!['0'..='9']))
+            =>  ("x")
+                /*
+                (Token::Chars(ccl!['0'..='9']))
                 (|runtime| {
                     //println!("{:?}", runtime.get_capture(0));
 
@@ -68,8 +91,8 @@ fn main() {
                         Err(Reject::Return)
                     }
                 })
+                */
         }
-        */
     );
     //trace_macros!(false);
     
@@ -77,6 +100,8 @@ fn main() {
     let mut reader = Reader::new(
         Box::new(std::io::Cursor::new(s))
     );
+
+    program.finalize();
 
     let mut runtime = Runtime::new(&program, &mut reader);
     let ret = program.run(&mut runtime);
