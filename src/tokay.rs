@@ -83,11 +83,27 @@ impl Item {
 
             Item::Sequence(sequence) => sequence.run(context),
             Item::Block(block) => block.run(context),
-            Item::Name(_) => panic!("{:?} cannot be executed", self)
+            Item::Name(_) => panic!("{:?} cannot be executed", self),
             //Item::Rust(callback) => callback(context)
         }
     }
 }
+
+/*
+impl std::fmt::Debug for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self.0 {
+            Item::Empty => write!(f, "Empty"),
+            Item::Token(t) => write!(f, "{:?}", t),
+            Item::Call(idx) => write!(f, "P{}", idx),
+            Item::Name(s) => write!(f, "{:?}", s),
+            Item::Rust(_) => write!(f, "{{rust-function}}"),
+            _ => self.0.fmt(f)?,
+        }
+        Ok(())
+    }
+}
+*/
 
 // --- Sequence ----------------------------------------------------------------
 
@@ -385,17 +401,12 @@ impl Program {
         fn walk(parselets: &Vec<RefCell<Parselet>>, 
                 leftrec: &mut bool,
                 nullable: &mut bool,
-                item: &mut Item) -> bool
+                item: &mut Item)
         {
             match item {
                 Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
                 Item::Token(_) => {
-                    if *nullable {
-                        *nullable = false;
-                        true
-                    } else {
-                        false
-                    }
+                    *nullable = false;
                 },
                 Item::Call(idx) => {
                     if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
@@ -412,24 +423,14 @@ impl Program {
                         parselet.leftrec = my_leftrec;
                         parselet.nullable = my_nullable;
 
-                        if *nullable && !parselet.nullable {
-                            *nullable = false;
-                        }
-
-                        true
-                    }
-                    else if !*leftrec {
-                        *leftrec = true;
-                        true
+                        *nullable = parselet.nullable;
                     }
                     else {
-                        false
+                        *leftrec = true;
                     }
                 },
 
                 Item::Sequence(sequence) => {
-                    let mut changes = false;
-
                     for (item, _) in sequence.items.iter_mut() {
                         walk(
                             parselets,
@@ -443,48 +444,35 @@ impl Program {
                         }
                     }
 
-                    if !*leftrec && sequence.leftrec {
-                        *leftrec = true;
-                        changes = true;
-                    }
-
-                    if *nullable && !sequence.nullable {
-                        *nullable = false;
-                        changes = true;
-                    }
-
-                    changes
+                    *leftrec = sequence.leftrec;
+                    *nullable = sequence.nullable;
                 },
 
                 Item::Block(block) => {
-                    let mut changes = false;
-                    let mut nullables = 0;
+                    *nullable = false;
 
                     for item in block.items.iter_mut() {
                         let mut my_nullable = true;
                         let mut my_leftrec = false;
 
-                        walk(parselets, &mut my_leftrec, &mut my_nullable, item);
+                        walk(
+                            parselets,
+                            &mut my_leftrec,
+                            &mut my_nullable,
+                            item
+                        );
                         
                         if my_nullable {
-                            nullables += 1;
+                            *nullable = true;
                         }
 
-                        if !*leftrec && my_leftrec {
+                        if my_leftrec {
                             *leftrec = true;
-                            changes = true;
                         }
                     }
-
-                    if *nullable && nullables == 0 {
-                        *nullable = false;
-                        changes = true;
-                    }
-
-                    changes
                 }
 
-                _ => false
+                _ => {}
             }
         }
 
@@ -520,7 +508,7 @@ impl Program {
             loops += 1;
         }
 
-        println!("{} loops", loops);
+        println!("finalize stopped after {} loops", loops);
 
         self.parselets = parselets.into_iter().map(|item| item.into_inner()).collect();
         self.dump();
@@ -537,13 +525,6 @@ impl Program {
                     }
                 },
                 Item::Sequence(sequence) => {
-                    if sequence.leftrec {
-                        print!("{}", "* ");
-                    }
-                    else {
-                        print!("{}", "  ");
-                    }
-
                     for (item, alias) in &sequence.items {
                         dump(item, level + 1);
                         if let Some(alias) = alias {
@@ -553,16 +534,24 @@ impl Program {
                             print!(" ");
                         }
                     }
+
+                    if sequence.leftrec || sequence.nullable {
+                            print!("  # {}{} ",
+                            if sequence.leftrec {"left-recursive " } else {""},
+                            if sequence.nullable {"nullable"} else {""}
+                        );
+                    }
                 },
-                _ => {
-                    print!("{:?}", item)
+                other => {
+                    print!("{:?}", other);
                 }
             }
         }
 
         for i in 0..self.parselets.len() {
-            println!("-- {}{} --", i, if self.parselets[i].nullable { "?" } else { "" });
-            dump(&self.parselets[i].body, 0);
+            println!("P{}{} = {{", i, if self.parselets[i].nullable { "  # nullable" } else { "" });
+            dump(&self.parselets[i].body, 1);
+            println!("}}");
         }
     }
 

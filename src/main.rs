@@ -11,7 +11,7 @@ use ::tokay::{ccl, tokay, sequence, modifier, item};
 
 
 fn main() {
-    let s = "DoppelHelloRoflpommes".to_string();
+    let s = "123+456".to_string();
     println!("{}", s);
 
     let mut program = Program::new();
