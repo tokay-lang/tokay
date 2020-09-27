@@ -157,37 +157,116 @@ impl Sequence {
 
 #[derive(Debug)]
 pub struct Block {
-    items: Vec<Item>
+    items: Vec<Item>,
+    leftrec: bool
 }
 
 impl Block {
     pub fn new(items: Vec<Item>) -> Self {
         Self{
-            items
+            items,
+            leftrec: false
         }
     }
 
     pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        for item in &self.items {
-            match item.run(context) {
-                Err(reject) => {
-                    if let Reject::Next = reject {
-                        continue
-                    }
 
-                    return Err(reject);
-                },
-                Ok(accept) => {
-                    if let Accept::Next = accept {
-                        continue
+        // Internal run function
+        fn run(block: &Block, context: &mut Context, leftrec: bool)
+                -> Result<Accept, Reject>
+        {
+            for item in &block.items {
+                // Skip over sequences without matching leftrec configuration
+                if let Item::Sequence(seq) = item {
+                    if seq.leftrec != leftrec {
+                        continue;
                     }
+                }
 
-                    return Ok(accept);
+                match item.run(context) {
+                    Err(reject) => {
+                        if let Reject::Next = reject {
+                            continue
+                        }
+    
+                        return Err(reject);
+                    },
+                    Ok(accept) => {
+                        if let Accept::Next = accept {
+                            continue
+                        }
+    
+                        return Ok(accept);
+                    }
                 }
             }
+
+            Ok(Accept::Next)
         }
 
-        Ok(Accept::Next)
+        let id = self as *const Block as usize;
+
+        // Check for an existing memo-entry, and return it in case of a match
+        if let Some((reader_end, result)) =
+            context.runtime.memo.get(&(context.reader_start, id))
+        {
+            context.runtime.reader.reset(*reader_end);
+            return result.clone();
+        }
+
+        if self.leftrec {
+            println!("Leftrec {:?}", self);
+
+            // Left-recursive parselet is called in a loop until no more input
+            // is consumed.
+
+            let mut reader_end = context.reader_start;
+            let mut result = Err(Reject::Next);
+           
+            // Insert a fake memo entry to avoid endless recursion
+            
+            /* info: removing this fake entry does not affect program run!
+
+            This is because of the leftrec parameter to internal run(), 
+            which only accepts non-left-recursive calls on the first run.
+            As an additional fuse, this fake memo entry should anyway be kept.
+            */
+            context.runtime.memo.insert(
+                (context.reader_start, id),
+                (reader_end, result.clone())
+            );
+            
+            let mut loops = 0;
+
+            loop {
+                let tmp_result = run(self, context, loops > 0);
+
+                // Stop either on reject or when no more input was consumed
+                if matches!(tmp_result, Err(Reject::Next))
+                    || context.runtime.reader.tell() <= reader_end {
+                    break;
+                }
+
+                result = tmp_result;
+
+                reader_end = context.runtime.reader.tell();
+                context.runtime.memo.insert(
+                    (context.reader_start, id),
+                    (reader_end, result.clone())
+                );
+
+                context.runtime.reader.reset(context.reader_start);
+                context.runtime.capture.truncate(context.capture_start);
+                loops += 1;
+            }
+
+            context.runtime.reader.reset(reader_end);
+            result
+        }
+        else {
+            // Non-left-recursive block can be called directly.
+            run(self, context, false)
+        }
     }
 }
 
@@ -362,6 +441,8 @@ pub struct Runtime<'program, 'reader> {
     program: &'program Program,
     reader: &'reader mut Reader,
 
+    memo: HashMap<(usize, usize), (usize, Result<Accept, Reject>)>,
+
     stack: Vec<RefValue>,
     capture: Vec<(Capture, Option<String>)>
 }
@@ -371,6 +452,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
         Self {
             program,
             reader,
+            memo: HashMap::new(),
             stack: Vec::new(),
             capture: Vec::new()
         }
@@ -453,7 +535,7 @@ impl Program {
 
                     for item in block.items.iter_mut() {
                         let mut my_nullable = true;
-                        let mut my_leftrec = false;
+                        let mut my_leftrec = true;
 
                         walk(
                             parselets,
@@ -461,15 +543,17 @@ impl Program {
                             &mut my_nullable,
                             item
                         );
-                        
-                        if my_nullable {
-                            *nullable = true;
+
+                        if !my_nullable {
+                            *nullable = false;
                         }
 
                         if my_leftrec {
-                            *leftrec = true;
+                            block.leftrec = true;
                         }
                     }
+
+                    *leftrec = block.leftrec;
                 }
 
                 _ => {}
@@ -550,7 +634,8 @@ impl Program {
 
         for i in 0..self.parselets.len() {
             println!("P{}{} = {{", i, if self.parselets[i].nullable { "  # nullable" } else { "" });
-            dump(&self.parselets[i].body, 1);
+            //dump(&self.parselets[i].body, 1);
+            println!("{:#?}", self.parselets[i].body);
             println!("}}");
         }
     }
@@ -566,9 +651,8 @@ impl Program {
 }
 
 
-
 pub struct Scope<'scope> {
-    program: Rc<RefCell<Program>>,
+    pub program: Rc<RefCell<Program>>,
     parent: Option<&'scope Scope<'scope>>,
     locals: u32,
     symbols: HashMap<String, usize>
@@ -584,10 +668,10 @@ impl<'scope> Scope<'scope> {
         }
     }
 
-    pub fn new_below(scope: &'scope Scope) -> Self {
+    pub fn new_below(&'scope self) -> Self {
         Self {
-            program: scope.program.clone(),
-            parent: Some(scope),
+            program: self.program.clone(),
+            parent: Some(self),
             locals: 0,
             symbols: HashMap::new()
         }
@@ -618,6 +702,25 @@ macro_rules! item {
     };
     ($scope:expr, $literal:literal) => {
         Item::Token(Match::new_touch($literal))
+    };
+    ($scope:expr, { $( => $( ( $( $token:tt )+ ) )* )+ } ) => {
+        {
+            let id = $scope.program.borrow().parselets.len();
+            {
+                let mut scope = $scope.new_below();
+                let mut block = Item::Block(
+                    Box::new(
+                        Block::new(vec![
+                            $( sequence!(scope, [ $( ( $($token)+ ) ),* ] ) ),+
+                        ])
+                    )
+                );
+
+                scope.program.borrow_mut().new_parselet(block);
+            }
+
+            Item::Call(id)
+        }
     };
     ($scope:expr, $expr:expr) => {
         $expr

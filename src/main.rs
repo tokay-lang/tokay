@@ -11,7 +11,8 @@ use ::tokay::{ccl, tokay, sequence, modifier, item};
 
 
 fn main() {
-    let s = "123+456".to_string();
+    let s = "x+x*x+x".to_string();
+    let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
     let mut program = Program::new();
@@ -19,34 +20,6 @@ fn main() {
     //trace_macros!(true);
 
     let mut program = tokay!(
-        /*
-        main {
-            => (sub)
-            => ("A")
-        }
-
-        sub {
-            => (subsub)
-            => ("B")
-        }
-
-        subsub {
-            => (main)
-        }
-
-        x {
-            => ("Y")  (main)
-        }
-
-        main {
-            => ("Hello") ("World")
-            => ("Hello") ("Rofl")
-            => ("Doppel") (main)
-            => (main) ("bla")
-            => ("Hello") ("Ralf")
-        }
-        */
-
         main {
             => (expr)
             /*
@@ -92,6 +65,34 @@ fn main() {
                     }
                 })
                 */
+        }
+    );
+
+    let mut program = tokay!(
+        /*
+        main {
+            => (sub)
+            => ("A")
+        }
+
+        sub {
+            => (subsub)
+            => ("B")
+        }
+
+        subsub {
+            => (main)
+        }
+
+        x {
+            => ("Y")  (main)
+        }
+        */
+
+        main {
+            => ("Hello") ("World")
+            => ("Doppel") (main)
+            => (main) ("bla")
         }
     );
     //trace_macros!(false);
