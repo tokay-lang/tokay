@@ -12,7 +12,7 @@ use ::tokay::{ccl, tokay, sequence, modifier, item};
 
 fn main() {
     let s = "x+x*x+x".to_string();
-    let s = "HelloWorldblablabla".to_string();
+    //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
     let mut program = Program::new();
@@ -68,7 +68,7 @@ fn main() {
         }
     );
 
-    let mut program = tokay!(
+    let mut program1 = tokay!(
         /*
         main {
             => (sub)
@@ -108,5 +108,5 @@ fn main() {
     let ret = program.run(&mut runtime);
 
     println!("{:?}", ret);
-
+    runtime.dump();
 }

@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::collections::HashMap;
 
 use crate::map::Map;
-use crate::value::{Value, RefValue};
+use crate::value::{Complex, Value, RefValue};
 use crate::token::{Token, Capture, Match};
 use crate::reader::{Reader, Range};
 
@@ -124,9 +124,16 @@ impl Sequence {
     }
 
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        // Empty sequence?
+        if self.items.len() == 0 {
+            return Ok(Accept::Next);
+        }
+
+        // Remember capturing positions
         let capture_start = context.runtime.capture.len();
         let reader_start = context.runtime.reader.tell();
         
+        // Iterate over sequence
         for (item, alias) in &self.items {
             match item.run(context) {
                 Err(reject) => {
@@ -137,8 +144,12 @@ impl Sequence {
 
                 Ok(accept) => {
                     match accept {
-                        Accept::Next => context.runtime.capture.push((Capture::Empty, alias.clone())),
-                        Accept::Push(capture) => context.runtime.capture.push((capture, alias.clone())),
+                        Accept::Next => {
+                            context.runtime.capture.push((Capture::Empty, alias.clone()))
+                        },
+                        Accept::Push(capture) => {
+                            context.runtime.capture.push((capture, alias.clone()))
+                        },
                         Accept::Return(value) => {
                             context.runtime.capture.truncate(capture_start);
                             return Ok(Accept::Return(value));
@@ -148,8 +159,57 @@ impl Sequence {
             }
         }
 
-        // todo: generate a value or dingens
-        Ok(Accept::Push(Capture::Range(context.runtime.reader.capture_from(reader_start), 1)))
+        if self.items.len() == 1 && self.items[0].1.is_none() {
+            Ok(Accept::Push(context.runtime.capture.pop().unwrap().0))
+        }
+        else {
+            let mut complex = Complex::new();
+
+            // Collect any significant captures and values
+            for (value, alias) in context.runtime.capture.drain(capture_start..) {
+                let value = match value {
+                    // Turn significant capture into string
+                    Capture::Range(range, severity) if severity > 0 => {
+                        Value::String(
+                            context.runtime.reader.extract(&range)
+                        ).into_ref()
+                    },
+                    
+                    // Take value as is
+                    Capture::Value(value, severity) if severity > 0 => {
+                        value.clone()
+                    },
+
+                    _ => {
+                        continue
+                    }
+                };
+
+                // Named capture becomes complex key
+                if let Some(name) = alias {
+                    complex.push_key_value(Value::String(name), value);
+                }
+                else {
+                    complex.push_value(value);
+                }
+            }
+
+            /* When there is only one value without a key in the map,
+                return this single value only! */
+            if complex.len() == 1 {
+                if let Some((None, value)) = complex.get(0) {
+                    return Ok(Accept::Push(Capture::Value(value.clone(), 1)))
+                }
+            }
+
+            if complex.len() > 0 {
+                // Return the complex when it contains something
+                Ok(Accept::Push(Capture::Value(Value::Complex(complex).into_ref(), 1)))
+            }
+            else {
+                Ok(Accept::Push(Capture::Empty))
+            }
+        }
     }
 }
 
@@ -217,7 +277,7 @@ impl Block {
         if self.leftrec {
             println!("Leftrec {:?}", self);
 
-            // Left-recursive parselet is called in a loop until no more input
+            // Left-recursive blocks are called in a loop until no more input
             // is consumed.
 
             let mut reader_end = context.reader_start;
@@ -457,6 +517,12 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             capture: Vec::new()
         }
     }
+
+    pub fn dump(&self) {
+        println!("memo has {} entries", self.memo.len());
+        println!("stack has {} entries", self.stack.len());
+        println!("capture has {} entries", self.capture.len());
+    }
 }
 
 
@@ -464,8 +530,6 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
 #[derive(Debug)]
 pub struct Program {
-    // Input & memoization
-    //memo: HashMap<(usize, usize), (usize, State)>,
     pub parselets: Vec<Parselet>
 }
 
@@ -701,7 +765,10 @@ macro_rules! item {
         }
     };
     ($scope:expr, $literal:literal) => {
-        Item::Token(Match::new_touch($literal))
+        Item::Token(
+            Match::new($literal)
+            //Match::new_touch($literal)
+        )
     };
     ($scope:expr, { $( => $( ( $( $token:tt )+ ) )* )+ } ) => {
         {
