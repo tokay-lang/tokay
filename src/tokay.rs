@@ -235,6 +235,8 @@ impl Block {
         fn run(block: &Block, context: &mut Context, leftrec: bool)
                 -> Result<Accept, Reject>
         {
+            let mut res = Ok(Accept::Next);
+
             for item in &block.items {
                 // Skip over sequences without matching leftrec configuration
                 if let Item::Sequence(seq) = item {
@@ -243,25 +245,15 @@ impl Block {
                     }
                 }
 
-                match item.run(context) {
-                    Err(reject) => {
-                        if let Reject::Next = reject {
-                            continue
-                        }
-    
-                        return Err(reject);
-                    },
-                    Ok(accept) => {
-                        if let Accept::Next = accept {
-                            continue
-                        }
-    
-                        return Ok(accept);
-                    }
+                res = item.run(context);
+
+                // Stop on anything which is not Accept::Next or Reject::Next
+                if !matches!(&res, Ok(Accept::Next) | Err(Reject::Next)) {
+                    break
                 }
             }
 
-            Ok(Accept::Next)
+            res
         }
 
         let id = self as *const Block as usize;
@@ -275,7 +267,7 @@ impl Block {
         }
 
         if self.leftrec {
-            println!("Leftrec {:?}", self);
+            //println!("Leftrec {:?}", self);
 
             // Left-recursive blocks are called in a loop until no more input
             // is consumed.
@@ -752,121 +744,121 @@ impl<'scope> Scope<'scope> {
     }
 }
 
+
 #[macro_export]
-macro_rules! item {
+macro_rules! tokay_item {
+    // Rust
     ($scope:expr, |$var:ident| $code:block) => {
         Item::Rust(|$var| $code)
     };
-    ($scope:expr, $ident:ident) => {
-        if let Some(addr) = $scope.get_name(stringify!($ident)) {
-            Item::Call(addr)
-        } else {
-            Item::Name(stringify!($ident).to_string())
+
+    // Assign
+    ( $scope:expr, ( $name:ident = $item:tt ) ) => {
+        {
+            let addr = $scope.program.borrow_mut().new_parselet(tokay_item!($scope, $item));
+            $scope.set_name(stringify!($name).to_string(), addr);
+            //println!("assign", stringify!($name), stringify!($item));
+            Item::Empty
         }
     };
-    ($scope:expr, $literal:literal) => {
+
+    // Sequence
+    ( $scope:expr, ( $( $item:tt ),* ) ) => {
+        {
+            //println!("sequence");
+            Item::Sequence(
+                Box::new(
+                    Sequence::new(
+                        vec![
+                            $(
+                                ( tokay_item!($scope, $item), None )
+                            ),*
+                        ]
+                    )
+                )
+            )
+        }
+    };
+
+    // Block
+    ( $scope:expr, [ $( $item:tt ),* ] ) => {
+        {
+            println!("block");
+            Item::Block(
+                Box::new(
+                    Block::new(
+                        vec![
+                            $(
+                                tokay_item!($scope, $item)
+                            ),*
+                        ]
+                    )
+                )
+            )
+        }
+    };
+
+    // Scoped block
+    ( $scope:expr, { $( $item:tt ),* } ) => {
+        {
+            println!("scoped block");
+            Item::Block(
+                Box::new(
+                    Block::new(
+                        vec![
+                            $(
+                                tokay_item!($scope, $item)
+                            ),*
+                        ]
+                    )
+                )
+            )
+        }
+    };
+
+    // Call
+    ( $scope:expr, $ident:ident ) => {
+        {
+            println!("call = {}", stringify!($ident));
+            if let Some(addr) = $scope.get_name(stringify!($ident)) {
+                Item::Call(addr)
+            } else {
+                Item::Name(stringify!($ident).to_string())
+            }
+        }
+    };
+
+    // Match
+    ( $scope:expr, $literal:literal ) => {
+        //println!("match = {}", $literal);
         Item::Token(
             Match::new($literal)
             //Match::new_touch($literal)
         )
     };
-    ($scope:expr, { $( => $( ( $( $token:tt )+ ) )* )+ } ) => {
-        {
-            let id = $scope.program.borrow().parselets.len();
-            {
-                let mut scope = $scope.new_below();
-                let mut block = Item::Block(
-                    Box::new(
-                        Block::new(vec![
-                            $( sequence!(scope, [ $( ( $($token)+ ) ),* ] ) ),+
-                        ])
-                    )
-                );
 
-                scope.program.borrow_mut().new_parselet(block);
-            }
-
-            Item::Call(id)
-        }
-    };
-    ($scope:expr, $expr:expr) => {
-        $expr
-    };
-}
-
-#[macro_export]
-macro_rules! modifier {
-    /*
-    ($scope:expr, pos( $( $token:tt )+ ) ) => {
+    // Anything else
+    ( $scope:expr, $expr:tt ) => {
         {
-            let token = modifier!($scope, $($token)+);
-            token.into_positive($scope)
-        }
-    };
-    ($scope:expr, opt( $( $token:tt )+ ) ) => {
-        {
-            let token = modifier!($scope, $($token)+);
-            token.into_optional($scope)
-        }
-    };
-    ($scope:expr, kle( $( $token:tt )+ ) ) => {
-        {
-            let token = modifier!($scope, $($token)+);
-            let token = token.into_positive($scope);
-            token.into_optional($scope)
-        }
-    };
-    */
-    ($scope:expr, $( ( $( $token:tt )+ ) )*) => {
-        sequence!($scope, [ $( ( $($token)+ ) ),* ] )
-    };
-    ($scope:expr, $( $token:tt )+) => {
-        item!($scope, $($token)+)
-    };
-}
-
-#[macro_export]
-macro_rules! sequence {
-    ($scope:expr, [ $( ( $( $token:tt )+ ) ),* ]) => {
-        {
-            Item::Sequence(
-                Box::new(
-                    Sequence::new(vec![
-                        $(
-                            ( modifier!($scope, $( $token )+), None )
-                        ),*
-                    ])
-                )
-            )
+            println!("expr = {}", stringify!($expr));
+            $expr
         }
     };
 }
+    
 
 #[macro_export]
 macro_rules! tokay {
-    ( $( $name:ident { $( => $( ( $( $token:tt )+ ) )* )+ } )+ ) => {
+    ( $( $items:tt ),* ) => {
         {
             let program = Rc::new(RefCell::new(Program::new()));
 
             {
                 let mut scope = Scope::new(program.clone());
-
-                $(
-                    scope.set_name(stringify!($name).to_string(), program.borrow().parselets.len());
-
-                    let mut block = Item::Block(
-                        Box::new(
-                            Block::new(vec![
-                                $( sequence!(scope, [ $( ( $($token)+ ) ),* ] ) ),+
-                            ])
-                        )
-                    );
-                    
-                    program.borrow_mut().new_parselet(block);
-                )+
+                tokay_item!(scope, $( $items ),* );
 
                 /* Resolve all symbols here. Might change later on. */
-                for p in program.borrow_mut().parselets.iter_mut() {
+                for p in scope.program.borrow_mut().parselets.iter_mut() {
                     p.resolve(&scope);
                 }
             }

@@ -7,7 +7,7 @@ use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::token::*;
 use ::tokay::value::Value;
-use ::tokay::{ccl, tokay, sequence, modifier, item};
+use ::tokay::{ccl, tokay, tokay_item};
 
 
 fn main() {
@@ -18,10 +18,9 @@ fn main() {
     let mut program = Program::new();
 
     //trace_macros!(true);
-
-    let mut program = tokay!(
-        main {
-            => (expr)
+    let mut program = tokay!({
+        (main = {
+            (expr)
             /*
             => (("hello") ((kle("world")) (|runtime| {
                 let hello = runtime.get_capture(1).unwrap().borrow().to_string().unwrap();
@@ -31,27 +30,27 @@ fn main() {
                 Ok(Accept::Next)
             })))
             */
-        }
+        }),
 
-        factor {
-            => ("(") (expr) (")")
-            => (int)
-        }
+        (factor = {
+            ("(", expr, ")"),
+            (int)
+        }),
 
-        term {
-            => (term) ("*") (factor)
-            => (term) ("/") (factor)
-            => (factor)
-        }
+        (term = {
+            (term, "*", factor),
+            (term, "/", factor),
+            (factor)
+        }),
 
-        expr {
-            => (expr) ("+") (term)
-            => (expr) ("-") (term)
-            => (term)
-        }
+        (expr = {
+            (expr, "+", term),
+            (expr, "-", term),
+            (term)
+        }),
 
-        int {
-            =>  ("x")
+        (int = {
+            ("x")
                 /*
                 (Token::Chars(ccl!['0'..='9']))
                 (|runtime| {
@@ -65,36 +64,21 @@ fn main() {
                     }
                 })
                 */
-        }
+        })
+    });
+
+    /*
+    let mut program = tokay!(
+        (main = {
+            ("Hello", "World"),
+            ("Doppel", main),
+            (main, "bla", [
+                ("butzemann"),
+                ("dutzemann")
+            ])
+        })
     );
-
-    let mut program1 = tokay!(
-        /*
-        main {
-            => (sub)
-            => ("A")
-        }
-
-        sub {
-            => (subsub)
-            => ("B")
-        }
-
-        subsub {
-            => (main)
-        }
-
-        x {
-            => ("Y")  (main)
-        }
-        */
-
-        main {
-            => ("Hello") ("World")
-            => ("Doppel") (main)
-            => (main) ("bla")
-        }
-    );
+    */
     //trace_macros!(false);
     
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
