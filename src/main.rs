@@ -19,38 +19,26 @@ fn main() {
 
     //trace_macros!(true);
     let mut program = tokay!({
-        (main = {
-            (expr)
-            /*
-            => (("hello") ((kle("world")) (|runtime| {
-                let hello = runtime.get_capture(1).unwrap().borrow().to_string().unwrap();
-                let world = runtime.get_capture(2).unwrap().borrow().to_string().unwrap();
-        
-                println!("{} {} {}", runtime.get_capture(0).unwrap().borrow().to_string().unwrap(), hello, world);
-                Ok(Accept::Next)
-            })))
-            */
+
+        (Factor = {
+            ["(", Expr, ")"],
+            [Int]
         }),
 
-        (factor = {
-            ("(", expr, ")"),
-            (int)
+        (Term = {
+            [Term, "*", Factor],
+            [Term, "/", Factor],
+            [Factor]
         }),
 
-        (term = {
-            (term, "*", factor),
-            (term, "/", factor),
-            (factor)
+        (Expr = {
+            [Expr, "+", Term],
+            [Expr, "-", Term],
+            [Term]
         }),
 
-        (expr = {
-            (expr, "+", term),
-            (expr, "-", term),
-            (term)
-        }),
-
-        (int = {
-            ("x")
+        (Int = {
+            ["x"]
                 /*
                 (Token::Chars(ccl!['0'..='9']))
                 (|runtime| {
@@ -64,7 +52,19 @@ fn main() {
                     }
                 })
                 */
-        })
+        }),
+
+                
+        [Expr]
+        /*
+        => (("hello") ((kle("world")) (|runtime| {
+            let hello = runtime.get_capture(1).unwrap().borrow().to_string().unwrap();
+            let world = runtime.get_capture(2).unwrap().borrow().to_string().unwrap();
+    
+            println!("{} {} {}", runtime.get_capture(0).unwrap().borrow().to_string().unwrap(), hello, world);
+            Ok(Accept::Next)
+        })))
+        */
     });
 
     /*

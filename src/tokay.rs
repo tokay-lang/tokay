@@ -28,6 +28,8 @@ pub enum Reject {
 
 #[derive(Debug)]
 pub enum Item {
+    Nop,
+
     // Semantics
     Accept,
     Reject,
@@ -83,7 +85,7 @@ impl Item {
 
             Item::Sequence(sequence) => sequence.run(context),
             Item::Block(block) => block.run(context),
-            Item::Name(_) => panic!("{:?} cannot be executed", self),
+            Item::Nop | Item::Name(_) => panic!("{:?} cannot be executed", self),
             //Item::Rust(callback) => callback(context)
         }
     }
@@ -522,13 +524,15 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
 #[derive(Debug)]
 pub struct Program {
-    pub parselets: Vec<Parselet>
+    pub parselets: Vec<Parselet>,
+    constants: Vec<Value>
 }
 
 impl Program {
     pub fn new() -> Self {
         Self{
-            parselets: Vec::new()
+            parselets: Vec::new(),
+            constants: Vec::new()
         }
     }
 
@@ -697,7 +701,7 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
-        self.parselets[0].run(runtime)
+        self.parselets.last().unwrap().run(runtime)
     }
 
     pub fn new_parselet(&mut self, body: Item) -> usize {
@@ -755,43 +759,33 @@ macro_rules! tokay_item {
     // Assign
     ( $scope:expr, ( $name:ident = $item:tt ) ) => {
         {
-            let addr = $scope.program.borrow_mut().new_parselet(tokay_item!($scope, $item));
+            let addr = $scope.program.borrow_mut().new_parselet(
+                tokay_item!($scope, $item)
+            );
             $scope.set_name(stringify!($name).to_string(), addr);
-            //println!("assign", stringify!($name), stringify!($item));
-            Item::Empty
+            println!("assign {} = {}", stringify!($name), stringify!($item));
+            Item::Nop
         }
     };
 
     // Sequence
-    ( $scope:expr, ( $( $item:tt ),* ) ) => {
+    ( $scope:expr, [ $( $item:tt ),* ] ) => {
         {
             //println!("sequence");
+            let items = vec![
+                $(
+                    tokay_item!($scope, $item)
+                ),*
+            ];
+
             Item::Sequence(
                 Box::new(
                     Sequence::new(
-                        vec![
-                            $(
-                                ( tokay_item!($scope, $item), None )
-                            ),*
-                        ]
-                    )
-                )
-            )
-        }
-    };
-
-    // Block
-    ( $scope:expr, [ $( $item:tt ),* ] ) => {
-        {
-            println!("block");
-            Item::Block(
-                Box::new(
-                    Block::new(
-                        vec![
-                            $(
-                                tokay_item!($scope, $item)
-                            ),*
-                        ]
+                        items.into_iter().filter(
+                            // Remove any Nops
+                            |item| !matches!(item, Item::Nop)).map(
+                                // Turn into (item, None) tuples
+                                |item| (item, None)).collect()
                     )
                 )
             )
@@ -801,16 +795,24 @@ macro_rules! tokay_item {
     // Scoped block
     ( $scope:expr, { $( $item:tt ),* } ) => {
         {
-            println!("scoped block");
+            //let mut scope = $scope.new_below();
+            let items = vec![
+                $(
+                    tokay_item!($scope, $item)
+                ),*
+            ];
+
+            let block = Block::new(
+                items.into_iter().filter(
+                    // Remove any Nops
+                    |item| !matches!(item, Item::Nop)).collect()
+            );
+
+            //block.resolve(&scope);
+
             Item::Block(
                 Box::new(
-                    Block::new(
-                        vec![
-                            $(
-                                tokay_item!($scope, $item)
-                            ),*
-                        ]
-                    )
+                    block
                 )
             )
         }
@@ -819,7 +821,7 @@ macro_rules! tokay_item {
     // Call
     ( $scope:expr, $ident:ident ) => {
         {
-            println!("call = {}", stringify!($ident));
+            //println!("call = {}", stringify!($ident));
             if let Some(addr) = $scope.get_name(stringify!($ident)) {
                 Item::Call(addr)
             } else {
@@ -837,10 +839,10 @@ macro_rules! tokay_item {
         )
     };
 
-    // Anything else
+    // Fallback
     ( $scope:expr, $expr:tt ) => {
         {
-            println!("expr = {}", stringify!($expr));
+            //println!("expr = {}", stringify!($expr));
             $expr
         }
     };
@@ -855,7 +857,9 @@ macro_rules! tokay {
 
             {
                 let mut scope = Scope::new(program.clone());
-                tokay_item!(scope, $( $items ),* );
+                let main = tokay_item!(scope, $( $items ),* );
+                //println!("{:?}", main);
+                scope.program.borrow_mut().new_parselet(main);
 
                 /* Resolve all symbols here. Might change later on. */
                 for p in scope.program.borrow_mut().parselets.iter_mut() {
