@@ -5,6 +5,8 @@ This document is a scribble and draft for the syntax and semantics for Tokay, a 
 ---
 ## Constants
 
+Constants are "compile-time" variables. They are evaluated and compiled into the resulting program.
+
 ```tokay
 # Basic constant values
 Pi = 3.1415
@@ -22,9 +24,25 @@ Part = @{
 IPv4 = @{
     Part '.' Part '.' Part '.' Part
 }
+```
 
+A program internally holds a pool of constants. These are either values, objects or executable code (=parselets).
 
-# Scoping
+### Scoping
+
+Constants are arranged in scopes. 
+
+```tokay
+C = "Hello"
+print C  # this shows "Hello"
+
+if true {
+    print C  # this shows "Hello"
+    C = "World"
+    print C  # this shows "World"
+}
+
+print C  # this shows "Hello"
 
 # `Hold = 1` here would make the scoped Hold below an error!
 
@@ -34,16 +52,18 @@ if true {
 } # Hold is gone now!
 
 # Hold could be defined here again...
+```
 
+### Invalid
 
-# Invalid
-Debug = !Debug                      # Debug is already defined in this scope!
+The following constants can't be defined
+```
+Debug = !Debug                      # Call to undefined constant "Debug"
 Reload = a                          # Dynamic expression based on variable
 StopAt = if a > 10 100              # same like above
 ```
 
 - Constants begin with an upper-case letter `A-Z`, or an underscore `_`
-- Once defined, cannot be re-assigned or modified, except when in different scopes
 - They may contain either atomic Values or Parselets; Expressions, Objects or Blocks are not allowed!
 - They are scoped, as shown above
 

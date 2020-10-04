@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 use std::collections::HashMap;
 
@@ -80,7 +80,9 @@ impl Item {
             },
 
             Item::Call(parselet) => {
-                context.runtime.program.parselets[*parselet].run(context.runtime)
+                context.runtime.program.parselets[*parselet].run(
+                    context.runtime
+                )
             },
 
             Item::Sequence(sequence) => sequence.run(context),
@@ -206,7 +208,11 @@ impl Sequence {
 
             if complex.len() > 0 {
                 // Return the complex when it contains something
-                Ok(Accept::Push(Capture::Value(Value::Complex(complex).into_ref(), 1)))
+                Ok(Accept::Push(
+                    Capture::Value(
+                        Value::Complex(Box::new(complex)).into_ref(), 1)
+                    )
+                )
             }
             else {
                 Ok(Accept::Push(Capture::Empty))
@@ -335,7 +341,7 @@ pub struct Parselet {
 }
 
 impl Parselet {
-    fn new(body: Item) -> Self {
+    pub fn new(body: Item) -> Self {
         Self{
             leftrec: false,
             nullable: true,
@@ -345,47 +351,6 @@ impl Parselet {
 
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.body.run(&mut Context::new(runtime))
-    }
-
-    pub fn resolve(&mut self, scope: &Scope) {
-        fn walk(scope: &Scope, mut item: &mut Item) {
-            match item {
-                Item::Name(name) => {
-                    if let Some(addr) = scope.get_name(&name) {
-                        *item = Item::Call(addr)
-                    }
-                    else {
-                        panic!("Calling undefined symbol {:?}", name)
-                    }
-                },
-    
-                Item::Sequence(ref mut sequence) => {
-                    /*
-                    sequence.items =
-                        sequence.items.drain(..).map(
-                            |(item, alias)| (walk(scope, item), alias)).collect();
-                    */
-                    for (item, _) in sequence.items.iter_mut() {
-                        walk(scope, item);
-                    }
-                },
-    
-                Item::Block(ref mut block) => {
-                    /*
-                    block.items =
-                        block.items.drain(..).map(
-                            |item| walk(scope, item)).collect();
-                    */
-                    for item in block.items.iter_mut() {
-                        walk(scope, item);
-                    }
-                },
-    
-                _ => {}
-            };
-        }
-
-        walk(scope, &mut self.body);
     }
 }
 
@@ -524,19 +489,20 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
 #[derive(Debug)]
 pub struct Program {
-    pub parselets: Vec<Parselet>,
-    constants: Vec<Value>
+    parselets: Vec<Parselet>,
+    statics: Vec<RefValue>
 }
 
 impl Program {
     pub fn new() -> Self {
         Self{
             parselets: Vec::new(),
-            constants: Vec::new()
+            statics: Vec::new()
         }
     }
 
     pub fn finalize(&mut self) {
+        // Turn parselets vec into a RefCell vec
         let parselets: Vec<RefCell<Parselet>> =
             self.parselets.drain(..).map(|item| RefCell::new(item)).collect();
 
@@ -703,48 +669,179 @@ impl Program {
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets.last().unwrap().run(runtime)
     }
+}
 
-    pub fn new_parselet(&mut self, body: Item) -> usize {
-        self.parselets.push(Parselet::new(body));
+
+pub struct Compiler {
+    scopes: Vec<Scope>,                     // Current compilation scopes
+    statics: HashMap<String, usize>,        // Mapping statics from origins
+    parselets: Vec<Parselet>
+}
+
+struct Scope {
+    variables: Option<HashMap<String, usize>>,
+    constants: HashMap<String, usize>,
+    parselets: usize
+}
+
+impl Compiler {
+    pub fn new() -> Self {
+        Self{
+            scopes: vec![
+                Scope{
+                    variables: Some(HashMap::new()),
+                    constants: HashMap::new(),
+                    parselets: 0
+                }
+            ],
+            statics: HashMap::new(),
+            parselets: Vec::new()
+        }
+    }
+
+    pub fn into_program(mut self) -> Program {
+        while self.scopes.len() > 1 {
+            self.pop_scope();
+        }
+
+        self.resolve();
+
+        let mut program = Program::new();
+        program.parselets = self.parselets.drain(..).collect();
+
+        //program.dump();
+
+        program.finalize();
+        program
+    }
+
+    pub fn push_scope(&mut self, variables: bool) {
+        self.scopes.insert(0,
+            Scope{
+                variables: if variables { Some(HashMap::new()) } else { None },
+                constants: HashMap::new(),
+                parselets: self.parselets.len()
+            }
+        );
+    }
+
+    pub fn pop_scope(&mut self) {
+        if self.scopes.len() == 1 {
+            panic!("Can't pop main scope");
+        }
+
+        self.resolve();
+        self.scopes.remove(0);
+    }
+
+    pub fn get_var(&self, name: &str) -> Option<usize> {
+        for scope in &self.scopes {
+            if let Some(variables) = &scope.variables {
+                if let Some(addr) = variables.get(name) {
+                    return Some(*addr)
+                }
+                else {
+                    break;
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn set_var(&mut self, name: &str, addr: usize) {
+        for scope in self.scopes.iter_mut() {
+            if let Some(variables) = &mut scope.variables {
+                variables.insert(name.to_string(), addr);
+                break;
+            }
+        }
+    }
+
+    pub fn get_const(&self, name: &str) -> Option<usize> {
+        for scope in &self.scopes {
+            if let Some(addr) = scope.constants.get(name) {
+                return Some(*addr)
+            }
+        }
+
+        None
+    }
+
+    pub fn set_const(&mut self, name: &str, addr: usize) {
+        self.scopes.first_mut().unwrap().constants.insert(
+            name.to_string(), addr
+        );
+    }
+
+    /** Pushes a static value into the program.
+
+    The function checks for origin, to avoid making several
+    static values with equal content. In case an origin is provided and found,
+    returns the address of existing value instead.
+
+    Returns the unique address of the static inside the program.
+    */
+    /*
+    pub fn push_static(&mut self, origin: Option<&str>, value: RefValue) -> usize
+    {
+        if let Some(origin) = origin {
+            if let Some(addr) = self.statics.get(origin) {
+                return *addr;
+            }
+        }
+
+        let addr = self.program.statics.len();
+        self.program.statics.push(value);
+
+        if let Some(origin) = origin {
+            self.statics.insert(origin.to_string(), addr);
+        }
+        
+        addr
+    }
+    */
+
+    pub fn push_parselet(&mut self, parselet: Parselet) -> usize
+    {
+        self.parselets.push(parselet);
         self.parselets.len() - 1
     }
-}
 
+    pub fn resolve(&mut self) {
+        fn walk(scopes: &Vec<Scope>, item: &mut Item) {
+            match item {
+                Item::Name(name) => {
+                    for scope in scopes {
+                        if let Some(addr) = scope.constants.get(name) {
+                            println!("resolved {:?} as {:?}", name, *addr);
+                            *item = Item::Call(*addr);
+                            return;
+                        }
+                    }
 
-pub struct Scope<'scope> {
-    pub program: Rc<RefCell<Program>>,
-    parent: Option<&'scope Scope<'scope>>,
-    locals: u32,
-    symbols: HashMap<String, usize>
-}
-
-impl<'scope> Scope<'scope> {
-    pub fn new(program: Rc<RefCell<Program>>) -> Self {
-        Self {
-            program,
-            parent: None,
-            locals: 0,
-            symbols: HashMap::new()
+                    panic!("Cannot resolve {:?}", name);
+                },
+    
+                Item::Sequence(ref mut sequence) => {
+                    for (item, _) in sequence.items.iter_mut() {
+                        walk(scopes, item);
+                    }
+                },
+    
+                Item::Block(ref mut block) => {
+                    for item in block.items.iter_mut() {
+                        walk(scopes, item);
+                    }
+                },
+    
+                _ => {}
+            };
         }
-    }
 
-    pub fn new_below(&'scope self) -> Self {
-        Self {
-            program: self.program.clone(),
-            parent: Some(self),
-            locals: 0,
-            symbols: HashMap::new()
+        for i in self.scopes.first().unwrap().parselets..self.parselets.len() {
+            walk(&self.scopes, &mut self.parselets[i].body);
         }
-    }
-
-    pub fn get_name(&self, name: &str) -> Option<usize> {
-        println!("get {:?}", name);
-        self.symbols.get(name).cloned()
-    }
-
-    pub fn set_name(&mut self, name: String, addr: usize) {
-        println!("set {:?} to {:?}", name, addr);
-        self.symbols.insert(name, addr);
     }
 }
 
@@ -752,29 +849,35 @@ impl<'scope> Scope<'scope> {
 #[macro_export]
 macro_rules! tokay_item {
     // Rust
-    ($scope:expr, |$var:ident| $code:block) => {
+    ($compiler:expr, |$var:ident| $code:block) => {
         Item::Rust(|$var| $code)
     };
 
     // Assign
-    ( $scope:expr, ( $name:ident = $item:tt ) ) => {
+    ( $compiler:expr, ( $name:ident = $item:tt ) ) => {
         {
-            let addr = $scope.program.borrow_mut().new_parselet(
-                tokay_item!($scope, $item)
+            let item = tokay_item!($compiler, $item);
+            let id = $compiler.push_parselet(
+                Parselet::new(item)
             );
-            $scope.set_name(stringify!($name).to_string(), addr);
+
+            $compiler.set_const(
+                stringify!($name),
+                id
+            );
+
             println!("assign {} = {}", stringify!($name), stringify!($item));
             Item::Nop
         }
     };
 
     // Sequence
-    ( $scope:expr, [ $( $item:tt ),* ] ) => {
+    ( $compiler:expr, [ $( $item:tt ),* ] ) => {
         {
             //println!("sequence");
             let items = vec![
                 $(
-                    tokay_item!($scope, $item)
+                    tokay_item!($compiler, $item)
                 ),*
             ];
 
@@ -792,13 +895,14 @@ macro_rules! tokay_item {
         }
     };
 
-    // Scoped block
-    ( $scope:expr, { $( $item:tt ),* } ) => {
+    // Parselet
+    ( $compiler:expr, { $( $item:tt ),* } ) => {
         {
-            //let mut scope = $scope.new_below();
+            println!("open scope {{");
+            $compiler.push_scope(true);
             let items = vec![
                 $(
-                    tokay_item!($scope, $item)
+                    tokay_item!($compiler, $item)
                 ),*
             ];
 
@@ -808,21 +912,23 @@ macro_rules! tokay_item {
                     |item| !matches!(item, Item::Nop)).collect()
             );
 
-            //block.resolve(&scope);
-
-            Item::Block(
+            let mut item = Item::Block(
                 Box::new(
                     block
                 )
-            )
+            );
+
+            $compiler.pop_scope();
+            println!("}} close scope");
+            item
         }
     };
 
     // Call
-    ( $scope:expr, $ident:ident ) => {
+    ( $compiler:expr, $ident:ident ) => {
         {
             //println!("call = {}", stringify!($ident));
-            if let Some(addr) = $scope.get_name(stringify!($ident)) {
+            if let Some(addr) = $compiler.get_const(stringify!($ident)) {
                 Item::Call(addr)
             } else {
                 Item::Name(stringify!($ident).to_string())
@@ -831,8 +937,8 @@ macro_rules! tokay_item {
     };
 
     // Match
-    ( $scope:expr, $literal:literal ) => {
-        //println!("match = {}", $literal);
+    ( $compiler:expr, $literal:literal ) => {
+        /*println!("match = {}", $literal);*/
         Item::Token(
             Match::new($literal)
             //Match::new_touch($literal)
@@ -840,34 +946,27 @@ macro_rules! tokay_item {
     };
 
     // Fallback
-    ( $scope:expr, $expr:tt ) => {
+    ( $compiler:expr, $expr:tt ) => {
         {
             //println!("expr = {}", stringify!($expr));
             $expr
         }
     };
 }
-    
+
 
 #[macro_export]
 macro_rules! tokay {
     ( $( $items:tt ),* ) => {
         {
-            let program = Rc::new(RefCell::new(Program::new()));
+            let mut compiler = Compiler::new();
 
             {
-                let mut scope = Scope::new(program.clone());
-                let main = tokay_item!(scope, $( $items ),* );
-                //println!("{:?}", main);
-                scope.program.borrow_mut().new_parselet(main);
-
-                /* Resolve all symbols here. Might change later on. */
-                for p in scope.program.borrow_mut().parselets.iter_mut() {
-                    p.resolve(&scope);
-                }
+                let main = tokay_item!(compiler, $( $items ),*);
+                compiler.push_parselet(Parselet::new(main));
             }
 
-            Rc::try_unwrap(program).unwrap().into_inner()
+            compiler.into_program()
         }
     }
 }

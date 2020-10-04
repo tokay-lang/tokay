@@ -15,10 +15,7 @@ fn main() {
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
-    let mut program = Program::new();
-
-    //trace_macros!(true);
-    let mut program = tokay!({
+    let program = tokay!({
 
         (Factor = {
             ["(", Expr, ")"],
@@ -67,26 +64,34 @@ fn main() {
         */
     });
 
+    //trace_macros!(true);
+
     /*
-    let mut program = tokay!(
-        (main = {
-            ("Hello", "World"),
-            ("Doppel", main),
-            (main, "bla", [
-                ("butzemann"),
-                ("dutzemann")
-            ])
-        })
-    );
+    let mut program = tokay!({
+        (Main = {
+            (A = {
+                ["Hello"],
+                [B]
+            }),
+            (B = {
+                ["World"],
+                [A]
+            })
+        }),
+        (A = {
+            ["Trollo"]
+        }),
+
+        [Main, A]
+    });
     */
+
     //trace_macros!(false);
     
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
     let mut reader = Reader::new(
         Box::new(std::io::Cursor::new(s))
     );
-
-    program.finalize();
 
     let mut runtime = Runtime::new(&program, &mut reader);
     let ret = program.run(&mut runtime);

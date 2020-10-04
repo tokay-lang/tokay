@@ -1,21 +1,22 @@
 use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
 use crate::map::Map;
+use crate::tokay::Parselet;
 
 
 pub type Complex = Map<Value, RefValue>;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub enum Value {
-    Unset,              // unse
-    Void,               // void
-    True,               // true
-    False,              // false
-    Integer(i64),       // integers
-    //Float(f64),       //todo: Implement a hashable Float (i32, i32) or so...
-    String(String),     // string
-    Complex(Complex),   // combined map/array type
-    Parselet(usize)     // Reference to parselet
+    Unset,                  // unse
+    Void,                   // void
+    True,                   // true
+    False,                  // false
+    Integer(i64),           // integers
+    //Float(f64),           // todo: Implement a hashable Float (i32, i32) or so...
+    String(String),         // string
+    Complex(Box<Complex>),  // combined map/array type
+    Parselet(usize)         // executable code parselet
 }
 
 impl std::fmt::Debug for Value {
@@ -44,7 +45,7 @@ impl std::fmt::Debug for Value {
 
                 Ok(())
             },
-            Value::Parselet(p) => write!(f, "@{}", p)
+            Value::Parselet(p) => write!(f, "@{:?}", p)
         }
     }
 }
@@ -67,7 +68,7 @@ impl Value {
             //Self::Float(f) => *f as i64,
             Self::String(s) => Some(s.len() != 0),
             Self::Complex(c) => Some(c.len() > 0),
-            Value::Parselet(p) => Some(*p > 0)
+            Self::Parselet(_) => Some(true)
         }
     }
 
@@ -116,7 +117,7 @@ impl Value {
             //Self::Float(f) => format!("{}", f),
             Self::String(s) => Some(s.clone()),
             Self::Complex(c) => Some(format!("{:?}", c)),
-            Self::Parselet(p) => Some(format!("{:?}", *p))
+            Self::Parselet(p) => Some(format!("{:?}", p))
         }
     }
 }
@@ -302,7 +303,6 @@ fn test_mul() {
 */
 
 
-
 #[derive(Clone)]
 pub struct RefValue(Rc<RefCell<Value>>);
 
@@ -311,11 +311,11 @@ impl RefValue {
         Self(Rc::new(RefCell::new(value)))
     }
     
-    pub fn borrow(&self) -> Ref<'_, Value> {
+    pub fn borrow(&self) -> Ref<Value> {
         self.0.borrow()
     }
     
-    pub fn borrow_mut(&self) -> RefMut<'_, Value> {
+    pub fn borrow_mut(&self) -> RefMut<Value> {
         self.0.borrow_mut()
     }
 }
