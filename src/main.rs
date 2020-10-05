@@ -1,13 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use std::io::prelude::*;
-
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::token::*;
 use ::tokay::value::Value;
-use ::tokay::{ccl, tokay, tokay_item};
+use ::tokay::compiler::Compiler;
+use ::tokay::{tokay, tokay_item};
 
 
 fn main() {
@@ -16,6 +12,7 @@ fn main() {
     println!("{}", s);
 
     let program = tokay!({
+        //(X = "Hello"),
 
         (Factor = {
             ["(", Expr, ")"],
