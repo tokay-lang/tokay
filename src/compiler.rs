@@ -31,11 +31,128 @@ impl Compiler {
     }
 
     pub fn into_program(mut self) -> Program {
+        // Close any open scopes
         while self.scopes.len() > 1 {
             self.pop_scope();
         }
 
+        // Resolve last scope
         self.resolve();
+
+        // Finalize tokay program
+        fn finalize(parselets: &Vec<RefCell<Parselet>>, 
+            leftrec: &mut bool,
+            nullable: &mut bool,
+            item: &mut Item)
+        {
+            match item {
+                Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
+                Item::Token(_) => {
+                    *nullable = false;
+                },
+                Item::Call(idx) => {
+                    if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
+                        let mut my_leftrec = parselet.leftrec;
+                        let mut my_nullable = parselet.nullable;
+
+                        finalize(
+                            parselets,
+                            &mut my_leftrec,
+                            &mut my_nullable,
+                            &mut parselet.body
+                        );
+
+                        parselet.leftrec = my_leftrec;
+                        parselet.nullable = my_nullable;
+
+                        *nullable = parselet.nullable;
+                    }
+                    else {
+                        *leftrec = true;
+                    }
+                },
+
+                Item::Sequence(sequence) => {
+                    for (item, _) in sequence.items.iter_mut() {
+                        finalize(
+                            parselets,
+                            &mut sequence.leftrec,
+                            &mut sequence.nullable,
+                            item
+                        );
+
+                        if !sequence.nullable {
+                            break
+                        }
+                    }
+
+                    *leftrec = sequence.leftrec;
+                    *nullable = sequence.nullable;
+                },
+
+                Item::Block(block) => {
+                    *nullable = false;
+
+                    for item in block.items.iter_mut() {
+                        let mut my_nullable = true;
+                        let mut my_leftrec = true;
+
+                        finalize(
+                            parselets,
+                            &mut my_leftrec,
+                            &mut my_nullable,
+                            item
+                        );
+
+                        if !my_nullable {
+                            *nullable = false;
+                        }
+
+                        if my_leftrec {
+                            block.leftrec = true;
+                        }
+                    }
+
+                    *leftrec = block.leftrec;
+                }
+
+                _ => {}
+            }
+        }
+
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..self.parselets.len() {
+                let mut parselet = self.parselets[i].borrow_mut();
+                let mut leftrec = parselet.leftrec;
+                let mut nullable = parselet.nullable;
+
+                finalize(
+                    &self.parselets,
+                    &mut leftrec,
+                    &mut nullable,
+                    &mut parselet.body
+                );
+
+                if !parselet.leftrec && leftrec {
+                    parselet.leftrec = true;
+                    changes = true;
+                }
+
+                if parselet.nullable && !nullable {
+                    parselet.nullable = nullable;
+                    changes = true;
+                }
+            }
+
+            loops += 1;
+        }
+
+        println!("finalization finished after {} loops", loops);
 
         Program::new(self.parselets.drain(..).map(|p| p.into_inner()).collect())
     }

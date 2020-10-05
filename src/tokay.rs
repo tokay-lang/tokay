@@ -111,8 +111,8 @@ impl std::fmt::Debug for Item {
 
 #[derive(Debug)]
 pub struct Sequence {
-    leftrec: bool,
-    nullable: bool,
+    pub leftrec: bool,
+    pub nullable: bool,
     pub items: Vec<(Item, Option<String>)>
 }
 
@@ -223,8 +223,8 @@ impl Sequence {
 
 #[derive(Debug)]
 pub struct Block {
-    pub items: Vec<Item>,
-    leftrec: bool
+    pub leftrec: bool,
+    pub items: Vec<Item>
 }
 
 impl Block {
@@ -333,8 +333,8 @@ impl Block {
 
 #[derive(Debug)]
 pub struct Parselet {
-    leftrec: bool,
-    nullable: bool,
+    pub leftrec: bool,
+    pub nullable: bool,
     pub body: Item
 }
 
@@ -493,136 +493,10 @@ pub struct Program {
 
 impl Program {
     pub fn new(parselets: Vec<Parselet>) -> Self {
-        let mut program = Self{
+        Self{
             parselets,
             statics: Vec::new()
-        };
-
-        program.finalize();
-        program
-    }
-
-    pub fn finalize(&mut self) {
-        // Turn parselets vec into a RefCell vec
-        let parselets: Vec<RefCell<Parselet>> =
-            self.parselets.drain(..).map(|item| RefCell::new(item)).collect();
-
-        fn walk(parselets: &Vec<RefCell<Parselet>>, 
-                leftrec: &mut bool,
-                nullable: &mut bool,
-                item: &mut Item)
-        {
-            match item {
-                Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
-                Item::Token(_) => {
-                    *nullable = false;
-                },
-                Item::Call(idx) => {
-                    if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
-                        let mut my_leftrec = parselet.leftrec;
-                        let mut my_nullable = parselet.nullable;
-
-                        walk(
-                            parselets,
-                            &mut my_leftrec,
-                            &mut my_nullable,
-                            &mut parselet.body
-                        );
-
-                        parselet.leftrec = my_leftrec;
-                        parselet.nullable = my_nullable;
-
-                        *nullable = parselet.nullable;
-                    }
-                    else {
-                        *leftrec = true;
-                    }
-                },
-
-                Item::Sequence(sequence) => {
-                    for (item, _) in sequence.items.iter_mut() {
-                        walk(
-                            parselets,
-                            &mut sequence.leftrec,
-                            &mut sequence.nullable,
-                            item
-                        );
-
-                        if !sequence.nullable {
-                            break
-                        }
-                    }
-
-                    *leftrec = sequence.leftrec;
-                    *nullable = sequence.nullable;
-                },
-
-                Item::Block(block) => {
-                    *nullable = false;
-
-                    for item in block.items.iter_mut() {
-                        let mut my_nullable = true;
-                        let mut my_leftrec = true;
-
-                        walk(
-                            parselets,
-                            &mut my_leftrec,
-                            &mut my_nullable,
-                            item
-                        );
-
-                        if !my_nullable {
-                            *nullable = false;
-                        }
-
-                        if my_leftrec {
-                            block.leftrec = true;
-                        }
-                    }
-
-                    *leftrec = block.leftrec;
-                }
-
-                _ => {}
-            }
         }
-
-        let mut changes = true;
-        let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..parselets.len() {
-                let mut parselet = parselets[i].borrow_mut();
-                let mut leftrec = parselet.leftrec;
-                let mut nullable = parselet.nullable;
-    
-                walk(
-                    &parselets,
-                    &mut leftrec,
-                    &mut nullable,
-                    &mut parselet.body
-                );
-
-                if !parselet.leftrec && leftrec {
-                    parselet.leftrec = true;
-                    changes = true;
-                }
-
-                if parselet.nullable && !nullable {
-                    parselet.nullable = nullable;
-                    changes = true;
-                }
-            }
-
-            loops += 1;
-        }
-
-        println!("finalize stopped after {} loops", loops);
-
-        self.parselets = parselets.into_iter().map(|item| item.into_inner()).collect();
-        self.dump();
     }
 
     pub fn dump(&self) {
