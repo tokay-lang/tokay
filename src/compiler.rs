@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
+use crate::token::{Match};
 use crate::tokay::{Program, Parselet, Item};
 use crate::value::{Value, RefValue};
 
@@ -234,13 +235,19 @@ impl Compiler {
                     if let Some(addr) = scope.constants.get(name) {
                         let value = self.values[*addr].borrow();
 
-                        if let Value::Parselet(p) = &*value {
-                            println!("resolved {:?} as {:?}", name, *addr);
-                            *item = Item::Call(*p);
-                            return;
-                        }
-                        else {
-                            unimplemented!("Cannot resolve {:?}", value);
+                        match &*value {
+                            Value::Parselet(p) => {
+                                println!("resolved {:?} as {:?}", name, *addr);
+                                *item = Item::Call(*p);
+                                return;
+                            },
+                            Value::String(s) => {
+                                *item = Item::Token(Match::new_touch(&s.clone()));
+                                return;
+                            },
+                            _ => {
+                                unimplemented!("Cannot resolve {:?}", value);
+                            }
                         }
                     }
                     else if strict {
@@ -278,7 +285,7 @@ impl Compiler {
     }
 
     pub fn is_constant(name: &str) -> bool {
-        let ch = name.chars().next().unwrap();
+        let ch = name.chars().nth(0).unwrap();
         ch.is_uppercase() || ch == '_'
     }
 }
@@ -291,7 +298,7 @@ macro_rules! tokay_item {
         Item::Rust(|$var| $code)
     };
 
-    // Assign parselet
+    // Assign string
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
         {            
             $compiler.set_constant(
@@ -299,7 +306,25 @@ macro_rules! tokay_item {
                 Value::String($value.to_string()).into_ref()
             );
 
-            println!("assign {} = {}", stringify!($name), stringify!($value));
+            //println!("assign {} = {}", stringify!($name), stringify!($value));
+            Item::Nop
+        }
+    };
+
+    // Assign whitespace
+    ( $compiler:expr, ( _ = $item:tt ) ) => {
+        {
+            let item = tokay_item!($compiler, $item);
+            let parselet = $compiler.define_parselet(
+                Parselet::new(item)
+            );
+            
+            $compiler.set_constant(
+                "_",
+                Value::Parselet(parselet).into_ref()
+            );
+
+            //println!("assign _ = {}", stringify!($item));
             Item::Nop
         }
     };
@@ -317,7 +342,7 @@ macro_rules! tokay_item {
                 Value::Parselet(parselet).into_ref()
             );
 
-            println!("assign {} = {}", stringify!($name), stringify!($item));
+            //println!("assign {} = {}", stringify!($name), stringify!($item));
             Item::Nop
         }
     };
@@ -349,7 +374,6 @@ macro_rules! tokay_item {
     // Parselet
     ( $compiler:expr, { $( $item:tt ),* } ) => {
         {
-            println!("open scope {{");
             $compiler.push_scope(true);
             let items = vec![
                 $(
@@ -370,7 +394,6 @@ macro_rules! tokay_item {
             );
 
             $compiler.pop_scope();
-            println!("}} close scope");
             item
         }
     };
@@ -385,13 +408,32 @@ macro_rules! tokay_item {
         }
     };
 
-    // Match
+    // Whitespace
+    ( $compiler:expr, _ ) => {
+        {
+            //println!("expr = {}", stringify!($expr));
+            let mut item = Item::Name("_".to_string());
+            $compiler.resolve_item(&mut item, false);
+            item
+        }
+    };
+
+    // Match / Touch
     ( $compiler:expr, $literal:literal ) => {
-        /*println!("match = {}", $literal);*/
-        Item::Token(
-            Match::new($literal)
-            //Match::new_touch($literal)
-        )
+        {
+            //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
+            let lit = stringify!($literal);
+            
+            if &lit[0..1] == "'" {
+                Item::Token(
+                    Match::new_touch(&lit[1..lit.len() - 1])
+                )
+            } else {
+                Item::Token(
+                    Match::new(&lit[1..lit.len() - 1])
+                )
+            }
+        }
     };
 
     // Fallback

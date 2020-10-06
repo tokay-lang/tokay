@@ -262,6 +262,7 @@ impl Block {
             res
         }
 
+        // Create a unique block id from the Block's address
         let id = self as *const Block as usize;
 
         // Check for an existing memo-entry, and return it in case of a match

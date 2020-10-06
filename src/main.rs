@@ -3,38 +3,39 @@ use ::tokay::tokay::*;
 use ::tokay::token::*;
 use ::tokay::value::Value;
 use ::tokay::compiler::Compiler;
-use ::tokay::{tokay, tokay_item};
+use ::tokay::{tokay, tokay_item, ccl};
 
 
 fn main() {
-    let s = "x+x*x+x".to_string();
+    let s = "1 + 2 * 3 + 4 ".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
     let program = tokay!({
-        //(X = "Hello"),
+        (_ = {
+            ' '
+        }),
 
         (Factor = {
-            ["(", Expr, ")"],
+            ['(', _, Expr, ')', _],
             [Int]
         }),
 
         (Term = {
-            [Term, "*", Factor],
-            [Term, "/", Factor],
+            [Term, "*", _, Factor],
+            [Term, "/", _, Factor],
             [Factor]
         }),
 
         (Expr = {
-            [Expr, "+", Term],
-            [Expr, "-", Term],
+            [Expr, "+", _, Term],
+            [Expr, "-", _, Term],
             [Term]
         }),
 
         (Int = {
-            ["x"]
+            [(Item::Token(Char::new(ccl!['0'..='9']))), _]
                 /*
-                (Token::Chars(ccl!['0'..='9']))
                 (|runtime| {
                     //println!("{:?}", runtime.get_capture(0));
 
@@ -84,6 +85,8 @@ fn main() {
     */
 
     //trace_macros!(false);
+
+    //program.dump();
     
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
     let mut reader = Reader::new(
