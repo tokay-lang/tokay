@@ -1,4 +1,3 @@
-use std::cell::{RefCell};
 use std::collections::HashMap;
 
 use crate::value::{Complex, Value, RefValue};
@@ -39,12 +38,13 @@ pub enum Item {
     //Goto(usize),
     Name(String),
 
+    // Modifiers
+    Repeat(Box<Repeat>),
+
     // Operators
     Sequence(Box<Sequence>),
     Block(Box<Block>),
-    //Kleene(Box<Item>),
-    //Positive(Box<Item>),
-    //Optional(Box<Item>),
+
     //And(Box<Item>),
     //Not(Box<Item>),
 
@@ -83,6 +83,7 @@ impl Item {
                 )
             },
 
+            Item::Repeat(repeat) => repeat.run(context),
             Item::Sequence(sequence) => sequence.run(context),
             Item::Block(block) => block.run(context),
             Item::Nop | Item::Name(_) => panic!("{:?} cannot be executed", self),
@@ -106,6 +107,77 @@ impl std::fmt::Debug for Item {
     }
 }
 */
+
+// --- Repeat ------------------------------------------------------------------
+
+#[derive(Debug)]
+pub struct Repeat {
+    pub item: Item,
+    pub min: usize,
+    pub max: usize
+}
+
+impl Repeat {
+    pub fn new(item: Item, min: usize, max: usize) -> Self {
+        assert!(max == 0 || max >= min);
+
+        Self{
+            item,
+            min,
+            max
+        }
+    }
+
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        // Remember capturing positions
+        let capture_start = context.runtime.capture.len();
+        let reader_start = context.runtime.reader.tell();
+
+        let mut count: usize = 0;
+        let mut res = Ok(Accept::Next);
+
+        loop {
+            res = self.item.run(context);
+            
+            match res {
+                Err(Reject::Next) => break,
+
+                Err(reject) => {
+                    context.runtime.capture.truncate(capture_start);
+                    context.runtime.reader.reset(reader_start);
+                    return Err(reject)
+                },
+
+                Ok(Accept::Push(capture)) => {
+                    context.runtime.capture.push((capture, None))
+                },
+
+                Ok(Accept::Return(value)) => {
+                    context.runtime.capture.truncate(capture_start);
+                    return Ok(Accept::Return(value))
+                },
+
+                Ok(Accept::Next) => {},
+            }
+
+            count += 1;
+    
+            if self.max > 0 && count == self.max {
+                break
+            }
+        }
+
+        if count < self.min {
+            context.runtime.capture.truncate(capture_start);
+            context.runtime.reader.reset(reader_start);
+            Err(Reject::Next)
+        }
+        else {
+            //todo
+            Ok(Accept::Next)
+        }
+    }
+}
 
 // --- Sequence ----------------------------------------------------------------
 
