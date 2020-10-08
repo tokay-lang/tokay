@@ -1,15 +1,20 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
-use crate::token::{Match};
-use crate::tokay::{Program, Parselet, Item};
+use crate::tokay::{Program, Parselet};
 use crate::value::{Value, RefValue};
 
+/** Compiler symbolic scope.
+
+In Tokay code, this relates to any block.
+Scoped blocks (parselets) introduce new variable scopes.
+*/
 struct Scope {
     variables: Option<HashMap<String, usize>>,
     constants: HashMap<String, usize>,
     parselets: usize
 }
 
+/** Tokay compiler instance, with related objects. */
 pub struct Compiler {
     scopes: Vec<Scope>,                     // Current compilation scopes
     values: Vec<RefValue>,                  // Constant values collected during compile
@@ -31,6 +36,7 @@ impl Compiler {
         }
     }
 
+    /** Converts the compiled information into a Program. */
     pub fn into_program(mut self) -> Program {
         // Close any open scopes
         while self.scopes.len() > 1 {
@@ -40,124 +46,16 @@ impl Compiler {
         // Resolve last scope
         self.resolve();
 
-        // Finalize tokay program
-        fn finalize(parselets: &Vec<RefCell<Parselet>>, 
-            leftrec: &mut bool,
-            nullable: &mut bool,
-            item: &mut Item)
-        {
-            match item {
-                Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
-                Item::Token(_) => {
-                    *nullable = false;
-                },
-                Item::Call(idx) => {
-                    if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
-                        let mut my_leftrec = parselet.leftrec;
-                        let mut my_nullable = parselet.nullable;
+        // Finalize
+        Parselet::finalize(&self.parselets);
 
-                        finalize(
-                            parselets,
-                            &mut my_leftrec,
-                            &mut my_nullable,
-                            &mut parselet.body
-                        );
-
-                        parselet.leftrec = my_leftrec;
-                        parselet.nullable = my_nullable;
-
-                        *nullable = parselet.nullable;
-                    }
-                    else {
-                        *leftrec = true;
-                    }
-                },
-
-                Item::Sequence(sequence) => {
-                    for (item, _) in sequence.items.iter_mut() {
-                        finalize(
-                            parselets,
-                            &mut sequence.leftrec,
-                            &mut sequence.nullable,
-                            item
-                        );
-
-                        if !sequence.nullable {
-                            break
-                        }
-                    }
-
-                    *leftrec = sequence.leftrec;
-                    *nullable = sequence.nullable;
-                },
-
-                Item::Block(block) => {
-                    *nullable = false;
-
-                    for item in block.items.iter_mut() {
-                        let mut my_nullable = true;
-                        let mut my_leftrec = true;
-
-                        finalize(
-                            parselets,
-                            &mut my_leftrec,
-                            &mut my_nullable,
-                            item
-                        );
-
-                        if !my_nullable {
-                            *nullable = false;
-                        }
-
-                        if my_leftrec {
-                            block.leftrec = true;
-                        }
-                    }
-
-                    *leftrec = block.leftrec;
-                }
-
-                _ => {}
-            }
-        }
-
-        let mut changes = true;
-        let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..self.parselets.len() {
-                let mut parselet = self.parselets[i].borrow_mut();
-                let mut leftrec = parselet.leftrec;
-                let mut nullable = parselet.nullable;
-
-                finalize(
-                    &self.parselets,
-                    &mut leftrec,
-                    &mut nullable,
-                    &mut parselet.body
-                );
-
-                if !parselet.leftrec && leftrec {
-                    parselet.leftrec = true;
-                    changes = true;
-                }
-
-                if parselet.nullable && !nullable {
-                    parselet.nullable = nullable;
-                    changes = true;
-                }
-            }
-
-            loops += 1;
-        }
-
-        println!("finalization finished after {} loops", loops);
-
-        Program::new(self.parselets.drain(..).map(|p| p.into_inner()).collect())
+        // Drain parselets into the new program
+        Program::new(
+            self.parselets.drain(..).map(|p| p.into_inner()).collect()
+        )
     }
 
+    /// Introduces a new scope, either for variables or constants only.
     pub fn push_scope(&mut self, variables: bool) {
         self.scopes.insert(0,
             Scope{
@@ -168,6 +66,10 @@ impl Compiler {
         );
     }
 
+    /** Pops current scope.
+    
+    The final (main) scope cannot be dropped, the function panics when
+    this is tried. */
     pub fn pop_scope(&mut self) {
         if self.scopes.len() == 1 {
             panic!("Can't pop main scope");
@@ -194,6 +96,7 @@ impl Compiler {
         None
     }
 
+    /** Set constant to name in current scope. */
     pub fn set_constant(&mut self, name: &str, value: RefValue) {
         assert!(Self::is_constant(name));
 
@@ -204,6 +107,7 @@ impl Compiler {
         );
     }
 
+    /** Get constant, either from current or preceding scope. */
     pub fn get_constant(&self, name: &str) -> Option<RefValue> {
         assert!(Self::is_constant(name));
 
@@ -216,80 +120,42 @@ impl Compiler {
         None
     }
 
+    /** Defines a new static value.
+    
+    Statics are moved into the program later on. */
     pub fn define_value(&mut self, value: RefValue) -> usize
     {
         self.values.push(value);
         self.values.len() - 1
     }
 
+    /** Defines a new parselet code element.
+    
+    Parselets are moved into the program later on. */
     pub fn define_parselet(&mut self, parselet: Parselet) -> usize
     {
         self.parselets.push(RefCell::new(parselet));
         self.parselets.len() - 1
     }
 
-    pub fn resolve_item(&self, item: &mut Item, strict: bool) {
-        match item {
-            Item::Name(name) => {
-                for scope in &self.scopes {
-                    if let Some(addr) = scope.constants.get(name) {
-                        let value = self.values[*addr].borrow();
-
-                        match &*value {
-                            Value::Parselet(p) => {
-                                println!("resolved {:?} as {:?}", name, *addr);
-                                *item = Item::Call(*p);
-                                return;
-                            },
-                            Value::String(s) => {
-                                *item = Item::Token(Match::new_touch(&s.clone()));
-                                return;
-                            },
-                            _ => {
-                                unimplemented!("Cannot resolve {:?}", value);
-                            }
-                        }
-                    }
-                    else if strict {
-                        panic!("Cannot resolve {:?}", name);
-                    }
-                }
-
-                if strict {
-                    panic!("Cannot resolve {:?}", name);
-                }
-            },
-
-            Item::Sequence(ref mut sequence) => {
-                for (item, _) in sequence.items.iter_mut() {
-                    self.resolve_item(item, strict);
-                }
-            },
-
-            Item::Block(ref mut block) => {
-                for item in block.items.iter_mut() {
-                    self.resolve_item(item, strict);
-                }
-            },
-
-            _ => {}
-        };
-    }
-
+    /** Resolve all parseletes defined in the current scope. */
     pub fn resolve(&mut self) {
         let scope = self.scopes.first().unwrap();
 
         for i in scope.parselets..self.parselets.len() {
-            self.resolve_item(&mut self.parselets[i].borrow_mut().body, true);
+            self.parselets[i].borrow_mut().resolve(&self, true);
         }
     }
 
+    /** Check if a str defines a constant or not. */
     pub fn is_constant(name: &str) -> bool {
         let ch = name.chars().nth(0).unwrap();
         ch.is_uppercase() || ch == '_'
     }
 }
 
+
+/* A minimalistic Tokay compiler as Rust macros. */
 
 #[macro_export]
 macro_rules! tokay_item {
@@ -307,14 +173,16 @@ macro_rules! tokay_item {
             );
 
             //println!("assign {} = {}", stringify!($name), stringify!($value));
-            Item::Nop
+            None
         }
     };
 
     // Assign whitespace
     ( $compiler:expr, ( _ = $item:tt ) ) => {
         {
-            let item = tokay_item!($compiler, $item);
+            let item = tokay_item!($compiler, $item).unwrap();
+            let item = Repeat::new(item, 0, 0).into_box();
+
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)
             );
@@ -325,14 +193,14 @@ macro_rules! tokay_item {
             );
 
             //println!("assign _ = {}", stringify!($item));
-            Item::Nop
+            None
         }
     };
 
     // Assign parselet
     ( $compiler:expr, ( $name:ident = $item:tt ) ) => {
         {
-            let item = tokay_item!($compiler, $item);
+            let item = tokay_item!($compiler, $item).unwrap();
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)
             );
@@ -343,7 +211,7 @@ macro_rules! tokay_item {
             );
 
             //println!("assign {} = {}", stringify!($name), stringify!($item));
-            Item::Nop
+            None
         }
     };
 
@@ -357,16 +225,13 @@ macro_rules! tokay_item {
                 ),*
             ];
 
-            Item::Sequence(
-                Box::new(
-                    Sequence::new(
-                        items.into_iter().filter(
-                            // Remove any Nops
-                            |item| !matches!(item, Item::Nop)).map(
-                                // Turn into (item, None) tuples
-                                |item| (item, None)).collect()
-                    )
-                )
+            Some(
+                Sequence::new(
+                    items.into_iter()
+                        .filter(|item| item.is_some())
+                        .map(|item| (item.unwrap(), None))
+                        .collect()
+                ).into_box()
             )
         }
     };
@@ -381,20 +246,16 @@ macro_rules! tokay_item {
                 ),*
             ];
 
-            let block = Block::new(
-                items.into_iter().filter(
-                    // Remove any Nops
-                    |item| !matches!(item, Item::Nop)).collect()
-            );
-
-            let mut item = Item::Block(
-                Box::new(
-                    block
-                )
-            );
-
             $compiler.pop_scope();
-            item
+
+            Some(
+                Block::new(
+                    items.into_iter()
+                        .filter(|item| item.is_some())
+                        .map(|item| item.unwrap())
+                        .collect()
+                ).into_box()
+            )
         }
     };
 
@@ -403,8 +264,8 @@ macro_rules! tokay_item {
         {
             //println!("call = {}", stringify!($ident));
             let mut item = Item::Name(stringify!($ident).to_string());
-            $compiler.resolve_item(&mut item, false);
-            item
+            item.resolve(&$compiler, false);
+            Some(item.into_box())
         }
     };
 
@@ -413,8 +274,8 @@ macro_rules! tokay_item {
         {
             //println!("expr = {}", stringify!($expr));
             let mut item = Item::Name("_".to_string());
-            $compiler.resolve_item(&mut item, false);
-            item
+            item.resolve(&$compiler, false);
+            Some(item.into_box())
         }
     };
 
@@ -424,15 +285,15 @@ macro_rules! tokay_item {
             //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
             let lit = stringify!($literal);
             
-            if &lit[0..1] == "'" {
+            Some(if &lit[0..1] == "'" {
                 Item::Token(
                     Match::new_touch(&lit[1..lit.len() - 1])
-                )
+                ).into_box()
             } else {
                 Item::Token(
                     Match::new(&lit[1..lit.len() - 1])
-                )
-            }
+                ).into_box()
+            })
         }
     };
 
@@ -440,7 +301,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, $expr:tt ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            $expr
+            Some($expr)
         }
     };
 }
@@ -453,7 +314,7 @@ macro_rules! tokay {
             let mut compiler = Compiler::new();
 
             {
-                let main = tokay_item!(compiler, $( $items ),*);
+                let main = tokay_item!(compiler, $( $items ),*).unwrap(); //todo: unwrap_or_else?
                 compiler.define_parselet(Parselet::new(main));
             }
 

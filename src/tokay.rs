@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::cell::RefCell;
 
 use crate::value::{Complex, Value, RefValue};
-use crate::token::{Token, Capture};
+use crate::token::{Token, Match, Capture};
 use crate::reader::{Reader};
+use crate::compiler::Compiler;
 
 
 #[derive(Debug, Clone)]
@@ -11,6 +13,7 @@ pub enum Accept {
     Push(Capture),
     Return(Option<RefValue>)
 }
+
 
 #[derive(Debug, Clone)]
 pub enum Reject {
@@ -21,8 +24,48 @@ pub enum Reject {
 }
 
 
+/** Parser trait */
+
+pub trait Parser: std::fmt::Debug {
+    /** Perform a parse on a given context.
+
+    A parse may either Accept or Reject, with a given severity.
+    */
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject>;
+
+    /** Finalize according grammar view;
+    
+    This function is called from top of each parselet to detect
+    both left-recursive and nullable (=no input consuming) structures. */
+    fn finalize(
+        &mut self,
+        _parselets: &Vec<RefCell<Parselet>>, 
+        _leftrec: &mut bool,
+        _nullable: &mut bool)
+    {
+        // default is: just do nothing ;)
+    }
+
+    /** Resolve is called by the compiler to resolve unresolved symbols
+    inside or below a program structure */
+    fn resolve(&mut self, _compiler: &Compiler, _strict: bool) 
+    {
+        // default is: just do nothing ;)
+    }
+
+    /** Convert parser object into boxed dyn Parser */
+    fn into_box(self) -> Box<dyn Parser>
+        where Self: std::marker::Sized + 'static
+    {
+        Box::new(self)
+    }
+}
+
 // --- Item --------------------------------------------------------------------
 
+/**
+Specifies atomic level operations like matching a token or running VM code.
+*/
 #[derive(Debug)]
 pub enum Item {
     Nop,
@@ -36,14 +79,7 @@ pub enum Item {
     Token(Box<dyn Token>),
     Call(usize),
     //Goto(usize),
-    Name(String),
-
-    // Modifiers
-    Repeat(Box<Repeat>),
-
-    // Operators
-    Sequence(Box<Sequence>),
-    Block(Box<Block>),
+    Name(String)
 
     //And(Box<Item>),
     //Not(Box<Item>),
@@ -51,7 +87,7 @@ pub enum Item {
     //Rust(fn(&mut Context) -> Result<Accept, Reject>),
 }
 
-impl Item {
+impl Parser for Item {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
             Item::Accept => {
@@ -83,11 +119,71 @@ impl Item {
                 )
             },
 
-            Item::Repeat(repeat) => repeat.run(context),
-            Item::Sequence(sequence) => sequence.run(context),
-            Item::Block(block) => block.run(context),
             Item::Nop | Item::Name(_) => panic!("{:?} cannot be executed", self),
             //Item::Rust(callback) => callback(context)
+        }
+    }
+
+    fn finalize(
+        &mut self,
+        parselets: &Vec<RefCell<Parselet>>, 
+        leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        match self {
+            Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
+            
+            Item::Token(_) => {
+                *nullable = false;
+            },
+
+            Item::Call(idx) => {
+                if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
+                    let mut my_leftrec = parselet.leftrec;
+                    let mut my_nullable = parselet.nullable;
+    
+                    parselet.body.finalize(
+                        parselets,
+                        &mut my_leftrec,
+                        &mut my_nullable,
+                    );
+    
+                    parselet.leftrec = my_leftrec;
+                    parselet.nullable = my_nullable;
+    
+                    *nullable = parselet.nullable;
+                }
+                else {
+                    *leftrec = true;
+                }
+            },
+
+            _ => {}
+        }
+    }
+
+    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    {
+        if let Item::Name(name) = self {
+            if let Some(value) = compiler.get_constant(name) {
+                match &*value.borrow() {
+                    Value::Parselet(p) => {
+                        println!("resolved {:?} as {:?}", name, *p);
+                        *self = Item::Call(*p);
+                        return;
+                    },
+                    Value::String(s) => {
+                        *self = Item::Token(Match::new_touch(&s.clone()));
+                        return;
+                    },
+                    _ => {
+                        unimplemented!("Cannot resolve {:?}", value);
+                    }
+                }
+            }
+            else if strict {
+                panic!("Cannot resolve {:?}", name);
+            }
         }
     }
 }
@@ -110,23 +206,34 @@ impl std::fmt::Debug for Item {
 
 // --- Repeat ------------------------------------------------------------------
 
+/** Repeating parser.
+
+This is a simple programmtic repetition. For several reasons, repetitions can
+also be expressed on a specialized token-level or by the grammar using left-
+or right-recursive structures. It's to on the compiler for chosing the best
+option. (see kle!-, pos!-, opt!-macros from compiler)
+*/
+
 #[derive(Debug)]
 pub struct Repeat {
-    pub item: Item,
-    pub min: usize,
-    pub max: usize
+    parser: Box<dyn Parser>,
+    min: usize,
+    max: usize
 }
 
 impl Repeat {
-    pub fn new(item: Item, min: usize, max: usize) -> Self {
+    pub fn new(parser: Box<dyn Parser>, min: usize, max: usize) -> Self {
         assert!(max == 0 || max >= min);
 
         Self{
-            item,
+            parser,
             min,
             max
         }
     }
+}
+
+impl Parser for Repeat {
 
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Remember capturing positions
@@ -137,7 +244,7 @@ impl Repeat {
         let mut res = Ok(Accept::Next);
 
         loop {
-            res = self.item.run(context);
+            res = self.parser.run(context);
             
             match res {
                 Err(Reject::Next) => break,
@@ -177,25 +284,54 @@ impl Repeat {
             Ok(Accept::Next)
         }
     }
+
+    fn finalize(
+        &mut self,
+        parselets: &Vec<RefCell<Parselet>>, 
+        leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        self.parser.finalize(parselets, leftrec, nullable);
+
+        if self.min == 0 {
+            *nullable = true;
+        }
+    }
+
+    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    {
+        self.parser.resolve(compiler, strict);
+    }
+
 }
 
 // --- Sequence ----------------------------------------------------------------
 
+/** Sequence parser.
+
+This parser collects a sequence of sub-parsers. According to the sub-parsers
+semantics, or when an entire sequence was completely recognized, the sequence
+is getting accepted. Incomplete sequences are rejected.
+*/
+
 #[derive(Debug)]
 pub struct Sequence {
-    pub leftrec: bool,
-    pub nullable: bool,
-    pub items: Vec<(Item, Option<String>)>
+    leftrec: bool,
+    nullable: bool,
+    items: Vec<(Box<dyn Parser>, Option<String>)>
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Item, Option<String>)>) -> Self {
+    pub fn new(items: Vec<(Box<dyn Parser>, Option<String>)>) -> Self {
         Self{
             leftrec: false,
             nullable: true,
             items
         }
     }
+}
+
+impl Parser for Sequence {
 
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Empty sequence?
@@ -289,38 +425,75 @@ impl Sequence {
             }
         }
     }
+
+    fn finalize(
+        &mut self,
+        parselets: &Vec<RefCell<Parselet>>, 
+        leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        for (item, _) in self.items.iter_mut() {
+            item.finalize(
+                parselets,
+                &mut self.leftrec,
+                &mut self.nullable
+            );
+
+            if !self.nullable {
+                break
+            }
+        }
+
+        *leftrec = self.leftrec;
+        *nullable = self.nullable;
+    }
+
+    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    {
+        for (item, _) in self.items.iter_mut() {
+            item.resolve(compiler, strict);
+        }
+    }
+
 }
 
 // --- Block -------------------------------------------------------------------
 
+/** Block parser.
+
+A block parser defines either an alternation of sequences or a grouped sequence
+of VM instructions. The compiler has to guarantee for correct usage of the
+block parser. */
+
 #[derive(Debug)]
 pub struct Block {
-    pub leftrec: bool,
-    pub items: Vec<Item>
+    leftrec: bool,
+    items: Vec<(Box<dyn Parser>, bool)>
 }
 
 impl Block {
-    pub fn new(items: Vec<Item>) -> Self {
+    pub fn new(items: Vec<Box<dyn Parser>>) -> Self {
         Self{
-            items,
+            items: items.into_iter().map(|item| (item, false)).collect(),
             leftrec: false
         }
     }
+}
 
-    pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+impl Parser for Block {
 
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject>
+    {
         // Internal run function
         fn run(block: &Block, context: &mut Context, leftrec: bool)
                 -> Result<Accept, Reject>
         {
             let mut res = Ok(Accept::Next);
 
-            for item in &block.items {
-                // Skip over sequences without matching leftrec configuration
-                if let Item::Sequence(seq) = item {
-                    if seq.leftrec != leftrec {
-                        continue;
-                    }
+            for (item, item_leftrec) in &block.items {
+                // Skip over parsers that don't match leftrec configuration
+                if *item_leftrec != leftrec {
+                    continue;
                 }
 
                 res = item.run(context);
@@ -399,6 +572,43 @@ impl Block {
             run(self, context, false)
         }
     }
+
+    fn finalize(
+        &mut self,
+        parselets: &Vec<RefCell<Parselet>>, 
+        leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        *nullable = false;
+
+        for (item, item_leftrec) in self.items.iter_mut() {
+            *item_leftrec = false;
+            let mut my_nullable = true;
+
+            item.finalize(
+                parselets,
+                item_leftrec,
+                &mut my_nullable
+            );
+
+            if my_nullable {
+                *nullable = true;
+            }
+
+            if *item_leftrec {
+                self.leftrec = true;
+            }
+        }
+
+        *leftrec = self.leftrec;
+    }
+
+    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    {
+        for (item, _) in self.items.iter_mut() {
+            item.resolve(compiler, strict);
+        }
+    }
 }
 
 
@@ -406,13 +616,13 @@ impl Block {
 
 #[derive(Debug)]
 pub struct Parselet {
-    pub leftrec: bool,
-    pub nullable: bool,
-    pub body: Item
+    leftrec: bool,
+    nullable: bool,
+    body: Box<dyn Parser>
 }
 
 impl Parselet {
-    pub fn new(body: Item) -> Self {
+    pub fn new(body: Box<dyn Parser>) -> Self {
         Self{
             leftrec: false,
             nullable: true,
@@ -422,6 +632,47 @@ impl Parselet {
 
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.body.run(&mut Context::new(runtime))
+    }
+
+    pub fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    {
+        self.body.resolve(compiler, strict);
+    }
+
+    pub fn finalize(parselets: &Vec<RefCell<Parselet>>) -> usize {
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..parselets.len() {
+                let mut parselet = parselets[i].borrow_mut();
+                let mut leftrec = parselet.leftrec;
+                let mut nullable = parselet.nullable;
+
+                parselet.body.finalize(
+                    parselets,
+                    &mut leftrec,
+                    &mut nullable
+                );
+
+                if !parselet.leftrec && leftrec {
+                    parselet.leftrec = true;
+                    changes = true;
+                }
+
+                if parselet.nullable && !nullable {
+                    parselet.nullable = nullable;
+                    changes = true;
+                }
+            }
+
+            loops += 1;
+        }
+
+        println!("finalization finished after {} loops", loops);
+        loops
     }
 }
 
@@ -572,6 +823,7 @@ impl Program {
         }
     }
 
+    /*
     pub fn dump(&self) {
         fn dump(item: &Item, level: usize) {
             match item {
@@ -613,6 +865,7 @@ impl Program {
             println!("}}");
         }
     }
+    */
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets.last().unwrap().run(runtime)

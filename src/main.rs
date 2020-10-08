@@ -7,9 +7,16 @@ use ::tokay::{tokay, tokay_item, ccl};
 
 
 fn main() {
-    let s = "123 + 2 +  * 3 + 4 ".to_string();
+    let s = "1 + 2 * 3 + 4 ".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
+
+    /*
+    let program = tokay!({
+        (A = "1"),
+        [A]
+    });
+    */
 
     let program = tokay!({
         (_ = {
@@ -34,10 +41,13 @@ fn main() {
         }),
 
         (Int = {
-            [(Item::Repeat(
-                Box::new(
-                    Repeat::new(Item::Token(Char::new(ccl!['0'..='9'])
-                ), 1, 0)))), _]
+            [
+                (Repeat::new(
+                    Item::Token(Char::new(ccl!['0'..='9'])).into_box(), 1, 0)
+                        .into_box()
+                ),
+                _
+            ]
                 /*
                 (|runtime| {
                     //println!("{:?}", runtime.get_capture(0));
@@ -89,7 +99,8 @@ fn main() {
 
     //trace_macros!(false);
 
-    program.dump();
+    //program.dump();
+    println!("program = {:#?}", program);
     
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
     let mut reader = Reader::new(
