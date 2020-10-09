@@ -205,17 +205,21 @@ option. (see kle!-, pos!-, opt!-macros from compiler)
 pub struct Repeat {
     parser: Box<dyn Parser>,
     min: usize,
-    max: usize
+    max: usize,
+    capture: bool
 }
 
 impl Repeat {
-    pub fn new(parser: Box<dyn Parser>, min: usize, max: usize) -> Self {
+    pub fn new(parser: Box<dyn Parser>, min: usize, max: usize, capture: bool)
+        -> Self
+    {
         assert!(max == 0 || max >= min);
 
         Self{
             parser,
             min,
-            max
+            max,
+            capture
         }
     }
 }
@@ -229,13 +233,8 @@ impl Parser for Repeat {
 
         let mut count: usize = 0;
 
-        // todo: collect items repeated
-        let mut res = Ok(Accept::Next);
-
-        loop {
-            res = self.parser.run(context);
-            
-            match res {
+        loop {           
+            match self.parser.run(context) {
                 Err(Reject::Next) => break,
 
                 Err(reject) => {
@@ -245,7 +244,9 @@ impl Parser for Repeat {
                 },
 
                 Ok(Accept::Push(capture)) => {
-                    context.runtime.capture.push((capture, None))
+                    if self.capture {
+                        context.runtime.capture.push((capture, None))
+                    }
                 },
 
                 Ok(Accept::Return(value)) => {
@@ -269,8 +270,7 @@ impl Parser for Repeat {
             Err(Reject::Next)
         }
         else {
-            //todo
-            Ok(Accept::Next)
+            Ok(collect_captures(context, capture_start, false))
         }
     }
 
@@ -358,61 +358,7 @@ impl Parser for Sequence {
             }
         }
 
-        if self.items.len() == 1 && self.items[0].1.is_none() {
-            Ok(Accept::Push(context.runtime.capture.pop().unwrap().0))
-        }
-        else {
-            let mut complex = Complex::new();
-
-            // Collect any significant captures and values
-            for (value, alias) in context.runtime.capture.drain(capture_start..) {
-                let value = match value {
-                    // Turn significant capture into string
-                    Capture::Range(range, severity) if severity > 0 => {
-                        Value::String(
-                            context.runtime.reader.extract(&range)
-                        ).into_ref()
-                    },
-                    
-                    // Take value as is
-                    Capture::Value(value, severity) if severity > 0 => {
-                        value.clone()
-                    },
-
-                    _ => {
-                        continue
-                    }
-                };
-
-                // Named capture becomes complex key
-                if let Some(name) = alias {
-                    complex.push_key_value(Value::String(name), value);
-                }
-                else {
-                    complex.push_value(value);
-                }
-            }
-
-            /* When there is only one value without a key in the map,
-                return this single value only! */
-            if complex.len() == 1 {
-                if let Some((None, value)) = complex.get(0) {
-                    return Ok(Accept::Push(Capture::Value(value.clone(), 1)))
-                }
-            }
-
-            if complex.len() > 0 {
-                // Return the complex when it contains something
-                Ok(Accept::Push(
-                    Capture::Value(
-                        Value::Complex(Box::new(complex)).into_ref(), 1)
-                    )
-                )
-            }
-            else {
-                Ok(Accept::Push(Capture::Empty))
-            }
-        }
+        Ok(collect_captures(context, capture_start, true))
     }
 
     fn finalize(
@@ -858,5 +804,93 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets.last().unwrap().run(runtime)
+    }
+}
+
+
+/** Helper function to collect context captures from a capture_start and turn
+    them either into a Complex-type value or take it as is. */
+fn collect_captures(
+    context: &mut Context, capture_start: usize, allow_single: bool)
+    -> Accept
+{
+    fn get_significant_value(
+        context: &mut Context, capture: &Capture)
+            -> Option<RefValue>
+    {
+        match capture {
+            // Turn significant capture into string
+            Capture::Range(range, severity) if *severity > 0 => {
+                Some(
+                    Value::String(
+                        context.runtime.reader.extract(&range)
+                    ).into_ref()
+                )
+            },
+            
+            // Take value as is
+            Capture::Value(value, severity) if *severity > 0 => {
+                Some(value.clone())
+            },
+
+            _ => {
+                None
+            }
+        }
+    }
+
+    let captures: Vec<(Capture, Option<String>)>
+        = context.runtime.capture.drain(capture_start..).collect();
+    
+    if captures.len() == 0 {
+        Accept::Next
+    }
+    else if allow_single && captures.len() == 1 && captures[0].1.is_none()
+    {
+        Accept::Push(
+            Capture::Value(
+                get_significant_value(
+                    context, &captures[0].0
+                ).unwrap(), 1
+            )
+        )
+    }
+    else {
+        let mut complex = Complex::new();
+
+        // Collect any significant captures and values
+        for (capture, alias) in captures
+        {
+            let value = get_significant_value(context, &capture);
+
+            if let Some(value) = value {
+                // Named capture becomes complex key
+                if let Some(name) = alias {
+                    complex.push_key_value(Value::String(name), value);
+                }
+                else {
+                    complex.push_value(value);
+                }
+            }
+        }
+
+        /* When there is only one value without a key in the map,
+            return this single value only! */
+        if complex.len() == 1 {
+            if let Some((None, value)) = complex.get(0) {
+                return Accept::Push(Capture::Value(value.clone(), 1))
+            }
+        }
+
+        if complex.len() > 0 {
+            // Return the complex when it contains something
+            Accept::Push(
+                Capture::Value(
+                    Value::Complex(Box::new(complex)).into_ref(), 1)
+            )
+        }
+        else {
+            Accept::Push(Capture::Empty)
+        }
     }
 }

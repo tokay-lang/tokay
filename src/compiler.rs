@@ -181,7 +181,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, ( _ = $item:tt ) ) => {
         {
             let item = tokay_item!($compiler, $item).unwrap();
-            let item = Repeat::new(item, 0, 0).into_box();
+            let item = Repeat::new(item, 0, 0, false).into_box();
 
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)

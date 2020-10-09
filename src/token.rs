@@ -135,6 +135,44 @@ impl std::fmt::Debug for Char {
 }
 
 
+pub struct Chars {
+    accept: Ccl
+}
+
+impl Chars {
+    pub fn new(accept: Ccl) -> Box<dyn Token> {
+        Self{
+            accept: accept.clone()
+        }.into_box()
+    }
+}
+
+impl Token for Chars {
+    fn read(&self, reader: &mut Reader) -> Option<Capture> {
+        let start = reader.tell();
+
+        while let Some(c) = reader.peek() {
+            if !self.accept.test(&(c..=c)) {
+                break;
+            }
+
+            reader.next();
+        }
+
+        if start < reader.tell() {
+            Some(Capture::Range(reader.capture_from(start), 1))
+        }
+        else {
+            None
+        }
+    }
+}
+
+impl std::fmt::Debug for Chars {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}+", self.accept)
+    }
+}
 
 #[test]
 fn test_none() {

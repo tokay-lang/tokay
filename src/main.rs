@@ -7,18 +7,20 @@ use ::tokay::{tokay, tokay_item, ccl};
 
 
 fn main() {
-    let s = "1 + 2 * 3 + 4 ".to_string();
+    let s = "123 + 456 * 789 + 4".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
-    /*
-    let program = tokay!({
-        (A = "1"),
-        [A]
-    });
-    */
+    let counter = tokay!({
+        (CountIntegers = {
+            [(Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box())],
+            [(Atomic::Token(Any.into_box()).into_box())]
+        }),
 
-    let program = tokay!({
+        [CountIntegers]
+    });
+
+    let calculator = tokay!({
         (_ = {
             ' '
         }),
@@ -42,10 +44,7 @@ fn main() {
 
         (Int = {
             [
-                (Repeat::new(
-                    Atomic::Token(Char::new(ccl!['0'..='9'])).into_box(), 1, 0)
-                        .into_box()
-                ),
+                (Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box()),
                 _
             ]
                 /*
@@ -99,17 +98,21 @@ fn main() {
 
     //trace_macros!(false);
 
-    //program.dump();
-    println!("program = {:#?}", program);
-    
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
     let mut reader = Reader::new(
         Box::new(std::io::Cursor::new(s))
     );
 
-    let mut runtime = Runtime::new(&program, &mut reader);
-    let ret = program.run(&mut runtime);
+    //program.dump();
+    for program in &[calculator, counter] {
+        println!("program = {:#?}", program);
 
-    println!("{:?}", ret);
-    runtime.dump();
+        reader.reset(0);
+   
+        let mut runtime = Runtime::new(&program, &mut reader);
+        let ret = program.run(&mut runtime);
+    
+        println!("{:?}", ret);
+        runtime.dump();
+    }
 }
