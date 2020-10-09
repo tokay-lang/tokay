@@ -43,7 +43,7 @@ fn main() {
         (Int = {
             [
                 (Repeat::new(
-                    Item::Token(Char::new(ccl!['0'..='9'])).into_box(), 1, 0)
+                    Atomic::Token(Char::new(ccl!['0'..='9'])).into_box(), 1, 0)
                         .into_box()
                 ),
                 _

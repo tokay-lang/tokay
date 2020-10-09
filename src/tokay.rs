@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::cell::RefCell;
 
 use crate::value::{Complex, Value, RefValue};
-use crate::token::{Token, Match, Capture};
+use crate::token::{self, Match, Capture};
 use crate::reader::{Reader};
 use crate::compiler::Compiler;
 
@@ -61,13 +61,15 @@ pub trait Parser: std::fmt::Debug {
     }
 }
 
-// --- Item --------------------------------------------------------------------
+// --- Atomic -----------------------------------------------------------------
 
 /**
+Atomic parsers and operations.
+
 Specifies atomic level operations like matching a token or running VM code.
 */
 #[derive(Debug)]
-pub enum Item {
+pub enum Atomic {
     Nop,
 
     // Semantics
@@ -76,33 +78,33 @@ pub enum Item {
 
     // Atomics
     Empty,
-    Token(Box<dyn Token>),
+    Token(Box<dyn token::Token>),
     Call(usize),
     //Goto(usize),
     Name(String)
 
-    //And(Box<Item>),
-    //Not(Box<Item>),
+    //And(Box<Atomic>),
+    //Not(Box<Atomic>),
 
     //Rust(fn(&mut Context) -> Result<Accept, Reject>),
 }
 
-impl Parser for Item {
+impl Parser for Atomic {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
-            Item::Accept => {
+            Atomic::Accept => {
                 Ok(Accept::Return(None))
             },
 
-            Item::Reject => {
+            Atomic::Reject => {
                 Err(Reject::Return)
             },
 
-            Item::Empty => {
+            Atomic::Empty => {
                 Ok(Accept::Push(Capture::Empty))
             },
 
-            Item::Token(token) => {
+            Atomic::Token(token) => {
                 let reader_start = context.runtime.reader.tell();
 
                 if let Some(capture) = token.read(&mut context.runtime.reader) {
@@ -113,14 +115,14 @@ impl Parser for Item {
                 }
             },
 
-            Item::Call(parselet) => {
+            Atomic::Call(parselet) => {
                 context.runtime.program.parselets[*parselet].run(
                     context.runtime
                 )
             },
 
-            Item::Nop | Item::Name(_) => panic!("{:?} cannot be executed", self),
-            //Item::Rust(callback) => callback(context)
+            Atomic::Nop | Atomic::Name(_) => panic!("{:?} cannot be executed", self),
+            //Atomic::Rust(callback) => callback(context)
         }
     }
 
@@ -131,13 +133,13 @@ impl Parser for Item {
         nullable: &mut bool)
     {
         match self {
-            Item::Name(name) => panic!("OH no, there is Name({}) still!", name),
+            Atomic::Name(name) => panic!("OH no, there is Name({}) still!", name),
             
-            Item::Token(_) => {
+            Atomic::Token(_) => {
                 *nullable = false;
             },
 
-            Item::Call(idx) => {
+            Atomic::Call(idx) => {
                 if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
                     let mut my_leftrec = parselet.leftrec;
                     let mut my_nullable = parselet.nullable;
@@ -162,18 +164,18 @@ impl Parser for Item {
         }
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    fn resolve(&mut self, compiler: &Compiler, strict: bool)
     {
-        if let Item::Name(name) = self {
+        if let Atomic::Name(name) = self {
             if let Some(value) = compiler.get_constant(name) {
                 match &*value.borrow() {
                     Value::Parselet(p) => {
                         println!("resolved {:?} as {:?}", name, *p);
-                        *self = Item::Call(*p);
+                        *self = Atomic::Call(*p);
                         return;
                     },
                     Value::String(s) => {
-                        *self = Item::Token(Match::new_touch(&s.clone()));
+                        *self = Atomic::Token(Match::new_touch(&s.clone()));
                         return;
                     },
                     _ => {
@@ -188,21 +190,6 @@ impl Parser for Item {
     }
 }
 
-/*
-impl std::fmt::Debug for Item {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match &self.0 {
-            Item::Empty => write!(f, "Empty"),
-            Item::Token(t) => write!(f, "{:?}", t),
-            Item::Call(idx) => write!(f, "P{}", idx),
-            Item::Name(s) => write!(f, "{:?}", s),
-            Item::Rust(_) => write!(f, "{{rust-function}}"),
-            _ => self.0.fmt(f)?,
-        }
-        Ok(())
-    }
-}
-*/
 
 // --- Repeat ------------------------------------------------------------------
 
@@ -241,6 +228,8 @@ impl Parser for Repeat {
         let reader_start = context.runtime.reader.tell();
 
         let mut count: usize = 0;
+
+        // todo: collect items repeated
         let mut res = Ok(Accept::Next);
 
         loop {
@@ -825,16 +814,16 @@ impl Program {
 
     /*
     pub fn dump(&self) {
-        fn dump(item: &Item, level: usize) {
+        fn dump(item: &Atomic, level: usize) {
             match item {
-                Item::Block(block) => {
+                Atomic::Block(block) => {
                     for item in &block.items {
                         print!("{}", " ".repeat(level));
                         dump(item, level + 1);
                         print!("\n");
                     }
                 },
-                Item::Sequence(sequence) => {
+                Atomic::Sequence(sequence) => {
                     for (item, alias) in &sequence.items {
                         dump(item, level + 1);
                         if let Some(alias) = alias {

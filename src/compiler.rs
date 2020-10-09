@@ -161,7 +161,7 @@ impl Compiler {
 macro_rules! tokay_item {
     // Rust
     ($compiler:expr, |$var:ident| $code:block) => {
-        Item::Rust(|$var| $code)
+        Atomic::Rust(|$var| $code)
     };
 
     // Assign string
@@ -263,7 +263,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, $ident:ident ) => {
         {
             //println!("call = {}", stringify!($ident));
-            let mut item = Item::Name(stringify!($ident).to_string());
+            let mut item = Atomic::Name(stringify!($ident).to_string());
             item.resolve(&$compiler, false);
             Some(item.into_box())
         }
@@ -273,7 +273,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let mut item = Item::Name("_".to_string());
+            let mut item = Atomic::Name("_".to_string());
             item.resolve(&$compiler, false);
             Some(item.into_box())
         }
@@ -286,11 +286,11 @@ macro_rules! tokay_item {
             let lit = stringify!($literal);
             
             Some(if &lit[0..1] == "'" {
-                Item::Token(
+                Atomic::Token(
                     Match::new_touch(&lit[1..lit.len() - 1])
                 ).into_box()
             } else {
-                Item::Token(
+                Atomic::Token(
                     Match::new(&lit[1..lit.len() - 1])
                 ).into_box()
             })
