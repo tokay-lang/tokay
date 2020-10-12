@@ -79,6 +79,7 @@ pub enum Atomic {
 
     // Semantics
     Accept(Option<RefValue>),
+    Repeat(Option<RefValue>),
     Reject,
 
     // Parselets
@@ -96,6 +97,10 @@ impl Parser for Atomic {
         match self {
             Atomic::Accept(value) => {
                 Ok(Accept::Return(value.clone()))
+            },
+
+            Atomic::Repeat(value) => {
+                Ok(Accept::Repeat(value.clone()))
             },
 
             Atomic::Reject => {
@@ -245,18 +250,17 @@ impl Parser for Repeat {
                     return Err(reject)
                 },
 
+                Ok(Accept::Next) => {},
+
                 Ok(Accept::Push(capture)) => {
                     if self.capture {
                         context.runtime.capture.push((capture, None))
                     }
                 },
 
-                Ok(Accept::Return(value)) => {
-                    context.runtime.capture.truncate(capture_start);
-                    return Ok(Accept::Return(value))
-                },
-
-                Ok(_) => {},
+                Ok(accept) => {
+                    return Ok(accept)
+                }
             }
 
             count += 1;
@@ -272,7 +276,11 @@ impl Parser for Repeat {
             Err(Reject::Next)
         }
         else {
-            Ok(context.collect_captures(capture_start, false))
+            if let Some(value) = context.collect_captures(capture_start, false) {
+                Ok(Accept::Push(Capture::Value(value, 1)))
+            } else {
+                Ok(Accept::Next)
+            }
         }
     }
 
@@ -343,25 +351,39 @@ impl Parser for Sequence {
                     return Err(reject);
                 }
 
-                Ok(accept) => {
-                    match accept {
-                        Accept::Push(capture) => {
-                            context.runtime.capture.push((capture, alias.clone()))
-                        },
-                        Accept::Return(value) => {
-                            context.runtime.capture.truncate(capture_start);
-                            return Ok(Accept::Return(value));
-                        },
-                        _ => {
-                            context.runtime.capture.push((Capture::Empty, alias.clone()))
-                        },
+                Ok(Accept::Next) => {
+                    context.runtime.capture.push((Capture::Empty, alias.clone()))
+                },
 
-                    }
-                }
+                Ok(Accept::Push(capture)) => {
+                    context.runtime.capture.push((capture, alias.clone()))
+                },
+
+                Ok(Accept::Return(value)) if value.is_none() => {
+                    return Ok(
+                        Accept::Return(
+                            context.collect_captures(capture_start, true)
+                        )
+                    )
+                },
+
+                Ok(Accept::Repeat(value)) if value.is_none() => {
+                    return Ok(
+                        Accept::Repeat(
+                            context.collect_captures(capture_start, true)
+                        )
+                    )
+                },
+
+                other => return other
             }
         }
 
-        Ok(context.collect_captures(capture_start, true))
+        if let Some(value) = context.collect_captures(capture_start, true) {
+            Ok(Accept::Push(Capture::Value(value, 1)))
+        } else {
+            Ok(Accept::Next)
+        }
     }
 
     fn finalize(
@@ -481,15 +503,30 @@ impl Parser for Block {
             let mut loops = 0;
 
             loop {
-                let tmp_result = run(self, context, loops > 0);
+                let res = run(self, context, loops > 0);
 
-                // Stop either on reject or when no more input was consumed
-                if matches!(tmp_result, Err(Reject::Next))
-                    || context.runtime.reader.tell() <= reader_end {
+                match res {
+                    Err(_) => {
+                        if loops == 0 {
+                            return res;
+                        } else {
+                            break;
+                        }
+                    },
+
+                    Ok(Accept::Return(_)) | Ok(Accept::Repeat(_)) => {
+                        return res;
+                    },
+
+                    _ => {}
+                }
+
+                // Stop also when no more input was consumed
+                if context.runtime.reader.tell() <= reader_end {
                     break;
                 }
 
-                result = tmp_result;
+                result = res;
 
                 reader_end = context.runtime.reader.tell();
                 context.runtime.memo.insert(
@@ -569,10 +606,9 @@ impl Parselet {
     }
 
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
+        let mut context = Context::new(runtime);
 
         loop {
-            let mut context = Context::new(runtime);
-
             match self.body.run(&mut context) {
                 Ok(Accept::Return(value)) => {
                     if let Some(value) = value {
@@ -582,6 +618,17 @@ impl Parselet {
                         return Ok(Accept::Push(Capture::Empty))
                     }
                 },
+
+                Ok(Accept::Repeat(value)) => {
+                    if value.is_none() {
+                        continue
+                    }
+                },
+                
+                Ok(Accept::Next) => {
+                    return Ok(Accept::Push(Capture::Value(context.get_value(), 0)))
+                },
+                
                 res => {
                     return res
                 }
@@ -714,7 +761,8 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         Value::String(
             self.runtime.reader.extract(
                 &(self.reader_start..self.runtime.reader.tell())
-            )).into_ref()
+            )
+        ).into_ref()
     }
 
     /** Save current $0 value */
@@ -725,7 +773,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     /** Helper function to collect context captures from a capture_start and turn
     them either into a Complex-type value or take it as is. */
     fn collect_captures(&mut self, capture_start: usize, allow_single: bool)
-        -> Accept
+        -> Option<RefValue>
     {
         fn get_significant_value(
             context: &mut Context, capture: &Capture)
@@ -756,15 +804,15 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             = self.runtime.capture.drain(capture_start..).collect();
         
         if captures.len() == 0 {
-            Accept::Next
+            None
         }
         else if allow_single && captures.len() == 1 && captures[0].1.is_none()
         {
-            Accept::Push(
-                Capture::Value(
-                    get_significant_value(self, &captures[0].0).unwrap(), 1
-                )
-            )
+            if let Some(value) = get_significant_value(self, &captures[0].0) {
+                Some(value)
+            } else {
+                None
+            }
         }
         else {
             let mut complex = Complex::new();
@@ -772,9 +820,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             // Collect any significant captures and values
             for (capture, alias) in captures
             {
-                let value = get_significant_value(self, &capture);
-    
-                if let Some(value) = value {
+                if let Some(value) = get_significant_value(self, &capture) {
                     // Named capture becomes complex key
                     if let Some(name) = alias {
                         complex.push_key_value(Value::String(name), value);
@@ -789,19 +835,16 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 return this single value only! */
             if complex.len() == 1 {
                 if let Some((None, value)) = complex.get(0) {
-                    return Accept::Push(Capture::Value(value.clone(), 1))
+                    return Some(value.clone())
                 }
             }
-    
+
             if complex.len() > 0 {
                 // Return the complex when it contains something
-                Accept::Push(
-                    Capture::Value(
-                        Value::Complex(Box::new(complex)).into_ref(), 1)
-                )
+                Some(Value::Complex(Box::new(complex)).into_ref())
             }
             else {
-                Accept::Push(Capture::Empty)
+                None
             }
         }
     }    

@@ -315,7 +315,24 @@ macro_rules! tokay {
 
             {
                 let main = tokay_item!(compiler, $( $items ),*).unwrap(); //todo: unwrap_or_else?
-                compiler.define_parselet(Parselet::new(main));
+                
+                let main = Repeat::new(
+                    /*
+                    Block::new(
+                        vec![
+                            main,
+                            Atomic::Token(Any.into_box()).into_box()
+                        ]
+                    ).into_box(), 
+                    */
+                    main,
+                    1, 0, true
+                ).into_box();
+
+
+                compiler.define_parselet(
+                    Parselet::new(main)
+                );
             }
 
             compiler.into_program()

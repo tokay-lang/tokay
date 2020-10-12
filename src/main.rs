@@ -7,7 +7,7 @@ use ::tokay::{tokay, tokay_item, ccl};
 
 
 fn main() {
-    let s = "123 + 456 * 789 + 4".to_string();
+    let s = "123 + 456 * 789 + (4)  (99 - 3)*99 + 4".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
 
