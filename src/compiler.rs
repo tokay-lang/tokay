@@ -159,10 +159,6 @@ impl Compiler {
 
 #[macro_export]
 macro_rules! tokay_item {
-    // Rust
-    ($compiler:expr, |$var:ident| $code:block) => {
-        Atomic::Rust(|$var| $code)
-    };
 
     // Assign string
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {

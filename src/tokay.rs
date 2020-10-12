@@ -62,6 +62,23 @@ pub trait Parser: std::fmt::Debug {
     }
 }
 
+// --- Rust -------------------------------------------------------------------
+
+pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
+
+impl Parser for Rust {
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        self.0(context)
+    }
+}
+
+impl std::fmt::Debug for Rust {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{rust-function}}")
+    }
+}
+
+
 // --- Atomic -----------------------------------------------------------------
 
 /**
@@ -87,9 +104,7 @@ pub enum Atomic {
     Name(String)
 
     //And(Box<Atomic>),
-    //Not(Box<Atomic>),
-
-    //Rust(fn(&mut Context) -> Result<Accept, Reject>),
+    //Not(Box<Atomic>)
 }
 
 impl Parser for Atomic {
@@ -129,7 +144,6 @@ impl Parser for Atomic {
             },
 
             Atomic::Nop | Atomic::Name(_) => panic!("{:?} cannot be executed", self),
-            //Atomic::Rust(callback) => callback(context)
         }
     }
 

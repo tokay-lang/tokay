@@ -45,20 +45,16 @@ fn main() {
         (Int = {
             [
                 (Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box()),
-                _
-            ]
-                /*
-                (|runtime| {
-                    //println!("{:?}", runtime.get_capture(0));
-
-                    if let Some(i) = runtime.get_capture(1).unwrap().borrow().to_integer() {
+                _,
+                (Rust(|context: &mut Context| {
+                    if let Some(i) = context.get_capture(1).unwrap().borrow().to_integer() {
                         Ok(Accept::Return(Some(Value::Integer(i).into_ref())))
                     }
                     else {
                         Err(Reject::Return)
                     }
-                })
-                */
+                }).into_box())
+            ]                
         }),
 
                 
