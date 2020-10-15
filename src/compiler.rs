@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use crate::tokay::{Program, Parselet};
-use crate::value::{Value, RefValue};
+use crate::value::RefValue;
+
 
 /** Compiler symbolic scope.
 
@@ -13,6 +14,7 @@ struct Scope {
     constants: HashMap<String, usize>,
     parselets: usize
 }
+
 
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
@@ -67,7 +69,7 @@ impl Compiler {
     }
 
     /** Pops current scope.
-    
+
     The final (main) scope cannot be dropped, the function panics when
     this is tried. */
     pub fn pop_scope(&mut self) {
@@ -121,7 +123,7 @@ impl Compiler {
     }
 
     /** Defines a new static value.
-    
+
     Statics are moved into the program later on. */
     pub fn define_value(&mut self, value: RefValue) -> usize
     {
@@ -130,7 +132,7 @@ impl Compiler {
     }
 
     /** Defines a new parselet code element.
-    
+
     Parselets are moved into the program later on. */
     pub fn define_parselet(&mut self, parselet: Parselet) -> usize
     {
@@ -162,7 +164,7 @@ macro_rules! tokay_item {
 
     // Assign string
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
-        {            
+        {
             $compiler.set_constant(
                 stringify!($name),
                 Value::String($value.to_string()).into_ref()
@@ -182,7 +184,7 @@ macro_rules! tokay_item {
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)
             );
-            
+
             $compiler.set_constant(
                 "_",
                 Value::Parselet(parselet).into_ref()
@@ -200,7 +202,7 @@ macro_rules! tokay_item {
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)
             );
-            
+
             $compiler.set_constant(
                 stringify!($name),
                 Value::Parselet(parselet).into_ref()
@@ -280,7 +282,7 @@ macro_rules! tokay_item {
         {
             //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
             let lit = stringify!($literal);
-            
+
             Some(if &lit[0..1] == "'" {
                 Atomic::Token(
                     Match::new_touch(&lit[1..lit.len() - 1])
@@ -311,17 +313,15 @@ macro_rules! tokay {
 
             {
                 let main = tokay_item!(compiler, $( $items ),*).unwrap(); //todo: unwrap_or_else?
-                
+
                 let main = Repeat::new(
-                    /*
                     Block::new(
                         vec![
                             main,
                             Atomic::Token(Any.into_box()).into_box()
                         ]
-                    ).into_box(), 
-                    */
-                    main,
+                    ).into_box(),
+                    //main,
                     1, 0, true
                 ).into_box();
 

@@ -210,7 +210,7 @@ x = while d > 0 {
 
 ## Tokens
 
-In short, tokens are anything that is taken from the input, altought some tokens may not consume any input. A token in terms of Tokay is an entity, which matches something from the input, and returns a result. A result is always returned, and is either a value or a capture, which could be turned later into a value (when required).
+Tokens are matches taken from the input. A token is an entity, which matches something from the input, and returns a result. A result is always returned, and is either a value or a capture, which could be turned later into a value (when required).
 
 ```
 |A-Za-z0-9_|                                # Character class
@@ -239,15 +239,17 @@ Tokens can be configured for repetition or optional using standard regex-style m
 Negate? Expression
 ```
 
-## Patterns
+## Sequences
 
-In short, every line in Tokay is a pattern, but expressions or statements can be just interpreted as `None expression`.
+In short, every line in Tokay is a sequence, but expressions or statements can be just interpreted as `Empty expression`.
 
 ```
 'Hello' "World"+                            # Touch "Hello", multiple match "World"
 Integer print                               # Match parselet named Integer, on success print $0
 'x'     a++                                 # Increment a when 'x' is touched in input.
 ```
+
+
 
 ## Blocks
 

@@ -6,7 +6,7 @@ _}
 
 EOL = [\n;]
 
-Identifier = @{_ [A-Za-z_] [A-Za-z0-9_] _}
+Identifier = @{_ [A-Za-z_] [A-Za-z0-9_]* _}
 
 Variable = @{_ [a-z] [a-zA-Z0-9]* _}
 
@@ -55,7 +55,7 @@ Literal = @{
 }
 
 AliasedExpression =  @{
-    Expression ':' Expression 
+    Expression ':' Expression
     Expression
 }
 
@@ -63,6 +63,7 @@ Atom = @{
     Literal
     Rvalue
     '(' @{ Self ',' AliasedExpression ; AliasedExpression } ')'
+    Block
 }
 
 Unary = @{
@@ -96,7 +97,7 @@ Expression = @{
 # Structure -------------------------------------------------------------------
 
 Parselet = @{
-    '@' Block
+    '@' ScopedBlock
 }
 
 Token = @{
@@ -106,16 +107,17 @@ Token = @{
     Parselet
 }
 
-Modifier = @{
-    '+'     ("mod_pos")
-    '?'     ("mod_opt")
-    '*'     ("mod_kle")
-    '!'     ("mod_expect")      # mod_expect raises a syntax error when the given token is not matched!
+TokenWithModifier = @{
+    Token '+'     ("mod_pos": $Token)
+    Token '?'     ("mod_opt": $Token)
+    Token '*'     ("mod_kle": $Token)
+    Token '!'     ("mod_expect": $Token)      # mod_expect raises a syntax error when the given token is not matched!
+    Token
 }
 
 Sequence = @{
     Constant '=' { Literal ; Parselet }
-    @{ Token Modifier? ; Expression }+
+    @{ TokenWithModifier? ; Expression }+
 }
 
 Sequences = @{
@@ -124,8 +126,16 @@ Sequences = @{
     EOL
 }
 
+ScopedBlock = @{
+    '{' @{
+        'Begin' Expression      ("Begin": Expression)
+        'End' Expression        ("End": Expression)
+        Sequences
+    } '}'!
+}
+
+
 Block = @{
-    '{_' Sequences '_}'!        # whitespace-consuming block
     '{' Sequences '}'!
 }
 

@@ -201,14 +201,14 @@ pub fn ccl_test() {
     //ccl.add('a'..='z');
     ccl.normalize();
     ccl.dump();
-    
+
     for c in b'a'..=b'z' {
         let c = char::from(c);
         println!("{}: {}", c, ccl.test(&(c..=c)));
     }
 
     for rg in vec!['k'..='v', 'l'..='o', 'a'..='d', 'a'..='b', 'k'..='x'] {
-        println!("{:?} {}", &rg, ccl.test(&rg));    
+        println!("{:?} {}", &rg, ccl.test(&rg));
     }
 
 

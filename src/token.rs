@@ -120,7 +120,7 @@ impl Token for Char {
     fn read(&self, reader: &mut Reader) -> Option<Capture> {
         if let Some(c) = reader.next() {
             if self.accept.test(&(c..=c)) {
-                return Some(Capture::Range(reader.capture_last(1), 1))
+                return Some(Capture::Range(reader.capture_last(1), 0))
             }
         }
 
@@ -160,7 +160,7 @@ impl Token for Chars {
         }
 
         if start < reader.tell() {
-            Some(Capture::Range(reader.capture_from(start), 1))
+            Some(Capture::Range(reader.capture_from(start), 0))
         }
         else {
             None

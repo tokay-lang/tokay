@@ -35,12 +35,12 @@ pub trait Parser: std::fmt::Debug {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;
 
     /** Finalize according grammar view;
-    
+
     This function is called from top of each parselet to detect
     both left-recursive and nullable (=no input consuming) structures. */
     fn finalize(
         &mut self,
-        _parselets: &Vec<RefCell<Parselet>>, 
+        _parselets: &Vec<RefCell<Parselet>>,
         _leftrec: &mut bool,
         _nullable: &mut bool)
     {
@@ -49,7 +49,7 @@ pub trait Parser: std::fmt::Debug {
 
     /** Resolve is called by the compiler to resolve unresolved symbols
     inside or below a program structure */
-    fn resolve(&mut self, _compiler: &Compiler, _strict: bool) 
+    fn resolve(&mut self, _compiler: &Compiler, _strict: bool)
     {
         // default is: just do nothing ;)
     }
@@ -149,13 +149,13 @@ impl Parser for Atomic {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>, 
+        parselets: &Vec<RefCell<Parselet>>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
         match self {
             Atomic::Name(name) => panic!("OH no, there is Name({}) still!", name),
-            
+
             Atomic::Token(_) => {
                 *nullable = false;
             },
@@ -164,16 +164,16 @@ impl Parser for Atomic {
                 if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
                     let mut my_leftrec = parselet.leftrec;
                     let mut my_nullable = parselet.nullable;
-    
+
                     parselet.body.finalize(
                         parselets,
                         &mut my_leftrec,
                         &mut my_nullable,
                     );
-    
+
                     parselet.leftrec = my_leftrec;
                     parselet.nullable = my_nullable;
-    
+
                     *nullable = parselet.nullable;
                 }
                 else {
@@ -254,7 +254,7 @@ impl Parser for Repeat {
 
         let mut count: usize = 0;
 
-        loop {           
+        loop {
             match self.parser.run(context) {
                 Err(Reject::Next) => break,
 
@@ -278,7 +278,7 @@ impl Parser for Repeat {
             }
 
             count += 1;
-    
+
             if self.max > 0 && count == self.max {
                 break
             }
@@ -290,9 +290,11 @@ impl Parser for Repeat {
             Err(Reject::Next)
         }
         else {
-            if let Some(value) = context.collect_captures(capture_start, false) {
+            if let Some(value) = context.collect_captures(capture_start, false)
+            {
                 Ok(Accept::Push(Capture::Value(value, 1)))
-            } else {
+            }
+            else {
                 Ok(Accept::Next)
             }
         }
@@ -300,7 +302,7 @@ impl Parser for Repeat {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>, 
+        parselets: &Vec<RefCell<Parselet>>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -311,7 +313,7 @@ impl Parser for Repeat {
         }
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    fn resolve(&mut self, compiler: &Compiler, strict: bool)
     {
         self.parser.resolve(compiler, strict);
     }
@@ -355,7 +357,7 @@ impl Parser for Sequence {
         // Remember capturing positions
         let capture_start = context.runtime.capture.len();
         let reader_start = context.runtime.reader.tell();
-        
+
         // Iterate over sequence
         for (item, alias) in &self.items {
             match item.run(context) {
@@ -393,16 +395,40 @@ impl Parser for Sequence {
             }
         }
 
+        /*
+            When no explicit Return is performed, first try to collect any
+            significant captures.
+        */
         if let Some(value) = context.collect_captures(capture_start, true) {
             Ok(Accept::Push(Capture::Value(value, 1)))
-        } else {
+        }
+        /*
+            When this even fails, push a range of the current sequence in
+            case than any input was consumed.
+
+            fixme:
+            Maybe this could be pushed with severity 0, and later on collected?
+        */
+        else if reader_start < context.runtime.reader.tell() {
+            Ok(
+                Accept::Push(
+                    Capture::Range(
+                        context.runtime.reader.capture_from(reader_start), 1
+                    )
+                )
+            )
+        }
+        /*
+            Otherwise, just return Next.
+        */
+        else {
             Ok(Accept::Next)
         }
     }
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>, 
+        parselets: &Vec<RefCell<Parselet>>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -422,7 +448,7 @@ impl Parser for Sequence {
         *nullable = self.nullable;
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    fn resolve(&mut self, compiler: &Compiler, strict: bool)
     {
         for (item, _) in self.items.iter_mut() {
             item.resolve(compiler, strict);
@@ -437,7 +463,11 @@ impl Parser for Sequence {
 
 A block parser defines either an alternation of sequences or a grouped sequence
 of VM instructions. The compiler has to guarantee for correct usage of the
-block parser. */
+block parser.
+
+Block parsers support static program constructs being left-recursive, and extend
+the generated parse tree automatically until no more input can be consumed.
+*/
 
 #[derive(Debug)]
 pub struct Block {
@@ -458,11 +488,12 @@ impl Parser for Block {
 
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>
     {
-        // Internal run function
+        // Internal Block run function
         fn run(block: &Block, context: &mut Context, leftrec: bool)
                 -> Result<Accept, Reject>
         {
             let mut res = Ok(Accept::Next);
+            let reader_start = context.runtime.reader.tell();
 
             for (item, item_leftrec) in &block.items {
                 // Skip over parsers that don't match leftrec configuration
@@ -472,8 +503,19 @@ impl Parser for Block {
 
                 res = item.run(context);
 
-                // Stop on anything which is not Accept::Next or Reject::Next
+                // Generally break on anything which is not Next.
                 if !matches!(&res, Ok(Accept::Next) | Err(Reject::Next)) {
+
+                    // Push only accepts when input was consumed, otherwise the
+                    // push value is just discarded, except for the last item
+                    // being executed.
+                    if let Ok(Accept::Push(_)) = res {
+                        // No consuming, no breaking!
+                        if reader_start == context.runtime.reader.tell() {
+                            continue
+                        }
+                    }
+
                     break
                 }
             }
@@ -500,12 +542,12 @@ impl Parser for Block {
 
             let mut reader_end = context.reader_start;
             let mut result = Err(Reject::Next);
-           
+
             // Insert a fake memo entry to avoid endless recursion
-            
+
             /* info: removing this fake entry does not affect program run!
 
-            This is because of the leftrec parameter to internal run(), 
+            This is because of the leftrec parameter to internal run(),
             which only accepts non-left-recursive calls on the first run.
             As an additional fuse, this fake memo entry should anyway be kept.
             */
@@ -513,7 +555,7 @@ impl Parser for Block {
                 (context.reader_start, id),
                 (reader_end, result.clone())
             );
-            
+
             let mut loops = 0;
 
             loop {
@@ -564,7 +606,7 @@ impl Parser for Block {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>, 
+        parselets: &Vec<RefCell<Parselet>>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -592,7 +634,7 @@ impl Parser for Block {
         *leftrec = self.leftrec;
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool) 
+    fn resolve(&mut self, compiler: &Compiler, strict: bool)
     {
         for (item, _) in self.items.iter_mut() {
             item.resolve(compiler, strict);
@@ -622,8 +664,17 @@ impl Parselet {
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime);
 
+        /*
+            fixme:
+            This loop exists for the planned "repeat"-statement,
+            which repeats a given parselet programmatically and
+            without using the Repeat parser. It currently is not
+            really used, and may or may not come in future.
+        */
         loop {
-            match self.body.run(&mut context) {
+            let res = self.body.run(&mut context);
+
+            match res {
                 Ok(Accept::Return(value)) => {
                     if let Some(value) = value {
                         return Ok(Accept::Push(Capture::Value(value, 1)))
@@ -638,11 +689,13 @@ impl Parselet {
                         continue
                     }
                 },
-                
+
                 Ok(Accept::Next) => {
-                    return Ok(Accept::Push(Capture::Value(context.get_value(), 0)))
+                    return Ok(
+                        Accept::Push(Capture::Value(context.get_value(), 0))
+                    )
                 },
-                
+
                 res => {
                     return res
                 }
@@ -742,7 +795,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                     Value::String(self.runtime.reader.extract(range)).into_ref(), *severity
                 )
             },
-            
+
             Capture::Value(value, _) => {
                 return Some(value.clone())
             }
@@ -786,8 +839,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
     /** Helper function to collect context captures from a capture_start and turn
     them either into a Complex-type value or take it as is. */
-    fn collect_captures(&mut self, capture_start: usize, allow_single: bool)
-        -> Option<RefValue>
+    fn collect_captures(
+        &mut self,
+        capture_start: usize,
+        allow_single: bool) -> Option<RefValue>
     {
         fn get_significant_value(
             context: &mut Context, capture: &Capture)
@@ -795,46 +850,51 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         {
             match capture {
                 // Turn significant capture into string
-                Capture::Range(range, severity) if *severity > 0 => {
+                Capture::Range(range, severity)
+                    if *severity > 0 => {
                     Some(
                         Value::String(
                             context.runtime.reader.extract(&range)
                         ).into_ref()
                     )
                 },
-                
+
                 // Take value as is
-                Capture::Value(value, severity) if *severity > 0 => {
+                Capture::Value(value, severity)
+                    if *severity > 0 => {
                     Some(value.clone())
                 },
-    
+
                 _ => {
                     None
                 }
             }
         }
-    
+
         let captures: Vec<(Capture, Option<String>)>
             = self.runtime.capture.drain(capture_start..).collect();
-        
+
         if captures.len() == 0 {
             None
         }
         else if allow_single && captures.len() == 1 && captures[0].1.is_none()
         {
-            if let Some(value) = get_significant_value(self, &captures[0].0) {
+            if let Some(value) = get_significant_value(self, &captures[0].0)
+            {
                 Some(value)
-            } else {
+            }
+            else {
                 None
             }
         }
         else {
             let mut complex = Complex::new();
-    
+
             // Collect any significant captures and values
             for (capture, alias) in captures
             {
-                if let Some(value) = get_significant_value(self, &capture) {
+                if let Some(value) = get_significant_value(self, &capture)
+                {
                     // Named capture becomes complex key
                     if let Some(name) = alias {
                         complex.push_key_value(Value::String(name), value);
@@ -844,7 +904,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                     }
                 }
             }
-    
+
             /* When there is only one value without a key in the map,
                 return this single value only! */
             if complex.len() == 1 {
@@ -861,7 +921,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 None
             }
         }
-    }    
+    }
 }
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {

@@ -165,7 +165,7 @@ impl<K: MapKey, V> PartialEq for Map<K, V> {
 }
 
 impl<K: MapKey, V> Eq for  Map<K, V> {}
- 
+
 impl<K: MapKey, V> Hash for  Map<K, V> {
     fn hash<H: Hasher>(&self, _state: &mut H) {
         //fixme: use map pointer here?
@@ -236,10 +236,10 @@ fn test() {
     if let Some((_, s)) = map.get_mut(2) {
         s.push_str("- and C-");
     }
-    
+
     map.push_key_value("c".to_string(), "lings!".to_string());
     map.push_value("this looks fine!".to_string());
-    
+
     for (k, v) in map.iter() {
         println!("{:?} = {:?}", k, v);
     }

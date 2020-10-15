@@ -1,6 +1,7 @@
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::token::*;
+use ::tokay::parser::TokayParser;
 use ::tokay::value::Value;
 use ::tokay::compiler::Compiler;
 use ::tokay::{tokay, tokay_item, ccl};
@@ -13,8 +14,7 @@ fn main() {
 
     let counter = tokay!({
         (CountIntegers = {
-            [(Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box())],
-            [(Atomic::Token(Any.into_box()).into_box())]
+            [(Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box())]
         }),
 
         [CountIntegers]
@@ -54,16 +54,16 @@ fn main() {
                         Err(Reject::Return)
                     }
                 }).into_box())
-            ]                
+            ]
         }),
 
-                
+
         [Expr]
         /*
         => (("hello") ((kle("world")) (|runtime| {
             let hello = runtime.get_capture(1).unwrap().borrow().to_string().unwrap();
             let world = runtime.get_capture(2).unwrap().borrow().to_string().unwrap();
-    
+
             println!("{} {} {}", runtime.get_capture(0).unwrap().borrow().to_string().unwrap(), hello, world);
             Ok(Accept::Next)
         })))
@@ -104,11 +104,14 @@ fn main() {
         println!("program = {:#?}", program);
 
         reader.reset(0);
-   
+
         let mut runtime = Runtime::new(&program, &mut reader);
         let ret = program.run(&mut runtime);
-    
+
         println!("{:?}", ret);
         runtime.dump();
     }
+
+    let p = TokayParser::new();
+    println!("{:?}", p.parse("Hello world myName _is here"));
 }

@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
 use crate::map::Map;
 
-
+//pub type RefValue = Rc<RefCell<Value>>;
 pub type Complex = Map<Value, RefValue>;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
@@ -108,7 +108,7 @@ impl Value {
     // Get Value's string representation.
     pub fn to_string(&self) -> Option<String> {
         match self {
-            Self::Unset => Some("unset".to_string()), 
+            Self::Unset => Some("unset".to_string()),
             Self::Void => Some("void".to_string()),
             Self::True => Some("true".to_string()),
             Self::False => Some("false".to_string()),
@@ -309,13 +309,20 @@ impl RefValue {
     pub fn new(value: Value) -> Self {
         Self(Rc::new(RefCell::new(value)))
     }
-    
+
     pub fn borrow(&self) -> Ref<Value> {
         self.0.borrow()
     }
-    
+
     pub fn borrow_mut(&self) -> RefMut<Value> {
         self.0.borrow_mut()
+    }
+
+    pub fn into_value(this: RefValue) -> Result<Value, RefValue> {
+        match Rc::try_unwrap(this.0) {
+            Ok(this) => Ok(this.into_inner()),
+            Err(this) => Err(RefValue(this))
+        }
     }
 }
 
@@ -324,4 +331,3 @@ impl std::fmt::Debug for RefValue {
         write!(f, "{:?}", self.borrow())
     }
 }
-
