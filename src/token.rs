@@ -1,11 +1,13 @@
 use crate::ccl::Ccl;
 use crate::reader::{Reader, Range};
-use crate::value::RefValue;
+use crate::value::{Value, RefValue};
+use crate::utils;
+use crate::ccl;
 
-/**
-    Represents the result of a token capture
-*/
-#[derive(Debug, Clone)]
+
+
+/** Capture value */
+#[derive(Debug, Clone, PartialEq)]
 pub enum Capture {
     Empty,                      // Empty capture without any further value
     Range(Range, u8),           // Captured length with a severity
@@ -14,7 +16,6 @@ pub enum Capture {
 
 
 /** Token trait */
-
 pub trait Token: std::fmt::Debug {
     fn read(&self, reader: &mut Reader) -> Option<Capture>;
 
@@ -25,6 +26,10 @@ pub trait Token: std::fmt::Debug {
     }
 }
 
+
+// ----------------------------------------------------------------------------
+// Any - Match any character except EOF
+// ----------------------------------------------------------------------------
 
 pub struct Any;
 
@@ -51,6 +56,17 @@ impl std::fmt::Debug for Any {
     }
 }
 
+#[test]
+fn test_any() {
+    let mut r = Reader::new(Box::new(std::io::Cursor::new("x".to_string())));
+    let t = Any::new();
+    assert_eq!(t.read(&mut r), Some(Capture::Range(0..1, 0)));
+}
+
+
+// ----------------------------------------------------------------------------
+// Match/Touch - Match exact string
+// ----------------------------------------------------------------------------
 
 pub struct Match {
     string: String,
@@ -103,6 +119,23 @@ impl std::fmt::Debug for Match {
     }
 }
 
+#[test]
+fn test_match() {
+    let mut r = Reader::new(Box::new(std::io::Cursor::new("Hello".to_string())));
+
+    let t = Match::new("Hello");
+    assert_eq!(t.read(&mut r), Some(Capture::Range(0..5, 1)));
+
+    r.reset(0);
+
+    let t = Match::new_touch("Hello");
+    assert_eq!(t.read(&mut r), Some(Capture::Range(0..5, 0)));
+}
+
+
+// ----------------------------------------------------------------------------
+// Char - Match single character from a range of chars
+// ----------------------------------------------------------------------------
 
 pub struct Char {
     accept: Ccl
@@ -111,7 +144,7 @@ pub struct Char {
 impl Char {
     pub fn new(accept: Ccl) -> Box<dyn Token> {
         Self{
-            accept: accept.clone()
+            accept
         }.into_box()
     }
 }
@@ -135,6 +168,21 @@ impl std::fmt::Debug for Char {
 }
 
 
+#[test]
+fn test_char() {
+    let mut r = Reader::new(Box::new(std::io::Cursor::new("abC".to_string())));
+
+    let t = Char::new(ccl!['a'..='z']);
+    assert_eq!(t.read(&mut r), Some(Capture::Range(0..1, 0)));
+    assert_eq!(t.read(&mut r), Some(Capture::Range(1..2, 0)));
+    assert_eq!(t.read(&mut r), None);
+}
+
+
+// ----------------------------------------------------------------------------
+// Chars - Match range of chars from a given set
+// ----------------------------------------------------------------------------
+
 pub struct Chars {
     accept: Ccl
 }
@@ -142,7 +190,7 @@ pub struct Chars {
 impl Chars {
     pub fn new(accept: Ccl) -> Box<dyn Token> {
         Self{
-            accept: accept.clone()
+            accept
         }.into_box()
     }
 }
@@ -174,31 +222,74 @@ impl std::fmt::Debug for Chars {
     }
 }
 
+
 #[test]
-fn test_none() {
-    let mut r = Reader::new(Box::new(std::io::Cursor::new("".to_string())));
-    let t = Empty::new();
-    assert!(matches!(t.read(&mut r), Some(Capture::Empty)));
+fn test_chars() {
+    let mut r = Reader::new(Box::new(std::io::Cursor::new("abcC".to_string())));
+
+    let t = Chars::new(ccl!['a'..='z']);
+    assert_eq!(t.read(&mut r), Some(Capture::Range(0..3, 0)));
+    assert_eq!(t.read(&mut r), None);
 }
 
-#[test]
-fn test_any() {
-    let mut r = Reader::new(Box::new(std::io::Cursor::new("x".to_string())));
-    let t = Any::new();
-    assert!(matches!(t.read(&mut r), Some(Capture::Range(0..1, 0))));
+// ----------------------------------------------------------------------------
+// UntilChar - Match any char until a given char is found, optionally escaped
+// ----------------------------------------------------------------------------
+
+pub struct UntilChar {
+    until: char,
+    escape: Option<char>
 }
 
+impl UntilChar {
+    pub fn new(until: char, escape: Option<char>) -> Box<dyn Token> {
+        Self{
+            until,
+            escape
+        }.into_box()
+    }
+}
 
-#[test]
-fn test_match() {
-    let mut r = Reader::new(Box::new(std::io::Cursor::new("Hello".to_string())));
+impl Token for UntilChar {
+    fn read(&self, reader: &mut Reader) -> Option<Capture> {
+        let start = reader.tell();
+        let mut escapes = false;
 
-    let t = Match::new("Hello");
-    assert!(matches!(t.read(&mut r), Some(Capture::Range(0..5, 1))));
+        while let Some(c) = reader.peek() {
+            if c == self.until {
+                if escapes {
+                    let s = reader.extract(&(start..reader.tell()));
+                    let s = utils::unescape(s);
 
-    r.reset(0);
+                    return Some(
+                        Capture::Value(Value::String(s).into_ref(), 1)
+                    )
+                }
 
-    let t = Match::new_touch("Hello");
-    assert!(matches!(t.read(&mut r), Some(Capture::Range(0..5, 0))));
+                return Some(Capture::Range(reader.capture_from(start), 1))
+            }
+            else if self.escape.is_some() && c == self.escape.unwrap() {
+                reader.next();
 
+                if reader.peek().is_some() {
+                    escapes = true;
+                }
+            }
+
+            reader.next();
+        }
+
+        None
+    }
+}
+
+impl std::fmt::Debug for UntilChar {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.escape.is_some() {
+            write!(f, "Until('{}', Escape='{}')",
+                self.until, self.escape.unwrap())
+        } else {
+            write!(f, "Until('{}')", self.until)
+        }
+    }
 }

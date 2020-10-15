@@ -113,5 +113,6 @@ fn main() {
     }
 
     let p = TokayParser::new();
-    println!("{:?}", p.parse("Hello world myName _is here"));
+    println!("{:?}", p.parse(
+        "Hello world \"this is a String\" myName 'here\\'s another one'_is here"));
 }

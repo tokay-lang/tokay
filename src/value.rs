@@ -222,6 +222,8 @@ impl std::ops::Div for Value
 }
 */
 
+// This is bat country...
+
 #[test]
 fn test_literal() {
     assert_eq!(Value::Integer(1337).to_integer(), Some(1337));
@@ -302,7 +304,7 @@ fn test_mul() {
 */
 
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct RefValue(Rc<RefCell<Value>>);
 
 impl RefValue {

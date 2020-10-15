@@ -5,4 +5,5 @@ pub mod parser;
 pub mod reader;
 pub mod tokay;
 pub mod token;
+pub mod utils;
 pub mod value;

@@ -7,8 +7,9 @@
 - tokay.rs
   - Runtime/Context
     - [ ] Merge capture and stack into one separate data structure
-    - [ ] 
     - [ ] Infer alias variables, like `Expr '+' Term` can be matched by any $Expr, $expr, $Ex or just $e, when no direct match is found
+- token.rs
+  - Generally rework all Tokens
 
 - General
   - Quantifier Optimization

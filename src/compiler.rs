@@ -280,8 +280,8 @@ macro_rules! tokay_item {
     // Match / Touch
     ( $compiler:expr, $literal:literal ) => {
         {
-            //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
             let lit = stringify!($literal);
+            //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
 
             Some(if &lit[0..1] == "'" {
                 Atomic::Token(
