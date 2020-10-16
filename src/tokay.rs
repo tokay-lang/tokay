@@ -99,6 +99,9 @@ pub enum Atomic {
     Repeat(Option<RefValue>),
     Reject,
 
+    // Eval
+    Push(RefValue),  // just a test
+
     // Parselets
     Call(usize),
     Name(String)
@@ -120,6 +123,10 @@ impl Parser for Atomic {
 
             Atomic::Reject => {
                 Err(Reject::Return)
+            },
+
+            Atomic::Push(value) => {
+                Ok(Accept::Push(Capture::Value(value.clone(), 1)))
             },
 
             Atomic::Empty => {
@@ -979,41 +986,7 @@ impl Program {
         }
     }
 
-    /*
     pub fn dump(&self) {
-        fn dump(item: &Atomic, level: usize) {
-            match item {
-                Atomic::Block(block) => {
-                    for item in &block.items {
-                        print!("{}", " ".repeat(level));
-                        dump(item, level + 1);
-                        print!("\n");
-                    }
-                },
-                Atomic::Sequence(sequence) => {
-                    for (item, alias) in &sequence.items {
-                        dump(item, level + 1);
-                        if let Some(alias) = alias {
-                            print!(":{} ", alias);
-                        }
-                        else {
-                            print!(" ");
-                        }
-                    }
-
-                    if sequence.leftrec || sequence.nullable {
-                            print!("  # {}{} ",
-                            if sequence.leftrec {"left-recursive " } else {""},
-                            if sequence.nullable {"nullable"} else {""}
-                        );
-                    }
-                },
-                other => {
-                    print!("{:?}", other);
-                }
-            }
-        }
-
         for i in 0..self.parselets.len() {
             println!("P{}{} = {{", i, if self.parselets[i].nullable { "  # nullable" } else { "" });
             //dump(&self.parselets[i].body, 1);
@@ -1021,7 +994,6 @@ impl Program {
             println!("}}");
         }
     }
-    */
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets.last().unwrap().run(runtime)

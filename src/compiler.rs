@@ -46,7 +46,7 @@ impl Compiler {
         }
 
         // Resolve last scope
-        self.resolve();
+        self.resolve(true);
 
         // Finalize
         Parselet::finalize(&self.parselets);
@@ -77,7 +77,7 @@ impl Compiler {
             panic!("Can't pop main scope");
         }
 
-        self.resolve();
+        self.resolve(false);
         self.scopes.remove(0);
     }
 
@@ -141,11 +141,11 @@ impl Compiler {
     }
 
     /** Resolve all parseletes defined in the current scope. */
-    pub fn resolve(&mut self) {
+    pub fn resolve(&mut self, strict: bool) {
         let scope = self.scopes.first().unwrap();
 
         for i in scope.parselets..self.parselets.len() {
-            self.parselets[i].borrow_mut().resolve(&self, true);
+            self.parselets[i].borrow_mut().resolve(&self, strict);
         }
     }
 

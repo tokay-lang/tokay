@@ -97,17 +97,17 @@ Expression = @{
 # Structure -------------------------------------------------------------------
 
 Parselet = @{
-    '@' ScopedBlock
+    '@' Block                                   # Later scoped block
 }
 
-Token = @{
+Atomic = @{
     String
     Charset
     Constant
     Parselet
 }
 
-TokenWithModifier = @{
+AtomicModifier = @{
     Token '+'     ("mod_pos": $Token)
     Token '?'     ("mod_opt": $Token)
     Token '*'     ("mod_kle": $Token)
@@ -117,7 +117,7 @@ TokenWithModifier = @{
 
 Sequence = @{
     Constant '=' { Literal ; Parselet }
-    @{ TokenWithModifier? ; Expression }+
+    @{ AtomicModifier? ; Expression }+
 }
 
 Sequences = @{
@@ -126,13 +126,14 @@ Sequences = @{
     EOL
 }
 
-ScopedBlock = @{
-    '{' @{
-        'Begin' Expression      ("Begin": Expression)
-        'End' Expression        ("End": Expression)
-        Sequences
-    } '}'!
-}
+#... later
+#ScopedBlock = @{
+#    '{' @{
+#        'Begin' Expression      ("Begin": Expression)
+#        'End' Expression        ("End": Expression)
+#        Sequences
+#    } '}'!
+#}
 
 
 Block = @{

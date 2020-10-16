@@ -1,5 +1,7 @@
 # Brainstorming & Todo
 
+- compiler.rs
+  - Make tokay!() and tokay_item!() macros much more user-friendly
 - reader.rs
   - [ ] Work with an Offset data structure rather than usize to additionally track row + col numbers
 - ccl.rs

@@ -113,6 +113,11 @@ fn main() {
     }
 
     let p = TokayParser::new();
-    println!("{:?}", p.parse(
-        "Hello world \"this is a String\" myName 'here\\'s another one'_is here"));
+    let s = include_str!("../readme.tok");
+    //let s = "A = @{ B \n C \n D \n E }";
+
+    println!("{}", s);
+
+    let res = p.parse(s);
+    println!("{:#?}", res);
 }
