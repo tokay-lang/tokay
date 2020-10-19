@@ -1,6 +1,5 @@
 use crate::reader::Reader;
 use crate::tokay::*;
-use crate::token::*;
 use crate::value::{RefValue, Value};
 use crate::compiler::Compiler;
 use crate::{tokay, tokay_item, ccl};
@@ -22,9 +21,9 @@ impl TokayParser {
 
 (_ = {
     [' '],
-    ['#', (Atomic::Token(UntilChar::new('\n', None)).into_box())]
-}),
-
+    ['#', (Char::until('\n'))]
+}) //,
+/*
 (T_EOL = {
     [
         (Atomic::Token(Char::new(ccl!['\n'..='\n'])).into_box()),
@@ -56,7 +55,7 @@ impl TokayParser {
                 ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
             ).into_box()),
             0, 0, false
-        ).into_box())
+        ))
     ]
 }),
 
@@ -68,7 +67,7 @@ impl TokayParser {
                 ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
             ).into_box()),
             0, 0, false
-        ).into_box())
+        ))
     ]
 }),
 
@@ -119,6 +118,7 @@ impl TokayParser {
 }),
 
 [S_Sequence]
+*/
 // ----------------------------------------------------------------------------
             })
         )

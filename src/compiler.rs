@@ -179,7 +179,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, ( _ = $item:tt ) ) => {
         {
             let item = tokay_item!($compiler, $item).unwrap();
-            let item = Repeat::new(item, 0, 0, false).into_box();
+            let item = Repeat::new(item, 0, 0, false);
 
             let parselet = $compiler.define_parselet(
                 Parselet::new(item)
@@ -229,7 +229,7 @@ macro_rules! tokay_item {
                         .filter(|item| item.is_some())
                         .map(|item| (item.unwrap(), None))
                         .collect()
-                ).into_box()
+                )
             )
         }
     };
@@ -252,7 +252,7 @@ macro_rules! tokay_item {
                         .filter(|item| item.is_some())
                         .map(|item| item.unwrap())
                         .collect()
-                ).into_box()
+                )
             )
         }
     };
@@ -284,13 +284,9 @@ macro_rules! tokay_item {
             //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
 
             Some(if &lit[0..1] == "'" {
-                Atomic::Token(
-                    Match::new_touch(&lit[1..lit.len() - 1])
-                ).into_box()
+                Match::touch(&lit[1..lit.len() - 1])
             } else {
-                Atomic::Token(
-                    Match::new(&lit[1..lit.len() - 1])
-                ).into_box()
+                Match::new(&lit[1..lit.len() - 1])
             })
         }
     };
@@ -318,12 +314,12 @@ macro_rules! tokay {
                     Block::new(
                         vec![
                             main,
-                            Atomic::Token(Any.into_box()).into_box()
+                            Char::any()
                         ]
-                    ).into_box(),
+                    ),
                     //main,
                     1, 0, true
-                ).into_box();
+                );
 
 
                 compiler.define_parselet(

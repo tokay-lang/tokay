@@ -1,6 +1,5 @@
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
-use ::tokay::token::*;
 use ::tokay::parser::TokayParser;
 use ::tokay::value::Value;
 use ::tokay::compiler::Compiler;
@@ -14,7 +13,7 @@ fn main() {
 
     let counter = tokay!({
         (CountIntegers = {
-            [(Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box())]
+            [(Char::span(ccl!['0'..='9']))]
         }),
 
         [CountIntegers]
@@ -44,7 +43,7 @@ fn main() {
 
         (Int = {
             [
-                (Atomic::Token(Chars::new(ccl!['0'..='9'])).into_box()),
+                (Char::span(ccl!['0'..='9'])),
                 _,
                 (Rust(|context: &mut Context| {
                     if let Some(i) = context.get_capture(1).unwrap().borrow().to_integer() {
@@ -112,6 +111,7 @@ fn main() {
         runtime.dump();
     }
 
+    /*
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
     //let s = "A = @{ B \n C \n D \n E }";
@@ -120,4 +120,5 @@ fn main() {
 
     let res = p.parse(s);
     println!("{:#?}", res);
+    */
 }

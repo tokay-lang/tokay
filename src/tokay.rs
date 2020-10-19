@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 
+use crate::ccl::Ccl;
 use crate::value::{Complex, Value, RefValue};
-use crate::token::{self, Match, Capture};
-use crate::reader::{Reader};
+use crate::reader::{Reader, Range};
 use crate::compiler::Compiler;
+use crate::ccl;
 
 
 #[derive(Debug, Clone)]
@@ -26,7 +27,6 @@ pub enum Reject {
 
 
 /** Parser trait */
-
 pub trait Parser: std::fmt::Debug {
     /** Perform a parse on a given context.
 
@@ -62,6 +62,152 @@ pub trait Parser: std::fmt::Debug {
     }
 }
 
+// --- Char -------------------------------------------------------------------
+
+#[derive(Debug)]
+pub struct Char {
+    accept: Ccl,
+    repeats: bool
+}
+
+impl Char {
+    pub fn new(accept: Ccl, repeats: bool) -> Box<dyn Parser> {
+        Self{
+            accept,
+            repeats
+        }.into_box()
+    }
+
+    pub fn any() -> Box<dyn Parser> {
+        let mut any = Ccl::new();
+        any.negate();
+
+        Self::new(any, false)
+    }
+
+    pub fn char(ch: char) -> Box<dyn Parser> {
+        Self::new(ccl![ch..=ch], false)
+    }
+
+    pub fn span(ccl: Ccl) -> Box<dyn Parser> {
+        Self::new(ccl, true)
+    }
+
+    pub fn until(ch: char) -> Box<dyn Parser> {
+        let mut other = ccl![ch..=ch];
+        other.negate();
+
+        Self::span(other)
+    }
+}
+
+impl Parser for Char {
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        let start = context.runtime.reader.tell();
+
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !self.accept.test(&(ch..=ch)) {
+                break;
+            }
+
+            context.runtime.reader.next();
+
+            if !self.repeats {
+                break;
+            }
+        }
+
+        if start < context.runtime.reader.tell() {
+            Ok(
+                Accept::Push(
+                    Capture::Range(
+                        context.runtime.reader.capture_from(start), 0
+                    )
+                )
+            )
+        }
+        else {
+            context.runtime.reader.reset(start);
+            Err(Reject::Next)
+        }
+    }
+
+    fn finalize(
+        &mut self,
+        _parselets: &Vec<RefCell<Parselet>>,
+        _leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        *nullable = false;
+    }
+}
+
+
+// --- Match ------------------------------------------------------------------
+
+#[derive(Debug)]
+pub struct Match {
+    string: String,
+    significant: bool
+}
+
+impl Match {
+    pub fn new(string: &str) -> Box<dyn Parser> {
+        Self{
+            string: string.to_string(),
+            significant: true
+        }.into_box()
+    }
+
+    pub fn touch(string: &str) -> Box<dyn Parser> {
+        Self{
+            string: string.to_string(),
+            significant: false
+        }.into_box()
+    }
+}
+
+impl Parser for Match {
+
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        let start = context.runtime.reader.tell();
+
+        for ch in self.string.chars() {
+            if let Some(c) = context.runtime.reader.next() {
+                if c != ch {
+                    // fixme: Optimize me!
+                    context.runtime.reader.reset(start);
+                    return Err(Reject::Next);
+                }
+            }
+            else {
+                // fixme: Optimize me!
+                context.runtime.reader.reset(start);
+                return Err(Reject::Next);
+            }
+        }
+
+        Ok(
+            Accept::Push(
+                Capture::Range(
+                    context.runtime.reader.capture_last(self.string.len()),
+                    self.significant as u8
+                )
+            )
+        )
+    }
+
+    fn finalize(
+        &mut self,
+        _parselets: &Vec<RefCell<Parselet>>,
+        _leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        *nullable = false;
+    }
+}
+
+
 // --- Rust -------------------------------------------------------------------
 
 pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
@@ -92,22 +238,31 @@ pub enum Atomic {
 
     // Tokens
     Empty,
-    Token(Box<dyn token::Token>),
+    /*
+    Char(Box<Char>),
+    Match(Box<Match>),
+    */
 
     // Semantics
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
     Reject,
 
-    // Eval
-    Push(RefValue),  // just a test
-
     // Parselets
     Call(usize),
-    Name(String)
+    Name(String),
 
-    //And(Box<Atomic>),
-    //Not(Box<Atomic>)
+    // Structure
+    /*
+    Repeat(Box<Repeat>),
+    Sequence(Box<Sequence>),
+    Block(Box<Block>),
+    */
+
+    /*
+    And(Box<Atomic>),
+    Not(Box<Atomic>)
+    */
 }
 
 impl Parser for Atomic {
@@ -125,23 +280,8 @@ impl Parser for Atomic {
                 Err(Reject::Return)
             },
 
-            Atomic::Push(value) => {
-                Ok(Accept::Push(Capture::Value(value.clone(), 1)))
-            },
-
             Atomic::Empty => {
                 Ok(Accept::Push(Capture::Empty))
-            },
-
-            Atomic::Token(token) => {
-                let reader_start = context.runtime.reader.tell();
-
-                if let Some(capture) = token.read(&mut context.runtime.reader) {
-                    Ok(Accept::Push(capture))
-                } else {
-                    context.runtime.reader.reset(reader_start);
-                    Err(Reject::Next)
-                }
             },
 
             Atomic::Call(parselet) => {
@@ -162,10 +302,6 @@ impl Parser for Atomic {
     {
         match self {
             Atomic::Name(name) => panic!("OH no, there is Name({}) still!", name),
-
-            Atomic::Token(_) => {
-                *nullable = false;
-            },
 
             Atomic::Call(idx) => {
                 if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
@@ -202,10 +338,13 @@ impl Parser for Atomic {
                         *self = Atomic::Call(*p);
                         return;
                     },
+                    /*
+                    THIS IS NOT POSSIBLE
                     Value::String(s) => {
-                        *self = Atomic::Token(Match::new_touch(&s.clone()));
+                        *self = Match::new_touch(&s.clone());
                         return;
                     },
+                    */
                     _ => {
                         unimplemented!("Cannot resolve {:?}", value);
                     }
@@ -239,7 +378,7 @@ pub struct Repeat {
 
 impl Repeat {
     pub fn new(parser: Box<dyn Parser>, min: usize, max: usize, capture: bool)
-        -> Self
+        -> Box<dyn Parser>
     {
         assert!(max == 0 || max >= min);
 
@@ -248,7 +387,7 @@ impl Repeat {
             min,
             max,
             capture
-        }
+        }.into_box()
     }
 }
 
@@ -324,7 +463,6 @@ impl Parser for Repeat {
     {
         self.parser.resolve(compiler, strict);
     }
-
 }
 
 // --- Sequence ----------------------------------------------------------------
@@ -344,12 +482,13 @@ pub struct Sequence {
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Box<dyn Parser>, Option<String>)>) -> Self {
+    pub fn new(items: Vec<(Box<dyn Parser>, Option<String>)>) -> Box<dyn Parser>
+    {
         Self{
             leftrec: false,
             nullable: true,
             items
-        }
+        }.into_box()
     }
 }
 
@@ -483,11 +622,11 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(items: Vec<Box<dyn Parser>>) -> Self {
+    pub fn new(items: Vec<Box<dyn Parser>>) -> Box<dyn Parser> {
         Self{
             items: items.into_iter().map(|item| (item, false)).collect(),
             leftrec: false
-        }
+        }.into_box()
     }
 }
 
@@ -753,10 +892,21 @@ impl Parselet {
 }
 
 
+
+// --- Context -----------------------------------------------------------------
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Capture {
+    Empty,                      // Empty capture without any further value
+    Range(Range, u8),           // Captured length with a severity
+    Value(RefValue, u8),        // Value with severity
+}
+
+
 // --- Context -----------------------------------------------------------------
 
 pub struct Context<'runtime, 'program, 'reader> {
-    runtime: &'runtime mut Runtime<'program, 'reader>,
+    pub runtime: &'runtime mut Runtime<'program, 'reader>,  // Temporary pub?
 
     stack_start: usize,
     capture_start: usize,
@@ -943,7 +1093,7 @@ impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> 
 
 pub struct Runtime<'program, 'reader> {
     program: &'program Program,
-    reader: &'reader mut Reader,
+    pub reader: &'reader mut Reader,  // temporary pub
 
     memo: HashMap<(usize, usize), (usize, Result<Accept, Reject>)>,
 
