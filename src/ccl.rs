@@ -158,19 +158,31 @@ impl Ccl {
             }
         ).is_ok()
     }
+
+    /** Does this range fit all chars? */
+    fn is_any(&self) -> bool {
+        self.ranges.len() == 1
+            && *self.ranges[0].start() == 0 as char
+                && *self.ranges[0].end() == std::char::MAX
+    }
 }
 
 impl std::fmt::Debug for Ccl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "|")?;
-        for range in &self.ranges {
-            if range.start() < range.end() {
-                write!(f, "{}-{}", range.start(), range.end())?;
-            } else {
-                write!(f, "{}", range.start())?;
-            }
+        if self.is_any() {
+            write!(f, ".")?;
         }
-        write!(f, "|")?;
+        else {
+            write!(f, "|")?;
+            for range in &self.ranges {
+                if range.start() < range.end() {
+                    write!(f, "{}-{}", range.start(), range.end())?;
+                } else {
+                    write!(f, "{}", range.start())?;
+                }
+            }
+            write!(f, "|")?;
+        }
 
         Ok(())
     }

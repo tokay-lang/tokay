@@ -85,6 +85,7 @@ pub enum Op {
     */
 
     // Semantics
+    Create(String),
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
     Reject,
@@ -113,6 +114,27 @@ impl Parser for Op {
 
             Op::Empty => {
                 Ok(Accept::Push(Capture::Empty))
+            },
+
+            Op::Create(emit) => {
+                match context.collect_captures(context.capture_start, false) {
+                    Some(value) => {
+                        let mut ret = Complex::new();
+                        ret.push_key_value(
+                            Value::String(emit.clone()),
+                            value
+                        );
+
+                        Ok(Accept::Return(
+                            Some(Value::Complex(Box::new(ret)).into_ref())
+                        ))
+                    }
+                    None => {
+                        Ok(Accept::Return(
+                            Some(Value::String(emit.clone()).into_ref())
+                        ))
+                    }
+                }
             },
 
             Op::Accept(value) => {
@@ -187,7 +209,7 @@ impl Parser for Op {
                             return;
                         },
                         Value::String(s) => {
-                            *self = Match::touch(&s.clone()).into_op();
+                            *self = Match::new(&s.clone()).into_op();
                             return;
                         },
                         _ => {
@@ -283,7 +305,7 @@ impl Parser for Char {
             Ok(
                 Accept::Push(
                     Capture::Range(
-                        context.runtime.reader.capture_from(start), 0
+                        context.runtime.reader.capture_from(start)
                     )
                 )
             )
@@ -308,24 +330,11 @@ impl Parser for Char {
 // --- Match ------------------------------------------------------------------
 
 #[derive(Debug)]
-pub struct Match {
-    string: String,
-    significant: bool
-}
+pub struct Match(String);
 
 impl Match {
     pub fn new(string: &str) -> Op {
-        Self{
-            string: string.to_string(),
-            significant: true
-        }.into_op()
-    }
-
-    pub fn touch(string: &str) -> Op {
-        Self{
-            string: string.to_string(),
-            significant: false
-        }.into_op()
+        Self(string.to_string()).into_op()
     }
 }
 
@@ -334,7 +343,7 @@ impl Parser for Match {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         let start = context.runtime.reader.tell();
 
-        for ch in self.string.chars() {
+        for ch in self.0.chars() {
             if let Some(c) = context.runtime.reader.next() {
                 if c != ch {
                     // fixme: Optimize me!
@@ -352,8 +361,7 @@ impl Parser for Match {
         Ok(
             Accept::Push(
                 Capture::Range(
-                    context.runtime.reader.capture_last(self.string.len()),
-                    self.significant as u8
+                    context.runtime.reader.capture_last(self.0.len())
                 )
             )
         )
@@ -385,11 +393,11 @@ pub struct Repeat {
     parser: Op,
     min: usize,
     max: usize,
-    capture: bool
+    mute: bool
 }
 
 impl Repeat {
-    pub fn new(parser: Op, min: usize, max: usize, capture: bool) -> Op
+    pub fn new(parser: Op, min: usize, max: usize, mute: bool) -> Op
     {
         assert!(max == 0 || max >= min);
 
@@ -397,8 +405,20 @@ impl Repeat {
             parser,
             min,
             max,
-            capture
+            mute
         }.into_op()
+    }
+
+    pub fn kleene(parser: Op) -> Op {
+        Self::new(parser, 0, 0, false)
+    }
+
+    pub fn positive(parser: Op) -> Op {
+        Self::new(parser, 1, 0, false)
+    }
+
+    pub fn optional(parser: Op) -> Op {
+        Self::new(parser, 0, 1, false)
     }
 }
 
@@ -424,7 +444,7 @@ impl Parser for Repeat {
                 Ok(Accept::Next) => {},
 
                 Ok(Accept::Push(capture)) => {
-                    if self.capture {
+                    if !self.mute {
                         context.runtime.capture.push((capture, None))
                     }
                 },
@@ -449,7 +469,7 @@ impl Parser for Repeat {
         else {
             if let Some(value) = context.collect_captures(capture_start, false)
             {
-                Ok(Accept::Push(Capture::Value(value, 1)))
+                Ok(Accept::Push(Capture::Value(value)))
             }
             else {
                 Ok(Accept::Next)
@@ -557,7 +577,7 @@ impl Parser for Sequence {
             significant captures.
         */
         if let Some(value) = context.collect_captures(capture_start, true) {
-            Ok(Accept::Push(Capture::Value(value, 1)))
+            Ok(Accept::Push(Capture::Value(value)))
         }
         /*
             When this even fails, push a range of the current sequence in
@@ -570,7 +590,7 @@ impl Parser for Sequence {
             Ok(
                 Accept::Push(
                     Capture::Range(
-                        context.runtime.reader.capture_from(reader_start), 1
+                        context.runtime.reader.capture_from(reader_start)
                     )
                 )
             )
@@ -806,6 +826,7 @@ impl Parser for Block {
 pub struct Parselet {
     leftrec: bool,
     nullable: bool,
+    mute: bool,
     body: Op
 }
 
@@ -814,6 +835,17 @@ impl Parselet {
         Self{
             leftrec: false,
             nullable: true,
+            mute: false,
+            body
+        }
+    }
+
+    /// Creates a new silent parselet, which does always return Capture::Empty
+    pub fn new_muted(body: Op) -> Self {
+        Self{
+            leftrec: false,
+            nullable: true,
+            mute: true,
             body
         }
     }
@@ -834,7 +866,11 @@ impl Parselet {
             match res {
                 Ok(Accept::Return(value)) => {
                     if let Some(value) = value {
-                        return Ok(Accept::Push(Capture::Value(value, 1)))
+                        if !self.mute {
+                            return Ok(Accept::Push(Capture::Value(value)))
+                        } else {
+                            return Ok(Accept::Push(Capture::Empty))
+                        }
                     }
                     else {
                         return Ok(Accept::Push(Capture::Empty))
@@ -849,7 +885,11 @@ impl Parselet {
 
                 Ok(Accept::Next) => {
                     return Ok(
-                        Accept::Push(Capture::Value(context.get_value(), 0))
+                        if !self.mute {
+                            Accept::Push(Capture::Value(context.get_value()))
+                        } else {
+                            Accept::Push(Capture::Empty)
+                        }
                     )
                 },
 
@@ -904,13 +944,13 @@ impl Parselet {
 
 
 
-// --- Context -----------------------------------------------------------------
+// --- Capture -----------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Capture {
-    Empty,                      // Empty capture without any further value
-    Range(Range, u8),           // Captured length with a severity
-    Value(RefValue, u8),        // Value with severity
+    Empty,                      // Empty capture
+    Range(Range),               // Captured range from the input
+    Value(RefValue)             // Captured value
 }
 
 
@@ -954,17 +994,19 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         let replace = match &self.runtime.capture[pos].0 {
             Capture::Empty => {
                 Capture::Value(
-                    Value::Void.into_ref(), 0
+                    Value::Void.into_ref()
                 )
             },
 
-            Capture::Range(range, severity) => {
+            Capture::Range(range) => {
                 Capture::Value(
-                    Value::String(self.runtime.reader.extract(range)).into_ref(), *severity
+                    Value::String(
+                        self.runtime.reader.extract(range)
+                    ).into_ref()
                 )
             },
 
-            Capture::Value(value, _) => {
+            Capture::Value(value) => {
                 return Some(value.clone())
             }
         };
@@ -975,7 +1017,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
-        // fixme: Maybe this should be examined in reversed order?
+        // fixme: Should be examined in reversed order
         for (i, capture) in self.runtime.capture[self.capture_start..].iter().enumerate() {
             if let Some(alias) = &capture.1 {
                 if alias == name {
@@ -989,7 +1031,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
     /** Returns the current $0 value */
     pub fn get_value(&self) -> RefValue {
-        if let Capture::Value(value, _) = &self.runtime.capture[self.capture_start].0 {
+        if let Capture::Value(value) =
+            &self.runtime.capture[self.capture_start].0
+        {
             return value.clone()
         }
 
@@ -1002,7 +1046,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
     /** Save current $0 value */
     pub fn set_value(&mut self, value: RefValue) {
-        self.runtime.capture[self.capture_start].0 = Capture::Value(value, 2)
+        self.runtime.capture[self.capture_start].0 = Capture::Value(value)
     }
 
     /** Helper function to collect context captures from a capture_start and turn
@@ -1012,64 +1056,55 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         capture_start: usize,
         allow_single: bool) -> Option<RefValue>
     {
-        fn get_significant_value(
-            context: &mut Context, capture: &Capture)
-                -> Option<RefValue>
-        {
-            match capture {
-                // Turn significant capture into string
-                Capture::Range(range, severity)
-                    if *severity > 0 => {
-                    Some(
-                        Value::String(
-                            context.runtime.reader.extract(&range)
-                        ).into_ref()
-                    )
-                },
-
-                // Take value as is
-                Capture::Value(value, severity)
-                    if *severity > 0 => {
-                    Some(value.clone())
-                },
-
-                _ => {
-                    None
-                }
-            }
-        }
-
-        let captures: Vec<(Capture, Option<String>)>
-            = self.runtime.capture.drain(capture_start..).collect();
+        let mut captures: Vec<(Capture, Option<String>)> =
+            self.runtime.capture.drain(capture_start..).collect();
 
         if captures.len() == 0 {
             None
         }
         else if allow_single && captures.len() == 1 && captures[0].1.is_none()
         {
-            if let Some(value) = get_significant_value(self, &captures[0].0)
-            {
-                Some(value)
-            }
-            else {
-                None
+            match captures.pop().unwrap().0 {
+                Capture::Empty => None,
+                Capture::Range(range) => {
+                    Some(
+                        Value::String(
+                            self.runtime.reader.extract(&range)
+                        ).into_ref()
+                    )
+                },
+                Capture::Value(value) => {
+                    Some(value)
+                }
             }
         }
         else {
+            let (values, ranges): (_ ,Vec<_>) = captures.into_iter().partition(
+                |item| matches!(item.0, Capture::Value(_)));
+
             let mut complex = Complex::new();
+            let captures = if !values.is_empty() { values } else { ranges };
 
             // Collect any significant captures and values
-            for (capture, alias) in captures
-            {
-                if let Some(value) = get_significant_value(self, &capture)
-                {
-                    // Named capture becomes complex key
-                    if let Some(name) = alias {
-                        complex.push_key_value(Value::String(name), value);
+            for (capture, alias) in captures.into_iter() {
+                let value = match capture {
+                    Capture::Empty => continue,
+                    Capture::Range(range) => {
+                        Value::String(
+                            self.runtime.reader.extract(&range)
+                        ).into_ref()
+                    },
+                    Capture::Value(value) => {
+                        value
                     }
-                    else {
-                        complex.push_value(value);
-                    }
+                };
+
+                // Named capture becomes complex key
+                if let Some(name) = alias {
+                    complex.push_key_value(Value::String(name), value);
+                }
+                else {
+                    complex.push_value(value);
                 }
             }
 

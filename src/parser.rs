@@ -20,8 +20,8 @@ impl TokayParser {
 // ----------------------------------------------------------------------------
 
 (_ = {
-    [' '],
-    ['#', (Char::until('\n'))]
+    [" "],
+    ["#", (Char::until('\n'))]
 }) //,
 /*
 (T_EOL = {
@@ -135,7 +135,7 @@ impl TokayParser {
 
         if let Ok(accept) = self.0.run(&mut runtime) {
             println!("{:#?}", accept);
-            if let Accept::Push(Capture::Value(value, _)) = accept {
+            if let Accept::Push(Capture::Value(value)) = accept {
                 return Ok(RefValue::into_value(value).unwrap());
             }
         }

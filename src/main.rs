@@ -21,23 +21,23 @@ fn main() {
 
     let calculator = tokay!({
         (_ = {
-            ' '
+            " "
         }),
 
         (Factor = {
-            ['(', _, Expr, ')', _],
+            ["(", _, Expr, ")", _],
             [Int]
         }),
 
         (Term = {
-            [Term, "*", _, Factor],
-            [Term, "/", _, Factor],
+            [Term, "*", _, Factor, (Op::Create("mul".to_string()))],
+            [Term, "/", _, Factor, (Op::Create("div".to_string()))],
             [Factor]
         }),
 
         (Expr = {
-            [Expr, "+", _, Term],
-            [Expr, "-", _, Term],
+            [Expr, "+", _, Term, (Op::Create("add".to_string()))],
+            [Expr, "-", _, Term, (Op::Create("sub".to_string()))],
             [Term]
         }),
 

@@ -179,10 +179,10 @@ macro_rules! tokay_item {
     ( $compiler:expr, ( _ = $item:tt ) ) => {
         {
             let item = tokay_item!($compiler, $item).unwrap();
-            let item = Repeat::new(item, 0, 0, false);
+            let item = Repeat::new(item, 0, 0, true);
 
             let parselet = $compiler.define_parselet(
-                Parselet::new(item)
+                Parselet::new_muted(item)
             );
 
             $compiler.set_constant(
@@ -280,14 +280,7 @@ macro_rules! tokay_item {
     // Match / Touch
     ( $compiler:expr, $literal:literal ) => {
         {
-            let lit = stringify!($literal);
-            //println!("match = {:?} {:?}", stringify!($literal), &stringify!($literal)[1..lit.len() -1]);
-
-            Some(if &lit[0..1] == "'" {
-                Match::touch(&lit[1..lit.len() - 1])
-            } else {
-                Match::new(&lit[1..lit.len() - 1])
-            })
+            Some(Match::new($literal))
         }
     };
 
@@ -310,15 +303,14 @@ macro_rules! tokay {
             {
                 let main = tokay_item!(compiler, $( $items ),*).unwrap(); //todo: unwrap_or_else?
 
-                let main = Repeat::new(
+                let main = Repeat::positive(
                     Block::new(
                         vec![
                             main,
                             Char::any()
                         ]
-                    ),
-                    //main,
-                    1, 0, true
+                    )
+                    //main
                 );
 
 
