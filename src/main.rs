@@ -52,7 +52,7 @@ fn main() {
                     else {
                         Err(Reject::Return)
                     }
-                }).into_box())
+                }).into_op())
             ]
         }),
 

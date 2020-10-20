@@ -54,13 +54,175 @@ pub trait Parser: std::fmt::Debug {
         // default is: just do nothing ;)
     }
 
-    /** Convert parser object into boxed dyn Parser */
-    fn into_box(self) -> Box<dyn Parser>
+    /** Convert parser object into boxed dyn Parser Op */
+    fn into_op(self) -> Op
         where Self: std::marker::Sized + 'static
     {
-        Box::new(self)
+        Op::Parser(Box::new(self))
     }
 }
+
+
+// --- Op ----------------------------------------------------------------------
+
+/**
+Atomic operations.
+
+Specifies atomic level operations like running a parser or running VM code.
+*/
+#[derive(Debug)]
+pub enum Op {
+    Nop,
+
+    Parser(Box<dyn Parser>),
+
+    // Tokens
+    Empty,
+
+    /*
+    Char(Box<Char>),
+    Match(Box<Match>),
+    */
+
+    // Semantics
+    Accept(Option<RefValue>),
+    Repeat(Option<RefValue>),
+    Reject,
+
+    // Parselets
+    Call(usize),
+    Name(String),
+
+    // Structure
+    /*
+    Repeat(Box<Repeat>),
+    Sequence(Box<Sequence>),
+    Block(Box<Block>),
+    */
+
+    /*
+    And(Op),
+    Not(Op)
+    */
+}
+
+impl Parser for Op {
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        match self {
+            Op::Parser(p) => p.run(context),
+
+            Op::Empty => {
+                Ok(Accept::Push(Capture::Empty))
+            },
+
+            Op::Accept(value) => {
+                Ok(Accept::Return(value.clone()))
+            },
+
+            Op::Repeat(value) => {
+                Ok(Accept::Repeat(value.clone()))
+            },
+
+            Op::Reject => {
+                Err(Reject::Return)
+            },
+
+            Op::Call(parselet) => {
+                context.runtime.program.parselets[*parselet].run(
+                    context.runtime
+                )
+            },
+
+            Op::Nop | Op::Name(_) => panic!("{:?} cannot be executed", self),
+        }
+    }
+
+    fn finalize(
+        &mut self,
+        parselets: &Vec<RefCell<Parselet>>,
+        leftrec: &mut bool,
+        nullable: &mut bool)
+    {
+        match self {
+            Op::Parser(parser) => parser.finalize(parselets, leftrec, nullable),
+
+            Op::Name(name) => panic!("OH no, there is Name({}) still!", name),
+
+            Op::Call(idx) => {
+                if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
+                    let mut my_leftrec = parselet.leftrec;
+                    let mut my_nullable = parselet.nullable;
+
+                    parselet.body.finalize(
+                        parselets,
+                        &mut my_leftrec,
+                        &mut my_nullable,
+                    );
+
+                    parselet.leftrec = my_leftrec;
+                    parselet.nullable = my_nullable;
+
+                    *nullable = parselet.nullable;
+                }
+                else {
+                    *leftrec = true;
+                }
+            },
+
+            _ => {}
+        }
+    }
+
+    fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    {
+        match self {
+            Op::Parser(parser) => parser.resolve(compiler, strict),
+
+            Op::Name(name) => {
+                if let Some(value) = compiler.get_constant(name) {
+                    match &*value.borrow() {
+                        Value::Parselet(p) => {
+                            println!("resolved {:?} as {:?}", name, *p);
+                            *self = Op::Call(*p);
+                            return;
+                        },
+                        Value::String(s) => {
+                            *self = Match::touch(&s.clone()).into_op();
+                            return;
+                        },
+                        _ => {
+                            unimplemented!("Cannot resolve {:?}", value);
+                        }
+                    }
+                }
+                else if strict {
+                    panic!("Cannot resolve {:?}", name);
+                }
+            },
+
+            _ => {}
+        }
+    }
+}
+
+
+// --- Rust -------------------------------------------------------------------
+//fixme: This should not be implement as Parser.
+
+pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
+
+impl Parser for Rust {
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        self.0(context)
+    }
+}
+
+impl std::fmt::Debug for Rust {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{rust-function}}")
+    }
+}
+
 
 // --- Char -------------------------------------------------------------------
 
@@ -71,29 +233,29 @@ pub struct Char {
 }
 
 impl Char {
-    pub fn new(accept: Ccl, repeats: bool) -> Box<dyn Parser> {
+    pub fn new(accept: Ccl, repeats: bool) -> Op {
         Self{
             accept,
             repeats
-        }.into_box()
+        }.into_op()
     }
 
-    pub fn any() -> Box<dyn Parser> {
+    pub fn any() -> Op {
         let mut any = Ccl::new();
         any.negate();
 
         Self::new(any, false)
     }
 
-    pub fn char(ch: char) -> Box<dyn Parser> {
+    pub fn char(ch: char) -> Op {
         Self::new(ccl![ch..=ch], false)
     }
 
-    pub fn span(ccl: Ccl) -> Box<dyn Parser> {
+    pub fn span(ccl: Ccl) -> Op {
         Self::new(ccl, true)
     }
 
-    pub fn until(ch: char) -> Box<dyn Parser> {
+    pub fn until(ch: char) -> Op {
         let mut other = ccl![ch..=ch];
         other.negate();
 
@@ -152,18 +314,18 @@ pub struct Match {
 }
 
 impl Match {
-    pub fn new(string: &str) -> Box<dyn Parser> {
+    pub fn new(string: &str) -> Op {
         Self{
             string: string.to_string(),
             significant: true
-        }.into_box()
+        }.into_op()
     }
 
-    pub fn touch(string: &str) -> Box<dyn Parser> {
+    pub fn touch(string: &str) -> Op {
         Self{
             string: string.to_string(),
             significant: false
-        }.into_box()
+        }.into_op()
     }
 }
 
@@ -208,156 +370,6 @@ impl Parser for Match {
 }
 
 
-// --- Rust -------------------------------------------------------------------
-
-pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
-
-impl Parser for Rust {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        self.0(context)
-    }
-}
-
-impl std::fmt::Debug for Rust {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{rust-function}}")
-    }
-}
-
-
-// --- Atomic -----------------------------------------------------------------
-
-/**
-Atomic parsers and operations.
-
-Specifies atomic level operations like matching a token or running VM code.
-*/
-#[derive(Debug)]
-pub enum Atomic {
-    Nop,
-
-    // Tokens
-    Empty,
-    /*
-    Char(Box<Char>),
-    Match(Box<Match>),
-    */
-
-    // Semantics
-    Accept(Option<RefValue>),
-    Repeat(Option<RefValue>),
-    Reject,
-
-    // Parselets
-    Call(usize),
-    Name(String),
-
-    // Structure
-    /*
-    Repeat(Box<Repeat>),
-    Sequence(Box<Sequence>),
-    Block(Box<Block>),
-    */
-
-    /*
-    And(Box<Atomic>),
-    Not(Box<Atomic>)
-    */
-}
-
-impl Parser for Atomic {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        match self {
-            Atomic::Accept(value) => {
-                Ok(Accept::Return(value.clone()))
-            },
-
-            Atomic::Repeat(value) => {
-                Ok(Accept::Repeat(value.clone()))
-            },
-
-            Atomic::Reject => {
-                Err(Reject::Return)
-            },
-
-            Atomic::Empty => {
-                Ok(Accept::Push(Capture::Empty))
-            },
-
-            Atomic::Call(parselet) => {
-                context.runtime.program.parselets[*parselet].run(
-                    context.runtime
-                )
-            },
-
-            Atomic::Nop | Atomic::Name(_) => panic!("{:?} cannot be executed", self),
-        }
-    }
-
-    fn finalize(
-        &mut self,
-        parselets: &Vec<RefCell<Parselet>>,
-        leftrec: &mut bool,
-        nullable: &mut bool)
-    {
-        match self {
-            Atomic::Name(name) => panic!("OH no, there is Name({}) still!", name),
-
-            Atomic::Call(idx) => {
-                if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
-                    let mut my_leftrec = parselet.leftrec;
-                    let mut my_nullable = parselet.nullable;
-
-                    parselet.body.finalize(
-                        parselets,
-                        &mut my_leftrec,
-                        &mut my_nullable,
-                    );
-
-                    parselet.leftrec = my_leftrec;
-                    parselet.nullable = my_nullable;
-
-                    *nullable = parselet.nullable;
-                }
-                else {
-                    *leftrec = true;
-                }
-            },
-
-            _ => {}
-        }
-    }
-
-    fn resolve(&mut self, compiler: &Compiler, strict: bool)
-    {
-        if let Atomic::Name(name) = self {
-            if let Some(value) = compiler.get_constant(name) {
-                match &*value.borrow() {
-                    Value::Parselet(p) => {
-                        println!("resolved {:?} as {:?}", name, *p);
-                        *self = Atomic::Call(*p);
-                        return;
-                    },
-                    /*
-                    THIS IS NOT POSSIBLE
-                    Value::String(s) => {
-                        *self = Match::new_touch(&s.clone());
-                        return;
-                    },
-                    */
-                    _ => {
-                        unimplemented!("Cannot resolve {:?}", value);
-                    }
-                }
-            }
-            else if strict {
-                panic!("Cannot resolve {:?}", name);
-            }
-        }
-    }
-}
-
-
 // --- Repeat ------------------------------------------------------------------
 
 /** Repeating parser.
@@ -370,15 +382,14 @@ option. (see kle!-, pos!-, opt!-macros from compiler)
 
 #[derive(Debug)]
 pub struct Repeat {
-    parser: Box<dyn Parser>,
+    parser: Op,
     min: usize,
     max: usize,
     capture: bool
 }
 
 impl Repeat {
-    pub fn new(parser: Box<dyn Parser>, min: usize, max: usize, capture: bool)
-        -> Box<dyn Parser>
+    pub fn new(parser: Op, min: usize, max: usize, capture: bool) -> Op
     {
         assert!(max == 0 || max >= min);
 
@@ -387,7 +398,7 @@ impl Repeat {
             min,
             max,
             capture
-        }.into_box()
+        }.into_op()
     }
 }
 
@@ -478,17 +489,17 @@ is getting accepted. Incomplete sequences are rejected.
 pub struct Sequence {
     leftrec: bool,
     nullable: bool,
-    items: Vec<(Box<dyn Parser>, Option<String>)>
+    items: Vec<(Op, Option<String>)>
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Box<dyn Parser>, Option<String>)>) -> Box<dyn Parser>
+    pub fn new(items: Vec<(Op, Option<String>)>) -> Op
     {
         Self{
             leftrec: false,
             nullable: true,
             items
-        }.into_box()
+        }.into_op()
     }
 }
 
@@ -608,8 +619,8 @@ impl Parser for Sequence {
 /** Block parser.
 
 A block parser defines either an alternation of sequences or a grouped sequence
-of VM instructions. The compiler has to guarantee for correct usage of the
-block parser.
+of VM instructions. The compiler has to guarantee for correct usage of the block
+parser.
 
 Block parsers support static program constructs being left-recursive, and extend
 the generated parse tree automatically until no more input can be consumed.
@@ -618,15 +629,15 @@ the generated parse tree automatically until no more input can be consumed.
 #[derive(Debug)]
 pub struct Block {
     leftrec: bool,
-    items: Vec<(Box<dyn Parser>, bool)>
+    items: Vec<(Op, bool)>
 }
 
 impl Block {
-    pub fn new(items: Vec<Box<dyn Parser>>) -> Box<dyn Parser> {
+    pub fn new(items: Vec<Op>) -> Op {
         Self{
             items: items.into_iter().map(|item| (item, false)).collect(),
             leftrec: false
-        }.into_box()
+        }.into_op()
     }
 }
 
@@ -795,11 +806,11 @@ impl Parser for Block {
 pub struct Parselet {
     leftrec: bool,
     nullable: bool,
-    body: Box<dyn Parser>
+    body: Op
 }
 
 impl Parselet {
-    pub fn new(body: Box<dyn Parser>) -> Self {
+    pub fn new(body: Op) -> Self {
         Self{
             leftrec: false,
             nullable: true,

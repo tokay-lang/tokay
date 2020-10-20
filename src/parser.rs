@@ -9,7 +9,7 @@ pub struct TokayParser(Program);
 
 macro_rules! emit {
     ( $string:literal ) => {
-        Atomic::Push(Value::String($string.to_string()).into_ref()).into_box()
+        Op::Push(Value::String($string.to_string()).into_ref()).into_box()
     }
 }
 
@@ -26,9 +26,9 @@ impl TokayParser {
 /*
 (T_EOL = {
     [
-        (Atomic::Token(Char::new(ccl!['\n'..='\n'])).into_box()),
+        (Op::Token(Char::new(ccl!['\n'..='\n'])).into_box()),
         _,
-        (Atomic::Accept(None).into_box())
+        (Op::Accept(None).into_box())
     ]
 }),
 
@@ -37,10 +37,10 @@ impl TokayParser {
 /*
 (Identifier = {
     [
-        (Atomic::Token(Char::new(
+        (Op::Token(Char::new(
             ccl!['A'..='Z', 'a'..='z', '_'..='_'])).into_box()
         ),
-        (Atomic::Token(Chars::new(
+        (Op::Token(Chars::new(
             ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         ).into_box())
     ]
@@ -49,9 +49,9 @@ impl TokayParser {
 
 (T_Variable = {
     [
-        (Atomic::Token(Char::new(ccl!['a'..='z'])).into_box()),
+        (Op::Token(Char::new(ccl!['a'..='z'])).into_box()),
         (Repeat::new(
-            (Atomic::Token(Chars::new(
+            (Op::Token(Chars::new(
                 ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
             ).into_box()),
             0, 0, false
@@ -61,9 +61,9 @@ impl TokayParser {
 
 (T_Constant = {
     [
-        (Atomic::Token(Char::new(ccl!['A'..='Z', '_'..='_'])).into_box()),
+        (Op::Token(Char::new(ccl!['A'..='Z', '_'..='_'])).into_box()),
         (Repeat::new(
-            (Atomic::Token(Chars::new(
+            (Op::Token(Chars::new(
                 ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
             ).into_box()),
             0, 0, false
@@ -73,15 +73,15 @@ impl TokayParser {
 
 (T_HeavyString = {
     [
-        '"', (Atomic::Token(UntilChar::new('"', Some('\\'))).into_box()), '"'
+        '"', (Op::Token(UntilChar::new('"', Some('\\'))).into_box()), '"'
     ]
 }),
 
 (T_LightString = {
     [
-        (Atomic::Token(Char::new(ccl!['\''..='\''])).into_box()),
-        (Atomic::Token(UntilChar::new('\'', Some('\\'))).into_box()),
-        (Atomic::Token(Char::new(ccl!['\''..='\''])).into_box())
+        (Op::Token(Char::new(ccl!['\''..='\''])).into_box()),
+        (Op::Token(UntilChar::new('\'', Some('\\'))).into_box()),
+        (Op::Token(Char::new(ccl!['\''..='\''])).into_box())
     ]
 }),
 

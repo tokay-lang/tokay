@@ -261,9 +261,9 @@ macro_rules! tokay_item {
     ( $compiler:expr, $ident:ident ) => {
         {
             //println!("call = {}", stringify!($ident));
-            let mut item = Atomic::Name(stringify!($ident).to_string());
+            let mut item = Op::Name(stringify!($ident).to_string());
             item.resolve(&$compiler, false);
-            Some(item.into_box())
+            Some(item)
         }
     };
 
@@ -271,9 +271,9 @@ macro_rules! tokay_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let mut item = Atomic::Name("_".to_string());
+            let mut item = Op::Name("_".to_string());
             item.resolve(&$compiler, false);
-            Some(item.into_box())
+            Some(item)
         }
     };
 
