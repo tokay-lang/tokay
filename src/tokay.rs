@@ -85,6 +85,7 @@ pub enum Op {
     */
 
     // Semantics
+    Debug(&'static str),
     Create(String),
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
@@ -116,8 +117,15 @@ impl Parser for Op {
                 Ok(Accept::Push(Capture::Empty))
             },
 
+            Op::Debug(s) => {
+                println!("{}", s);
+                Ok(Accept::Next)
+            },
+
             Op::Create(emit) => {
-                match context.collect_captures(context.capture_start, false) {
+                let value = match
+                    context.collect_captures(context.capture_start, false)
+                {
                     Some(value) => {
                         let mut ret = Complex::new();
                         ret.push_key_value(
@@ -125,16 +133,14 @@ impl Parser for Op {
                             value
                         );
 
-                        Ok(Accept::Return(
-                            Some(Value::Complex(Box::new(ret)).into_ref())
-                        ))
+                        Value::Complex(Box::new(ret)).into_ref()
                     }
                     None => {
-                        Ok(Accept::Return(
-                            Some(Value::String(emit.clone()).into_ref())
-                        ))
+                        Value::String(emit.clone()).into_ref()
                     }
-                }
+                };
+
+                Ok(Accept::Push(Capture::Value(value)))
             },
 
             Op::Accept(value) => {

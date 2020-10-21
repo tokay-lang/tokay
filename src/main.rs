@@ -99,15 +99,15 @@ fn main() {
     );
 
     //program.dump();
-    for program in &[calculator, counter] {
-        println!("program = {:#?}", program);
+    for program in &[calculator] {
+        //println!("program = {:#?}", program);
 
         reader.reset(0);
 
         let mut runtime = Runtime::new(&program, &mut reader);
         let ret = program.run(&mut runtime);
 
-        println!("{:?}", ret);
+        println!("{:#?}", ret);
         runtime.dump();
     }
 
