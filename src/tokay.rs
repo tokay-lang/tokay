@@ -121,7 +121,7 @@ impl Parser for Op {
                     Some(value) => {
                         let mut ret = Complex::new();
                         ret.push_key_value(
-                            Value::String(emit.clone()),
+                            emit.clone(),
                             value
                         );
 
@@ -1101,7 +1101,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
                 // Named capture becomes complex key
                 if let Some(name) = alias {
-                    complex.push_key_value(Value::String(name), value);
+                    complex.push_key_value(name, value);
                 }
                 else {
                     complex.push_value(value);

@@ -3,7 +3,7 @@ use std::cell::{Ref, RefMut, RefCell};
 use crate::map::Map;
 
 //pub type RefValue = Rc<RefCell<Value>>;
-pub type Complex = Map<Value, RefValue>;
+pub type Complex = Map<String, RefValue>;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub enum Value {
