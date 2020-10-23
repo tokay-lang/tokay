@@ -11,6 +11,7 @@ use crate::ccl;
 #[derive(Debug, Clone)]
 pub enum Accept {
     Next,
+    Skip,
     Push(Capture),
     Repeat(Option<RefValue>),
     Return(Option<RefValue>)
@@ -72,35 +73,23 @@ Specifies atomic level operations like running a parser or running VM code.
 */
 #[derive(Debug)]
 pub enum Op {
-    Nop,
-
+    // Parser
     Parser(Box<dyn Parser>),
-
-    // Tokens
     Empty,
 
-    /*
-    Char(Box<Char>),
-    Match(Box<Match>),
-    */
-
-    // Semantics
     Debug(&'static str),
-    Create(String),
+    Error(&'static str),
+
+    Create(&'static str),
+    Skip,
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
     Reject,
 
-    // Parselets
     Call(usize),
     Name(String),
 
-    // Structure
-    /*
-    Repeat(Box<Repeat>),
-    Sequence(Box<Sequence>),
-    Block(Box<Block>),
-    */
+    LoadCapture(usize),
 
     /*
     And(Op),
@@ -122,25 +111,39 @@ impl Parser for Op {
                 Ok(Accept::Next)
             },
 
+            Op::Error(s) => {
+                Err(Reject::Error(s.to_string()))
+            },
+
             Op::Create(emit) => {
+                println!("Create {} from {:?}",
+                    emit, &context.runtime.capture[context.capture_start..]
+                );
+
                 let value = match
                     context.collect_captures(context.capture_start, false)
                 {
                     Some(value) => {
                         let mut ret = Complex::new();
                         ret.push_key_value(
-                            emit.clone(),
+                            emit.to_string(),
                             value
                         );
 
                         Value::Complex(Box::new(ret)).into_ref()
                     }
                     None => {
-                        Value::String(emit.clone()).into_ref()
+                        Value::String(emit.to_string()).into_ref()
                     }
                 };
 
-                Ok(Accept::Push(Capture::Value(value)))
+                //println!("Create {} value = {:?}", emit, value);
+
+                Ok(Accept::Return(Some(value)))
+            },
+
+            Op::Skip => {
+                Ok(Accept::Skip)
             },
 
             Op::Accept(value) => {
@@ -161,7 +164,16 @@ impl Parser for Op {
                 )
             },
 
-            Op::Nop | Op::Name(_) => panic!("{:?} cannot be executed", self),
+            Op::Name(_) => panic!("{:?} cannot be executed", self),
+
+            Op::LoadCapture(index) => {
+                let value = context.get_capture(*index).unwrap_or(
+                    Value::Void.into_ref()
+                );
+                context.push(value);
+
+                Ok(Accept::Next)
+            }
         }
     }
 
@@ -261,31 +273,38 @@ pub struct Char {
 }
 
 impl Char {
-    pub fn new(accept: Ccl, repeats: bool) -> Op {
+    fn _new(accept: Ccl, repeats: bool) -> Op {
         Self{
             accept,
             repeats
         }.into_op()
     }
 
+    pub fn new(accept: Ccl) -> Op {
+        Self::_new(accept, false)
+    }
+
     pub fn any() -> Op {
         let mut any = Ccl::new();
         any.negate();
 
-        Self::new(any, false)
+        Self::new(any)
     }
 
     pub fn char(ch: char) -> Op {
-        Self::new(ccl![ch..=ch], false)
+        Self::new(ccl![ch..=ch])
     }
 
     pub fn span(ccl: Ccl) -> Op {
-        Self::new(ccl, true)
+        Self::_new(ccl, true)
     }
 
     pub fn until(ch: char) -> Op {
         let mut other = ccl![ch..=ch];
+        println!("until {:?}", other);
         other.negate();
+
+        println!("until {:?}", other);
 
         Self::span(other)
     }
@@ -426,6 +445,18 @@ impl Repeat {
     pub fn optional(parser: Op) -> Op {
         Self::new(parser, 0, 1, false)
     }
+
+    pub fn muted_kleene(parser: Op) -> Op {
+        Self::new(parser, 0, 0, true)
+    }
+
+    pub fn muted_positive(parser: Op) -> Op {
+        Self::new(parser, 1, 0, true)
+    }
+
+    pub fn muted_optional(parser: Op) -> Op {
+        Self::new(parser, 0, 1, true)
+    }
 }
 
 impl Parser for Repeat {
@@ -473,10 +504,22 @@ impl Parser for Repeat {
             Err(Reject::Next)
         }
         else {
+            // Push collected captures, if any
             if let Some(value) = context.collect_captures(capture_start, false)
             {
                 Ok(Accept::Push(Capture::Value(value)))
             }
+            // Otherwiese, push a capture of consumed range
+            else if reader_start < context.runtime.reader.tell() {
+                Ok(
+                    Accept::Push(
+                        Capture::Range(
+                            context.runtime.reader.capture_from(reader_start)
+                        )
+                    )
+                )
+            }
+            // Else, just accept next
             else {
                 Ok(Accept::Next)
             }
@@ -582,6 +625,8 @@ impl Parser for Sequence {
             When no explicit Return is performed, first try to collect any
             significant captures.
         */
+        //println!("Sequence {:?}", &context.runtime.capture[capture_start..]);
+
         if let Some(value) = context.collect_captures(capture_start, true) {
             Ok(Accept::Push(Capture::Value(value)))
         }
@@ -753,9 +798,13 @@ impl Parser for Block {
                         }
                     },
 
+                    /*
+                    This makes recursive Create node construction impossible.
+
                     Ok(Accept::Return(_)) | Ok(Accept::Repeat(_)) => {
                         return res;
                     },
+                    */
 
                     _ => {}
                 }
@@ -833,15 +882,17 @@ pub struct Parselet {
     leftrec: bool,
     nullable: bool,
     mute: bool,
+    emit: Option<String>,
     body: Op
 }
 
 impl Parselet {
-    pub fn new(body: Op) -> Self {
+    pub fn new(body: Op, emit: Option<String>) -> Self {
         Self{
             leftrec: false,
             nullable: true,
             mute: false,
+            emit,
             body
         }
     }
@@ -852,6 +903,7 @@ impl Parselet {
             leftrec: false,
             nullable: true,
             mute: true,
+            emit: None,
             body
         }
     }
@@ -870,7 +922,13 @@ impl Parselet {
             let res = self.body.run(&mut context);
 
             match res {
+                Ok(Accept::Skip) => {
+                    return Ok(Accept::Push(Capture::Empty))
+                },
+
                 Ok(Accept::Return(value)) => {
+                    println!("{:?} returns {:?}", self.emit, value);
+
                     if let Some(value) = value {
                         if !self.mute {
                             return Ok(Accept::Push(Capture::Value(value)))
@@ -884,6 +942,7 @@ impl Parselet {
                 },
 
                 Ok(Accept::Repeat(value)) => {
+                    // this is unfinished...
                     if value.is_none() {
                         continue
                     }
@@ -892,8 +951,26 @@ impl Parselet {
                 Ok(Accept::Next) => {
                     return Ok(
                         if !self.mute {
-                            Accept::Push(Capture::Value(context.get_value()))
-                        } else {
+                            if let Some(emit) = &self.emit {
+                                let mut ret = Complex::new();
+                                ret.push_key_value(
+                                    emit.clone(),
+                                    context.get_value()
+                                );
+
+                                Accept::Push(
+                                    Capture::Value(
+                                        Value::Complex(Box::new(ret)).into_ref()
+                                    )
+                                )
+                            }
+                            else {
+                                Accept::Push(
+                                    Capture::Value(context.get_value())
+                                )
+                            }
+                        }
+                        else {
                             Accept::Push(Capture::Empty)
                         }
                     )
@@ -983,6 +1060,19 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         ret
     }
 
+    pub fn push(&mut self, value: RefValue) {
+        self.runtime.capture.push((Capture::Value(value), None))
+    }
+
+    pub fn pop(&mut self) -> RefValue {
+        let capture = self.runtime.capture.pop().unwrap().0;
+        if let Capture::Value(value) = capture {
+            value
+        } else {
+            Value::Void.into_ref()
+        }
+    }
+
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         // Capture $0 is specially handled.
@@ -997,28 +1087,23 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             return None
         }
 
-        let replace = match &self.runtime.capture[pos].0 {
-            Capture::Empty => {
-                Capture::Value(
+        Some(
+            match &self.runtime.capture[pos].0 {
+                Capture::Empty => {
                     Value::Void.into_ref()
-                )
-            },
+                },
 
-            Capture::Range(range) => {
-                Capture::Value(
+                Capture::Range(range) => {
                     Value::String(
                         self.runtime.reader.extract(range)
                     ).into_ref()
-                )
-            },
+                },
 
-            Capture::Value(value) => {
-                return Some(value.clone())
+                Capture::Value(value) => {
+                    value.clone()
+                }
             }
-        };
-
-        self.runtime.capture[pos].0 = replace;
-        self.get_capture(pos - self.capture_start)
+        )
     }
 
     /** Return a capture by name as RefValue. */

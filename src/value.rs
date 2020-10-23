@@ -5,14 +5,14 @@ use crate::map::Map;
 //pub type RefValue = Rc<RefCell<Value>>;
 pub type Complex = Map<String, RefValue>;
 
-#[derive(Eq, PartialEq, Hash, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Value {
     Unset,                  // unse
     Void,                   // void
     True,                   // true
     False,                  // false
     Integer(i64),           // integers
-    //Float(f64),           // todo: Implement a hashable Float (i32, i32) or so...
+    Float(f64),             // float
     String(String),         // string
     Complex(Box<Complex>),  // combined map/array type
     Parselet(usize)         // executable code parselet
@@ -26,6 +26,7 @@ impl std::fmt::Debug for Value {
             Value::True => write!(f, "true"),
             Value::False => write!(f, "false"),
             Value::Integer(i) => write!(f, "{}", i),
+            Value::Float(v) => write!(f, "{}", v),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Complex(c) => {
                 write!(f, "(")?;
@@ -64,7 +65,7 @@ impl Value {
             Self::True => Some(true),
             Self::False => Some(false),
             Self::Integer(i) => Some(*i != 0),
-            //Self::Float(f) => *f as i64,
+            Self::Float(f) => Some(*f != 0.0),
             Self::String(s) => Some(s.len() != 0),
             Self::Complex(c) => Some(c.len() > 0),
             Self::Parselet(_) => Some(true)
@@ -113,7 +114,7 @@ impl Value {
             Self::True => Some("true".to_string()),
             Self::False => Some("false".to_string()),
             Self::Integer(i) => Some(format!("{}", i)),
-            //Self::Float(f) => format!("{}", f),
+            Self::Float(f) => Some(format!("{}", f)),
             Self::String(s) => Some(s.clone()),
             Self::Complex(c) => Some(format!("{:?}", c)),
             Self::Parselet(p) => Some(format!("{:?}", p))

@@ -80,7 +80,6 @@ impl Ccl {
                 let irange = self.ranges[i].clone();
 
                 if end < *irange.start() {
-
                     end = if *irange.start() > '\0' {
                         std::char::from_u32(*irange.start() as u32 - 1).unwrap()
                     } else {
@@ -93,7 +92,9 @@ impl Ccl {
                         std::char::from_u32(*irange.end() as u32 + 1).unwrap()
                     } else {
                         std::char::MAX
-                    }
+                    };
+
+                    end = start;
                 }
                 else
                 {

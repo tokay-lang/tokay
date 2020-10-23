@@ -30,14 +30,14 @@ fn main() {
         }),
 
         (Term = {
-            [Term, "*", _, Factor, (Op::Create("mul".to_string()))],
-            [Term, "/", _, Factor, (Op::Create("div".to_string()))],
+            [Term, "*", _, Factor, (Op::Create("mul"))],
+            [Term, "/", _, Factor, (Op::Create("div"))],
             [Factor]
         }),
 
         (Expr = {
-            [Expr, "+", _, Term, (Op::Create("add".to_string()))],
-            [Expr, "-", _, Term, (Op::Create("sub".to_string()))],
+            [Expr, "+", _, Term, (Op::Create("add"))],
+            [Expr, "-", _, Term, (Op::Create("sub"))],
             [Term]
         }),
 
@@ -111,14 +111,12 @@ fn main() {
         runtime.dump();
     }
 
-    /*
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
-    //let s = "A = @{ B \n C \n D \n E }";
+    //let s = "A = @{\nB\nC\n}";
 
     println!("{}", s);
 
     let res = p.parse(s);
     println!("{:#?}", res);
-    */
 }

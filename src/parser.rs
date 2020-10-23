@@ -22,13 +22,13 @@ impl TokayParser {
 (_ = {
     [" "],
     ["#", (Char::until('\n'))]
-}) //,
-/*
+}),
+
 (T_EOL = {
     [
-        (Op::Token(Char::new(ccl!['\n'..='\n'])).into_box()),
+        (Char::char('\n')),
         _,
-        (Op::Accept(None).into_box())
+        (Op::Skip)
     ]
 }),
 
@@ -37,7 +37,7 @@ impl TokayParser {
 /*
 (Identifier = {
     [
-        (Op::Token(Char::new(
+        (Char::new(
             ccl!['A'..='Z', 'a'..='z', '_'..='_'])).into_box()
         ),
         (Op::Token(Chars::new(
@@ -49,56 +49,59 @@ impl TokayParser {
 
 (T_Variable = {
     [
-        (Op::Token(Char::new(ccl!['a'..='z'])).into_box()),
-        (Repeat::new(
-            (Op::Token(Chars::new(
-                ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-            ).into_box()),
-            0, 0, false
-        ))
+        (Char::new(ccl!['a'..='z'])),
+        (Repeat::muted_optional(
+            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
+        )),
+        (Op::LoadCapture(0)),
+        (Op::Create("variable"))
     ]
 }),
 
 (T_Constant = {
     [
-        (Op::Token(Char::new(ccl!['A'..='Z', '_'..='_'])).into_box()),
-        (Repeat::new(
-            (Op::Token(Chars::new(
-                ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-            ).into_box()),
-            0, 0, false
-        ))
+        (Char::new(ccl!['A'..='Z', '_'..='_'])),
+        (Repeat::muted_optional(
+            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
+        )),
+        (Op::LoadCapture(0)),
+        (Op::Create("constant"))
     ]
 }),
 
 (T_HeavyString = {
     [
-        '"', (Op::Token(UntilChar::new('"', Some('\\'))).into_box()), '"'
+        "\"",
+        (Char::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
+        "\"",
+        (Op::LoadCapture(2)),
+        (Op::Create("string"))
     ]
 }),
 
 (T_LightString = {
     [
-        (Op::Token(Char::new(ccl!['\''..='\''])).into_box()),
-        (Op::Token(UntilChar::new('\'', Some('\\'))).into_box()),
-        (Op::Token(Char::new(ccl!['\''..='\''])).into_box())
+        "\'",
+        (Char::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
+        "\'",
+        (Op::LoadCapture(2)),
+        (Op::Create("string"))
     ]
 }),
 
 // Structure
 
 (S_Parselet = {
-    ['@', _, S_Block]
+    ["@", _, S_Block, (Op::Create("parselet"))]
 }),
 
 (S_Block = {
-    ['{', _, S_Sequences, '}', _]
+    ["{", _, S_Sequences, _, "}", _, (Op::Create("block"))]
 }),
 
 (S_Sequences = {
-    [S_Sequences, T_EOL, S_Sequence],
-    [S_Sequence],
-    [T_EOL]
+    [S_Sequences, S_Sequence],
+    [S_Sequence]
 }),
 
 (S_Sequence = {
@@ -107,8 +110,9 @@ impl TokayParser {
         [S_Atomic]
     }),
 
-    [T_Constant, _, '=', _, S_Parselet],
-    [S_Sequence1]
+    [T_EOL, (Op::Skip)],
+    [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
+    [S_Sequence1, (Op::Create("sequence"))]
 }),
 
 (S_Atomic = {
@@ -118,7 +122,7 @@ impl TokayParser {
 }),
 
 [S_Sequence]
-*/
+
 // ----------------------------------------------------------------------------
             })
         )
@@ -133,13 +137,17 @@ impl TokayParser {
 
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
-        if let Ok(accept) = self.0.run(&mut runtime) {
-            println!("{:#?}", accept);
+        let res = self.0.run(&mut runtime);
+
+        if let Ok(accept) = res {
             if let Accept::Push(Capture::Value(value)) = accept {
                 return Ok(RefValue::into_value(value).unwrap());
             }
         }
+        else {
+            println!("Error: {:#?}", res.err());
+        }
 
-        return Err("Parse error?".to_string())
+        return Err("Parse error".to_string())
     }
 }

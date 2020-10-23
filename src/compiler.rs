@@ -200,7 +200,7 @@ macro_rules! tokay_item {
         {
             let item = tokay_item!($compiler, $item).unwrap();
             let parselet = $compiler.define_parselet(
-                Parselet::new(item)
+                Parselet::new(item, Some(stringify!($name).to_string()))
             );
 
             $compiler.set_constant(
@@ -315,7 +315,7 @@ macro_rules! tokay {
 
 
                 compiler.define_parselet(
-                    Parselet::new(main)
+                    Parselet::new(main, None)  //fixme: name of the file?s
                 );
             }
 
