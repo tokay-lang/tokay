@@ -7,12 +7,6 @@ use crate::{tokay, tokay_item, ccl};
 
 pub struct TokayParser(Program);
 
-macro_rules! emit {
-    ( $string:literal ) => {
-        Op::Push(Value::String($string.to_string()).into_ref()).into_box()
-    }
-}
-
 impl TokayParser {
     pub fn new() -> Self {
         Self(
@@ -96,7 +90,7 @@ impl TokayParser {
 }),
 
 (S_Block = {
-    ["{", _, S_Sequences, _, "}", _, (Op::Create("block"))]
+    ["{", _, S_Sequences, _, (Op::Expect(Box::new(Match::new("}").into_op()))), _, (Op::Create("block"))]
 }),
 
 (S_Sequences = {

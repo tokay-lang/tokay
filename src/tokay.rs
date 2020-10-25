@@ -28,7 +28,7 @@ pub enum Reject {
 
 
 /** Parser trait */
-pub trait Parser: std::fmt::Debug {
+pub trait Parser: std::fmt::Debug + std::fmt::Display {
     /** Perform a parse on a given context.
 
     A parse may either Accept or Reject, with a given severity.
@@ -79,6 +79,7 @@ pub enum Op {
 
     Debug(&'static str),
     Error(&'static str),
+    Expect(Box<Op>),
 
     Create(&'static str),
     Skip,
@@ -113,6 +114,16 @@ impl Parser for Op {
 
             Op::Error(s) => {
                 Err(Reject::Error(s.to_string()))
+            },
+
+            Op::Expect(op) => {
+                op.run(context).or_else(|_| {
+                    Err(
+                        Reject::Error(
+                            format!("Expecting {}", op)
+                        )
+                    )
+                })
             },
 
             Op::Create(emit) => {
@@ -245,6 +256,14 @@ impl Parser for Op {
     }
 }
 
+impl std::fmt::Display for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Op::Parser(p) => write!(f, "{}", p),
+            _ => write!(f, "Op #todo")
+        }
+    }
+}
 
 // --- Rust -------------------------------------------------------------------
 //fixme: This should not be implement as Parser.
@@ -263,6 +282,11 @@ impl std::fmt::Debug for Rust {
     }
 }
 
+impl std::fmt::Display for Rust {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{rust-function}}")
+    }
+}
 
 // --- Char -------------------------------------------------------------------
 
@@ -301,10 +325,7 @@ impl Char {
 
     pub fn until(ch: char) -> Op {
         let mut other = ccl![ch..=ch];
-        println!("until {:?}", other);
         other.negate();
-
-        println!("until {:?}", other);
 
         Self::span(other)
     }
@@ -351,6 +372,11 @@ impl Parser for Char {
     }
 }
 
+impl std::fmt::Display for Char {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Char #todo")
+    }
+}
 
 // --- Match ------------------------------------------------------------------
 
@@ -402,6 +428,11 @@ impl Parser for Match {
     }
 }
 
+impl std::fmt::Display for Match {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
 
 // --- Repeat ------------------------------------------------------------------
 
@@ -545,6 +576,12 @@ impl Parser for Repeat {
     }
 }
 
+impl std::fmt::Display for Repeat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Repeat #todo")
+    }
+}
+
 // --- Sequence ----------------------------------------------------------------
 
 /** Sequence parser.
@@ -683,6 +720,12 @@ impl Parser for Sequence {
         }
     }
 
+}
+
+impl std::fmt::Display for Sequence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Sequence #todo")
+    }
 }
 
 // --- Block -------------------------------------------------------------------
@@ -874,6 +917,11 @@ impl Parser for Block {
     }
 }
 
+impl std::fmt::Display for Block {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Block #todo")
+    }
+}
 
 // --- Parselet ----------------------------------------------------------------
 
