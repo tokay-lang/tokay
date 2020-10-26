@@ -47,7 +47,8 @@ impl TokayParser {
         (Repeat::muted_optional(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
-        (Op::LoadCapture(0)),
+        (Op::PushAddr(0)),
+        (Op::LoadCapture),
         (Op::Create("variable"))
     ]
 }),
@@ -58,7 +59,8 @@ impl TokayParser {
         (Repeat::muted_optional(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
-        (Op::LoadCapture(0)),
+        (Op::PushAddr(0)),
+        (Op::LoadCapture),
         (Op::Create("constant"))
     ]
 }),
@@ -68,7 +70,8 @@ impl TokayParser {
         "\"",
         (Char::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
         "\"",
-        (Op::LoadCapture(2)),
+        (Op::PushAddr(2)),
+        (Op::LoadCapture),
         (Op::Create("string"))
     ]
 }),
@@ -78,9 +81,48 @@ impl TokayParser {
         "\'",
         (Char::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
         "\'",
-        (Op::LoadCapture(2)),
+        (Op::PushAddr(2)),
+        (Op::LoadCapture),
         (Op::Create("string"))
     ]
+}),
+
+(T_Integer = {
+    [(Char::span(ccl!['0'..='9'])), (Op::Create("int"))]
+}),
+
+// Expression & Flow
+
+(Atom = {
+    ["(", _, S_Expression, ")", _],
+    [T_Integer, _],
+    [T_HeavyString, _],
+    [T_LightString, _],
+    ["true", _, (Op::Create("true"))],
+    ["false", _, (Op::Create("false"))],
+    ["void", _, (Op::Create("void"))]
+}),
+
+(S_Unary = {
+    ["-", _, Atom, (Op::Create("unary_sub"))],
+    ["+", _, Atom, (Op::Create("unary_add"))],
+    Atom
+}),
+
+(S_MulDiv = {
+    [S_MulDiv, "*", _, S_Unary, (Op::Create("binary_mul"))],
+    [S_MulDiv, "/", _, S_Unary, (Op::Create("binary_div"))],
+    S_Unary
+}),
+
+(S_AddSub = {
+    [S_AddSub, "+", _, S_MulDiv, (Op::Create("binary_add"))],
+    [S_AddSub, "-", _, S_MulDiv, (Op::Create("binary_sub"))],
+    S_MulDiv
+}),
+
+(S_Expression = {
+    S_AddSub
 }),
 
 // Structure
@@ -95,24 +137,37 @@ impl TokayParser {
 
 (S_Sequences = {
     [S_Sequences, S_Sequence],
-    [S_Sequence]
+    S_Sequence
 }),
 
 (S_Sequence = {
     (S_Sequence1 = {
-        [S_Sequence1, S_Atomic],
-        [S_Atomic]
+        [S_Sequence1, S_Item],
+        [S_Item]
     }),
 
-    [T_EOL, (Op::Skip)],
     [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
-    [S_Sequence1, (Op::Create("sequence"))]
+    [S_Sequence1, (Op::Create("sequence"))],
+    [T_EOL, (Op::Skip)]
+}),
+
+(S_Item = {
+    S_TokenModifier,
+    S_Expression
+}),
+
+(S_TokenModifier = {
+    [S_Atomic, "+", _, (Op::Create("mod_positive"))],
+    [S_Atomic, "*", _, (Op::Create("mod_kleene"))],
+    [S_Atomic, "?", _, (Op::Create("mod_optional"))],
+    [S_Atomic, _]
 }),
 
 (S_Atomic = {
     [T_HeavyString, _],
     [T_LightString, _],
-    [T_Constant, _]
+    [T_Constant, _],
+    [S_Parselet, _]
 }),
 
 [S_Sequence]

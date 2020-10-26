@@ -4,10 +4,16 @@ Factor = @{
     '(' Expr ')'
 }
 
-Expr = @{
-    Expr '+' Factor     #$Expr + $Factor
-    Expr '-' Factor     #$Expr - $Factor
+Term = @{
+    Term '*' Factor     #$Expr * $Factor
+    Term '/' Factor     #$Expr / $Factor
     Factor
+}
+
+Expr = @{
+    Expr '+' Term       #$Expr + $Factor
+    Expr '-' Term       #$Expr - $Factor
+    Term
 }
 
 Expr                    #print $Expr

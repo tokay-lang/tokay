@@ -113,7 +113,7 @@ fn main() {
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
-    //let s = "A = @{\nB\nC\n\n\n } D";
+    let s = "A = @{ \"Hello\"+ B* (1337+-3) (+true) }";
 
     println!("{}", s);
 

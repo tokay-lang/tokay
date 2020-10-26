@@ -13,6 +13,7 @@ pub enum Value {
     False,                  // false
     Integer(i64),           // integers
     Float(f64),             // float
+    Addr(usize),            // usize
     String(String),         // string
     Complex(Box<Complex>),  // combined map/array type
     Parselet(usize)         // executable code parselet
@@ -27,6 +28,7 @@ impl std::fmt::Debug for Value {
             Value::False => write!(f, "false"),
             Value::Integer(i) => write!(f, "{}", i),
             Value::Float(v) => write!(f, "{}", v),
+            Value::Addr(a) => write!(f, "{}", a),
             Value::String(s) => write!(f, "\"{}\"", s),
             Value::Complex(c) => {
                 write!(f, "(")?;
@@ -68,7 +70,9 @@ impl Value {
             Self::Float(f) => Some(*f != 0.0),
             Self::String(s) => Some(s.len() != 0),
             Self::Complex(c) => Some(c.len() > 0),
-            Self::Parselet(_) => Some(true)
+            Self::Parselet(_) | Self::Addr(_) => {
+                Some(true)
+            }
         }
     }
 
@@ -78,7 +82,7 @@ impl Value {
             Self::True => Some(1),
             Self::False => Some(0),
             Self::Integer(i) => Some(*i),
-            //Self::Float(f) => *f as i64,
+            Self::Float(f) => Some(*f as i64),
             Self::String(s) => {
                 match s.parse::<i64>() {
                     Ok(i) => Some(i),
@@ -95,11 +99,30 @@ impl Value {
             Self::True => Some(1.0),
             Self::False => Some(0.0),
             Self::Integer(i) => Some(*i as f64),
-            //Self::Float(f) => *f
+            Self::Float(f) => Some(*f),
             Self::String(s) => {
                 match s.parse::<f64>() {
                     Ok(f) => Some(f),
                     Err(_) => Some(0.0)
+                }
+            },
+            _ => None
+        }
+    }
+
+
+    // Get Value's integer representation.
+    pub fn to_addr(&self) -> Option<usize> {
+        match self {
+            Self::True => Some(1),
+            Self::False => Some(0),
+            Self::Integer(i) => Some(*i as usize),
+            Self::Float(f) => Some(*f as usize),
+            Self::Addr(a) => Some(*a),
+            Self::String(s) => {
+                match s.parse::<usize>() {
+                    Ok(i) => Some(i),
+                    Err(_) => None
                 }
             },
             _ => None
@@ -114,6 +137,7 @@ impl Value {
             Self::True => Some("true".to_string()),
             Self::False => Some("false".to_string()),
             Self::Integer(i) => Some(format!("{}", i)),
+            Self::Addr(a) => Some(format!("{}", a)),
             Self::Float(f) => Some(format!("{}", f)),
             Self::String(s) => Some(s.clone()),
             Self::Complex(c) => Some(format!("{:?}", c)),

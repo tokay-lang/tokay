@@ -100,14 +100,14 @@ Parselet = @{
     '@' Block                                   # Later scoped block
 }
 
-Atomic = @{
+Token = @{
     String
     Charset
     Constant
     Parselet
 }
 
-AtomicModifier = @{
+TokenModifier = @{
     Token '+'     ("mod_pos": $Token)
     Token '?'     ("mod_opt": $Token)
     Token '*'     ("mod_kle": $Token)
@@ -115,15 +115,20 @@ AtomicModifier = @{
     Token
 }
 
+Item = @{
+    TokenModifier
+    Expression
+}
+
 Sequence = @{
     Constant '=' { Literal ; Parselet }
-    @{ AtomicModifier? ; Expression }+
+    Item+
+    EOL
 }
 
 Sequences = @{
-    Sequences EOL Sequence
+    Sequences Sequence
     Sequence
-    EOL
 }
 
 #... later

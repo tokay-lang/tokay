@@ -315,7 +315,7 @@ macro_rules! tokay {
 
 
                 compiler.define_parselet(
-                    Parselet::new(main, None)  //fixme: name of the file?s
+                    Parselet::new(main, None)  //fixme: name of the file?
                 );
             }
 

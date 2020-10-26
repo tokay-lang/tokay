@@ -30,7 +30,7 @@ A program internally holds a pool of constants. These are either values, objects
 
 ### Scoping
 
-Constants are arranged in scopes. 
+Constants are arranged in scopes.
 
 ```tokay
 C = "Hello"
@@ -44,10 +44,10 @@ if true {
 
 print C  # this shows "Hello"
 
-# `Hold = 1` here would make the scoped Hold below an error!
+# `Hold = 1` here would hide the scoped Hold below
 
 if true {
-    Hold = 1
+    Hold = 2
     print(Hold)
 } # Hold is gone now!
 
@@ -181,7 +181,7 @@ Control-flow expressions are also part of expressions.
 - `loop ...` - endless loop
 - `while ...` - head-controlled loop
 - `do...while...` - foot-controlled loop
-- `for...` - C-style iterator loop 
+- `for...` - C-style iterator loop
 - `for...in...` - Rust-style iterator loop
 
 Returned is either the last value of the provided block, or an explicit value when `break` or `continue` keywords are used.
@@ -262,7 +262,7 @@ Blocks are used to define areas with subsequent patterns or statements.
 }
 
 res = if x < 100                            # when x < 100...
-{                                
+{
     {
         "alpha"+                            # when multiple tokens of "alpha" are in the input..
         "delta" {                           # or when delta is in the input...
@@ -296,13 +296,13 @@ The repeatable block represents the scope of a function or parselet.
 "world" @{"hello" repeat}?                  # Matches world hello*
 ```
 
-Because variables in a repeatable block are being replaced when the block restarts, variables need to be defined on 
+Because variables in a repeatable block are being replaced when the block restarts, variables need to be defined on
 
 ```
 x = 1
 @{
     "inc X"    x++ repeat   # consume "inc X", increment x and repeat
-    .          repeat       # consume anything else 
+    .          repeat       # consume anything else
 }
 ```
 
@@ -327,7 +327,7 @@ Parselets are similar to parsing functions in a recursive-descent parser. They r
 
 ## Functions
 
-Functions 
+Functions
 
 ### Simple parselets
 
@@ -368,7 +368,7 @@ Factor = @{                                   # define parselet Factor with
 }
 ```
 
-There can be other Parselets starting with _ which are threatened as lexemes, they don't automatically 
+There can be other Parselets starting with _ which are threatened as lexemes, they don't automatically
 
 
 
@@ -379,4 +379,3 @@ There can be other Parselets starting with _ which are threatened as lexemes, th
 1. Constant
 2. variable
 3. @{repeating}
-

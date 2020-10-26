@@ -90,7 +90,13 @@ pub enum Op {
     Call(usize),
     Name(String),
 
-    LoadCapture(usize),
+    PushAddr(usize),
+    PushInt(i64),
+    PushFloat(f64),
+    PushTrue,
+    PushFalse,
+
+    LoadCapture,
 
     /*
     And(Op),
@@ -177,8 +183,25 @@ impl Parser for Op {
 
             Op::Name(_) => panic!("{:?} cannot be executed", self),
 
-            Op::LoadCapture(index) => {
-                let value = context.get_capture(*index).unwrap_or(
+            Op::PushAddr(a) => {
+                Ok(Accept::Push(Capture::Value(Value::Addr(*a).into_ref())))
+            },
+            Op::PushInt(i) => {
+                Ok(Accept::Push(Capture::Value(Value::Integer(*i).into_ref())))
+            },
+            Op::PushFloat(f) => {
+                Ok(Accept::Push(Capture::Value(Value::Float(*f).into_ref())))
+            },
+            Op::PushTrue => {
+                Ok(Accept::Push(Capture::Value(Value::True.into_ref())))
+            },
+            Op::PushFalse => {
+                Ok(Accept::Push(Capture::Value(Value::False.into_ref())))
+            },
+
+            Op::LoadCapture => {
+                let index = context.pop().borrow().to_addr().unwrap();
+                let value = context.get_capture(index).unwrap_or(
                     Value::Void.into_ref()
                 );
                 context.push(value);
