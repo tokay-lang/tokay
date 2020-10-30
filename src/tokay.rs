@@ -157,7 +157,7 @@ impl Parser for Op {
             Op::Create(emit) => {
                 /*
                 println!("Create {} from {:?}",
-                    emit, &context.runtime.capture[context.capture_start..]
+                    emit, &context.runtime.stack[context.capture_start..]
                 );
                 */
 
@@ -578,7 +578,7 @@ impl Parser for Repeat {
 
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Remember capturing positions
-        let capture_start = context.runtime.capture.len();
+        let capture_start = context.runtime.stack.len();
         let reader_start = context.runtime.reader.tell();
 
         let mut count: usize = 0;
@@ -588,7 +588,7 @@ impl Parser for Repeat {
                 Err(Reject::Next) => break,
 
                 Err(reject) => {
-                    context.runtime.capture.truncate(capture_start);
+                    context.runtime.stack.truncate(capture_start);
                     context.runtime.reader.reset(reader_start);
                     return Err(reject)
                 },
@@ -597,7 +597,7 @@ impl Parser for Repeat {
 
                 Ok(Accept::Push(capture)) => {
                     if !self.mute {
-                        context.runtime.capture.push((capture, None))
+                        context.runtime.stack.push((capture, None))
                     }
                 },
 
@@ -614,7 +614,7 @@ impl Parser for Repeat {
         }
 
         if count < self.min {
-            context.runtime.capture.truncate(capture_start);
+            context.runtime.stack.truncate(capture_start);
             context.runtime.reader.reset(reader_start);
             Err(Reject::Next)
         }
@@ -702,24 +702,24 @@ impl Parser for Sequence {
         }
 
         // Remember capturing positions
-        let capture_start = context.runtime.capture.len();
+        let capture_start = context.runtime.stack.len();
         let reader_start = context.runtime.reader.tell();
 
         // Iterate over sequence
         for (item, alias) in &self.items {
             match item.run(context) {
                 Err(reject) => {
-                    context.runtime.capture.truncate(capture_start);
+                    context.runtime.stack.truncate(capture_start);
                     context.runtime.reader.reset(reader_start);
                     return Err(reject);
                 }
 
                 Ok(Accept::Next) => {
-                    context.runtime.capture.push((Capture::Empty, alias.clone()))
+                    context.runtime.stack.push((Capture::Empty, alias.clone()))
                 },
 
                 Ok(Accept::Push(capture)) => {
-                    context.runtime.capture.push((capture, alias.clone()))
+                    context.runtime.stack.push((capture, alias.clone()))
                 },
 
                 Ok(Accept::Return(value)) if value.is_none() => {
@@ -950,7 +950,7 @@ impl Parser for Block {
                 );
 
                 context.runtime.reader.reset(context.reader_start);
-                context.runtime.capture.truncate(context.capture_start);
+                context.runtime.stack.truncate(context.capture_start);
                 loops += 1;
             }
 
@@ -1087,7 +1087,7 @@ impl Parselet {
                                 let mut ret = Complex::new();
                                 ret.push_key_value(
                                     emit.clone(),
-                                    context.get_value()
+                                    context.get_0()
                                 );
 
                                 Accept::Push(
@@ -1098,7 +1098,7 @@ impl Parselet {
                             }
                             else {
                                 Accept::Push(
-                                    Capture::Value(context.get_value())
+                                    Capture::Value(context.get_0())
                                 )
                             }
                         }
@@ -1172,9 +1172,8 @@ pub enum Capture {
 // --- Context -----------------------------------------------------------------
 
 pub struct Context<'runtime, 'program, 'reader> {
-    pub runtime: &'runtime mut Runtime<'program, 'reader>,  // Temporary pub?
+    pub runtime: &'runtime mut Runtime<'program, 'reader>,  // fixme: Temporary pub?
 
-    stack_start: usize,
     capture_start: usize,
     reader_start: usize
 }
@@ -1182,26 +1181,25 @@ pub struct Context<'runtime, 'program, 'reader> {
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>) -> Self {
         let ret = Self{
-            stack_start: runtime.stack.len(),
-            capture_start: runtime.capture.len(),
+            capture_start: runtime.stack.len(),
             reader_start: runtime.reader.tell(),
             runtime: runtime
         };
 
-        ret.runtime.capture.push((Capture::Empty, None));
+        ret.runtime.stack.push((Capture::Empty, None));
         ret
     }
 
     pub fn push(&mut self, value: RefValue) {
-        self.runtime.capture.push((Capture::Value(value), None))
+        self.runtime.stack.push((Capture::Value(value), None))
     }
 
     pub fn pop(&mut self) -> RefValue {
-        let capture = self.runtime.capture.pop().unwrap().0;
-        if let Capture::Value(value) = capture {
+        let value = self.runtime.stack.pop().unwrap().0;
+        if let Capture::Value(value) = value {
             value
         } else {
-            Value::Void.into_ref()
+            Value::Void.into_ref() // fixme: is this ok?
         }
     }
 
@@ -1209,18 +1207,18 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         // Capture $0 is specially handled.
         if pos == 0 {
-            return Some(self.get_value());
+            return Some(self.get_0());
         }
 
         // Anything else by position.
         let pos = self.capture_start + pos;
 
-        if pos >= self.runtime.capture.len() {
+        if pos >= self.runtime.stack.len() {
             return None
         }
 
         Some(
-            match &self.runtime.capture[pos].0 {
+            match &self.runtime.stack[pos].0 {
                 Capture::Empty => {
                     Value::Void.into_ref()
                 },
@@ -1241,7 +1239,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
         // fixme: Should be examined in reversed order
-        for (i, capture) in self.runtime.capture[self.capture_start..].iter().enumerate() {
+        for (i, capture) in
+            self.runtime.stack[self.capture_start..].iter().enumerate()
+        {
             if let Some(alias) = &capture.1 {
                 if alias == name {
                     return self.get_capture(i);
@@ -1253,9 +1253,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     /** Returns the current $0 value */
-    pub fn get_value(&self) -> RefValue {
+    pub fn get_0(&self) -> RefValue {
         if let Capture::Value(value) =
-            &self.runtime.capture[self.capture_start].0
+            &self.runtime.stack[self.capture_start].0
         {
             return value.clone()
         }
@@ -1268,8 +1268,8 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     /** Save current $0 value */
-    pub fn set_value(&mut self, value: RefValue) {
-        self.runtime.capture[self.capture_start].0 = Capture::Value(value)
+    pub fn set_0(&mut self, value: RefValue) {
+        self.runtime.stack[self.capture_start].0 = Capture::Value(value)
     }
 
     /** Helper function to collect captures from a capture_start and turn
@@ -1282,11 +1282,11 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     {
         let mut captures: Vec<(Capture, Option<String>)> = if copy {
             Vec::from_iter(
-                self.runtime.capture[capture_start..].iter().cloned()
+                self.runtime.stack[capture_start..].iter().cloned()
             )
         }
         else {
-            self.runtime.capture.drain(capture_start..).collect()
+            self.runtime.stack.drain(capture_start..).collect()
         };
 
         if captures.len() == 0 {
@@ -1359,8 +1359,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        self.runtime.capture.truncate(self.capture_start);
-        self.runtime.stack.truncate(self.stack_start);
+        self.runtime.stack.truncate(self.capture_start);
     }
 }
 
@@ -1373,8 +1372,7 @@ pub struct Runtime<'program, 'reader> {
 
     memo: HashMap<(usize, usize), (usize, Result<Accept, Reject>)>,
 
-    stack: Vec<RefValue>,
-    capture: Vec<(Capture, Option<String>)>
+    stack: Vec<(Capture, Option<String>)>
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
@@ -1383,15 +1381,13 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             program,
             reader,
             memo: HashMap::new(),
-            stack: Vec::new(),
-            capture: Vec::new()
+            stack: Vec::new()
         }
     }
 
     pub fn dump(&self) {
         println!("memo has {} entries", self.memo.len());
         println!("stack has {} entries", self.stack.len());
-        println!("capture has {} entries", self.capture.len());
     }
 }
 
