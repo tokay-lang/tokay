@@ -28,19 +28,6 @@ impl TokayParser {
 
 // Basic Tokens (might probably be replaced by something native, pluggable one)
 
-/*
-(Identifier = {
-    [
-        (Char::new(
-            ccl!['A'..='Z', 'a'..='z', '_'..='_'])).into_box()
-        ),
-        (Op::Token(Chars::new(
-            ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-        ).into_box())
-    ]
-}),
-*/
-
 (T_Variable = {
     [
         (Char::new(ccl!['a'..='z'])),
@@ -49,7 +36,7 @@ impl TokayParser {
         )),
         (Op::PushAddr(0)),
         (Op::LoadCapture),
-        (Op::Create("variable"))
+        (Op::Lexeme("variable"))
     ]
 }),
 
@@ -61,7 +48,7 @@ impl TokayParser {
         )),
         (Op::PushAddr(0)),
         (Op::LoadCapture),
-        (Op::Create("constant"))
+        (Op::Lexeme("constant"))
     ]
 }),
 
@@ -88,19 +75,35 @@ impl TokayParser {
 }),
 
 (T_Integer = {
+    // todo: implement as built-in Parselet
     [(Char::span(ccl!['0'..='9'])), (Op::Create("int"))]
+}),
+
+(T_Float = {
+    // todo: implement as built-in Parselet
+    [(Char::span(ccl!['0'..='9'])), ".",
+        (Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
+            (Op::Lexeme("float"))],
+    [(Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
+        ".", (Char::span(ccl!['0'..='9'])),
+            (Op::Lexeme("float"))]
 }),
 
 // Expression & Flow
 
 (Atom = {
     ["(", _, S_Expression, ")", _],
+    ["true", _, (Op::Create("true"))],
+    ["false", _, (Op::Create("false"))],
+    ["void", _, (Op::Create("void"))],
+    [T_Constant, _],
+    [T_Variable, _],
+    [T_Float, _],
     [T_Integer, _],
     [T_HeavyString, _],
     [T_LightString, _],
-    ["true", _, (Op::Create("true"))],
-    ["false", _, (Op::Create("false"))],
-    ["void", _, (Op::Create("void"))]
+    S_Block,
+    S_Parselet
 }),
 
 (S_Unary = {
@@ -121,8 +124,22 @@ impl TokayParser {
     S_MulDiv
 }),
 
-(S_Expression = {
+(S_Compare = {
+    [S_Compare, "==", _, S_AddSub, (Op::Create("compare_equal"))],
+    [S_Compare, "!=", _, S_AddSub, (Op::Create("compare_unequal"))],
+    [S_Compare, "<=", _, S_AddSub, (Op::Create("compare_lowerequal"))],
+    [S_Compare, ">=", _, S_AddSub, (Op::Create("compare_greaterequal"))],
+    [S_Compare, "<", _, S_AddSub, (Op::Create("compare_lower"))],
+    [S_Compare, ">", _, S_AddSub, (Op::Create("compare_greater"))],
     S_AddSub
+}),
+
+
+(S_Expression = {
+    ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
+        (Op::Create("if_else"))],
+    ["if", _, S_Expression, S_Expression, (Op::Create("if"))],
+    S_Compare
 }),
 
 // Structure
@@ -132,7 +149,10 @@ impl TokayParser {
 }),
 
 (S_Block = {
-    ["{", _, S_Sequences, _, (Op::Expect(Box::new(Match::new("}").into_op()))), _, (Op::Create("block"))]
+    ["{", _, S_Sequences, _,
+        (Op::Expect(Box::new(Match::new("}").into_op()))), _,
+        (Op::Create("block"))],
+    ["{", _, "}", _, (Op::PushVoid), (Op::Create("block"))]
 }),
 
 (S_Sequences = {
@@ -147,6 +167,7 @@ impl TokayParser {
     }),
 
     [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
+    [T_Variable, _, "=", _, S_Expression, _, (Op::Create("assign"))],
     [S_Sequence1, (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -177,13 +198,8 @@ impl TokayParser {
         )
     }
 
-    pub fn parse(&self, code: &'static str) -> Result<Value, String> {
+    pub fn parse(&self, mut reader: Reader) -> Result<Value, String> {
         //self.0.dump();
-
-        let mut reader = Reader::new(
-            Box::new(std::io::Cursor::new(code))
-        );
-
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
         let res = self.0.run(&mut runtime);

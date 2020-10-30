@@ -82,6 +82,8 @@ pub enum Op {
     Expect(Box<Op>),
 
     Create(&'static str),
+    Lexeme(&'static str),
+
     Skip,
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
@@ -95,6 +97,7 @@ pub enum Op {
     PushFloat(f64),
     PushTrue,
     PushFalse,
+    PushVoid,
 
     LoadCapture,
 
@@ -133,9 +136,11 @@ impl Parser for Op {
             },
 
             Op::Create(emit) => {
+                /*
                 println!("Create {} from {:?}",
                     emit, &context.runtime.capture[context.capture_start..]
                 );
+                */
 
                 let value = match
                     context.collect_captures(context.capture_start, false)
@@ -157,6 +162,28 @@ impl Parser for Op {
                 //println!("Create {} value = {:?}", emit, value);
 
                 Ok(Accept::Return(Some(value)))
+            },
+
+            Op::Lexeme(emit) => {
+                let value = Value::String(
+                    context.runtime.reader.extract(
+                        &context.runtime.reader.capture_from(
+                            context.reader_start
+                        )
+                    )
+                );
+
+                let mut ret = Complex::new();
+                ret.push_key_value(
+                    emit.to_string(),
+                    value.into_ref()
+                );
+
+                Ok(
+                    Accept::Return(
+                        Some(Value::Complex(Box::new(ret)).into_ref())
+                    )
+                )
             },
 
             Op::Skip => {
@@ -197,6 +224,9 @@ impl Parser for Op {
             },
             Op::PushFalse => {
                 Ok(Accept::Push(Capture::Value(Value::False.into_ref())))
+            },
+            Op::PushVoid => {
+                Ok(Accept::Push(Capture::Value(Value::Void.into_ref())))
             },
 
             Op::LoadCapture => {

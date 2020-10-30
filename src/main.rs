@@ -1,3 +1,5 @@
+use std::io::{self, Write, stdout, stdin};
+
 use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::parser::TokayParser;
@@ -10,14 +12,6 @@ fn main() {
     let s = "123 + 456 * 789 + (4)  (99 - 3)*99 + 4".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
-
-    let counter = tokay!({
-        (CountIntegers = {
-            [(Char::span(ccl!['0'..='9']))]
-        }),
-
-        [CountIntegers]
-    });
 
     let calculator = tokay!({
         (_ = {
@@ -95,7 +89,7 @@ fn main() {
 
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
     let mut reader = Reader::new(
-        Box::new(std::io::Cursor::new(s))
+        Box::new(io::Cursor::new(s))
     );
 
     //program.dump();
@@ -113,10 +107,19 @@ fn main() {
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
-    let s = "A = @{ \"Hello\"+ B* (1337+-3) (+true) }";
+    //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
+    let s = "A=@{  }";
 
     println!("{}", s);
 
-    let res = p.parse(s);
-    println!("{:#?}", res);
+    let res = p.parse(
+        Reader::new(Box::new(io::Cursor::new(s)))
+    );
+
+    print!("tokay>");
+    stdout().flush();
+
+    let res = p.parse(
+        Reader::new(Box::new(io::BufReader::new(stdin())))
+    );
 }
