@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
+use std::iter::FromIterator;
 
 use crate::ccl::Ccl;
 use crate::value::{Complex, Value, RefValue};
@@ -77,21 +78,27 @@ pub enum Op {
     Parser(Box<dyn Parser>),
     Empty,
 
+    // Debuging and error reporting
+    Print,
     Debug(&'static str),
     Error(&'static str),
     Expect(Box<Op>),
 
+    // AST construction
     Create(&'static str),
     Lexeme(&'static str),
 
+    // Interrupts
     Skip,
     Accept(Option<RefValue>),
     Repeat(Option<RefValue>),
     Reject,
 
+    // Call
     Call(usize),
     Name(String),
 
+    // Constants
     PushAddr(usize),
     PushInt(i64),
     PushFloat(f64),
@@ -99,7 +106,11 @@ pub enum Op {
     PushFalse,
     PushVoid,
 
-    LoadCapture,
+    // Variables
+    LoadFast(usize),
+    StoreFast(usize),
+    LoadCaptureFast(usize),
+    LoadCapture
 
     /*
     And(Op),
@@ -114,6 +125,14 @@ impl Parser for Op {
 
             Op::Empty => {
                 Ok(Accept::Push(Capture::Empty))
+            },
+
+            Op::Print => {
+                let value = context.collect(
+                    context.capture_start, true, false
+                );
+                println!("{:?}", value);
+                Ok(Accept::Next)
             },
 
             Op::Debug(s) => {
@@ -142,8 +161,8 @@ impl Parser for Op {
                 );
                 */
 
-                let value = match
-                    context.collect_captures(context.capture_start, false)
+                let value = match context.collect(
+                    context.capture_start, false, false)
                 {
                     Some(value) => {
                         let mut ret = Complex::new();
@@ -229,14 +248,26 @@ impl Parser for Op {
                 Ok(Accept::Push(Capture::Value(Value::Void.into_ref())))
             },
 
-            Op::LoadCapture => {
-                let index = context.pop().borrow().to_addr().unwrap();
-                let value = context.get_capture(index).unwrap_or(
+            Op::LoadFast(usize) => {
+                Ok(Accept::Next)
+            },
+
+            Op::StoreFast(usize) => {
+                Ok(Accept::Next)
+            },
+
+            Op::LoadCaptureFast(index) => {
+                let value = context.get_capture(*index).unwrap_or(
                     Value::Void.into_ref()
                 );
                 context.push(value);
 
                 Ok(Accept::Next)
+            },
+
+            Op::LoadCapture => {
+                let index = context.pop().borrow().to_addr().unwrap();
+                Op::LoadCaptureFast(index).run(context)
             }
         }
     }
@@ -286,7 +317,7 @@ impl Parser for Op {
                 if let Some(value) = compiler.get_constant(name) {
                     match &*value.borrow() {
                         Value::Parselet(p) => {
-                            println!("resolved {:?} as {:?}", name, *p);
+                            //println!("resolved {:?} as {:?}", name, *p);
                             *self = Op::Call(*p);
                             return;
                         },
@@ -589,7 +620,7 @@ impl Parser for Repeat {
         }
         else {
             // Push collected captures, if any
-            if let Some(value) = context.collect_captures(capture_start, false)
+            if let Some(value) = context.collect(capture_start, false, false)
             {
                 Ok(Accept::Push(Capture::Value(value)))
             }
@@ -694,7 +725,7 @@ impl Parser for Sequence {
                 Ok(Accept::Return(value)) if value.is_none() => {
                     return Ok(
                         Accept::Return(
-                            context.collect_captures(capture_start, true)
+                            context.collect(capture_start, false, true)
                         )
                     )
                 },
@@ -702,7 +733,7 @@ impl Parser for Sequence {
                 Ok(Accept::Repeat(value)) if value.is_none() => {
                     return Ok(
                         Accept::Repeat(
-                            context.collect_captures(capture_start, true)
+                            context.collect(capture_start, false, true)
                         )
                     )
                 },
@@ -717,7 +748,7 @@ impl Parser for Sequence {
         */
         //println!("Sequence {:?}", &context.runtime.capture[capture_start..]);
 
-        if let Some(value) = context.collect_captures(capture_start, true) {
+        if let Some(value) = context.collect(capture_start, false, true) {
             Ok(Accept::Push(Capture::Value(value)))
         }
         /*
@@ -1028,7 +1059,7 @@ impl Parselet {
                 },
 
                 Ok(Accept::Return(value)) => {
-                    println!("{:?} returns {:?}", self.emit, value);
+                    //println!("{:?} returns {:?}", self.emit, value);
 
                     if let Some(value) = value {
                         if !self.mute {
@@ -1241,20 +1272,27 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         self.runtime.capture[self.capture_start].0 = Capture::Value(value)
     }
 
-    /** Helper function to collect context captures from a capture_start and turn
+    /** Helper function to collect captures from a capture_start and turn
     them either into a Complex-type value or take it as is. */
-    fn collect_captures(
+    fn collect(
         &mut self,
         capture_start: usize,
-        allow_single: bool) -> Option<RefValue>
+        copy: bool,
+        single: bool) -> Option<RefValue>
     {
-        let mut captures: Vec<(Capture, Option<String>)> =
-            self.runtime.capture.drain(capture_start..).collect();
+        let mut captures: Vec<(Capture, Option<String>)> = if copy {
+            Vec::from_iter(
+                self.runtime.capture[capture_start..].iter().cloned()
+            )
+        }
+        else {
+            self.runtime.capture.drain(capture_start..).collect()
+        };
 
         if captures.len() == 0 {
             None
         }
-        else if allow_single && captures.len() == 1 && captures[0].1.is_none()
+        else if single && captures.len() == 1 && captures[0].1.is_none()
         {
             match captures.pop().unwrap().0 {
                 Capture::Empty => None,
