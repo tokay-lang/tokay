@@ -52,7 +52,7 @@ Expr = @{
 Expr                      print
 ```
 
-This is also a Tokay program, wihtout using the parsing facilities. It  recursively calculates faculties.
+This is also a Tokay program, without using the parsing facilities. It  recursively calculates faculties.
 
 ```
 Faculty = @x {

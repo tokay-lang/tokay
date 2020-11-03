@@ -68,8 +68,13 @@ fn main() {
     let test = tokay!({
         (a = "hallo"),
         (b = 31),
-        [a, b, (Op::Print)]
+        (X = {
+            [a, b, (Op::Print)]
+        }),
+        [X, X, a, b, (Op::Print)]
     });
+
+    println!("{:?}", test);
 
     let mut reader = Reader::new(
         Box::new(io::Cursor::new("".to_string()))

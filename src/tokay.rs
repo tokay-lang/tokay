@@ -258,7 +258,12 @@ impl Parser for Op {
             },
 
             Op::LoadGlobal(addr) => {
-                Ok(Accept::Next)
+                Ok(Accept::Push(
+                    Capture::Value(
+                        context.runtime.stack[*addr].0
+                            .as_value(&context.runtime)
+                    )
+                ))
             },
 
             Op::LoadFast(addr) => {
@@ -272,6 +277,7 @@ impl Parser for Op {
             },
 
             Op::StoreGlobal(addr) => {
+                // todo
                 Ok(Accept::Next)
             },
 
@@ -1225,7 +1231,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         //ret.runtime.stack.push((Capture::Empty, None));
         Self{
             stack_start,
-            capture_start: runtime.stack.len(),
+            capture_start: runtime.stack.len() - 1,
             reader_start: runtime.reader.tell(),
             runtime: runtime
         }

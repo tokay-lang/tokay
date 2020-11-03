@@ -85,7 +85,7 @@ impl Compiler {
 
     /// Returns the total number of locals in current scope.
     pub fn get_locals(&self) -> usize {
-        if let Some(locals) = &self.scopes.last().unwrap().variables {
+        if let Some(locals) = &self.scopes.first().unwrap().variables {
             locals.len()
         }
         else {
@@ -352,6 +352,12 @@ macro_rules! tokay_item {
     // Block
     ( $compiler:expr, { $( $item:tt ),* } ) => {
         {
+            /*
+            $(
+                println!("{:?}", stringify!($item));
+            )*
+            */
+
             let items = vec![
                 $(
                     tokay_item!($compiler, $item)
