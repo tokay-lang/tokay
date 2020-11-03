@@ -191,7 +191,11 @@ impl TokayParser {
     [S_Parselet, _]
 }),
 
-[S_Sequence, (Op::Print)]
+(S_Tokay = {
+    S_Sequences
+}),
+
+[S_Tokay, (Op::Print), (Op::Create("tokay"))]
 
 // ----------------------------------------------------------------------------
             })

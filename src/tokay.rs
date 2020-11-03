@@ -74,6 +74,7 @@ Specifies atomic level operations like running a parser or running VM code.
 */
 #[derive(Debug)]
 pub enum Op {
+
     // Parser
     Parser(Box<dyn Parser>),
     Empty,
@@ -99,6 +100,7 @@ pub enum Op {
     Name(String),
 
     // Constants
+    LoadStatic(usize),
     PushAddr(usize),
     PushInt(i64),
     PushFloat(f64),
@@ -107,7 +109,9 @@ pub enum Op {
     PushVoid,
 
     // Variables
+    LoadGlobal(usize),
     LoadFast(usize),
+    StoreGlobal(usize),
     StoreFast(usize),
     LoadCaptureFast(usize),
     LoadCapture
@@ -229,6 +233,11 @@ impl Parser for Op {
 
             Op::Name(_) => panic!("{:?} cannot be executed", self),
 
+            Op::LoadStatic(addr) => {
+                Ok(Accept::Push(Capture::Value(
+                    context.runtime.program.statics[*addr].clone()
+                )))
+            },
             Op::PushAddr(a) => {
                 Ok(Accept::Push(Capture::Value(Value::Addr(*a).into_ref())))
             },
@@ -248,11 +257,27 @@ impl Parser for Op {
                 Ok(Accept::Push(Capture::Value(Value::Void.into_ref())))
             },
 
-            Op::LoadFast(usize) => {
+            Op::LoadGlobal(addr) => {
                 Ok(Accept::Next)
             },
 
-            Op::StoreFast(usize) => {
+            Op::LoadFast(addr) => {
+                Ok(Accept::Push(
+                    Capture::Value(
+                        context.runtime.stack[
+                            context.stack_start + addr
+                        ].0.as_value(&context.runtime)
+                    )
+                ))
+            },
+
+            Op::StoreGlobal(addr) => {
+                Ok(Accept::Next)
+            },
+
+            Op::StoreFast(addr) => {
+                context.runtime.stack[context.stack_start + addr].0 =
+                    Capture::Value(context.pop());
                 Ok(Accept::Next)
             },
 
@@ -1014,34 +1039,34 @@ pub struct Parselet {
     leftrec: bool,
     nullable: bool,
     mute: bool,
-    emit: Option<String>,
+    locals: usize,
     body: Op
 }
 
 impl Parselet {
-    pub fn new(body: Op, emit: Option<String>) -> Self {
+    pub fn new(body: Op, locals: usize) -> Self {
         Self{
             leftrec: false,
             nullable: true,
             mute: false,
-            emit,
+            locals,
             body
         }
     }
 
     /// Creates a new silent parselet, which does always return Capture::Empty
-    pub fn new_muted(body: Op) -> Self {
+    pub fn new_muted(body: Op, locals: usize) -> Self {
         Self{
             leftrec: false,
             nullable: true,
             mute: true,
-            emit: None,
+            locals,
             body
         }
     }
 
     fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
-        let mut context = Context::new(runtime);
+        let mut context = Context::new(runtime, self.locals);
 
         /*
             fixme:
@@ -1082,28 +1107,13 @@ impl Parselet {
 
                 Ok(Accept::Next) => {
                     return Ok(
-                        if !self.mute {
-                            if let Some(emit) = &self.emit {
-                                let mut ret = Complex::new();
-                                ret.push_key_value(
-                                    emit.clone(),
-                                    context.get_0()
-                                );
-
-                                Accept::Push(
-                                    Capture::Value(
-                                        Value::Complex(Box::new(ret)).into_ref()
-                                    )
-                                )
-                            }
-                            else {
-                                Accept::Push(
-                                    Capture::Value(context.get_0())
-                                )
-                            }
+                        if self.mute {
+                            Accept::Push(Capture::Empty)
                         }
                         else {
-                            Accept::Push(Capture::Empty)
+                            Accept::Push(
+                                Capture::Value(context.get_0())
+                            )
                         }
                     )
                 },
@@ -1168,26 +1178,57 @@ pub enum Capture {
     Value(RefValue)             // Captured value
 }
 
+impl Capture {
+    fn as_value(&self, runtime: &Runtime) -> RefValue {
+        match self {
+            Capture::Empty => {
+                Value::Void.into_ref()
+            },
+
+            Capture::Range(range) => {
+                Value::String(
+                    runtime.reader.extract(range)
+                ).into_ref()
+            },
+
+            Capture::Value(value) => {
+                value.clone()
+            }
+        }
+    }
+}
 
 // --- Context -----------------------------------------------------------------
 
 pub struct Context<'runtime, 'program, 'reader> {
     pub runtime: &'runtime mut Runtime<'program, 'reader>,  // fixme: Temporary pub?
 
+    stack_start: usize,
     capture_start: usize,
     reader_start: usize
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
-    pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>) -> Self {
-        let ret = Self{
+
+    pub fn new(
+        runtime: &'runtime mut Runtime<'program, 'reader>,
+        preserve: usize
+    ) -> Self
+    {
+        let stack_start = runtime.stack.len();
+
+        runtime.stack.resize(
+            runtime.stack.len() + preserve + 1,
+            (Capture::Empty, None)
+        );
+
+        //ret.runtime.stack.push((Capture::Empty, None));
+        Self{
+            stack_start,
             capture_start: runtime.stack.len(),
             reader_start: runtime.reader.tell(),
             runtime: runtime
-        };
-
-        ret.runtime.stack.push((Capture::Empty, None));
-        ret
+        }
     }
 
     pub fn push(&mut self, value: RefValue) {
@@ -1217,23 +1258,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             return None
         }
 
-        Some(
-            match &self.runtime.stack[pos].0 {
-                Capture::Empty => {
-                    Value::Void.into_ref()
-                },
-
-                Capture::Range(range) => {
-                    Value::String(
-                        self.runtime.reader.extract(range)
-                    ).into_ref()
-                },
-
-                Capture::Value(value) => {
-                    value.clone()
-                }
-            }
-        )
+        Some(self.runtime.stack[pos].0.as_value(&self.runtime))
     }
 
     /** Return a capture by name as RefValue. */
@@ -1401,10 +1426,13 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(parselets: Vec<Parselet>) -> Self {
+    pub fn new(
+        parselets: Vec<Parselet>,
+        statics: Vec<RefValue>
+    ) -> Self {
         Self{
             parselets,
-            statics: Vec::new()
+            statics
         }
     }
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
-use crate::tokay::{Program, Parselet};
+use crate::tokay::{Op, Program, Parselet};
 use crate::value::RefValue;
 
 
@@ -53,7 +53,9 @@ impl Compiler {
 
         // Drain parselets into the new program
         Program::new(
-            self.parselets.drain(..).map(|p| p.into_inner()).collect()
+            self.parselets.drain(..).map(|p| p.into_inner()).collect(),
+            self.values,
+            //self.scopes[0].variables.len()  # fixme: these are the globals...
         )
     }
 
@@ -68,7 +70,7 @@ impl Compiler {
         );
     }
 
-    /** Pops current scope.
+    /** Pops current scope. Returns number of locals defined.
 
     The final (main) scope cannot be dropped, the function panics when
     this is tried. */
@@ -81,21 +83,57 @@ impl Compiler {
         self.scopes.remove(0);
     }
 
-    pub fn get_local(&mut self, name: &str) -> Option<usize> {
+    /// Returns the total number of locals in current scope.
+    pub fn get_locals(&self) -> usize {
+        if let Some(locals) = &self.scopes.last().unwrap().variables {
+            locals.len()
+        }
+        else {
+            0
+        }
+    }
+
+    /**
+    Retrieve address of a local variable under a given name;
+    The define-parameter for automatic variable inseration
+    in case it doesn't exist.
+    */
+    pub fn get_local(&mut self, name: &str, define: bool)
+        -> Option<usize>
+    {
         for scope in &mut self.scopes {
+            // Check for scope with variables
             if let Some(variables) = &mut scope.variables {
                 if let Some(addr) = variables.get(name) {
                     return Some(*addr)
                 }
-                else {
+                else if define {
                     let addr = variables.len();
                     variables.insert(name.to_string(), addr);
                     return Some(addr)
+                }
+                else {
+                    break
                 }
             }
         }
 
         None
+    }
+
+    /**
+    Retrieve address of a global variable.
+    */
+    pub fn get_global(&self, name: &str) -> Option<usize>
+    {
+        let variables = self.scopes.last().unwrap().variables.as_ref().unwrap();
+
+        if let Some(addr) = variables.get(name) {
+            Some(*addr)
+        }
+        else {
+            None
+        }
     }
 
     /** Set constant to name in current scope. */
@@ -154,36 +192,92 @@ impl Compiler {
         let ch = name.chars().nth(0).unwrap();
         ch.is_uppercase() || ch == '_'
     }
-}
 
+    pub fn gen_store(&mut self, name: &str) -> Op {
+        if let Some(addr) = self.get_local(name, false) {
+            Op::StoreFast(addr)
+        }
+        else if let Some(addr) = self.get_global(name) {
+            Op::StoreGlobal(addr)
+        }
+        else {
+            Op::StoreFast(self.get_local(name, true).unwrap())
+        }
+    }
+
+    pub fn gen_load(&mut self, name: &str) -> Op {
+        if let Some(addr) = self.get_local(name, false) {
+            Op::LoadFast(addr)
+        }
+        else if let Some(addr) = self.get_global(name) {
+            Op::LoadGlobal(addr)
+        }
+        else {
+            Op::LoadFast(self.get_local(name, true).unwrap())
+        }
+    }
+}
 
 /* A minimalistic Tokay compiler as Rust macros. */
 
 #[macro_export]
 macro_rules! tokay_item {
 
-    // Assign string
+    // Assign a value
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
         {
-            $compiler.set_constant(
-                stringify!($name),
-                Value::String($value.to_string()).into_ref()
-            );
+            let name = stringify!($name).to_string();
+            let value = Value::String($value.to_string()).into_ref();
+
+            if Compiler::is_constant(&name) {
+                $compiler.set_constant(
+                    &name,
+                    value
+                );
+
+                None
+            }
+            else {
+                let addr = $compiler.define_value(value);
+
+                Some(
+                    Sequence::new(
+                        vec![
+                            (Op::LoadStatic(addr), None),
+                            ($compiler.gen_store(&name), None)
+                        ]
+                    )
+                )
+            }
 
             //println!("assign {} = {}", stringify!($name), stringify!($value));
-            None
         }
     };
 
     // Assign whitespace
-    ( $compiler:expr, ( _ = $item:tt ) ) => {
+    ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
-            let item = tokay_item!($compiler, $item).unwrap();
-            let item = Repeat::new(item, 0, 0, true);
+            $compiler.push_scope(true);
+            let items = vec![
+                $(
+                    tokay_item!($compiler, $item)
+                ),*
+            ];
+
+            let body = Block::new(
+                items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
+            );
+
+            let body = Repeat::new(body, 0, 0, true);
 
             let parselet = $compiler.define_parselet(
-                Parselet::new_muted(item)
+                Parselet::new_muted(body, $compiler.get_locals())
             );
+
+            $compiler.pop_scope();
 
             $compiler.set_constant(
                 "_",
@@ -196,17 +290,38 @@ macro_rules! tokay_item {
     };
 
     // Assign parselet
-    ( $compiler:expr, ( $name:ident = $item:tt ) ) => {
+    ( $compiler:expr, ( $name:ident = { $( $item:tt ),* } ) ) => {
         {
-            let item = tokay_item!($compiler, $item).unwrap();
-            let parselet = $compiler.define_parselet(
-                Parselet::new(item, Some(stringify!($name).to_string()))
+            let name = stringify!($name).to_string();
+
+            $compiler.push_scope(true);
+            let items = vec![
+                $(
+                    tokay_item!($compiler, $item)
+                ),*
+            ];
+
+            let body = Block::new(
+                items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
             );
 
-            $compiler.set_constant(
-                stringify!($name),
-                Value::Parselet(parselet).into_ref()
+            let parselet = $compiler.define_parselet(
+                Parselet::new(body, $compiler.get_locals())
             );
+
+            $compiler.pop_scope();
+
+            if Compiler::is_constant(&name) {
+                $compiler.set_constant(
+                    &name,
+                    Value::Parselet(parselet).into_ref()
+                );
+            }
+            else {
+            }
 
             //println!("assign {} = {}", stringify!($name), stringify!($item));
             None
@@ -234,17 +349,14 @@ macro_rules! tokay_item {
         }
     };
 
-    // Parselet
+    // Block
     ( $compiler:expr, { $( $item:tt ),* } ) => {
         {
-            $compiler.push_scope(true);
             let items = vec![
                 $(
                     tokay_item!($compiler, $item)
                 ),*
             ];
-
-            $compiler.pop_scope();
 
             Some(
                 Block::new(
@@ -261,9 +373,16 @@ macro_rules! tokay_item {
     ( $compiler:expr, $ident:ident ) => {
         {
             //println!("call = {}", stringify!($ident));
-            let mut item = Op::Name(stringify!($ident).to_string());
-            item.resolve(&$compiler, false);
-            Some(item)
+            let name = stringify!($ident);
+
+            if Compiler::is_constant(name) {
+                let mut item = Op::Name(name.to_string());
+                item.resolve(&$compiler, false);
+                Some(item)
+            }
+            else {
+                Some($compiler.gen_load(name))
+            }
         }
     };
 
@@ -299,23 +418,14 @@ macro_rules! tokay {
     ( $( $items:tt ),* ) => {
         {
             let mut compiler = Compiler::new();
+            let main = tokay_item!(compiler, $( $items ),*);
 
-            {
-                let main = tokay_item!(compiler, $( $items ),*).unwrap(); //todo: unwrap_or_else?
-
-                let main = Repeat::positive(
-                    Block::new(
-                        vec![
-                            main,
-                            Char::any()
-                        ]
-                    )
-                    //main
-                );
-
-
+            if let Some(main) = main {
                 compiler.define_parselet(
-                    Parselet::new(main, None)  //fixme: name of the file?
+                    Parselet::new(
+                        main,
+                        compiler.get_locals()
+                    )
                 );
             }
 

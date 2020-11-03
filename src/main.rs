@@ -9,6 +9,7 @@ use ::tokay::{tokay, tokay_item, ccl};
 
 
 fn main() {
+    /*
     let s = "123 + 456 * 789 + (4)  (99 - 3)*99 + 4".to_string();
     //let s = "HelloWorldblablabla".to_string();
     println!("{}", s);
@@ -62,6 +63,20 @@ fn main() {
         })))
         */
     });
+    */
+
+    let test = tokay!({
+        (a = "hallo"),
+        (b = 31),
+        [a, b, (Op::Print)]
+    });
+
+    let mut reader = Reader::new(
+        Box::new(io::Cursor::new("".to_string()))
+    );
+    let mut runtime = Runtime::new(&test, &mut reader);
+    let ret = test.run(&mut runtime);
+    println!("{:?}", ret);
 
     //trace_macros!(true);
 
@@ -88,6 +103,7 @@ fn main() {
     //trace_macros!(false);
 
     //let s = "42+3-1337/3*2  helloworldworldworldhellohelloworld 7*(2+5) world  666-600 3".to_string();
+    /*
     let mut reader = Reader::new(
         Box::new(io::Cursor::new(s))
     );
@@ -104,11 +120,12 @@ fn main() {
         println!("{:#?}", ret);
         runtime.dump();
     }
+    */
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
-    //let s = "A=@{  }";
+    //let s = "A B C\nX Y Z";
 
     println!("{}", s);
 
@@ -116,10 +133,12 @@ fn main() {
         Reader::new(Box::new(io::Cursor::new(s)))
     );
 
+    /*
     print!("tokay>");
     stdout().flush();
 
     let res = p.parse(
         Reader::new(Box::new(io::BufReader::new(stdin())))
     );
+    */
 }
