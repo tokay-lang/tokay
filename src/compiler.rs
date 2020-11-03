@@ -314,17 +314,30 @@ macro_rules! tokay_item {
 
             $compiler.pop_scope();
 
+            let parselet = Value::Parselet(parselet).into_ref();
+
             if Compiler::is_constant(&name) {
                 $compiler.set_constant(
                     &name,
-                    Value::Parselet(parselet).into_ref()
+                    parselet
                 );
+
+                None
             }
             else {
+                let addr = $compiler.define_value(parselet);
+
+                Some(
+                    Sequence::new(
+                        vec![
+                            (Op::LoadStatic(addr), None),
+                            ($compiler.gen_store(&name), None)
+                        ]
+                    )
+                )
             }
 
             //println!("assign {} = {}", stringify!($name), stringify!($item));
-            None
         }
     };
 
@@ -387,7 +400,14 @@ macro_rules! tokay_item {
                 Some(item)
             }
             else {
-                Some($compiler.gen_load(name))
+                Some(
+                    Sequence::new(
+                        vec![
+                            ($compiler.gen_load(name), None),
+                            (Op::TryCall, None)
+                        ]
+                    )
+                )
             }
         }
     };

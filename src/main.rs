@@ -68,10 +68,10 @@ fn main() {
     let test = tokay!({
         (a = "hallo"),
         (b = 31),
-        (X = {
+        (x = {
             [a, b, (Op::Print)]
         }),
-        [X, X, a, b, (Op::Print)]
+        [x, x, a, b, (Op::Print)]
     });
 
     println!("{:?}", test);

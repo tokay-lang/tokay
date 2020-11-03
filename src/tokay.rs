@@ -97,6 +97,7 @@ pub enum Op {
 
     // Call
     Call(usize),
+    TryCall,
     Name(String),
 
     // Constants
@@ -230,6 +231,18 @@ impl Parser for Op {
                     context.runtime
                 )
             },
+
+            Op::TryCall => {
+                let value = context.pop();
+
+                if let Value::Parselet(p) = *value.borrow() {
+                    return context.runtime.program.parselets[p].run(
+                        context.runtime
+                    )
+                }
+
+                Ok(Accept::Push(Capture::Value(value)))
+            }
 
             Op::Name(_) => panic!("{:?} cannot be executed", self),
 
