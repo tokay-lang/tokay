@@ -582,8 +582,7 @@ impl std::fmt::Display for Match {
 
 This is a simple programmtic repetition. For several reasons, repetitions can
 also be expressed on a specialized token-level or by the grammar using left-
-or right-recursive structures. It's to on the compiler for chosing the best
-option. (see kle!-, pos!-, opt!-macros from compiler)
+or right-recursive structures.
 */
 
 #[derive(Debug)]
@@ -796,7 +795,9 @@ impl Parser for Sequence {
                     )
                 },
 
-                other => return other
+                other => {
+                    return other
+                }
             }
         }
 
@@ -975,21 +976,20 @@ impl Parser for Block {
                 let res = run(self, context, loops > 0);
 
                 match res {
-                    Err(_) => {
-                        if loops == 0 {
-                            return res;
-                        } else {
-                            break;
-                        }
-                    },
-
-                    /*
-                    This makes recursive Create node construction impossible.
-
-                    Ok(Accept::Return(_)) | Ok(Accept::Repeat(_)) => {
+                    // Hard reject
+                    Err(Reject::Main) | Err(Reject::Error(_)) => {
                         return res;
                     },
-                    */
+
+                    // Soft reject
+                    Err(_) => {
+                        if loops == 0 {
+                            return res
+                        }
+                        else {
+                            break
+                        }
+                    },
 
                     _ => {}
                 }

@@ -111,8 +111,9 @@ impl TokayParser {
 }),
 
 (S_Capture = {
-    ["$", _, T_Identifier, _, (Op::Create("capture_named"))],
-    ["$", _, T_Integer, _, (Op::Create("capture"))]
+    ["$", T_Identifier, _, (Op::Create("capture_named"))],
+    ["$", T_Integer, _, (Op::Create("capture"))],
+    ["$", (Op::Error("Either use $int or $name for captures, thanks"))]
 }),
 
 (S_Lvalue = {
