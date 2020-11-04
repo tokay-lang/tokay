@@ -388,6 +388,21 @@ macro_rules! tokay_item {
         }
     };
 
+    // Kleene
+    ( $compiler:expr, (kle $item:tt) ) => {
+        Some(tokay_item!($compiler, $item).unwrap().into_kleene())
+    };
+
+    // Positive
+    ( $compiler:expr, (pos $item:tt) ) => {
+        Some(tokay_item!($compiler, $item).unwrap().into_positive())
+    };
+
+    // Optional
+    ( $compiler:expr, (opt $item:tt) ) => {
+        Some(tokay_item!($compiler, $item).unwrap().into_optional())
+    };
+
     // Call
     ( $compiler:expr, $ident:ident ) => {
         {

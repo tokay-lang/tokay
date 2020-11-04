@@ -69,7 +69,7 @@ fn main() {
         (a = "hallo"),
         (b = 31),
         (x = {
-            [a, b, (Op::Print)]
+            ["Helloween", a, b, (Op::Print)]
         }),
         [x, x, a, b, (Op::Print)]
     });
@@ -77,7 +77,7 @@ fn main() {
     println!("{:?}", test);
 
     let mut reader = Reader::new(
-        Box::new(io::Cursor::new("".to_string()))
+        Box::new(io::Cursor::new("HelloweenHelloween".to_string()))
     );
     let mut runtime = Runtime::new(&test, &mut reader);
     let ret = test.run(&mut runtime);

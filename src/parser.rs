@@ -13,6 +13,8 @@ impl TokayParser {
             tokay!({
 // ----------------------------------------------------------------------------
 
+// Whitespace & EOL
+
 (_ = {
     [" "],
     ["#", (Char::until('\n'))]
@@ -26,7 +28,19 @@ impl TokayParser {
     ]
 }),
 
-// Basic Tokens (might probably be replaced by something native, pluggable one)
+// Prime Tokens (might probably be replaced by something native, pluggable one)
+
+(T_Identifier = {
+    [
+        (Char::new(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
+        (Repeat::muted_optional(
+            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
+        )),
+        (Op::PushAddr(0)),
+        (Op::LoadCapture),
+        (Op::Lexeme("identifier"))
+    ]
+}),
 
 (T_Variable = {
     [
@@ -76,7 +90,7 @@ impl TokayParser {
 
 (T_Integer = {
     // todo: implement as built-in Parselet
-    [(Char::span(ccl!['0'..='9'])), (Op::Create("int"))]
+    [(Char::span(ccl!['0'..='9'])), (Op::Create("integer"))]
 }),
 
 (T_Float = {
@@ -89,27 +103,59 @@ impl TokayParser {
             (Op::Lexeme("float"))]
 }),
 
-// Expression & Flow
+// Statics, Variables & Constants
 
-(Atom = {
-    ["(", _, S_Expression, ")", _],
+(S_Tail = {
+    [".", _, T_Identifier, _, (Op::Create("attribute"))],
+    ["[", _, S_Expression, _, "]", _, (Op::Create("index"))]
+}),
+
+(S_Capture = {
+    ["$", _, T_Identifier, _, (Op::Create("capture_named"))],
+    ["$", _, T_Integer, _, (Op::Create("capture"))]
+}),
+
+(S_Lvalue = {
+    [T_Variable, _, (kle S_Tail), (Op::Create("lvalue"))],
+    [S_Capture, _, (kle S_Tail), (Op::Create("lvalue"))]
+}),
+
+(S_Rvalue = {
+    [T_Constant, (Op::Create("rvalue"))],
+    [T_Variable, _, (kle S_Tail), (Op::Create("rvalue"))],
+    [S_Capture, _, (kle S_Tail), (Op::Create("rvalue"))]
+}),
+
+(S_String = {
+    [T_HeavyString, _],
+    [T_LightString, _]
+}),
+
+(S_Literal = {
     ["true", _, (Op::Create("true"))],
     ["false", _, (Op::Create("false"))],
     ["void", _, (Op::Create("void"))],
-    [T_Constant, _],
-    [T_Variable, _],
+    ["unset", _, (Op::Create("unset"))],
     [T_Float, _],
-    [T_Integer, _],
-    [T_HeavyString, _],
-    [T_LightString, _],
+    [T_Integer, _]
+}),
+
+// Expression & Flow
+
+(S_Atomic = {
+    ["(", _, S_Expression, ")", _],
+    S_Literal,
+    S_String,
+    S_Rvalue,
     S_Block,
     S_Parselet
 }),
 
 (S_Unary = {
-    ["-", _, Atom, (Op::Create("unary_sub"))],
-    ["+", _, Atom, (Op::Create("unary_add"))],
-    Atom
+    ["-", _, S_Atomic, (Op::Create("unary_sub"))],
+    ["+", _, S_Atomic, (Op::Create("unary_add"))],
+    ["!", _, S_Atomic, (Op::Create("unary_not"))],
+    S_Atomic
 }),
 
 (S_MulDiv = {
@@ -134,11 +180,11 @@ impl TokayParser {
     S_AddSub
 }),
 
-
 (S_Expression = {
     ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
         (Op::Create("if_else"))],
     ["if", _, S_Expression, S_Expression, (Op::Create("if"))],
+    [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))],
     S_Compare
 }),
 
@@ -167,7 +213,6 @@ impl TokayParser {
     }),
 
     [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
-    [T_Variable, _, "=", _, S_Expression, _, (Op::Create("assign"))],
     [S_Sequence1, (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -178,13 +223,13 @@ impl TokayParser {
 }),
 
 (S_TokenModifier = {
-    [S_Atomic, "+", _, (Op::Create("mod_positive"))],
-    [S_Atomic, "*", _, (Op::Create("mod_kleene"))],
-    [S_Atomic, "?", _, (Op::Create("mod_optional"))],
-    [S_Atomic, _]
+    [S_Token, "+", _, (Op::Create("mod_positive"))],
+    [S_Token, "*", _, (Op::Create("mod_kleene"))],
+    [S_Token, "?", _, (Op::Create("mod_optional"))],
+    [S_Token, _]
 }),
 
-(S_Atomic = {
+(S_Token = {
     [T_HeavyString, _],
     [T_LightString, _],
     [T_Constant, _],

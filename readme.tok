@@ -1,19 +1,19 @@
 Factor = @{
     Float
-    '-' Expr            #-$Expr
+    '-' Expr            -$Expr
     '(' Expr ')'
 }
 
 Term = @{
-    Term '*' Factor     #$Expr * $Factor
-    Term '/' Factor     #$Expr / $Factor
+    Term '*' Factor     $Expr * $Factor
+    Term '/' Factor     $Expr / $Factor
     Factor
 }
 
 Expr = @{
-    Expr '+' Term       #$Expr + $Factor
-    Expr '-' Term       #$Expr - $Factor
+    Expr '+' Term       $Expr + $Factor
+    Expr '-' Term       $Expr - $Factor
     Term
 }
 
-Expr                    #print $Expr
+Expr                    $0.bla = 123        #print($Expr)

@@ -123,6 +123,20 @@ pub enum Op {
     */
 }
 
+impl Op {
+    pub fn into_kleene(self) -> Self {
+        Repeat::kleene(self)
+    }
+
+    pub fn into_positive(self) -> Self {
+        Repeat::positive(self)
+    }
+
+    pub fn into_optional(self) -> Self {
+        Repeat::optional(self)
+    }
+}
+
 impl Parser for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
