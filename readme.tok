@@ -16,4 +16,6 @@ Expr = @{
     Term
 }
 
-Expr                    $0.bla = 123        #print($Expr)
+Expr("ASK-13"+, "LS-1c", 13) \
+                        print("Yes!")
+Expr                    print("Hello", 23 * 5, x, x(1337))

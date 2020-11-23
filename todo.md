@@ -7,9 +7,6 @@
   - [ ] Charset parser written in Tokay
 - tokay.rs
   - Runtime/Context
-    - [ ] Merge capture and stack into one separate data structure
-      - [ ] Capture should always become a Range
-      - [ ] Remove any severities; Capture always considered as lowest severity.
     - [ ] Infer alias variables, like `Expr '+' Term` can be matched by any $Expr, $expr, $Ex or just $e, when no direct match is found
 
 - General

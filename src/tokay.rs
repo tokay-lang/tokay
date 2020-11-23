@@ -249,10 +249,15 @@ impl Parser for Op {
             Op::TryCall => {
                 let value = context.pop();
 
-                if let Value::Parselet(p) = *value.borrow() {
-                    return context.runtime.program.parselets[p].run(
-                        context.runtime
-                    )
+                match *value.borrow() {
+
+                    Value::Parselet(p) => {
+                        return context.runtime.program.parselets[p].run(
+                            context.runtime
+                        )
+                    },
+
+                    _ => {}
                 }
 
                 Ok(Accept::Push(Capture::Value(value)))
@@ -324,8 +329,13 @@ impl Parser for Op {
             },
 
             Op::LoadCapture => {
-                let index = context.pop().borrow().to_addr().unwrap();
-                Op::LoadCaptureFast(index).run(context)
+                if let Value::Addr(index) = *context.pop().borrow() {
+                    Op::LoadCaptureFast(index).run(context);
+                    Ok(Accept::Next)
+                }
+                else {
+                    Err(Reject::Error("Internal".to_string()))
+                }
             }
         }
     }

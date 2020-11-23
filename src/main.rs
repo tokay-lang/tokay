@@ -131,6 +131,7 @@ fn main() {
     let s = include_str!("../readme.tok");
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
+    //let s = "x = @{return0}";
 
     println!("{}", s);
 

@@ -58,90 +58,81 @@ impl Value {
         RefValue::new(self)
     }
 
-    /* todo: Implement standard traits for this ... */
-
-    // Get Value's boolean representation.
-    pub fn to_bool(&self) -> Option<bool> {
+    // Get Value's boolean meaning.
+    pub fn is_true(&self) -> bool {
         match self {
-            Self::Unset | Self::Void => Some(false),
-            Self::True => Some(true),
-            Self::False => Some(false),
-            Self::Integer(i) => Some(*i != 0),
-            Self::Float(f) => Some(*f != 0.0),
-            Self::String(s) => Some(s.len() != 0),
-            Self::Complex(c) => Some(c.len() > 0),
-            Self::Parselet(_) | Self::Addr(_) => {
-                Some(true)
-            }
+            Self::True => true,
+            Self::Integer(i) => *i != 0,
+            Self::Float(f) => *f != 0.0,
+            Self::String(s) => s.len() != 0,
+            Self::Complex(c) => c.len() > 0,
+            Self::Parselet(_) | Self::Addr(_) => true,
+            _ => false
         }
     }
 
     // Get Value's integer representation.
-    pub fn to_integer(&self) -> Option<i64> {
+    pub fn to_integer(&self) -> i64 {
         match self {
-            Self::True => Some(1),
-            Self::False => Some(0),
-            Self::Integer(i) => Some(*i),
-            Self::Float(f) => Some(*f as i64),
+            Self::True => 1,
+            Self::Integer(i) => *i,
+            Self::Float(f) => *f as i64,
             Self::String(s) => {
                 match s.parse::<i64>() {
-                    Ok(i) => Some(i),
-                    Err(_) => None
+                    Ok(i) => i,
+                    Err(_) => 0
                 }
             },
-            _ => None
+            _ => 0
         }
     }
 
     // Get Value's float representation.
-    pub fn to_float(&self) -> Option<f64> {
+    pub fn to_float(&self) -> f64 {
         match self {
-            Self::True => Some(1.0),
-            Self::False => Some(0.0),
-            Self::Integer(i) => Some(*i as f64),
-            Self::Float(f) => Some(*f),
+            Self::True => 1.0,
+            Self::Integer(i) => *i as f64,
+            Self::Float(f) => *f,
             Self::String(s) => {
                 match s.parse::<f64>() {
-                    Ok(f) => Some(f),
-                    Err(_) => Some(0.0)
+                    Ok(f) => f,
+                    Err(_) => 0.0
                 }
             },
-            _ => None
+            _ => 0.0
         }
     }
 
-
     // Get Value's integer representation.
-    pub fn to_addr(&self) -> Option<usize> {
+    pub fn to_addr(&self) -> usize {
         match self {
-            Self::True => Some(1),
-            Self::False => Some(0),
-            Self::Integer(i) => Some(*i as usize),
-            Self::Float(f) => Some(*f as usize),
-            Self::Addr(a) => Some(*a),
+            Self::True => 1,
+            Self::Integer(i) => *i as usize,
+            Self::Float(f) => *f as usize,
+            Self::Addr(a) => *a,
             Self::String(s) => {
                 match s.parse::<usize>() {
-                    Ok(i) => Some(i),
-                    Err(_) => None
+                    Ok(i) => i,
+                    Err(_) => 0
                 }
             },
-            _ => None
+            _ => 0
         }
     }
 
     // Get Value's string representation.
-    pub fn to_string(&self) -> Option<String> {
+    pub fn to_string(&self) -> String {
         match self {
-            Self::Unset => Some("unset".to_string()),
-            Self::Void => Some("void".to_string()),
-            Self::True => Some("true".to_string()),
-            Self::False => Some("false".to_string()),
-            Self::Integer(i) => Some(format!("{}", i)),
-            Self::Addr(a) => Some(format!("{}", a)),
-            Self::Float(f) => Some(format!("{}", f)),
-            Self::String(s) => Some(s.clone()),
-            Self::Complex(c) => Some(format!("{:?}", c)),
-            Self::Parselet(p) => Some(format!("{:?}", p))
+            Self::Unset => "unset".to_string(),
+            Self::Void => "void".to_string(),
+            Self::True => "true".to_string(),
+            Self::False => "false".to_string(),
+            Self::Integer(i) => format!("{}", i),
+            Self::Addr(a) => format!("{}", a),
+            Self::Float(f) => format!("{}", f),
+            Self::String(s) => s.clone(),
+            Self::Complex(c) => format!("{:?}", c),
+            Self::Parselet(p) => format!("{:?}", p)
         }
     }
 }

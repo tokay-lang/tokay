@@ -17,7 +17,8 @@ impl TokayParser {
 
 (_ = {
     [" "],
-    ["#", (Char::until('\n'))]
+    ["#", (Char::until('\n'))],
+    ["\\", "\n"]
 }),
 
 (T_EOL = {
@@ -127,6 +128,15 @@ impl TokayParser {
     [S_Capture, _, (kle S_Tail), (Op::Create("rvalue"))]
 }),
 
+(S_CallParameters = {
+    [S_CallParameters, _, ",", _, S_Expression],
+    [S_Expression, _]
+}),
+
+(S_Call = {
+    [S_Rvalue, _, "(", (opt S_CallParameters), ")", (Op::Create("call"))]
+}),
+
 (S_String = {
     [T_HeavyString, _],
     [T_LightString, _]
@@ -147,6 +157,7 @@ impl TokayParser {
     ["(", _, S_Expression, ")", _],
     S_Literal,
     S_String,
+    S_Call,
     S_Rvalue,
     S_Block,
     S_Parselet
@@ -185,6 +196,11 @@ impl TokayParser {
     ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
         (Op::Create("if_else"))],
     ["if", _, S_Expression, S_Expression, (Op::Create("if"))],
+    ["return", _, S_Expression, (Op::Create("return"))],
+    ["return", _, (Op::Create("return_void"))],
+    ["accept", _, S_Expression, (Op::Create("accept"))],
+    ["accept", _, (Op::Create("accept_void"))],
+    ["reject", _, (Op::Create("reject"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))],
     S_Compare
 }),
@@ -230,10 +246,26 @@ impl TokayParser {
     [S_Token, _]
 }),
 
+(S_ConstantCallParameter = {
+    [S_TokenModifier, _],
+    [S_Expression, _, (Op::Error("You may not use expressions here..."))]
+}),
+
+(S_ConstantCallParameters = {
+    [S_ConstantCallParameters, _, ",", _, S_ConstantCallParameter],
+    [S_ConstantCallParameter]
+}),
+
+(S_ConstantCall = {
+    [T_Constant, _, "(", _, S_ConstantCallParameters, ")", _,
+        (Op::Create("call_constant"))],
+    [T_Constant, _, (Op::Create("call_constant"))]
+}),
+
 (S_Token = {
     [T_HeavyString, _],
     [T_LightString, _],
-    [T_Constant, _],
+    [S_ConstantCall, _],
     [S_Parselet, _]
 }),
 
