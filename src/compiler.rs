@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use crate::tokay::{Op, Program, Parselet};
-use crate::value::RefValue;
+use crate::value::{Value, RefValue, Complex};
 
 
 /** Compiler symbolic scope.
@@ -471,6 +471,59 @@ macro_rules! tokay {
             }
 
             compiler.into_program()
+        }
+    }
+}
+
+/* Tokay compiler */
+
+type TokayCompilerFn =
+    fn(&TokayCompiler, Option<&Complex>, Option<&str>) -> Option<Op>;
+
+pub struct TokayCompiler{
+    compiler: Compiler,
+    traversal: HashMap<&'static str, TokayCompilerFn>
+}
+
+impl TokayCompiler {
+    pub fn new() -> Self {
+        let mut traversal: HashMap<&'static str, TokayCompilerFn>;
+        traversal = HashMap::new();
+
+        traversal.insert(
+            "tokay", |compiler, children, _value| {
+                let children = children.unwrap();
+                for i in 0..children.len() {
+                    compiler.traverse(&children[i].borrow());
+                }
+
+                None
+            }
+        );
+
+        Self{
+            compiler: Compiler::new(),
+            traversal
+        }
+    }
+
+    pub fn traverse(&self, node: &Value) -> Option<Op> {
+        let node = node.get_complex().unwrap();
+        let emit = node.get_by_key("emit").unwrap().borrow();
+
+        if let Some(func) = self.traversal.get(emit.get_string().unwrap()) {
+            let children = node.get_by_key("children").and_then(|c| Some(c.borrow()));
+            let value = node.get_by_key("value").and_then(|c| Some(c.borrow()));
+
+            func(
+                self,
+                children.as_deref().and_then(|c| c.get_complex()),
+                value.as_deref().and_then(|v| v.get_string())
+            )
+        }
+        else {
+            println!("No traversal function for {:?}", emit);
+            None
         }
     }
 }

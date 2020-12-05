@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::iter::Iterator;
 use std::cmp::Eq;
+use std::borrow::Borrow;
 use std::fmt::Debug;
 
 // Provide a MapKey trait to define required traits
@@ -111,11 +112,15 @@ impl<K: MapKey, V> Map<K, V> {
         }
     }
 
-    pub fn get_by_key(&self, k: &K) -> Option<&V> {
+    pub fn get_by_key<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+        where K: Borrow<Q>, Q: Hash + Eq
+    {
         self.map.get(k)
     }
 
-    pub fn get_by_key_mut(&mut self, k: &K) -> Option<&mut V> {
+    pub fn get_by_key_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+        where K: Borrow<Q>, Q: Hash + Eq
+    {
         self.map.get_mut(k)
     }
 

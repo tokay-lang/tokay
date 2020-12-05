@@ -219,8 +219,7 @@ impl TokayParser {
 }),
 
 (S_Sequences = {
-    [S_Sequences, S_Sequence],
-    S_Sequence
+    (pos S_Sequence)
 }),
 
 (S_Sequence = {
@@ -273,7 +272,7 @@ impl TokayParser {
     S_Sequences
 }),
 
-[S_Tokay, (Op::Print), (Op::Create("tokay"))]
+[S_Tokay, (Op::Create("tokay"))]
 
 // ----------------------------------------------------------------------------
             })

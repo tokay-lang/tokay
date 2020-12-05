@@ -135,6 +135,26 @@ impl Value {
             Self::Parselet(p) => format!("{:?}", p)
         }
     }
+
+    // Get String from a value
+    pub fn get_string(&self) -> Option<&str> {
+        if let Self::String(s) = self {
+            Some(&s)
+        }
+        else {
+            None
+        }
+    }
+
+    // Get Complex from a value
+    pub fn get_complex(&self) -> Option<&Complex> {
+        if let Self::Complex(c) = self {
+            Some(&c)
+        }
+        else {
+            None
+        }
+    }
 }
 
 /*

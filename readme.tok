@@ -16,6 +16,6 @@ Expr = @{
     Term
 }
 
-Expr("ASK-13"+, "LS-1c", 13) \
+Expr("ASK-13"+, "LS-1c") \
                         print("Yes!")
 Expr                    print("Hello", 23 * 5, x, x(1337))

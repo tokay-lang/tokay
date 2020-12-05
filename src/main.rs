@@ -4,8 +4,44 @@ use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::parser::TokayParser;
 use ::tokay::value::Value;
-use ::tokay::compiler::Compiler;
+use ::tokay::compiler::{Compiler, TokayCompiler};
 use ::tokay::{tokay, tokay_item, ccl};
+
+
+fn traverse(value: &Value) -> Option<Op> {
+    let value = value.get_complex().unwrap();
+    let emit = value.get_by_key("emit").unwrap().borrow();
+    let key = emit.get_string().unwrap();
+
+    println!("{}", key);
+    /*
+
+    if emit == "tokay1" {
+        /*
+        let nodes = payload.get_complex().unwrap();
+
+        for i in 0..nodes.len() {
+            traverse(&nodes[i].borrow());
+        }
+        */
+    }
+    else if emit == "assign_constant" {
+        /*
+        let payload = payload.get_complex().unwrap();
+
+        traverse(&payload[1].borrow());
+        let name = payload[0].borrow().get_complex().unwrap()[1].borrow();
+        println!("LET CONSTANT {:?}", name);
+        */
+    }
+    else {
+        println!("emit = {:?}", emit);
+        //println!("emit = {:?} payload = {:?}", emit, payload);
+    }
+    */
+
+    None
+}
 
 
 fn main() {
@@ -129,6 +165,7 @@ fn main() {
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
+    //let s = "A\nB\nC\n";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
@@ -138,6 +175,12 @@ fn main() {
     let res = p.parse(
         Reader::new(Box::new(io::Cursor::new(s)))
     );
+
+    if let Ok(ast) = res {
+        let compiler = TokayCompiler::new();
+        compiler.traverse(&ast);
+        //println!("{:?}", ast);
+    }
 
     /*
     print!("tokay>");

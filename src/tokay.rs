@@ -150,7 +150,11 @@ impl Parser for Op {
                 let value = context.collect(
                     context.capture_start, true, false
                 );
-                println!("{:?}", value);
+
+                if value.is_some() {
+                    println!("{:?}", value.unwrap());
+                }
+
                 Ok(Accept::Next)
             },
 
@@ -185,10 +189,17 @@ impl Parser for Op {
                 {
                     Some(value) => {
                         let mut ret = Complex::new();
+
                         ret.push_key_value(
-                            emit.to_string(),
+                            "emit".to_string(),
+                            Value::String(emit.to_string()).into_ref()
+                        );
+
+                        ret.push_key_value(
+                            "children".to_string(),
                             value
                         );
+
 
                         Value::Complex(Box::new(ret)).into_ref()
                     }
@@ -212,8 +223,14 @@ impl Parser for Op {
                 );
 
                 let mut ret = Complex::new();
+
                 ret.push_key_value(
-                    emit.to_string(),
+                    "emit".to_string(),
+                    Value::String(emit.to_string()).into_ref()
+                );
+
+                ret.push_key_value(
+                    "value".to_string(),
                     value.into_ref()
                 );
 
