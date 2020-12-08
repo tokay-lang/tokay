@@ -165,6 +165,7 @@ fn main() {
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
+    let s = "1+2*3+4";
     //let s = "A\nB\nC\n";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
@@ -177,9 +178,10 @@ fn main() {
     );
 
     if let Ok(ast) = res {
+        println!("{:?}", ast);
+
         let compiler = TokayCompiler::new();
-        compiler.traverse(&ast);
-        //println!("{:?}", ast);
+        compiler.traverse(&ast.get_complex().unwrap());
     }
 
     /*

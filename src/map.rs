@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::collections::hash_map::{Keys, Values};
 use std::hash::{Hash, Hasher};
 use std::iter::Iterator;
 use std::cmp::Eq;
 use std::borrow::Borrow;
 use std::fmt::Debug;
+
 
 // Provide a MapKey trait to define required traits
 pub trait MapKey: Clone + Hash + Eq + Debug {}
@@ -128,8 +130,12 @@ impl<K: MapKey, V> Map<K, V> {
         self.vec.len()
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
-        Iter{
+    pub fn keys(&self) -> Keys<'_, K, V> {
+        self.map.keys()
+    }
+
+    pub fn iter(&self) -> KeyValueIter<K, V> {
+        KeyValueIter{
             map: self,
             index: 0
         }
@@ -200,12 +206,13 @@ macro_rules! map_value {
     }
 }
 
-pub struct Iter<'a, K: MapKey, V> {
+
+pub struct KeyValueIter<'a, K: MapKey, V> {
     map: &'a Map<K, V>,
     index: usize
 }
 
-impl<'a, K: MapKey, V> Iterator for Iter<'a, K, V> {
+impl<'a, K: MapKey, V> Iterator for KeyValueIter<'a, K, V> {
     type Item = (Option<&'a K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {

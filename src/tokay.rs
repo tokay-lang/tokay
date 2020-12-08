@@ -195,11 +195,19 @@ impl Parser for Op {
                             Value::String(emit.to_string()).into_ref()
                         );
 
-                        ret.push_key_value(
-                            "children".to_string(),
-                            value
-                        );
-
+                        // Complex values are classified as child nodes
+                        if value.borrow().get_complex().is_some() {
+                            ret.push_key_value(
+                                "children".to_string(),
+                                value
+                            );
+                        }
+                        else {
+                            ret.push_key_value(
+                                "value".to_string(),
+                                value
+                            );
+                        }
 
                         Value::Complex(Box::new(ret)).into_ref()
                     }
