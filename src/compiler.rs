@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
-use crate::tokay::{Op, Program, Parselet};
+use crate::tokay::*;
 use crate::value::{Value, RefValue, Complex};
 
 
@@ -21,6 +21,7 @@ pub struct Compiler {
     scopes: Vec<Scope>,                     // Current compilation scopes
     values: Vec<RefValue>,                  // Constant values collected during compile
     parselets: Vec<RefCell<Parselet>>       // Parselets
+
 }
 
 impl Compiler {
@@ -214,6 +215,113 @@ impl Compiler {
         }
         else {
             Op::LoadFast(self.get_local(name, true).unwrap())
+        }
+    }
+
+    /* Tokay AST node traversal */
+
+    fn traverse_node_or_nodes(&mut self, nodes: &Complex) -> Vec<Op> {
+        let mut ret = Vec::new();
+
+        if nodes.keys().len() == 0 {
+            for i in 0..nodes.len() {
+                let node = nodes[i].borrow();
+                let res = self.traverse(&node.get_complex().unwrap());
+
+                if let Some(op) = res {
+                    ret.push(op);
+                }
+            }
+        }
+        else {
+            let res = self.traverse(nodes);
+            if let Some(op) = res {
+                ret.push(op);
+            }
+        }
+
+        ret
+    }
+
+    pub fn traverse(&mut self, node: &Complex) -> Option<Op> {
+        // Handle sequence-case first
+        if node.keys().len() == 0 {
+            let res = self.traverse_node_or_nodes(node);
+            if res.len() == 0 {
+                return None
+            }
+            else if res.len() == 1 {
+                return Some(res.into_iter().next().unwrap())
+            }
+            else {
+                panic!("Sequence of nodes not explicitly handled!");
+            }
+        }
+
+        // Normal node processing...
+        let emit = node.get_by_key("emit").unwrap().borrow();
+        let emit = emit.get_string().unwrap();
+
+        let children = node.get_by_key("children").and_then(|c| Some(c.borrow()));
+        let children = children.as_deref().and_then(|c| c.get_complex());
+
+        let value = node.get_by_key("value").and_then(|c| Some(c.borrow()));
+        let value = value.as_deref().and_then(|v| v.get_string());
+
+        match emit {
+            "match" => Some(Match::new(value.unwrap().clone())),
+
+            // Modifier -------------------------------------------------------
+            modifier if modifier.starts_with("mod_") => {
+                let node = self.traverse(&children.unwrap()).unwrap();
+
+                match &modifier[4..] {
+                    "positive" => Some(node.into_positive()),
+                    "kleene" => Some(node.into_kleene()),
+                    "optional" => Some(node.into_optional()),
+                    _ => unimplemented!("{} not implemented", modifier)
+                }
+            },
+
+            val if val.starts_with("value_") => {
+                match &val[6..] {
+                    "integer" => println!("{}", value.unwrap()),
+                    "float" => println!("{}", value.unwrap()),
+                    _ => println!("unhandled {}", value.unwrap())
+                }
+
+                None
+            },
+            op if op.starts_with("op_") => {
+                let parts: Vec<&str> = emit.split("_").collect();
+
+                if parts[1] == "binary" {
+                    let children = children.unwrap();
+                    assert_eq!(children.len(), 2);
+
+                    self.traverse(&children);
+
+                    match parts[2] {
+                        "add" => println!("add"),
+                        "mul" => println!("mul"),
+                        _ => {
+                            unimplemented!("op_binary_{}", parts[2]);
+                        }
+                    }
+                }
+
+                None
+            }
+
+            _ => {
+                if let Some(children) = children {
+                    self.traverse(&children)
+                }
+                // Otherwise, report unhandled node!
+                else {
+                    panic!("No traversal function for {:?} found", emit);
+                }
+            }
         }
     }
 }
@@ -471,96 +579,6 @@ macro_rules! tokay {
             }
 
             compiler.into_program()
-        }
-    }
-}
-
-/* Tokay compiler */
-
-type TokayCompilerFn =
-    fn(&TokayCompiler, Option<&Complex>, Option<&str>) -> Option<Op>;
-
-pub struct TokayCompiler{
-    compiler: Compiler,
-    traversal: HashMap<&'static str, TokayCompilerFn>
-}
-
-macro_rules! traversals {
-    ( $compiler:ident, $children:ident, $value:ident,
-        [ $( $name:expr => $body:tt ),+ ] ) => {
-        {
-            let mut traversal: HashMap<&'static str, TokayCompilerFn>;
-            traversal = HashMap::new();
-
-            $(
-                traversal.insert(
-                    $name, |$compiler, $children, $value| $body
-                );
-            )+
-
-            traversal
-        }
-    }
-}
-
-impl TokayCompiler {
-    pub fn new() -> Self {
-        Self{
-            compiler: Compiler::new(),
-            traversal: traversals!(
-                compiler, children, value, [
-                    "integer" => {
-                        println!("{}", value.unwrap());
-                        None
-                    },
-                    "binary_add" => {
-                        compiler.traverse(&children.unwrap());
-                        println!("add");
-                        None
-                    },
-                    "binary_mul" => {
-                        compiler.traverse(&children.unwrap());
-                        println!("mul");
-                        None
-                    }
-                ]
-            )
-        }
-    }
-
-    pub fn traverse(&self, nodes: &Complex) {
-        if nodes.keys().len() == 0 {
-            for i in 0..nodes.len() {
-                let node = nodes[i].borrow();
-                self.traverse_node(&node.get_complex().unwrap());
-            }
-        }
-        else {
-            self.traverse_node(nodes);
-        }
-    }
-
-    pub fn traverse_node(&self, node: &Complex) -> Option<Op> {
-        let emit = node.get_by_key("emit").unwrap().borrow();
-        let children = node.get_by_key("children").and_then(|c| Some(c.borrow()));
-        let value = node.get_by_key("value").and_then(|c| Some(c.borrow()));
-
-        // Check for node traversal function
-        if let Some(func) = self.traversal.get(emit.get_string().unwrap()) {
-            func(
-                self,
-                children.as_deref().and_then(|c| c.get_complex()),
-                value.as_deref().and_then(|v| v.get_string())
-            )
-        }
-        // Fallback, traverse all children
-        else if let Some(children) = children {
-            self.traverse(children.get_complex().unwrap());
-            None
-        }
-        // Otherwise, report unhandled node!
-        else {
-            panic!("No traversal function for {:?} found", emit);
         }
     }
 }

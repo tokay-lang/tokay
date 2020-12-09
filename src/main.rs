@@ -4,7 +4,7 @@ use ::tokay::reader::Reader;
 use ::tokay::tokay::*;
 use ::tokay::parser::TokayParser;
 use ::tokay::value::Value;
-use ::tokay::compiler::{Compiler, TokayCompiler};
+use ::tokay::compiler::Compiler;
 use ::tokay::{tokay, tokay_item, ccl};
 
 
@@ -165,7 +165,7 @@ fn main() {
 
     let p = TokayParser::new();
     let s = include_str!("../readme.tok");
-    let s = "1+2*3+4";
+    let s = "'Hello World'+ 2+3\n1+2*3+4";
     //let s = "A\nB\nC\n";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
@@ -180,8 +180,9 @@ fn main() {
     if let Ok(ast) = res {
         println!("{:?}", ast);
 
-        let compiler = TokayCompiler::new();
-        compiler.traverse(&ast.get_complex().unwrap());
+        let mut compiler = Compiler::new();
+        let prog = compiler.traverse(&ast.get_complex().unwrap());
+        println!("{:?}", prog);
     }
 
     /*

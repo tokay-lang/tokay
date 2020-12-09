@@ -73,8 +73,7 @@ impl TokayParser {
         (Char::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
         "\"",
         (Op::PushAddr(2)),
-        (Op::LoadCapture),
-        (Op::Create("string"))
+        (Op::LoadCapture)
     ]
 }),
 
@@ -84,24 +83,23 @@ impl TokayParser {
         (Char::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
         "\'",
         (Op::PushAddr(2)),
-        (Op::LoadCapture),
-        (Op::Create("string"))
+        (Op::LoadCapture)
     ]
 }),
 
 (T_Integer = {
     // todo: implement as built-in Parselet
-    [(Char::span(ccl!['0'..='9'])), (Op::Create("integer"))]
+    [(Char::span(ccl!['0'..='9'])), (Op::Create("value_integer"))]
 }),
 
 (T_Float = {
     // todo: implement as built-in Parselet
     [(Char::span(ccl!['0'..='9'])), ".",
         (Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
-            (Op::Lexeme("float"))],
+            (Op::Lexeme("value_float"))],
     [(Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
         ".", (Char::span(ccl!['0'..='9'])),
-            (Op::Lexeme("float"))]
+            (Op::Lexeme("value_float"))]
 }),
 
 // Statics, Variables & Constants
@@ -138,15 +136,15 @@ impl TokayParser {
 }),
 
 (S_String = {
-    [T_HeavyString, _],
-    [T_LightString, _]
+    [T_HeavyString, _, (Op::Create("value_string"))],
+    [T_LightString, _, (Op::Create("value_string"))]
 }),
 
 (S_Literal = {
-    ["true", _, (Op::Create("true"))],
-    ["false", _, (Op::Create("false"))],
-    ["void", _, (Op::Create("void"))],
-    ["unset", _, (Op::Create("unset"))],
+    ["true", _, (Op::Create("value_true"))],
+    ["false", _, (Op::Create("value_false"))],
+    ["void", _, (Op::Create("value_void"))],
+    ["unset", _, (Op::Create("value_unset"))],
     [T_Float, _],
     [T_Integer, _]
 }),
@@ -164,31 +162,31 @@ impl TokayParser {
 }),
 
 (S_Unary = {
-    ["-", _, S_Atomic, (Op::Create("unary_sub"))],
-    ["+", _, S_Atomic, (Op::Create("unary_add"))],
-    ["!", _, S_Atomic, (Op::Create("unary_not"))],
+    ["-", _, S_Atomic, (Op::Create("op_unary_sub"))],
+    ["+", _, S_Atomic, (Op::Create("op_unary_add"))],
+    ["!", _, S_Atomic, (Op::Create("op_unary_not"))],
     S_Atomic
 }),
 
 (S_MulDiv = {
-    [S_MulDiv, "*", _, S_Unary, (Op::Create("binary_mul"))],
-    [S_MulDiv, "/", _, S_Unary, (Op::Create("binary_div"))],
+    [S_MulDiv, "*", _, S_Unary, (Op::Create("op_binary_mul"))],
+    [S_MulDiv, "/", _, S_Unary, (Op::Create("op_binary_div"))],
     S_Unary
 }),
 
 (S_AddSub = {
-    [S_AddSub, "+", _, S_MulDiv, (Op::Create("binary_add"))],
-    [S_AddSub, "-", _, S_MulDiv, (Op::Create("binary_sub"))],
+    [S_AddSub, "+", _, S_MulDiv, (Op::Create("op_binary_add"))],
+    [S_AddSub, "-", _, S_MulDiv, (Op::Create("op_binary_sub"))],
     S_MulDiv
 }),
 
 (S_Compare = {
-    [S_Compare, "==", _, S_AddSub, (Op::Create("compare_equal"))],
-    [S_Compare, "!=", _, S_AddSub, (Op::Create("compare_unequal"))],
-    [S_Compare, "<=", _, S_AddSub, (Op::Create("compare_lowerequal"))],
-    [S_Compare, ">=", _, S_AddSub, (Op::Create("compare_greaterequal"))],
-    [S_Compare, "<", _, S_AddSub, (Op::Create("compare_lower"))],
-    [S_Compare, ">", _, S_AddSub, (Op::Create("compare_greater"))],
+    [S_Compare, "==", _, S_AddSub, (Op::Create("op_compare_equal"))],
+    [S_Compare, "!=", _, S_AddSub, (Op::Create("op_compare_unequal"))],
+    [S_Compare, "<=", _, S_AddSub, (Op::Create("op_compare_lowerequal"))],
+    [S_Compare, ">=", _, S_AddSub, (Op::Create("op_compare_greaterequal"))],
+    [S_Compare, "<", _, S_AddSub, (Op::Create("op_compare_lower"))],
+    [S_Compare, ">", _, S_AddSub, (Op::Create("op_compare_greater"))],
     S_AddSub
 }),
 
@@ -262,8 +260,8 @@ impl TokayParser {
 }),
 
 (S_Token = {
-    [T_HeavyString, _],
-    [T_LightString, _],
+    [T_HeavyString, (Op::Create("match"))],
+    [T_LightString, (Op::Create("match"))],
     [S_ConstantCall, _],
     [S_Parselet, _]
 }),
