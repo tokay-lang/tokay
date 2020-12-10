@@ -140,25 +140,25 @@ impl TokayParser {
     [T_LightString, _, (Op::Create("value_string"))]
 }),
 
-(S_Literal = {
+(S_Value = {
     ["true", _, (Op::Create("value_true"))],
     ["false", _, (Op::Create("value_false"))],
     ["void", _, (Op::Create("value_void"))],
     ["unset", _, (Op::Create("value_unset"))],
+    [S_String, _],
     [T_Float, _],
-    [T_Integer, _]
+    [T_Integer, _],
+    [S_Parselet, _]
 }),
 
 // Expression & Flow
 
 (S_Atomic = {
     ["(", _, S_Expression, ")", _],
-    S_Literal,
-    S_String,
+    S_Value,
     S_Call,
     S_Rvalue,
-    S_Block,
-    S_Parselet
+    S_Block
 }),
 
 (S_Unary = {
@@ -232,6 +232,7 @@ impl TokayParser {
 }),
 
 (S_Item = {
+    // todo: Recognize aliases
     S_TokenModifier,
     S_Expression
 }),
@@ -262,15 +263,15 @@ impl TokayParser {
 (S_Token = {
     [T_HeavyString, (Op::Create("match"))],
     [T_LightString, (Op::Create("match"))],
-    [S_ConstantCall, _],
-    [S_Parselet, _]
+    [S_ConstantCall],
+    [S_Parselet]
 }),
 
 (S_Tokay = {
     S_Sequences
 }),
 
-[S_Tokay, (Op::Create("tokay"))]
+[S_Tokay, (Op::Create("main"))]
 
 // ----------------------------------------------------------------------------
             })

@@ -166,6 +166,7 @@ impl Compiler {
     Statics are moved into the program later on. */
     pub fn define_value(&mut self, value: RefValue) -> usize
     {
+        // todo: check for existing value
         self.values.push(value);
         self.values.len() - 1
     }
@@ -220,7 +221,8 @@ impl Compiler {
 
     /* Tokay AST node traversal */
 
-    fn traverse_node_or_nodes(&mut self, nodes: &Complex) -> Vec<Op> {
+    // Traverse a list of nodes from a complex, or the complex as it is
+    fn traverse_list(&mut self, nodes: &Complex) -> Vec<Op> {
         let mut ret = Vec::new();
 
         if nodes.keys().len() == 0 {
@@ -243,10 +245,65 @@ impl Compiler {
         ret
     }
 
+    // Traverse a value node into a RefValue instance
+    fn traverse_value(
+        &mut self,
+        emit: &str,
+        children: Option<&Complex>,
+        value: Option<&str>
+    ) -> RefValue {
+        match emit {
+            "value_string" => {
+                Value::String(value.unwrap().to_string())
+            },
+            "value_integer" => {
+                Value::Integer(
+                    match value.unwrap().parse::<i64>() {
+                        Ok(i) => i,
+                        Err(_) => 0
+                    }
+                )
+            }
+            "value_float" => {
+                Value::Float(
+                    match value.unwrap().parse::<f64>() {
+                        Ok(f) => f,
+                        Err(_) => 0.0
+                    }
+                )
+            }
+            "value_true" => Value::True,
+            "value_false" => Value::False,
+            "value_unset" => Value::Unset,
+            "parselet" => {
+                Value::Parselet(
+                    self.traverse_parselet(&children.unwrap())
+                )
+            },
+            _ => unimplemented!("unhandled value node {}", emit)
+        }.into_ref()
+    }
+
+    // Traverse a parselet node into a parselet address
+    fn traverse_parselet(&mut self, children: &Complex) -> usize {
+        // todo: handle parameters BEFORE scope push
+        self.push_scope(true);
+        let body = self.traverse(children).unwrap();
+
+        let parselet = self.define_parselet(
+            Parselet::new(body, self.get_locals())
+        );
+
+        self.pop_scope();
+
+        parselet
+    }
+
+    // Main traversal function, running recursively through the AST
     pub fn traverse(&mut self, node: &Complex) -> Option<Op> {
         // Handle sequence-case first
         if node.keys().len() == 0 {
-            let res = self.traverse_node_or_nodes(node);
+            let res = self.traverse_list(node);
             if res.len() == 0 {
                 return None
             }
@@ -268,7 +325,33 @@ impl Compiler {
         let value = node.get_by_key("value").and_then(|c| Some(c.borrow()));
         let value = value.as_deref().and_then(|v| v.get_string());
 
+        //println!("emit = {:?}", emit);
+
         match emit {
+
+            // Block ----------------------------------------------------------
+            "block" => {
+                Some(Block::new(self.traverse_list(&children.unwrap())))
+            },
+
+            // Main -----------------------------------------------------------
+
+            "main" => {
+                let main = self.traverse_list(&children.unwrap());
+
+                if main.len() > 0 {
+                    self.define_parselet(
+                        Parselet::new(
+                            Block::new(main),
+                            self.get_locals()
+                        )
+                    );
+                }
+
+                None
+            },
+
+            // Match ----------------------------------------------------------
             "match" => Some(Match::new(value.unwrap().clone())),
 
             // Modifier -------------------------------------------------------
@@ -276,22 +359,15 @@ impl Compiler {
                 let node = self.traverse(&children.unwrap()).unwrap();
 
                 match &modifier[4..] {
-                    "positive" => Some(node.into_positive()),
                     "kleene" => Some(node.into_kleene()),
+                    "positive" => Some(node.into_positive()),
                     "optional" => Some(node.into_optional()),
                     _ => unimplemented!("{} not implemented", modifier)
                 }
             },
 
-            val if val.starts_with("value_") => {
-                match &val[6..] {
-                    "integer" => println!("{}", value.unwrap()),
-                    "float" => println!("{}", value.unwrap()),
-                    _ => println!("unhandled {}", value.unwrap())
-                }
+            // Operator ------------------------------------------------------
 
-                None
-            },
             op if op.starts_with("op_") => {
                 let parts: Vec<&str> = emit.split("_").collect();
 
@@ -299,7 +375,7 @@ impl Compiler {
                     let children = children.unwrap();
                     assert_eq!(children.len(), 2);
 
-                    self.traverse(&children);
+                    self.traverse_list(&children);
 
                     match parts[2] {
                         "add" => println!("add"),
@@ -313,7 +389,36 @@ impl Compiler {
                 None
             }
 
+            // Parselet ------------------------------------------------------
+
+            "parselet" => {
+                None
+            }
+
+            // Sequence ------------------------------------------------------
+
+            "sequence" => {
+                let items = self.traverse_list(&children.unwrap());
+                //todo: Handle aliases...
+
+                Some(
+                    Sequence::new(
+                        items.into_iter()
+                            .map(|item| (item, None))
+                            .collect()
+                    )
+                )
+            },
+
+            // Value ---------------------------------------------------------
+
+            val if val.starts_with("value_") => {
+                let value = self.traverse_value(val, children, value);
+                Some(Op::LoadStatic(self.define_value(value)))
+            },
+
             _ => {
+                // When there are children, try to traverse recursively
                 if let Some(children) = children {
                     self.traverse(&children)
                 }
