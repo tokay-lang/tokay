@@ -359,7 +359,7 @@ impl Parser for Op {
 
             Op::LoadCapture => {
                 if let Value::Addr(index) = *context.pop().borrow() {
-                    Op::LoadCaptureFast(index).run(context);
+                    Op::LoadCaptureFast(index).run(context)?;
                     Ok(Accept::Next)
                 }
                 else {
@@ -851,7 +851,7 @@ impl Parser for Sequence {
         }
         /*
             When this even fails, push a range of the current sequence in
-            case than any input was consumed.
+            case that any input was consumed.
 
             fixme:
             Maybe this could be pushed with severity 0, and later on collected?
@@ -1534,5 +1534,11 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
         self.parselets.last().unwrap().run(runtime)
+    }
+
+    pub fn run_from_str(&self, s: &'static str) -> Result<Accept, Reject> {
+        let mut reader = Reader::new(Box::new(std::io::Cursor::new(s)));
+        let mut runtime = Runtime::new(&self, &mut reader);
+        self.run(&mut runtime)
     }
 }

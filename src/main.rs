@@ -7,7 +7,7 @@ use ::tokay::compiler::Compiler;
 fn main() {
     let p = TokayParser::new();
     //let s = include_str!("../readme.tok");
-    let s = "P = @{}\n@{}";
+    let s = "P = @{\n\"Hello\"+\nP \"World\"}\nP";
     //let s = "A\nB\nC\n";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
@@ -25,7 +25,11 @@ fn main() {
         let mut compiler = Compiler::new();
         compiler.traverse(&ast);
 
-        let prog = compiler.into_program();
-        println!("{:?}", prog);
+        let prg = compiler.into_program();
+        //prg.dump();
+
+        println!("prg = {:?}", prg);
+
+        println!("res = {:?}", prg.run_from_str("HelloWorld"));
     }
 }

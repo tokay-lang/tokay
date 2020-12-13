@@ -342,8 +342,19 @@ impl Compiler {
                     None
                 }
             },
-            // main -----------------------------------------------------------
 
+            // call_constant --------------------------------------------------
+            "call_constant" => {
+                let children = node.borrow_by_key("children");
+                let constant = children.get_dict().unwrap();
+                let constant = constant.borrow_by_key("value");
+
+                let mut item = Op::Name(constant.to_string());
+                item.resolve(self, false);
+                Some(item)
+            },
+
+            // main -----------------------------------------------------------
             "main" => {
                 let children = node.borrow_by_key("children");
                 let main = self.traverse(&children);
