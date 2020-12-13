@@ -925,6 +925,7 @@ the generated parse tree automatically until no more input can be consumed.
 #[derive(Debug)]
 pub struct Block {
     leftrec: bool,
+    all_leftrec: bool,
     items: Vec<(Op, bool)>
 }
 
@@ -932,6 +933,7 @@ impl Block {
     pub fn new(items: Vec<Op>) -> Op {
         Self{
             items: items.into_iter().map(|item| (item, false)).collect(),
+            all_leftrec: false,
             leftrec: false
         }.into_op()
     }
@@ -994,7 +996,12 @@ impl Parser for Block {
             // is consumed.
 
             let mut reader_end = context.reader_start;
-            let mut result = Err(Reject::Next);
+            let mut result = if self.all_leftrec {
+                Ok(Accept::Next)
+            }
+            else {
+                Err(Reject::Next)
+            };
 
             // Insert a fake memo entry to avoid endless recursion
 
@@ -1012,7 +1019,7 @@ impl Parser for Block {
             let mut loops = 0;
 
             loop {
-                let res = run(self, context, loops > 0);
+                let res = run(self, context, self.all_leftrec || loops > 0);
 
                 match res {
                     // Hard reject
@@ -1067,6 +1074,7 @@ impl Parser for Block {
         nullable: &mut bool)
     {
         *nullable = false;
+        self.all_leftrec = true;
 
         for (item, item_leftrec) in self.items.iter_mut() {
             *item_leftrec = false;
@@ -1084,6 +1092,9 @@ impl Parser for Block {
 
             if *item_leftrec {
                 self.leftrec = true;
+            }
+            else {
+                self.all_leftrec = false;
             }
         }
 
@@ -1539,6 +1550,14 @@ impl Program {
     pub fn run_from_str(&self, s: &'static str) -> Result<Accept, Reject> {
         let mut reader = Reader::new(Box::new(std::io::Cursor::new(s)));
         let mut runtime = Runtime::new(&self, &mut reader);
-        self.run(&mut runtime)
+
+        let ret = self.run(&mut runtime);
+
+        // tmp: report unconsumed input
+        if let Some(ch) = reader.peek() {
+            println!("Input was not fully consumed, next character is {:?}", ch);
+        }
+
+        ret
     }
 }
