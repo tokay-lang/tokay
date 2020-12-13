@@ -1,22 +1,94 @@
 use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
+use std::collections::HashMap;
+
 use crate::map::Map;
 
-//pub type RefValue = Rc<RefCell<Value>>;
+
+pub trait BorrowByKey {
+    fn borrow_by_key(&self, key: &str) -> Ref<Value>;
+    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value>;
+}
+
+pub trait BorrowByIdx {
+    fn borrow_by_idx(&self, idx: usize) -> Ref<Value>;
+    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value>;
+
+    fn borrow_first(&self) -> Ref<Value> {
+        self.borrow_by_idx(0)
+    }
+
+    fn borrow_first_2(&self) -> (Ref<Value>, Ref<Value>) {
+        let first = self.borrow_by_idx(0);
+        let second = self.borrow_by_idx(1);
+
+        (first, second)
+    }
+
+    fn borrow_first_3(&self) -> (Ref<Value>, Ref<Value>, Ref<Value>) {
+        let first = self.borrow_by_idx(0);
+        let second = self.borrow_by_idx(1);
+        let third = self.borrow_by_idx(2);
+
+        (first, second, third)
+    }
+}
+
+// https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=4dae75b00e3fe033dc495b279b52684f
+
+// --- RefValue ---------------------------------------------------------------
+
+pub type RefValue = Rc<RefCell<Value>>;
+
 pub type Complex = Map<String, RefValue>;
+
+// --- List -------------------------------------------------------------------
+pub type List = Vec<RefValue>;
+
+impl BorrowByIdx for List {
+    fn borrow_by_idx(&self, idx: usize) -> Ref<Value> {
+        let value = self.get(idx).unwrap();
+        value.borrow()
+    }
+
+    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value> {
+        let value = self.get(idx).unwrap();
+        value.borrow_mut()
+    }
+}
+
+// --- Dict -------------------------------------------------------------------
+pub type Dict = HashMap<String, RefValue>;
+
+impl BorrowByKey for Dict {
+    fn borrow_by_key(&self, key: &str) -> Ref<Value> {
+        let value = self.get(key).unwrap();
+        value.borrow()
+    }
+
+    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value> {
+        let value = self.get(key).unwrap();
+        value.borrow_mut()
+    }
+}
+
+
+// --- Value ------------------------------------------------------------------
 
 #[derive(PartialEq, Clone)]
 pub enum Value {
-    Unset,                  // unse
-    Void,                   // void
-    True,                   // true
-    False,                  // false
-    Integer(i64),           // integers
-    Float(f64),             // float
-    Addr(usize),            // usize
-    String(String),         // string
-    Complex(Box<Complex>),  // combined map/array type
-    Parselet(usize)         // executable code parselet
+    Unset,                      // unse
+    Void,                       // void
+    True,                       // true
+    False,                      // false
+    Integer(i64),               // integers
+    Float(f64),                 // float
+    Addr(usize),                // usize
+    String(String),             // string
+    Complex(Box<Complex>),      // combined map/array type
+    List(Box<List>),            // list
+    Dict(Box<Dict>),            // dict
+    Parselet(usize)             // executable code parselet
 }
 
 impl std::fmt::Debug for Value {
@@ -43,9 +115,33 @@ impl std::fmt::Debug for Value {
                         write!(f, ", ")?;
                     }
                 }
-                write!(f, ")")?;
+                write!(f, ")")
+            },
+            Value::List(l) => {
+                write!(f, "(")?;
 
-                Ok(())
+                for (i, v) in l.iter().enumerate() {
+                    write!(f, "{:?}", v)?;
+
+                    if i + 1 < l.len() {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                write!(f, ")")
+            },
+            Value::Dict(d) => {
+                write!(f, "(")?;
+
+                for (i, (k, v)) in d.iter().enumerate() {
+                    write!(f, "{:?}: {:?}", k, v)?;
+
+                    if i + 1 < d.len() {
+                        write!(f, ", ")?;
+                    }
+                }
+
+                write!(f, ")")
             },
             Value::Parselet(p) => write!(f, "@{:?}", p)
         }
@@ -55,7 +151,15 @@ impl std::fmt::Debug for Value {
 impl Value {
     // Create a RefValue from a Value.
     pub fn into_ref(self) -> RefValue {
-        RefValue::new(self)
+        RefValue::new(RefCell::new(self))
+    }
+
+    // Convert a RefValue into a Value
+    pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
+        match Rc::try_unwrap(this) {
+            Ok(this) => Ok(this.into_inner()),
+            Err(this) => Err(this)
+        }
     }
 
     // Get Value's boolean meaning.
@@ -66,6 +170,8 @@ impl Value {
             Self::Float(f) => *f != 0.0,
             Self::String(s) => s.len() != 0,
             Self::Complex(c) => c.len() > 0,
+            Self::List(l) => l.len() > 0,
+            Self::Dict(d) => d.len() > 0,
             Self::Parselet(_) | Self::Addr(_) => true,
             _ => false
         }
@@ -132,11 +238,13 @@ impl Value {
             Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
             Self::Complex(c) => format!("{:?}", c),
+            Self::List(l) => format!("{:?}", l),
+            Self::Dict(d) => format!("{:?}", d),
             Self::Parselet(p) => format!("{:?}", p)
         }
     }
 
-    // Get String from a value
+    // Extract String from a value
     pub fn get_string(&self) -> Option<&str> {
         if let Self::String(s) = self {
             Some(&s)
@@ -146,10 +254,30 @@ impl Value {
         }
     }
 
-    // Get Complex from a value
+    // Extract Complex from a value
     pub fn get_complex(&self) -> Option<&Complex> {
         if let Self::Complex(c) = self {
             Some(&c)
+        }
+        else {
+            None
+        }
+    }
+
+    // Extract List from a value
+    pub fn get_list(&self) -> Option<&List> {
+        if let Self::List(l) = self {
+            Some(&l)
+        }
+        else {
+            None
+        }
+    }
+
+    // Extract Dict from a value
+    pub fn get_dict(&self) -> Option<&Dict> {
+        if let Self::Dict(d) = self {
+            Some(&d)
         }
         else {
             None
@@ -339,7 +467,7 @@ fn test_mul() {
 
 */
 
-
+/*
 #[derive(Clone, PartialEq)]
 pub struct RefValue(Rc<RefCell<Value>>);
 
@@ -369,3 +497,4 @@ impl std::fmt::Debug for RefValue {
         write!(f, "{:?}", self.borrow())
     }
 }
+*/

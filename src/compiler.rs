@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use crate::tokay::*;
-use crate::value::{Value, RefValue, Complex};
+use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict};
 
 
 /** Compiler symbolic scope.
@@ -221,52 +221,56 @@ impl Compiler {
 
     /* Tokay AST node traversal */
 
-    // Traverse a list of nodes from a complex, or the complex as it is
-    fn traverse_list(&mut self, nodes: &Complex) -> Vec<Op> {
+    // Traverse something from the AST
+    pub fn traverse(&mut self, value: &Value) -> Vec<Op> {
         let mut ret = Vec::new();
 
-        if nodes.keys().len() == 0 {
-            for i in 0..nodes.len() {
-                let node = nodes[i].borrow();
-                let res = self.traverse(&node.get_complex().unwrap());
+        if let Some(list) = value.get_list() {
+            for item in list.iter() {
+                let item = item.borrow();
+                let res = self.traverse_node(&item.get_dict().unwrap());
 
                 if let Some(op) = res {
                     ret.push(op);
                 }
             }
         }
-        else {
-            let res = self.traverse(nodes);
+        else if let Some(dict) = value.get_dict() {
+            let res = self.traverse_node(dict);
             if let Some(op) = res {
                 ret.push(op);
             }
+        }
+        else {
+            unimplemented!("traverse() cannot traverse {:?}", value);
         }
 
         ret
     }
 
     // Traverse a value node into a RefValue instance
-    fn traverse_value(
-        &mut self,
-        emit: &str,
-        children: Option<&Complex>,
-        value: Option<&str>
-    ) -> RefValue {
+    fn traverse_node_value(&mut self, node: &Dict) -> RefValue {
+        let emit = node.borrow_by_key("emit");
+        let emit = emit.get_string().unwrap();
+
         match emit {
             "value_string" => {
-                Value::String(value.unwrap().to_string())
+                let value = node.borrow_by_key("value").to_string();
+                Value::String(value)
             },
             "value_integer" => {
+                let value = node.borrow_by_key("value").to_string();
                 Value::Integer(
-                    match value.unwrap().parse::<i64>() {
+                    match value.parse::<i64>() {
                         Ok(i) => i,
                         Err(_) => 0
                     }
                 )
             }
             "value_float" => {
+                let value = node.borrow_by_key("value").to_string();
                 Value::Float(
-                    match value.unwrap().parse::<f64>() {
+                    match value.parse::<f64>() {
                         Ok(f) => f,
                         Err(_) => 0.0
                     }
@@ -277,7 +281,7 @@ impl Compiler {
             "value_unset" => Value::Unset,
             "parselet" => {
                 Value::Parselet(
-                    self.traverse_parselet(&children.unwrap())
+                    self.traverse_node_parselet(node)
                 )
             },
             _ => unimplemented!("unhandled value node {}", emit)
@@ -285,13 +289,14 @@ impl Compiler {
     }
 
     // Traverse a parselet node into a parselet address
-    fn traverse_parselet(&mut self, children: &Complex) -> usize {
+    fn traverse_node_parselet(&mut self, node: &Dict) -> usize {
         // todo: handle parameters BEFORE scope push
         self.push_scope(true);
-        let body = self.traverse(children).unwrap();
 
+        let children = node.borrow_by_key("children");
+        let body = self.traverse_node(&children.get_dict().unwrap());
         let parselet = self.define_parselet(
-            Parselet::new(body, self.get_locals())
+            Parselet::new(body.unwrap_or(Op::Nop), self.get_locals())
         );
 
         self.pop_scope();
@@ -300,44 +305,48 @@ impl Compiler {
     }
 
     // Main traversal function, running recursively through the AST
-    pub fn traverse(&mut self, node: &Complex) -> Option<Op> {
-        // Handle sequence-case first
-        if node.keys().len() == 0 {
-            let res = self.traverse_list(node);
-            if res.len() == 0 {
-                return None
-            }
-            else if res.len() == 1 {
-                return Some(res.into_iter().next().unwrap())
-            }
-            else {
-                panic!("Sequence of nodes not explicitly handled!");
-            }
-        }
-
+    pub fn traverse_node(&mut self, node: &Dict) -> Option<Op> {
         // Normal node processing...
-        let emit = node.get_by_key("emit").unwrap().borrow();
+        let emit = node.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
-        let children = node.get_by_key("children").and_then(|c| Some(c.borrow()));
-        let children = children.as_deref().and_then(|c| c.get_complex());
-
-        let value = node.get_by_key("value").and_then(|c| Some(c.borrow()));
-        let value = value.as_deref().and_then(|v| v.get_string());
-
-        //println!("emit = {:?}", emit);
+        println!("emit={:?}", emit);
 
         match emit {
+            // assign_constant ------------------------------------------------
+            "assign_constant" => {
+                let children = node.borrow_by_key("children");
+                let children = children.get_list();
 
-            // Block ----------------------------------------------------------
-            "block" => {
-                Some(Block::new(self.traverse_list(&children.unwrap())))
+                let (constant, value) = children.unwrap().borrow_first_2();
+
+                let constant = constant.get_dict().unwrap();
+                let constant = constant.borrow_by_key("value");
+
+                let value = self.traverse_node_value(value.get_dict().unwrap());
+                self.set_constant(
+                    constant.get_string().unwrap(),
+                    value
+                );
+
+                None
             },
 
-            // Main -----------------------------------------------------------
+            // block ----------------------------------------------------------
+            "block" => {
+                if let Some(children) = node.get("children") {
+                    let body = self.traverse(&children.borrow());
+                    Some(Block::new(body))
+                }
+                else {
+                    None
+                }
+            },
+            // main -----------------------------------------------------------
 
             "main" => {
-                let main = self.traverse_list(&children.unwrap());
+                let children = node.borrow_by_key("children");
+                let main = self.traverse(&children);
 
                 if main.len() > 0 {
                     self.define_parselet(
@@ -351,33 +360,43 @@ impl Compiler {
                 None
             },
 
-            // Match ----------------------------------------------------------
-            "match" => Some(Match::new(value.unwrap().clone())),
+            // match ----------------------------------------------------------
+            "match" => {
+                let value = node.borrow_by_key("value");
+                Some(Match::new(value.get_string().unwrap().clone()))
+            },
 
-            // Modifier -------------------------------------------------------
+            // modifier -------------------------------------------------------
             modifier if modifier.starts_with("mod_") => {
-                let node = self.traverse(&children.unwrap()).unwrap();
+                let children = node.borrow_by_key("children");
+                let op = self.traverse_node(
+                    children.get_dict().unwrap()
+                ).unwrap();
 
                 match &modifier[4..] {
-                    "kleene" => Some(node.into_kleene()),
-                    "positive" => Some(node.into_positive()),
-                    "optional" => Some(node.into_optional()),
+                    "kleene" => Some(op.into_kleene()),
+                    "positive" => Some(op.into_positive()),
+                    "optional" => Some(op.into_optional()),
                     _ => unimplemented!("{} not implemented", modifier)
                 }
             },
 
-            // Operator ------------------------------------------------------
+            // operator ------------------------------------------------------
 
             op if op.starts_with("op_") => {
                 let parts: Vec<&str> = emit.split("_").collect();
 
                 if parts[1] == "binary" {
-                    let children = children.unwrap();
+                    let children = node.borrow_by_key("children");
+                    let children = children.get_list().unwrap();
                     assert_eq!(children.len(), 2);
 
-                    self.traverse_list(&children);
+                    let (left, right) = children.borrow_first_2();
+                    self.traverse_node(&left.get_dict().unwrap());
+                    self.traverse_node(&right.get_dict().unwrap());
 
                     match parts[2] {
+                        // todo...
                         "add" => println!("add"),
                         "mul" => println!("mul"),
                         _ => {
@@ -389,38 +408,53 @@ impl Compiler {
                 None
             }
 
-            // Parselet ------------------------------------------------------
+            // parselet ------------------------------------------------------
 
             "parselet" => {
                 None
             }
 
-            // Sequence ------------------------------------------------------
+            // sequence ------------------------------------------------------
 
             "sequence" => {
-                let items = self.traverse_list(&children.unwrap());
+                let children = node.borrow_by_key("children");
+                let items = self.traverse(&children);
                 //todo: Handle aliases...
 
-                Some(
-                    Sequence::new(
-                        items.into_iter()
-                            .map(|item| (item, None))
-                            .collect()
+                if items.len() > 0 {
+                    Some(
+                        Sequence::new(
+                            items.into_iter()
+                                .map(|item| (item, None))
+                                .collect()
+                        )
                     )
-                )
+                }
+                else {
+                    None
+                }
             },
 
-            // Value ---------------------------------------------------------
+            // value ---------------------------------------------------------
 
             val if val.starts_with("value_") => {
-                let value = self.traverse_value(val, children, value);
+                let value = self.traverse_node_value(node);
                 Some(Op::LoadStatic(self.define_value(value)))
             },
 
+            // ---------------------------------------------------------------
+
             _ => {
                 // When there are children, try to traverse recursively
-                if let Some(children) = children {
-                    self.traverse(&children)
+                if let Some(children) = node.get("children") {
+                    let res = self.traverse(&children.borrow());
+
+                    if res.len() <= 1 {
+                        res.into_iter().next()
+                    }
+                    else {
+                        unimplemented!("Don't know how to handle return list");
+                    }
                 }
                 // Otherwise, report unhandled node!
                 else {

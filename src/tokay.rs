@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::iter::FromIterator;
 
 use crate::ccl::Ccl;
-use crate::value::{Complex, Value, RefValue};
+use crate::value::{Dict, List, Value, RefValue};
 use crate::reader::{Reader, Range};
 use crate::compiler::Compiler;
 use crate::ccl;
@@ -74,6 +74,7 @@ Specifies atomic level operations like running a parser or running VM code.
 */
 #[derive(Debug)]
 pub enum Op {
+    Nop,
 
     // Parser
     Parser(Box<dyn Parser>),
@@ -140,6 +141,7 @@ impl Op {
 impl Parser for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
+            Op::Nop => Ok(Accept::Next),
             Op::Parser(p) => p.run(context),
 
             Op::Empty => {
@@ -188,28 +190,30 @@ impl Parser for Op {
                     context.capture_start, false, false)
                 {
                     Some(value) => {
-                        let mut ret = Complex::new();
+                        let mut ret = Dict::new();
 
-                        ret.push_key_value(
+                        ret.insert(
                             "emit".to_string(),
                             Value::String(emit.to_string()).into_ref()
                         );
 
                         // Complex values are classified as child nodes
-                        if value.borrow().get_complex().is_some() {
-                            ret.push_key_value(
+                        if value.borrow().get_list().is_some()
+                            || value.borrow().get_dict().is_some()
+                        {
+                            ret.insert(
                                 "children".to_string(),
                                 value
                             );
                         }
                         else {
-                            ret.push_key_value(
+                            ret.insert(
                                 "value".to_string(),
                                 value
                             );
                         }
 
-                        Value::Complex(Box::new(ret)).into_ref()
+                        Value::Dict(Box::new(ret)).into_ref()
                     }
                     None => {
                         Value::String(emit.to_string()).into_ref()
@@ -230,21 +234,21 @@ impl Parser for Op {
                     )
                 );
 
-                let mut ret = Complex::new();
+                let mut ret = Dict::new();
 
-                ret.push_key_value(
+                ret.insert(
                     "emit".to_string(),
                     Value::String(emit.to_string()).into_ref()
                 );
 
-                ret.push_key_value(
+                ret.insert(
                     "value".to_string(),
                     value.into_ref()
                 );
 
                 Ok(
                     Accept::Return(
-                        Some(Value::Complex(Box::new(ret)).into_ref())
+                        Some(Value::Dict(Box::new(ret)).into_ref())
                     )
                 )
             },
@@ -1405,7 +1409,8 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             let (values, ranges): (_ ,Vec<_>) = captures.into_iter().partition(
                 |item| matches!(item.0, Capture::Value(_)));
 
-            let mut complex = Complex::new();
+            let mut list = Some(List::new());
+            let mut dict = Dict::new();
             let captures = if !values.is_empty() { values } else { ranges };
 
             // Collect any significant captures and values
@@ -1424,27 +1429,41 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
                 // Named capture becomes complex key
                 if let Some(name) = alias {
-                    complex.push_key_value(name, value);
+                    if let Some(list) = list {
+                        for (i, item) in list.into_iter().enumerate() {
+                            dict.insert(i.to_string(), item);
+                        }
+                    }
+
+                    list = None;
+                    dict.insert(name, value);
                 }
                 else {
-                    complex.push_value(value);
+                    if let Some(ref mut list) = list {
+                        list.push(value);
+                    }
+                    else {
+                        dict.insert(dict.len().to_string(), value);
+                    }
                 }
             }
 
-            /* When there is only one value without a key in the map,
-                return this single value only! */
-            if complex.len() == 1 {
-                if let Some((None, value)) = complex.get(0) {
-                    return Some(value.clone())
+            if let Some(list) = list {
+                if list.len() > 1 {
+                    return Some(Value::List(Box::new(list)).into_ref());
                 }
-            }
+                else if list.len() == 1 {
+                    return Some(list[0].clone());
+                }
 
-            if complex.len() > 0 {
-                // Return the complex when it contains something
-                Some(Value::Complex(Box::new(complex)).into_ref())
+                None
             }
             else {
-                None
+                if dict.len() == 1 {
+                    return Some(dict.values().next().unwrap().clone())
+                }
+
+                Some(Value::Dict(Box::new(dict)).into_ref())
             }
         }
     }

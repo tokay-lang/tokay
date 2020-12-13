@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::collections::hash_map::{Keys, Values};
+use std::collections::hash_map::Keys;
 use std::hash::{Hash, Hasher};
 use std::iter::Iterator;
 use std::cmp::Eq;

@@ -1,6 +1,6 @@
 use crate::reader::Reader;
 use crate::tokay::*;
-use crate::value::{RefValue, Value};
+use crate::value::Value;
 use crate::compiler::Compiler;
 use crate::{tokay, tokay_item, ccl};
 
@@ -246,7 +246,7 @@ impl TokayParser {
 
 (S_ConstantCallParameter = {
     [S_TokenModifier, _],
-    [S_Expression, _, (Op::Error("You may not use expressions here..."))]
+    [S_Expression, _, (Op::Error("You may not use expressions here..."))] //fixme...
 }),
 
 (S_ConstantCallParameters = {
@@ -286,7 +286,7 @@ impl TokayParser {
 
         if let Ok(accept) = res {
             if let Accept::Push(Capture::Value(value)) = accept {
-                return Ok(RefValue::into_value(value).unwrap());
+                return Ok(Value::from_ref(value).unwrap());
             }
         }
         else {
