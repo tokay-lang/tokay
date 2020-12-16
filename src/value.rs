@@ -77,8 +77,8 @@ impl BorrowByKey for Dict {
 
 #[derive(PartialEq, Clone)]
 pub enum Value {
-    Unset,                      // unse
     Void,                       // void
+    Null,                       // null
     True,                       // true
     False,                      // false
     Integer(i64),               // integers
@@ -94,8 +94,8 @@ pub enum Value {
 impl std::fmt::Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Unset => write!(f, "unset"),
             Value::Void => write!(f, "void"),
+            Value::Null => write!(f, "null"),
             Value::True => write!(f, "true"),
             Value::False => write!(f, "false"),
             Value::Integer(i) => write!(f, "{}", i),
@@ -229,8 +229,8 @@ impl Value {
     // Get Value's string representation.
     pub fn to_string(&self) -> String {
         match self {
-            Self::Unset => "unset".to_string(),
             Self::Void => "void".to_string(),
+            Self::Null => "null".to_string(),
             Self::True => "true".to_string(),
             Self::False => "false".to_string(),
             Self::Integer(i) => format!("{}", i),

@@ -21,7 +21,6 @@ pub struct Compiler {
     scopes: Vec<Scope>,                     // Current compilation scopes
     values: Vec<RefValue>,                  // Constant values collected during compile
     parselets: Vec<RefCell<Parselet>>       // Parselets
-
 }
 
 impl Compiler {
@@ -278,7 +277,8 @@ impl Compiler {
             }
             "value_true" => Value::True,
             "value_false" => Value::False,
-            "value_unset" => Value::Unset,
+            "value_null" => Value::Null,
+            "value_void" => Value::Void,
             "parselet" => {
                 Value::Parselet(
                     self.traverse_node_parselet(node)
