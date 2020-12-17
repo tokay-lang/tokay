@@ -189,7 +189,8 @@ impl Parser for Op {
                 let value = match context.collect(
                     context.capture_start, false, false)
                 {
-                    Some(value) => {
+                    Some(capture) => {
+                        let value = capture.as_value(context.runtime);
                         let mut ret = Dict::new();
 
                         ret.insert(
@@ -716,9 +717,9 @@ impl Parser for Repeat {
         }
         else {
             // Push collected captures, if any
-            if let Some(value) = context.collect(capture_start, false, false)
+            if let Some(capture) = context.collect(capture_start, false, false)
             {
-                Ok(Accept::Push(Capture::Value(value)))
+                Ok(Accept::Push(capture))
             }
             // Otherwiese, push a capture of consumed range
             else if reader_start < context.runtime.reader.tell() {
@@ -818,21 +819,46 @@ impl Parser for Sequence {
                     context.runtime.stack.push((capture, alias.clone()))
                 },
 
+                /*
+                Ok(Accept::Return(None) | Accept::Repeat(None)) => {
+                    break
+                },
+                */
+
+                /*
                 Ok(Accept::Return(value)) if value.is_none() => {
+                    let capture = context.collect(capture_start, false, true);
                     return Ok(
                         Accept::Return(
-                            context.collect(capture_start, false, true)
+                            if let Some(capture) = capture {
+                                if matches!(capture, Capture::Empty) {
+                                    None
+                                }
+                                else {
+                                    Some(capture.as_value(context.runtime))
+                                }
+                            }
+                            else {
+                                None
+                            }
                         )
                     )
                 },
 
                 Ok(Accept::Repeat(value)) if value.is_none() => {
+                    let capture = context.collect(capture_start, false, true);
                     return Ok(
                         Accept::Repeat(
-                            context.collect(capture_start, false, true)
+                            if let Some(capture) = capture {
+                                Some(capture.as_value(context.runtime))
+                            }
+                            else {
+                                None
+                            }
                         )
                     )
                 },
+                */
 
                 other => {
                     return other
@@ -846,8 +872,8 @@ impl Parser for Sequence {
         */
         //println!("Sequence {:?}", &context.runtime.capture[capture_start..]);
 
-        if let Some(value) = context.collect(capture_start, false, true) {
-            Ok(Accept::Push(Capture::Value(value)))
+        if let Some(capture) = context.collect(capture_start, false, true) {
+            Ok(Accept::Push(capture))
         }
         /*
             When this even fails, push a range of the current sequence in
@@ -1167,8 +1193,6 @@ impl Parselet {
                 },
 
                 Ok(Accept::Return(value)) => {
-                    //println!("{:?} returns {:?}", self.emit, value);
-
                     if let Some(value) = value {
                         if !self.mute {
                             return Ok(Accept::Push(Capture::Value(value)))
@@ -1190,15 +1214,21 @@ impl Parselet {
 
                 Ok(Accept::Next) => {
                     return Ok(
-                        if self.mute {
+                        if self.mute || context.get_0_range().len() == 0
+                        {
                             Accept::Push(Capture::Empty)
                         }
-                        else {
+                        else
+                        {
                             Accept::Push(
                                 Capture::Value(context.get_0())
                             )
                         }
                     )
+                },
+
+                Ok(Accept::Push(value)) if self.mute => {
+                    return Ok(Accept::Push(Capture::Empty))
                 },
 
                 res => {
@@ -1360,6 +1390,11 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         None
     }
 
+    /** Returns the range currently consumed input */
+    pub fn get_0_range(&self) -> Range {
+        self.reader_start..self.runtime.reader.tell()
+    }
+
     /** Returns the current $0 value */
     pub fn get_0(&self) -> RefValue {
         if let Capture::Value(value) =
@@ -1369,9 +1404,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         }
 
         Value::String(
-            self.runtime.reader.extract(
-                &(self.reader_start..self.runtime.reader.tell())
-            )
+            self.runtime.reader.extract(&self.get_0_range())
         ).into_ref()
     }
 
@@ -1381,40 +1414,34 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     /** Helper function to collect captures from a capture_start and turn
-    them either into a Complex-type value or take it as is. */
-    fn collect(
-        &mut self,
+    them either into a dict or list object capture or take them as is. */
+    fn collect(&mut self,
         capture_start: usize,
         copy: bool,
-        single: bool) -> Option<RefValue>
+        single: bool) -> Option<Capture>
     {
+        // Eiter copy or drain captures from stack
         let mut captures: Vec<(Capture, Option<String>)> = if copy {
             Vec::from_iter(
-                self.runtime.stack[capture_start..].iter().cloned()
+                self.runtime.stack[capture_start..].iter()
+                    .filter(|item| !matches!(item, (Capture::Empty, None)))
+                    .cloned()
             )
         }
         else {
-            self.runtime.stack.drain(capture_start..).collect()
+            self.runtime.stack.drain(capture_start..)
+            .filter(|item| !matches!(item, (Capture::Empty, None)))
+            .collect()
         };
+
+        //println!("captures = {:?}", captures);
 
         if captures.len() == 0 {
             None
         }
         else if single && captures.len() == 1 && captures[0].1.is_none()
         {
-            match captures.pop().unwrap().0 {
-                Capture::Empty => None,
-                Capture::Range(range) => {
-                    Some(
-                        Value::String(
-                            self.runtime.reader.extract(&range)
-                        ).into_ref()
-                    )
-                },
-                Capture::Value(value) => {
-                    Some(value)
-                }
-            }
+            Some(captures.pop().unwrap().0)
         }
         else {
             let (values, ranges): (_ ,Vec<_>) = captures.into_iter().partition(
@@ -1438,7 +1465,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                     }
                 };
 
-                // Named capture becomes complex key
+                // Named capture becomes dict key
                 if let Some(name) = alias {
                     if let Some(list) = list {
                         for (i, item) in list.into_iter().enumerate() {
@@ -1461,20 +1488,26 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
             if let Some(list) = list {
                 if list.len() > 1 {
-                    return Some(Value::List(Box::new(list)).into_ref());
+                    return Some(
+                        Capture::Value(Value::List(Box::new(list)).into_ref())
+                    );
                 }
                 else if list.len() == 1 {
-                    return Some(list[0].clone());
+                    return Some(
+                        Capture::Value(list[0].clone())
+                    );
                 }
 
                 None
             }
             else {
                 if dict.len() == 1 {
-                    return Some(dict.values().next().unwrap().clone())
+                    return Some(
+                        Capture::Value(dict.values().next().unwrap().clone())
+                    );
                 }
 
-                Some(Value::Dict(Box::new(dict)).into_ref())
+                Some(Capture::Value(Value::Dict(Box::new(dict)).into_ref()))
             }
         }
     }
