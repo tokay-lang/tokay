@@ -447,6 +447,7 @@ impl std::fmt::Display for Op {
     }
 }
 
+/*
 // --- Rust -------------------------------------------------------------------
 //fixme: This should not be implement as Parser.
 
@@ -469,40 +470,47 @@ impl std::fmt::Display for Rust {
         write!(f, "{{rust-function}}")
     }
 }
+*/
 
 // --- Char -------------------------------------------------------------------
 
 #[derive(Debug)]
 pub struct Char {
     accept: Ccl,
-    repeats: bool
+    repeats: bool,
+    silent: bool
 }
 
 impl Char {
-    fn _new(accept: Ccl, repeats: bool) -> Op {
+    fn _new(accept: Ccl, repeats: bool, silent: bool) -> Op {
         Self{
             accept,
-            repeats
+            repeats,
+            silent
         }.into_op()
     }
 
+    pub fn new_silent(accept: Ccl) -> Op {
+        Self::_new(accept, false, true)
+    }
+
     pub fn new(accept: Ccl) -> Op {
-        Self::_new(accept, false)
+        Self::_new(accept, false, false)
     }
 
     pub fn any() -> Op {
         let mut any = Ccl::new();
         any.negate();
 
-        Self::new(any)
+        Self::new_silent(any)
     }
 
     pub fn char(ch: char) -> Op {
-        Self::new(ccl![ch..=ch])
+        Self::new_silent(ccl![ch..=ch])
     }
 
     pub fn span(ccl: Ccl) -> Op {
-        Self::_new(ccl, true)
+        Self::_new(ccl, true, false)
     }
 
     pub fn until(ch: char) -> Op {
@@ -563,11 +571,24 @@ impl std::fmt::Display for Char {
 // --- Match ------------------------------------------------------------------
 
 #[derive(Debug)]
-pub struct Match(String);
+pub struct Match{
+    string: String,
+    silent: bool
+}
 
 impl Match {
     pub fn new(string: &str) -> Op {
-        Self(string.to_string()).into_op()
+        Self{
+            string: string.to_string(),
+            silent: false
+        }.into_op()
+    }
+
+    pub fn new_silent(string: &str) -> Op {
+        Self{
+            string: string.to_string(),
+            silent: true
+        }.into_op()
     }
 }
 
@@ -576,7 +597,7 @@ impl Parser for Match {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         let start = context.runtime.reader.tell();
 
-        for ch in self.0.chars() {
+        for ch in self.string.chars() {
             if let Some(c) = context.runtime.reader.next() {
                 if c != ch {
                     // fixme: Optimize me!
@@ -591,11 +612,20 @@ impl Parser for Match {
             }
         }
 
+        let range = context.runtime.reader.capture_last(self.string.len());
+
         Ok(
             Accept::Push(
-                Capture::Range(
-                    context.runtime.reader.capture_last(self.0.len())
-                )
+                if self.silent {
+                    Capture::Silent(
+                        range
+                    )
+                }
+                else {
+                    Capture::Range(
+                        range
+                    )
+                }
             )
         )
     }
@@ -612,7 +642,12 @@ impl Parser for Match {
 
 impl std::fmt::Display for Match {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
+        if self.silent {
+            write!(f, "'{}'", self.string)
+        }
+        else {
+            write!(f, "\"{}\"", self.string)
+        }
     }
 }
 
@@ -630,11 +665,11 @@ pub struct Repeat {
     parser: Op,
     min: usize,
     max: usize,
-    mute: bool
+    silent: bool
 }
 
 impl Repeat {
-    pub fn new(parser: Op, min: usize, max: usize, mute: bool) -> Op
+    pub fn new(parser: Op, min: usize, max: usize, silent: bool) -> Op
     {
         assert!(max == 0 || max >= min);
 
@@ -642,7 +677,7 @@ impl Repeat {
             parser,
             min,
             max,
-            mute
+            silent
         }.into_op()
     }
 
@@ -658,15 +693,15 @@ impl Repeat {
         Self::new(parser, 0, 1, false)
     }
 
-    pub fn muted_kleene(parser: Op) -> Op {
+    pub fn kleene_silent(parser: Op) -> Op {
         Self::new(parser, 0, 0, true)
     }
 
-    pub fn muted_positive(parser: Op) -> Op {
+    pub fn positive_silent(parser: Op) -> Op {
         Self::new(parser, 1, 0, true)
     }
 
-    pub fn muted_optional(parser: Op) -> Op {
+    pub fn optional_silent(parser: Op) -> Op {
         Self::new(parser, 0, 1, true)
     }
 }
@@ -693,7 +728,7 @@ impl Parser for Repeat {
                 Ok(Accept::Next) => {},
 
                 Ok(Accept::Push(capture)) => {
-                    if !self.mute {
+                    if !self.silent {
                         context.runtime.stack.push((capture, None))
                     }
                 },
@@ -1147,7 +1182,7 @@ impl std::fmt::Display for Block {
 pub struct Parselet {
     leftrec: bool,
     nullable: bool,
-    mute: bool,
+    silent: bool,
     locals: usize,
     body: Op
 }
@@ -1157,18 +1192,18 @@ impl Parselet {
         Self{
             leftrec: false,
             nullable: true,
-            mute: false,
+            silent: false,
             locals,
             body
         }
     }
 
     /// Creates a new silent parselet, which does always return Capture::Empty
-    pub fn new_muted(body: Op, locals: usize) -> Self {
+    pub fn new_silent(body: Op, locals: usize) -> Self {
         Self{
             leftrec: false,
             nullable: true,
-            mute: true,
+            silent: true,
             locals,
             body
         }
@@ -1194,7 +1229,7 @@ impl Parselet {
 
                 Ok(Accept::Return(value)) => {
                     if let Some(value) = value {
-                        if !self.mute {
+                        if !self.silent {
                             return Ok(Accept::Push(Capture::Value(value)))
                         } else {
                             return Ok(Accept::Push(Capture::Empty))
@@ -1214,7 +1249,7 @@ impl Parselet {
 
                 Ok(Accept::Next) => {
                     return Ok(
-                        if self.mute || context.get_0_range().len() == 0
+                        if self.silent || context.get_0_range().len() == 0
                         {
                             Accept::Push(Capture::Empty)
                         }
@@ -1227,7 +1262,7 @@ impl Parselet {
                     )
                 },
 
-                Ok(Accept::Push(value)) if self.mute => {
+                Ok(Accept::Push(value)) if self.silent => {
                     return Ok(Accept::Push(Capture::Empty))
                 },
 
@@ -1287,6 +1322,7 @@ impl Parselet {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Capture {
     Empty,                      // Empty capture
+    Silent(Range),              // Silent captured range from the input
     Range(Range),               // Captured range from the input
     Value(RefValue)             // Captured value
 }
@@ -1298,7 +1334,7 @@ impl Capture {
                 Value::Void.into_ref()
             },
 
-            Capture::Range(range) => {
+            Capture::Silent(range) | Capture::Range(range) => {
                 Value::String(
                     runtime.reader.extract(range)
                 ).into_ref()
@@ -1424,13 +1460,18 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         let mut captures: Vec<(Capture, Option<String>)> = if copy {
             Vec::from_iter(
                 self.runtime.stack[capture_start..].iter()
-                    .filter(|item| !matches!(item, (Capture::Empty, None)))
-                    .cloned()
+                    .filter(|item| !(
+                        matches!(item, (Capture::Empty, None))
+                        || matches!(item, (Capture::Silent(_), None))
+                    )).cloned()
             )
         }
         else {
             self.runtime.stack.drain(capture_start..)
-            .filter(|item| !matches!(item, (Capture::Empty, None)))
+            .filter(|item| !(
+                matches!(item, (Capture::Empty, None))
+                || matches!(item, (Capture::Silent(_), None))
+            ))
             .collect()
         };
 
@@ -1444,25 +1485,21 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             Some(captures.pop().unwrap().0)
         }
         else {
-            let (values, ranges): (_ ,Vec<_>) = captures.into_iter().partition(
-                |item| matches!(item.0, Capture::Value(_)));
-
             let mut list = Some(List::new());
             let mut dict = Dict::new();
-            let captures = if !values.is_empty() { values } else { ranges };
 
             // Collect any significant captures and values
             for (capture, alias) in captures.into_iter() {
                 let value = match capture {
-                    Capture::Empty => continue,
-                    Capture::Range(range) => {
+                    Capture::Range(range) | Capture::Silent(range) => {
                         Value::String(
                             self.runtime.reader.extract(&range)
                         ).into_ref()
                     },
                     Capture::Value(value) => {
                         value
-                    }
+                    },
+                    _ => continue
                 };
 
                 // Named capture becomes dict key

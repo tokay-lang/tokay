@@ -34,7 +34,7 @@ impl TokayParser {
 (T_Identifier = {
     [
         (Char::new(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
-        (Repeat::muted_optional(
+        (Repeat::optional_silent(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
         (Op::PushAddr(0)),
@@ -46,7 +46,7 @@ impl TokayParser {
 (T_Variable = {
     [
         (Char::new(ccl!['a'..='z'])),
-        (Repeat::muted_optional(
+        (Repeat::optional_silent(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
         (Op::PushAddr(0)),
@@ -58,7 +58,7 @@ impl TokayParser {
 (T_Constant = {
     [
         (Char::new(ccl!['A'..='Z', '_'..='_'])),
-        (Repeat::muted_optional(
+        (Repeat::optional_silent(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
         (Op::PushAddr(0)),
@@ -71,9 +71,7 @@ impl TokayParser {
     [
         "\"",
         (Char::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
-        "\"",
-        (Op::PushAddr(2)),
-        (Op::LoadCapture)
+        "\""
     ]
 }),
 
@@ -81,9 +79,7 @@ impl TokayParser {
     [
         "\'",
         (Char::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
-        "\'",
-        (Op::PushAddr(2)),
-        (Op::LoadCapture)
+        "\'"
     ]
 }),
 
@@ -95,9 +91,9 @@ impl TokayParser {
 (T_Float = {
     // todo: implement as built-in Parselet
     [(Char::span(ccl!['0'..='9'])), ".",
-        (Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
+        (Repeat::optional_silent(Char::span(ccl!['0'..='9']))),
             (Op::Lexeme("value_float"))],
-    [(Repeat::muted_optional(Char::span(ccl!['0'..='9']))),
+    [(Repeat::optional_silent(Char::span(ccl!['0'..='9']))),
         ".", (Char::span(ccl!['0'..='9'])),
             (Op::Lexeme("value_float"))]
 }),
@@ -211,7 +207,7 @@ impl TokayParser {
 
 (S_Block = {
     ["{", _, S_Sequences, _,
-        (Op::Expect(Box::new(Match::new("}").into_op()))), _,
+        (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
         (Op::Create("block"))],
     ["{", _, "}", _, (Op::PushVoid), (Op::Create("block"))]
 }),

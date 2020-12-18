@@ -532,7 +532,7 @@ macro_rules! tokay_item {
             let body = Repeat::new(body, 0, 0, true);
 
             let parselet = $compiler.define_parselet(
-                Parselet::new_muted(body, $compiler.get_locals())
+                Parselet::new_silent(body, $compiler.get_locals())
             );
 
             $compiler.pop_scope();
@@ -698,7 +698,7 @@ macro_rules! tokay_item {
     // Match / Touch
     ( $compiler:expr, $literal:literal ) => {
         {
-            Some(Match::new($literal))
+            Some(Match::new_silent($literal))
         }
     };
 
