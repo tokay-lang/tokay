@@ -377,6 +377,12 @@ impl Compiler {
                 Some(Match::new(value.get_string().unwrap().clone()))
             },
 
+            // match_silent ---------------------------------------------------
+            "match_silent" => {
+                let value = node.borrow_by_key("value");
+                Some(Match::new_silent(value.get_string().unwrap().clone()))
+            },
+
             // modifier -------------------------------------------------------
             modifier if modifier.starts_with("mod_") => {
                 let children = node.borrow_by_key("children");

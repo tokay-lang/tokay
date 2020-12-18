@@ -75,7 +75,7 @@ impl BorrowByKey for Dict {
 
 // --- Value ------------------------------------------------------------------
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Void,                       // void
     Null,                       // null
@@ -91,6 +91,7 @@ pub enum Value {
     Parselet(usize)             // executable code parselet
 }
 
+/*
 impl std::fmt::Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -147,6 +148,7 @@ impl std::fmt::Debug for Value {
         }
     }
 }
+*/
 
 impl Value {
     // Create a RefValue from a Value.

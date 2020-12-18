@@ -760,7 +760,7 @@ impl Parser for Repeat {
             else if reader_start < context.runtime.reader.tell() {
                 Ok(
                     Accept::Push(
-                        Capture::Range(
+                        Capture::Silent(
                             context.runtime.reader.capture_from(reader_start)
                         )
                     )
@@ -854,73 +854,29 @@ impl Parser for Sequence {
                     context.runtime.stack.push((capture, alias.clone()))
                 },
 
-                /*
-                Ok(Accept::Return(None) | Accept::Repeat(None)) => {
-                    break
-                },
-                */
-
-                /*
-                Ok(Accept::Return(value)) if value.is_none() => {
-                    let capture = context.collect(capture_start, false, true);
-                    return Ok(
-                        Accept::Return(
-                            if let Some(capture) = capture {
-                                if matches!(capture, Capture::Empty) {
-                                    None
-                                }
-                                else {
-                                    Some(capture.as_value(context.runtime))
-                                }
-                            }
-                            else {
-                                None
-                            }
-                        )
-                    )
-                },
-
-                Ok(Accept::Repeat(value)) if value.is_none() => {
-                    let capture = context.collect(capture_start, false, true);
-                    return Ok(
-                        Accept::Repeat(
-                            if let Some(capture) = capture {
-                                Some(capture.as_value(context.runtime))
-                            }
-                            else {
-                                None
-                            }
-                        )
-                    )
-                },
-                */
-
                 other => {
                     return other
                 }
             }
         }
 
+        //println!("Sequence {:?}", &context.runtime.stack[capture_start..]);
+
         /*
             When no explicit Return is performed, first try to collect any
-            significant captures.
+            non-silent captures.
         */
-        //println!("Sequence {:?}", &context.runtime.capture[capture_start..]);
-
         if let Some(capture) = context.collect(capture_start, false, true) {
             Ok(Accept::Push(capture))
         }
         /*
-            When this even fails, push a range of the current sequence in
-            case that any input was consumed.
-
-            fixme:
-            Maybe this could be pushed with severity 0, and later on collected?
+            When this fails, push a silent range of the current sequence
+            when input was consumed.
         */
         else if reader_start < context.runtime.reader.tell() {
             Ok(
                 Accept::Push(
-                    Capture::Range(
+                    Capture::Silent(
                         context.runtime.reader.capture_from(reader_start)
                     )
                 )
@@ -1021,7 +977,6 @@ impl Parser for Block {
 
                 // Generally break on anything which is not Next.
                 if !matches!(&res, Ok(Accept::Next) | Err(Reject::Next)) {
-
                     // Push only accepts when input was consumed, otherwise the
                     // push value is just discarded, except for the last item
                     // being executed.
@@ -1085,7 +1040,7 @@ impl Parser for Block {
                 match res {
                     // Hard reject
                     Err(Reject::Main) | Err(Reject::Error(_)) => {
-                        return res;
+                        return res
                     },
 
                     // Soft reject
@@ -1103,7 +1058,7 @@ impl Parser for Block {
 
                 // Stop also when no more input was consumed
                 if context.runtime.reader.tell() <= reader_end {
-                    break;
+                    break
                 }
 
                 result = res;
@@ -1245,21 +1200,6 @@ impl Parselet {
                     if value.is_none() {
                         continue
                     }
-                },
-
-                Ok(Accept::Next) => {
-                    return Ok(
-                        if self.silent || context.get_0_range().len() == 0
-                        {
-                            Accept::Push(Capture::Empty)
-                        }
-                        else
-                        {
-                            Accept::Push(
-                                Capture::Value(context.get_0())
-                            )
-                        }
-                    )
                 },
 
                 Ok(Accept::Push(value)) if self.silent => {

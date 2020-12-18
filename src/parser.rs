@@ -209,7 +209,8 @@ impl TokayParser {
     ["{", _, S_Sequences, _,
         (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
         (Op::Create("block"))],
-    ["{", _, "}", _, (Op::PushVoid), (Op::Create("block"))]
+    ["{", _, (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
+        (Op::Create("block"))]
 }),
 
 (S_Sequences = {
@@ -217,13 +218,8 @@ impl TokayParser {
 }),
 
 (S_Sequence = {
-    (S_Sequence1 = {
-        [S_Sequence1, S_Item],
-        [S_Item]
-    }),
-
     [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
-    [S_Sequence1, (Op::Create("sequence"))],
+    [(pos S_Item), (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
 
@@ -258,7 +254,7 @@ impl TokayParser {
 
 (S_Token = {
     [T_HeavyString, (Op::Create("match"))],
-    [T_LightString, (Op::Create("match"))],
+    [T_LightString, (Op::Create("match_silent"))],
     [S_ConstantCall],
     [S_Parselet]
 }),
