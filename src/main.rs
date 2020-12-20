@@ -8,10 +8,11 @@ fn main() {
     let p = TokayParser::new();
     //let s = include_str!("../readme.tok");
     //let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
-    let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
+    //let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
+    let s = "1 + 2 + 39 ('Hello' + 'World')";
 
     println!("src = {:?}", s);
 
@@ -31,5 +32,6 @@ fn main() {
         println!("prg = {:?}", prg);
 
         println!("res = {:?}", prg.run_from_str("HelloHelloWorld HelloWorld"));
+        //println!("res = {:?}", prg.run_from_str("1+2*3+4"));
     }
 }

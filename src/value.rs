@@ -287,31 +287,31 @@ impl Value {
     }
 }
 
-/*
-impl std::ops::Add for Value
+impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value
 {
     type Output = Value;
 
-    fn add(self, rhs: Self) -> Self
+    fn add(self, rhs: &'b Value) -> Value
     {
         match (self, rhs)
         {
             // When one is String...
-            (Self::String(a), b) => Self::String(a + &b.to_string()),
-            (a, Self::String(b)) => Self::String(a.to_string() + &b),
+            (Value::String(a), b) => {
+                Value::String(a.to_owned() + &b.to_string())
+            },
+            (a, Value::String(b)) => Value::String(a.to_string() + &b),
 
-            /*
             // When one is Float...
-            (Self::Float(a), b) => Self::Float(a + b.to_float()),
-            (a, Self::Float(b)) => Self::Float(a.to_float() + b),
-            */
+            (Value::Float(a), b) => Value::Float(a + b.to_float()),
+            (a, Value::Float(b)) => Value::Float(a.to_float() + b),
 
             // All is threatened as Integer
-            (a, b) => Self::Integer(a.to_integer() + b.to_integer()),
+            (a, b) => Value::Integer(a.to_integer() + b.to_integer()),
         }
     }
 }
 
+/*
 impl std::ops::Sub for Value
 {
     type Output = Value;
@@ -320,11 +320,9 @@ impl std::ops::Sub for Value
     {
         match (self, rhs)
         {
-            /*
             // When one is Float...
             (Self::Float(a), b) => Self::Float(a - b.to_float()),
             (a, Self::Float(b)) => Self::Float(a.to_float() - b),
-            */
 
             // All is threatened as Integer
             (a, b) => Self::Integer(a.to_integer() - b.to_integer()),
@@ -354,11 +352,9 @@ impl std::ops::Mul for Value
                 Self::String(r)
             },
 
-            /*
             // When one is Float...
             (Self::Float(a), b) => Self::Float(a * b.to_float()),
             (a, Self::Float(b)) => Self::Float(a.to_float() * b),
-            */
 
             // All is threatened as Integer
             (a, b) => Self::Integer(a.to_integer() * b.to_integer()),
@@ -374,11 +370,9 @@ impl std::ops::Div for Value
     {
         match (self, rhs)
         {
-            /*
             // When one is Float...
             (Self::Float(a), b) => Self::Float(a / b.to_float()),
             (a, Self::Float(b)) => Self::Float(a.to_float() / b),
-            */
 
             // All is threatened as Integer
             (a, b) => Self::Integer(a.to_integer() / b.to_integer()),

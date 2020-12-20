@@ -227,18 +227,14 @@ impl Compiler {
         if let Some(list) = value.get_list() {
             for item in list.iter() {
                 let item = item.borrow();
-                let res = self.traverse_node(&item.get_dict().unwrap());
 
-                if let Some(op) = res {
-                    ret.push(op);
-                }
+                ret.extend(
+                    self.traverse_node(&item.get_dict().unwrap())
+                );
             }
         }
         else if let Some(dict) = value.get_dict() {
-            let res = self.traverse_node(dict);
-            if let Some(op) = res {
-                ret.push(op);
-            }
+            ret.extend(self.traverse_node(dict));
         }
         else {
             unimplemented!("traverse() cannot traverse {:?}", value);
@@ -295,8 +291,12 @@ impl Compiler {
 
         let children = node.borrow_by_key("children");
         let body = self.traverse_node(&children.get_dict().unwrap());
+        assert_eq!(body.len(), 1);
+
         let parselet = self.define_parselet(
-            Parselet::new(body.unwrap_or(Op::Nop), self.get_locals())
+            Parselet::new(
+                body.into_iter().next().unwrap_or(Op::Nop), self.get_locals()
+            )
         );
 
         self.pop_scope();
@@ -305,14 +305,16 @@ impl Compiler {
     }
 
     // Main traversal function, running recursively through the AST
-    pub fn traverse_node(&mut self, node: &Dict) -> Option<Op> {
+    pub fn traverse_node(&mut self, node: &Dict) -> Vec<Op> {
         // Normal node processing...
         let emit = node.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
+        let mut ret = Vec::new();
+
         println!("emit={:?}", emit);
 
-        match emit {
+        let op = match emit {
             // assign_constant ------------------------------------------------
             "assign_constant" => {
                 let children = node.borrow_by_key("children");
@@ -386,9 +388,10 @@ impl Compiler {
             // modifier -------------------------------------------------------
             modifier if modifier.starts_with("mod_") => {
                 let children = node.borrow_by_key("children");
-                let op = self.traverse_node(
-                    children.get_dict().unwrap()
-                ).unwrap();
+                let op = self.traverse_node(children.get_dict().unwrap());
+                assert_eq!(op.len(), 1);
+
+                let op = op.into_iter().next().unwrap();
 
                 match &modifier[4..] {
                     "kleene" => Some(op.into_kleene()),
@@ -409,20 +412,20 @@ impl Compiler {
                     assert_eq!(children.len(), 2);
 
                     let (left, right) = children.borrow_first_2();
-                    self.traverse_node(&left.get_dict().unwrap());
-                    self.traverse_node(&right.get_dict().unwrap());
+                    ret.extend(self.traverse_node(&left.get_dict().unwrap()));
+                    ret.extend(self.traverse_node(&right.get_dict().unwrap()));
 
                     match parts[2] {
                         // todo...
-                        "add" => println!("add"),
-                        "mul" => println!("mul"),
+                        "add" => Some(Op::Add),
                         _ => {
                             unimplemented!("op_binary_{}", parts[2]);
                         }
                     }
                 }
-
-                None
+                else {
+                    None
+                }
             }
 
             // parselet ------------------------------------------------------
@@ -478,7 +481,13 @@ impl Compiler {
                     panic!("No traversal function for {:?} found", emit);
                 }
             }
+        };
+
+        if let Some(op) = op {
+            ret.push(op);
         }
+
+        ret
     }
 }
 

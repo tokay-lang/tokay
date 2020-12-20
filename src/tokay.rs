@@ -116,7 +116,15 @@ pub enum Op {
     StoreGlobal(usize),
     StoreFast(usize),
     LoadCaptureFast(usize),
-    LoadCapture
+    LoadCapture,
+
+    // Operations
+    Add,
+    /*
+    Sub,
+    Div,
+    Mul
+    */
 
     /*
     And(Op),
@@ -366,6 +374,14 @@ impl Parser for Op {
                 else {
                     Err(Reject::Error("Internal".to_string()))
                 }
+            },
+
+            Op::Add => {
+                let b = context.pop();
+                let a = context.pop();
+                let c = (&*a.borrow() + &*b.borrow()).into_ref();
+
+                Ok(Accept::Push(Capture::Value(c)))
             }
         }
     }
@@ -1169,14 +1185,16 @@ impl Parselet {
         let mut results = Vec::new();
 
         loop {
+            let reader_start = context.runtime.reader.tell();
             let mut res = self.body.run(&mut context);
 
             /*
                 In case this is the main parselet, rewrite results to
                 iterately repeat over the input, matching main as much
-                as possible.
+                as possible. This will only be the case when input was
+                consumed.
             */
-            if main {
+            if main && reader_start < context.runtime.reader.tell() {
                 res = match res {
                     Ok(Accept::Next) => {
                         Ok(Accept::Repeat(None))
