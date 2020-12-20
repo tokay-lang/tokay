@@ -7,8 +7,8 @@ use ::tokay::compiler::Compiler;
 fn main() {
     let p = TokayParser::new();
     //let s = include_str!("../readme.tok");
-    let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
-    //let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
+    //let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
+    let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
@@ -30,6 +30,6 @@ fn main() {
 
         println!("prg = {:?}", prg);
 
-        println!("res = {:?}", prg.run_from_str("HelloHelloWorld"));
+        println!("res = {:?}", prg.run_from_str("HelloHelloWorld HelloWorld"));
     }
 }

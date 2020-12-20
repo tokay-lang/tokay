@@ -6,7 +6,7 @@ pub struct Reader {
     reader: Box<dyn BufRead>,
     buffer: Vec<char>,
     offset: usize,
-    pub eof: bool
+    eof: bool
 }
 
 impl Reader {
@@ -71,6 +71,10 @@ impl Reader {
 
     pub fn tell(&self) -> usize {
         self.offset
+    }
+
+    pub fn eof(&self) -> bool {
+        self.eof
     }
 
     pub fn reset(&mut self, offset: usize) {

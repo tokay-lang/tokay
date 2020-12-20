@@ -272,7 +272,7 @@ impl Parser for Op {
 
             Op::Call(parselet) => {
                 context.runtime.program.parselets[*parselet].run(
-                    context.runtime
+                    context.runtime, false
                 )
             },
 
@@ -283,7 +283,7 @@ impl Parser for Op {
 
                     Value::Parselet(p) => {
                         return context.runtime.program.parselets[p].run(
-                            context.runtime
+                            context.runtime, false
                         )
                     },
 
@@ -1164,52 +1164,125 @@ impl Parselet {
         }
     }
 
-    fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
+    fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
+        let mut results = Vec::new();
 
-        /*
-            fixme:
-            This loop exists for the planned "repeat"-statement,
-            which repeats a given parselet programmatically and
-            without using the Repeat parser. It currently is not
-            really used, and may or may not come in future.
-        */
         loop {
-            let res = self.body.run(&mut context);
+            let mut res = self.body.run(&mut context);
+
+            /*
+                In case this is the main parselet, rewrite results to
+                iterately repeat over the input, matching main as much
+                as possible.
+            */
+            if main {
+                res = match res {
+                    Ok(Accept::Next) => {
+                        Ok(Accept::Repeat(None))
+                    }
+
+                    Ok(Accept::Return(value)) => {
+                        Ok(Accept::Repeat(value))
+                    }
+
+                    Ok(Accept::Push(capture)) => {
+                        Ok(
+                            Accept::Repeat(
+                                match capture {
+                                    Capture::Range(range) => {
+                                        Some(
+                                            Value::String(
+                                                context.runtime.reader.extract(
+                                                    &range
+                                                )
+                                            ).into_ref()
+                                        )
+                                    },
+                                    Capture::Value(value) => {
+                                        Some(value)
+                                    },
+                                    _ => {
+                                        None
+                                    }
+                                }
+                            )
+                        )
+                    },
+                    res => res
+                };
+            }
 
             match res {
-                Ok(Accept::Skip) => {
-                    return Ok(Accept::Push(Capture::Empty))
+                Ok(accept) => {
+                    match accept
+                    {
+                        Accept::Skip => {
+                            return Ok(Accept::Next)
+                        },
+
+                        Accept::Return(value) => {
+                            if let Some(value) = value {
+                                if !self.silent {
+                                    return Ok(Accept::Push(Capture::Value(value)))
+                                } else {
+                                    return Ok(Accept::Push(Capture::Empty))
+                                }
+                            }
+                            else {
+                                return Ok(Accept::Push(Capture::Empty))
+                            }
+                        },
+
+                        Accept::Repeat(value) => {
+                            if let Some(value) = value {
+                                results.push(value);
+                            }
+                        },
+
+                        Accept::Push(value) if self.silent => {
+                            return Ok(Accept::Push(Capture::Empty))
+                        },
+
+                        accept => return Ok(accept)
+                    }
                 },
 
-                Ok(Accept::Return(value)) => {
-                    if let Some(value) = value {
-                        if !self.silent {
-                            return Ok(Accept::Push(Capture::Value(value)))
-                        } else {
-                            return Ok(Accept::Push(Capture::Empty))
+                Err(reject) => {
+                    match reject {
+                        Reject::Error(err) => return Err(Reject::Error(err)),
+                        Reject::Main if !main => return Err(Reject::Main),
+                        _ => {}
+                    }
+
+                    // Skip character
+                    if main {
+                        context.runtime.reader.next();
+                        if context.runtime.reader.eof() {
+                            break
                         }
                     }
-                    else {
-                        return Ok(Accept::Push(Capture::Empty))
+                    else if results.len() == 0 {
+                        return Err(reject)
                     }
-                },
-
-                Ok(Accept::Repeat(value)) => {
-                    // this is unfinished...
-                    if value.is_none() {
-                        continue
-                    }
-                },
-
-                Ok(Accept::Push(value)) if self.silent => {
-                    return Ok(Accept::Push(Capture::Empty))
-                },
-
-                res => {
-                    return res
                 }
             }
+        }
+
+        if results.len() > 1 {
+            Ok(Accept::Push(
+                Capture::Value(
+                    Value::List(Box::new(results)).into_ref()
+                )
+            ))
+        }
+        else if results.len() == 1 {
+            Ok(
+                Accept::Push(Capture::Value(results.pop().unwrap()))
+            )
+        }
+        else {
+            Ok(Accept::Next)
         }
     }
 
@@ -1554,7 +1627,7 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
-        self.parselets.last().unwrap().run(runtime)
+        self.parselets.last().unwrap().run(runtime, true)
     }
 
     pub fn run_from_str(&self, s: &'static str) -> Result<Accept, Reject> {
