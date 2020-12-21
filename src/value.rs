@@ -186,6 +186,7 @@ impl Value {
             Self::Integer(i) => *i,
             Self::Float(f) => *f as i64,
             Self::String(s) => {
+                // todo: parseInt-like behavior?
                 match s.parse::<i64>() {
                     Ok(i) => i,
                     Err(_) => 0
@@ -202,6 +203,7 @@ impl Value {
             Self::Integer(i) => *i as f64,
             Self::Float(f) => *f,
             Self::String(s) => {
+                // todo: parseFloat-like behavior?
                 match s.parse::<f64>() {
                     Ok(f) => f,
                     Err(_) => 0.0
@@ -219,6 +221,7 @@ impl Value {
             Self::Float(f) => *f as usize,
             Self::Addr(a) => *a,
             Self::String(s) => {
+                // todo: parseInt-like behavior?
                 match s.parse::<usize>() {
                     Ok(i) => i,
                     Err(_) => 0
@@ -311,35 +314,34 @@ impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value
     }
 }
 
-/*
-impl std::ops::Sub for Value
+impl<'a, 'b> std::ops::Sub<&'b Value> for &'a Value
 {
     type Output = Value;
 
-    fn sub(self, rhs: Self) -> Self
+    fn sub(self, rhs: &'b Value) -> Value
     {
         match (self, rhs)
         {
             // When one is Float...
-            (Self::Float(a), b) => Self::Float(a - b.to_float()),
-            (a, Self::Float(b)) => Self::Float(a.to_float() - b),
+            (Value::Float(a), b) => Value::Float(a - b.to_float()),
+            (a, Value::Float(b)) => Value::Float(a.to_float() - b),
 
             // All is threatened as Integer
-            (a, b) => Self::Integer(a.to_integer() - b.to_integer()),
+            (a, b) => Value::Integer(a.to_integer() - b.to_integer()),
         }
     }
 }
 
-impl std::ops::Mul for Value
+impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value
 {
     type Output = Value;
 
-    fn mul(self, rhs: Self) -> Self
+    fn mul(self, rhs: &'b Value) -> Value
     {
         match (self, rhs)
         {
             // When one is String and one is something else...
-            (Self::String(s), n) | (n, Self::String(s)) => {
+            (Value::String(s), n) | (n, Value::String(s)) => {
                 let n = n.to_integer();
 
                 //Todo: why not extend `s`?
@@ -349,38 +351,37 @@ impl std::ops::Mul for Value
                     r += &s;
                 }
 
-                Self::String(r)
+                Value::String(r)
             },
 
             // When one is Float...
-            (Self::Float(a), b) => Self::Float(a * b.to_float()),
-            (a, Self::Float(b)) => Self::Float(a.to_float() * b),
+            (Value::Float(a), b) => Value::Float(a * b.to_float()),
+            (a, Value::Float(b)) => Value::Float(a.to_float() * b),
 
             // All is threatened as Integer
-            (a, b) => Self::Integer(a.to_integer() * b.to_integer()),
+            (a, b) => Value::Integer(a.to_integer() * b.to_integer()),
         }
     }
 }
 
-impl std::ops::Div for Value
+impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value
 {
     type Output = Value;
 
-    fn div(self, rhs: Self) -> Self
+    fn div(self, rhs: &'b Value) -> Value
     {
         match (self, rhs)
         {
             // When one is Float...
-            (Self::Float(a), b) => Self::Float(a / b.to_float()),
-            (a, Self::Float(b)) => Self::Float(a.to_float() / b),
+            (Value::Float(a), b) => Value::Float(a / b.to_float()),
+            (a, Value::Float(b)) => Value::Float(a.to_float() / b),
 
             // All is threatened as Integer
-            (a, b) => Self::Integer(a.to_integer() / b.to_integer()),
+            (a, b) => Value::Integer(a.to_integer() / b.to_integer()),
             // todo: handle float as results?
         }
     }
 }
-*/
 
 // This is bat country...
 

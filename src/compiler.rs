@@ -418,6 +418,9 @@ impl Compiler {
                     match parts[2] {
                         // todo...
                         "add" => Some(Op::Add),
+                        "sub" => Some(Op::Sub),
+                        "mul" => Some(Op::Mul),
+                        "div" => Some(Op::Div),
                         _ => {
                             unimplemented!("op_binary_{}", parts[2]);
                         }

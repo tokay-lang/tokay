@@ -120,11 +120,9 @@ pub enum Op {
 
     // Operations
     Add,
-    /*
     Sub,
     Div,
     Mul
-    */
 
     /*
     And(Op),
@@ -376,10 +374,17 @@ impl Parser for Op {
                 }
             },
 
-            Op::Add => {
+            Op::Add | Op::Sub | Op::Div | Op::Mul => {
                 let b = context.pop();
                 let a = context.pop();
-                let c = (&*a.borrow() + &*b.borrow()).into_ref();
+
+                let c = match self {
+                    Op::Add => (&*a.borrow() + &*b.borrow()).into_ref(),
+                    Op::Sub => (&*a.borrow() - &*b.borrow()).into_ref(),
+                    Op::Div => (&*a.borrow() / &*b.borrow()).into_ref(),
+                    Op::Mul => (&*a.borrow() * &*b.borrow()).into_ref(),
+                    _ => unimplemented!("Unimplemented operator")
+                };
 
                 Ok(Accept::Push(Capture::Value(c)))
             }
