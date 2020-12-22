@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use crate::tokay::*;
-use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict};
+use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict, List};
 
 
 /** Compiler symbolic scope.
@@ -315,6 +315,19 @@ impl Compiler {
         println!("emit={:?}", emit);
 
         let op = match emit {
+            // assign ---------------------------------------------------------
+            "assign" => {
+                let children = node.borrow_by_key("children");
+                let children = children.get_list();
+
+                let (lvalue, rvalue) = children.unwrap().borrow_first_2();
+
+                ret.extend(self.traverse_node(rvalue.get_dict().unwrap()));
+                ret.extend(self.traverse_node(lvalue.get_dict().unwrap()));
+
+                None
+            },
+
             // assign_constant ------------------------------------------------
             "assign_constant" => {
                 let children = node.borrow_by_key("children");
@@ -354,6 +367,46 @@ impl Compiler {
                 let mut item = Op::Name(constant.to_string());
                 item.resolve(self, false);
                 Some(item)
+            },
+
+            // lvalue ---------------------------------------------------------
+            "lvalue" => {
+                let mut list = List::new(); //todo... this looks ugly.
+
+                let children = node.borrow_by_key("children");
+                let children = children.get_list().unwrap_or_else(
+                    || {
+                        list.push(node["children"].clone());
+                        &list
+                    });
+
+                for (i, item) in children.iter().enumerate() {
+                    let item = item.borrow();
+                    let item = item.get_dict().unwrap();
+
+                    let emit = item.borrow_by_key("emit");
+                    let emit = emit.get_string().unwrap();
+
+                    match emit {
+                        "variable" => {
+                            let name = item.borrow_by_key("value");
+                            let name = name.get_string().unwrap();
+
+                            if i < children.len() - 1 {
+                                ret.push(self.gen_load(name))
+                            }
+                            else {
+                                ret.push(self.gen_store(name))
+                            }
+                        },
+                        other => {
+                            unimplemented!(
+                                "{:?} not implemented for lvalue", other);
+                        }
+                    }
+                }
+
+                None
             },
 
             // main -----------------------------------------------------------
@@ -434,6 +487,41 @@ impl Compiler {
             // parselet ------------------------------------------------------
 
             "parselet" => {
+                None
+            }
+
+            // rvalue ---------------------------------------------------------
+            "rvalue" => {
+                let mut list = List::new(); //todo... this looks ugly.
+
+                let children = node.borrow_by_key("children");
+                let children = children.get_list().unwrap_or_else(
+                    || {
+                        list.push(node["children"].clone());
+                        &list
+                    });
+
+                for (i, item) in children.iter().enumerate() {
+                    let item = item.borrow();
+                    let item = item.get_dict().unwrap();
+
+                    let emit = item.borrow_by_key("emit");
+                    let emit = emit.get_string().unwrap();
+
+                    match emit {
+                        "variable" => {
+                            let name = item.borrow_by_key("value");
+                            let name = name.get_string().unwrap();
+
+                            ret.push(self.gen_load(name))
+                        },
+                        other => {
+                            unimplemented!(
+                                "{:?} not implemented for lvalue", other);
+                        }
+                    }
+                }
+
                 None
             }
 

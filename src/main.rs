@@ -12,7 +12,7 @@ fn main() {
     //let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
-    let s = "1 + 2 / 3.1 ('Hello' * 3 + 'World')";
+    let s = "a = 42 a a + 1 a + 2";
 
     println!("src = {:?}", s);
 
