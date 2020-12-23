@@ -438,14 +438,15 @@ impl Parser for Op {
                         Value::Parselet(p) => {
                             //println!("resolved {:?} as {:?}", name, *p);
                             *self = Op::Call(*p);
-                            return;
                         },
                         Value::String(s) => {
                             *self = Match::new(&s.clone()).into_op();
-                            return;
                         },
+
                         _ => {
-                            unimplemented!("Cannot resolve {:?}", value);
+                            *self = Op::LoadStatic(
+                                compiler.get_constant_idx(name).unwrap()
+                            );
                         }
                     }
                 }

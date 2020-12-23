@@ -147,17 +147,29 @@ impl Compiler {
         );
     }
 
-    /** Get constant, either from current or preceding scope. */
-    pub fn get_constant(&self, name: &str) -> Option<RefValue> {
+    /** Get constant address, either from current or preceding scope. */
+    pub fn get_constant_idx(&self, name: &str) -> Option<usize> {
         assert!(Self::is_constant(name));
 
         for scope in &self.scopes {
             if let Some(addr) = scope.constants.get(name) {
-                return Some(self.values[*addr].clone());
+                return Some(*addr);
             }
         }
 
         None
+    }
+
+    /** Get constant value, either from current or preceding scope. */
+    pub fn get_constant(&self, name: &str) -> Option<RefValue> {
+        assert!(Self::is_constant(name));
+
+        if let Some(idx) = self.get_constant_idx(name) {
+            Some(self.values[idx].clone())
+        }
+        else {
+            None
+        }
     }
 
     /** Defines a new static value.
@@ -469,7 +481,6 @@ impl Compiler {
                     ret.extend(self.traverse_node(&right.get_dict().unwrap()));
 
                     match parts[2] {
-                        // todo...
                         "add" => Some(Op::Add),
                         "sub" => Some(Op::Sub),
                         "mul" => Some(Op::Mul),
@@ -478,6 +489,14 @@ impl Compiler {
                             unimplemented!("op_binary_{}", parts[2]);
                         }
                     }
+                }
+                else if parts[1] == "unary" {
+                    let children = node.borrow_by_key("children");
+                    let children = children.get_dict().unwrap();
+                    ret.extend(self.traverse_node(children));
+
+                    //fixme: unary operators
+                    None
                 }
                 else {
                     None
@@ -509,12 +528,29 @@ impl Compiler {
                     let emit = emit.get_string().unwrap();
 
                     match emit {
+                        "constant" => {
+                            let name = item.borrow_by_key("value");
+                            let name = name.get_string().unwrap();
+
+                            if let Some(addr) = self.get_constant_idx(name) {
+                                ret.push(Op::LoadStatic(addr));
+                            }
+                            else {
+                                panic!("Call to undefined constant {:?}", name);
+                            }
+                        }
+
                         "variable" => {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
 
                             ret.push(self.gen_load(name))
-                        },
+                        }
+
+                        val if val.starts_with("value_") => {
+                            ret.extend(self.traverse_node(item))
+                        }
+
                         other => {
                             unimplemented!(
                                 "{:?} not implemented for lvalue", other);

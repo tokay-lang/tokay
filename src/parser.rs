@@ -102,7 +102,7 @@ impl TokayParser {
 
 (S_Tail = {
     [".", _, T_Identifier, _, (Op::Create("attribute"))],
-    ["[", _, S_Expression, _, "]", _, (Op::Create("index"))]
+    ["[", _, S_Expression, "]", _, (Op::Create("index"))]
 }),
 
 (S_Capture = {
@@ -117,7 +117,7 @@ impl TokayParser {
 }),
 
 (S_Rvalue = {
-    [T_Constant, (Op::Create("rvalue"))],
+    [S_Value, _, (kle S_Tail), (Op::Create("rvalue"))],
     [T_Variable, _, (kle S_Tail), (Op::Create("rvalue"))],
     [S_Capture, _, (kle S_Tail), (Op::Create("rvalue"))]
 }),
@@ -144,6 +144,7 @@ impl TokayParser {
     [S_String, _],
     [T_Float, _],
     [T_Integer, _],
+    [T_Constant, _],
     [S_Parselet, _]
 }),
 
@@ -151,7 +152,6 @@ impl TokayParser {
 
 (S_Atomic = {
     ["(", _, S_Expression, ")", _],
-    S_Value,
     S_Call,
     S_Rvalue,
     S_Block
@@ -195,7 +195,7 @@ impl TokayParser {
     ["accept", _, S_Expression, (Op::Create("accept"))],
     ["accept", _, (Op::Create("accept_void"))],
     ["reject", _, (Op::Create("reject"))],
-    [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))],
+    [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
     S_Compare
 }),
 
@@ -218,7 +218,8 @@ impl TokayParser {
 }),
 
 (S_Sequence = {
-    [T_Constant, _, "=", _, S_Parselet, _, (Op::Create("assign_constant"))],
+    [T_Constant, _, "=", _, S_Parselet, (Op::Create("assign_constant"))],
+    [T_Constant, _, "=", _, (Op::Error("#todo construct 'Constant = ...' implemented for Parselet only"))],
     [(pos S_Item), (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -242,14 +243,15 @@ impl TokayParser {
 }),
 
 (S_ConstantCallParameters = {
-    [S_ConstantCallParameters, _, ",", _, S_ConstantCallParameter],
+    [S_ConstantCallParameters, ",", _, S_ConstantCallParameter],
     [S_ConstantCallParameter]
 }),
 
 (S_ConstantCall = {
-    [T_Constant, _, "(", _, S_ConstantCallParameters, ")", _,
+    [T_Constant, _, "(", _, S_ConstantCallParameters, ")", //no _ here!!!
         (Op::Create("call_constant"))],
-    [T_Constant, _, (Op::Create("call_constant"))]
+    [T_Constant, //no _ here!!!
+        (Op::Create("call_constant"))]
 }),
 
 (S_Token = {
