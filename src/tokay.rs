@@ -79,6 +79,7 @@ pub enum Op {
     // Parsing
     Parser(Box<dyn Parser>),
     Empty,
+    Peek(Box<Op>), // Peek-operation
     Not(Box<Op>), // Not-predicate
 
     // Debuging and error reporting
@@ -127,6 +128,10 @@ pub enum Op {
 }
 
 impl Op {
+    pub fn into_box(self) -> Box<Self> {
+        Box::new(self)
+    }
+
     pub fn into_kleene(self) -> Self {
         Repeat::kleene(self)
     }
@@ -145,6 +150,14 @@ impl Parser for Op {
         match self {
             Op::Nop => Ok(Accept::Next),
             Op::Parser(p) => p.run(context),
+
+            Op::Peek(p) => {
+                let reader_start = context.runtime.reader.tell();
+                let ret = p.run(context);
+                context.runtime.reader.reset(reader_start);
+                ret
+            }
+
             Op::Not(p) => {
                 if p.run(context).is_ok() {
                     Err(Reject::Next)

@@ -13,7 +13,8 @@ fn main() {
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
     //let s = "a = 42 a a + 1 a + 2";
-    let s = "A = 'Hello' A+ 3 + 2";
+    //let s = "A = 'Hello' A+ 3 + 2* ('Bernd Waldemar')";
+    let s = "~!'Hello' 'World' ('Yes')";
 
     println!("src = {:?}", s);
 
@@ -30,9 +31,9 @@ fn main() {
         let prg = compiler.into_program();
         //prg.dump();
 
-        println!("prg = {:?}", prg);
+        println!("prg = {:#?}", prg);
 
-        println!("res = {:?}", prg.run_from_str("HelloHello HelloWorld"));
+        println!("res = {:?}", prg.run_from_str("HelloWorld"));
         //println!("res = {:?}", prg.run_from_str("1+2*3+4"));
     }
 }

@@ -459,6 +459,8 @@ impl Compiler {
                 let op = op.into_iter().next().unwrap();
 
                 match &modifier[4..] {
+                    "peek" => Some(Op::Peek(op.into_box())),
+                    "not" => Some(Op::Not(op.into_box())),
                     "kleene" => Some(op.into_kleene()),
                     "positive" => Some(op.into_positive()),
                     "optional" => Some(op.into_optional()),
@@ -594,14 +596,8 @@ impl Compiler {
             _ => {
                 // When there are children, try to traverse recursively
                 if let Some(children) = node.get("children") {
-                    let res = self.traverse(&children.borrow());
-
-                    if res.len() <= 1 {
-                        res.into_iter().next()
-                    }
-                    else {
-                        unimplemented!("Don't know how to handle return list");
-                    }
+                    ret.extend(self.traverse(&children.borrow()));
+                    None
                 }
                 // Otherwise, report unhandled node!
                 else {

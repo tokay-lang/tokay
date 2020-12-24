@@ -113,13 +113,13 @@ impl TokayParser {
 
 (S_Lvalue = {
     [T_Variable, _, (kle S_Tail), (Op::Create("lvalue"))],
-    [S_Capture, _, (kle S_Tail), (Op::Create("lvalue"))]
+    [S_Capture, (kle S_Tail), (Op::Create("lvalue"))]
 }),
 
 (S_Rvalue = {
-    [S_Value, _, (kle S_Tail), (Op::Create("rvalue"))],
+    [T_Constant, _, (kle S_Tail), (Op::Create("rvalue"))],
     [T_Variable, _, (kle S_Tail), (Op::Create("rvalue"))],
-    [S_Capture, _, (kle S_Tail), (Op::Create("rvalue"))]
+    [S_Capture, (kle S_Tail), (Op::Create("rvalue"))]
 }),
 
 (S_CallParameters = {
@@ -144,7 +144,6 @@ impl TokayParser {
     [S_String, _],
     [T_Float, _],
     [T_Integer, _],
-    [T_Constant, _],
     [S_Parselet, _]
 }),
 
@@ -154,6 +153,7 @@ impl TokayParser {
     ["(", _, S_Expression, ")", _],
     S_Call,
     S_Rvalue,
+    S_Value,
     S_Block
 }),
 
@@ -195,6 +195,7 @@ impl TokayParser {
     ["accept", _, S_Expression, (Op::Create("accept"))],
     ["accept", _, (Op::Create("accept_void"))],
     ["reject", _, (Op::Create("reject"))],
+    [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
     S_Compare
 }),
@@ -218,7 +219,6 @@ impl TokayParser {
 }),
 
 (S_Sequence = {
-    [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [(pos S_Item), (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -230,17 +230,19 @@ impl TokayParser {
 }),
 
 (S_TokenModifier = {
+    ["!", S_TokenModifier, (Op::Create("mod_not"))],
+    ["~", S_TokenModifier, (Op::Create("mod_peek"))],
     [S_Token, "+", _, (Op::Create("mod_positive"))],
     [S_Token, "*", _, (Op::Create("mod_kleene"))],
     [S_Token, "?", _, (Op::Create("mod_optional"))],
-    [S_Token, _, (Op::Not(Box::new(Char::new(ccl![
+    [S_Token, _, (Op::Peek(Op::Not(Char::new(ccl![
         '='..='=',
         '+'..='+',
         '-'..='-',
         '*'..='*',
         '/'..='/'
         // todo: More to come?
-    ]))))]
+        ]).into_box()).into_box()))]
 }),
 
 (S_ConstantCallParameter = {
