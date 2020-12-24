@@ -128,7 +128,7 @@ impl TokayParser {
 }),
 
 (S_Call = {
-    [S_Rvalue, _, "(", (opt S_CallParameters), ")", (Op::Create("call"))]
+    [S_Rvalue, "(", (opt S_CallParameters), ")", (Op::Create("call"))]
 }),
 
 (S_String = {
@@ -218,8 +218,7 @@ impl TokayParser {
 }),
 
 (S_Sequence = {
-    [T_Constant, _, "=", _, S_Parselet, (Op::Create("assign_constant"))],
-    [T_Constant, _, "=", _, (Op::Error("#todo construct 'Constant = ...' implemented for Parselet only"))],
+    [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [(pos S_Item), (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -234,7 +233,14 @@ impl TokayParser {
     [S_Token, "+", _, (Op::Create("mod_positive"))],
     [S_Token, "*", _, (Op::Create("mod_kleene"))],
     [S_Token, "?", _, (Op::Create("mod_optional"))],
-    [S_Token, _]
+    [S_Token, _, (Op::Not(Box::new(Char::new(ccl![
+        '='..='=',
+        '+'..='+',
+        '-'..='-',
+        '*'..='*',
+        '/'..='/'
+        // todo: More to come?
+    ]))))]
 }),
 
 (S_ConstantCallParameter = {
@@ -248,9 +254,9 @@ impl TokayParser {
 }),
 
 (S_ConstantCall = {
-    [T_Constant, _, "(", _, S_ConstantCallParameters, ")", //no _ here!!!
+    [T_Constant, "(", _, S_ConstantCallParameters, ")",
         (Op::Create("call_constant"))],
-    [T_Constant, //no _ here!!!
+    [T_Constant,
         (Op::Create("call_constant"))]
 }),
 

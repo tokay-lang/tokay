@@ -13,7 +13,7 @@ fn main() {
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
     //let s = "a = 42 a a + 1 a + 2";
-    let s = "a = 42 a + 3";
+    let s = "A = 'Hello' A? 3 + 2";
 
     println!("src = {:?}", s);
 

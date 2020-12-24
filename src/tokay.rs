@@ -76,9 +76,10 @@ Specifies atomic level operations like running a parser or running VM code.
 pub enum Op {
     Nop,
 
-    // Parser
+    // Parsing
     Parser(Box<dyn Parser>),
     Empty,
+    Not(Box<Op>), // Not-predicate
 
     // Debuging and error reporting
     Print,
@@ -123,11 +124,6 @@ pub enum Op {
     Sub,
     Div,
     Mul
-
-    /*
-    And(Op),
-    Not(Op)
-    */
 }
 
 impl Op {
@@ -149,6 +145,14 @@ impl Parser for Op {
         match self {
             Op::Nop => Ok(Accept::Next),
             Op::Parser(p) => p.run(context),
+            Op::Not(p) => {
+                if p.run(context).is_ok() {
+                    Err(Reject::Next)
+                }
+                else {
+                    Ok(Accept::Next)
+                }
+            }
 
             Op::Empty => {
                 Ok(Accept::Push(Capture::Empty))
@@ -677,9 +681,10 @@ impl std::fmt::Display for Match {
 
 /** Repeating parser.
 
-This is a simple programmtic repetition. For several reasons, repetitions can
-also be expressed on a specialized token-level or by the grammar using left-
-or right-recursive structures.
+This is a simple programmatic sequential repetition. For several reasons,
+repetitions can also be expressed on a specialized token-level or by the grammar
+itself using left- and right-recursive structures, resulting in left- or right-
+leaning parse trees.
 */
 
 #[derive(Debug)]
@@ -776,10 +781,12 @@ impl Parser for Repeat {
             // Push collected captures, if any
             if let Some(capture) = context.collect(capture_start, false, false)
             {
+                println!("Repeat with result {:?}", capture);
                 Ok(Accept::Push(capture))
             }
             // Otherwiese, push a capture of consumed range
             else if reader_start < context.runtime.reader.tell() {
+                println!("Repeat with silent capture {:?}", context.runtime.reader.capture_from(reader_start));
                 Ok(
                     Accept::Push(
                         Capture::Silent(
@@ -790,6 +797,7 @@ impl Parser for Repeat {
             }
             // Else, just accept next
             else {
+                println!("Repeat with no result, but successful");
                 Ok(Accept::Next)
             }
         }
@@ -1200,7 +1208,8 @@ impl Parselet {
                 as possible. This will only be the case when input was
                 consumed.
             */
-            if main && reader_start < context.runtime.reader.tell() {
+            if main {
+                //println!("main res(1) = {:?}", res);
                 res = match res {
                     Ok(Accept::Next) => {
                         Ok(Accept::Repeat(None))
@@ -1235,8 +1244,10 @@ impl Parselet {
                     },
                     res => res
                 };
+                //println!("main res(2) = {:?}", res);
             }
 
+            // Evaluate result of parselet loop.
             match res {
                 Ok(accept) => {
                     match accept
@@ -1290,6 +1301,11 @@ impl Parselet {
                         return Err(reject)
                     }
                 }
+            }
+
+            // In case that no more input was consumed, stop here.
+            if reader_start == context.runtime.reader.tell() {
+                break
             }
         }
 
