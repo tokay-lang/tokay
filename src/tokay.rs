@@ -781,12 +781,10 @@ impl Parser for Repeat {
             // Push collected captures, if any
             if let Some(capture) = context.collect(capture_start, false, false)
             {
-                println!("Repeat with result {:?}", capture);
                 Ok(Accept::Push(capture))
             }
             // Otherwiese, push a capture of consumed range
             else if reader_start < context.runtime.reader.tell() {
-                println!("Repeat with silent capture {:?}", context.runtime.reader.capture_from(reader_start));
                 Ok(
                     Accept::Push(
                         Capture::Silent(
@@ -797,7 +795,6 @@ impl Parser for Repeat {
             }
             // Else, just accept next
             else {
-                println!("Repeat with no result, but successful");
                 Ok(Accept::Next)
             }
         }
@@ -1281,6 +1278,11 @@ impl Parselet {
 
                         accept => return Ok(accept)
                     }
+
+                    // In case that no more input was consumed, stop here.
+                    if main && reader_start == context.runtime.reader.tell() {
+                        context.runtime.reader.next();
+                    }
                 },
 
                 Err(reject) => {
@@ -1293,9 +1295,6 @@ impl Parselet {
                     // Skip character
                     if main {
                         context.runtime.reader.next();
-                        if context.runtime.reader.eof() {
-                            break
-                        }
                     }
                     else if results.len() == 0 {
                         return Err(reject)
@@ -1303,8 +1302,7 @@ impl Parselet {
                 }
             }
 
-            // In case that no more input was consumed, stop here.
-            if reader_start == context.runtime.reader.tell() {
+            if context.runtime.reader.eof() {
                 break
             }
         }

@@ -13,7 +13,7 @@ fn main() {
     //let s = "A B C\nX Y Z";
     //let s = "x = @{return0}";
     //let s = "a = 42 a a + 1 a + 2";
-    let s = "A = 'Hello' A? 3 + 2";
+    let s = "A = 'Hello' A+ 3 + 2";
 
     println!("src = {:?}", s);
 
@@ -32,7 +32,7 @@ fn main() {
 
         println!("prg = {:?}", prg);
 
-        println!("res = {:?}", prg.run_from_str("HelloHelloWorld HelloWorld"));
+        println!("res = {:?}", prg.run_from_str("HelloHello HelloWorld"));
         //println!("res = {:?}", prg.run_from_str("1+2*3+4"));
     }
 }
