@@ -234,7 +234,7 @@ impl Value {
     // Get Value's string representation.
     pub fn to_string(&self) -> String {
         match self {
-            Self::Void => "void".to_string(),
+            Self::Void => "".to_string(),
             Self::Null => "null".to_string(),
             Self::True => "true".to_string(),
             Self::False => "false".to_string(),

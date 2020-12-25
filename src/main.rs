@@ -14,7 +14,10 @@ fn main() {
     //let s = "x = @{return0}";
     //let s = "a = 42 a a + 1 a + 2";
     //let s = "A = 'Hello' A+ 3 + 2* ('Bernd Waldemar')";
-    let s = "~!'Hello' 'World' ('Yes')";
+
+    // Captures
+    //let s = "'Hello' 'World' $1 * 2 + $2 * 3";
+    let s = "a = 2 'Hello' 'World' $(a) * 2 + $( a + 1 ) * 3";
 
     println!("src = {:?}", s);
 

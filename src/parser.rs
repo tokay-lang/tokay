@@ -106,8 +106,9 @@ impl TokayParser {
 }),
 
 (S_Capture = {
-    ["$", T_Identifier, _, (Op::Create("capture_named"))],
-    ["$", T_Integer, _, (Op::Create("capture"))],
+    ["$", T_Identifier, _, (Op::Create("capture_alias"))],
+    ["$", T_Integer, _, (Op::Create("capture_index"))],
+    ["$", "(", _, S_Expression, ")", _, (Op::Create("capture"))],
     ["$", (Op::Error("Either use $int or $name for captures, thanks"))]
 }),
 
@@ -190,11 +191,13 @@ impl TokayParser {
     ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
         (Op::Create("if_else"))],
     ["if", _, S_Expression, S_Expression, (Op::Create("if"))],
+    //fixme: below this, is it really an expression?
     ["return", _, S_Expression, (Op::Create("return"))],
     ["return", _, (Op::Create("return_void"))],
     ["accept", _, S_Expression, (Op::Create("accept"))],
     ["accept", _, (Op::Create("accept_void"))],
     ["reject", _, (Op::Create("reject"))],
+    //fixme: until here, see above.
     [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
     S_Compare
@@ -235,14 +238,21 @@ impl TokayParser {
     [S_Token, "+", _, (Op::Create("mod_positive"))],
     [S_Token, "*", _, (Op::Create("mod_kleene"))],
     [S_Token, "?", _, (Op::Create("mod_optional"))],
-    [S_Token, _, (Op::Peek(Op::Not(Char::new(ccl![
-        '='..='=',
-        '+'..='+',
-        '-'..='-',
-        '*'..='*',
-        '/'..='/'
-        // todo: More to come?
-        ]).into_box()).into_box()))]
+    [
+        S_Token, _,
+        (Op::Peek(
+            Op::Not(
+                Char::new(ccl![
+                    '='..='=',
+                    '+'..='+',
+                    '-'..='-',
+                    '*'..='*',
+                    '/'..='/'
+                    // todo: More to come?
+                ]).into_box()
+            ).into_box()
+        ))
+    ]
 }),
 
 (S_ConstantCallParameter = {

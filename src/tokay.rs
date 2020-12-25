@@ -117,7 +117,7 @@ pub enum Op {
     LoadFast(usize),
     StoreGlobal(usize),
     StoreFast(usize),
-    LoadCaptureFast(usize),
+    LoadFastCapture(usize),
     LoadCapture,
 
     // Operations
@@ -372,28 +372,38 @@ impl Parser for Op {
                 Ok(Accept::Next)
             },
 
-            Op::LoadCaptureFast(index) => {
+            Op::LoadFastCapture(index) => {
                 let value = context.get_capture(*index).unwrap_or(
                     Value::Void.into_ref()
                 );
-                context.push(value);
 
-                Ok(Accept::Next)
+                Ok(Accept::Push(Capture::Value(value)))
             },
 
             Op::LoadCapture => {
-                if let Value::Addr(index) = *context.pop().borrow() {
-                    Op::LoadCaptureFast(index).run(context)?;
-                    Ok(Accept::Next)
-                }
-                else {
-                    Err(Reject::Error("Internal".to_string()))
+                let value = context.pop();
+                let value = value.borrow();
+
+                match *value {
+                    Value::Addr(_)
+                    | Value::Integer(_)
+                    | Value::Float(_) => {
+                        Op::LoadFastCapture(value.to_addr()).run(context)
+                    }
+
+                    _ => {
+                        unimplemented!("//todo")
+                    }
                 }
             },
 
             Op::Add | Op::Sub | Op::Div | Op::Mul => {
                 let b = context.pop();
                 let a = context.pop();
+
+                //println!("{:?}", self);
+                //println!("a = {:?}", a);
+                //println!("b = {:?}", b);
 
                 let c = match self {
                     Op::Add => (&*a.borrow() + &*b.borrow()).into_ref(),
@@ -416,6 +426,8 @@ impl Parser for Op {
     {
         match self {
             Op::Parser(parser) => parser.finalize(parselets, leftrec, nullable),
+
+            Op::Peek(op) | Op::Not(op) => op.finalize(parselets, leftrec, nullable),
 
             Op::Name(name) => panic!("OH no, there is Name({}) still!", name),
 

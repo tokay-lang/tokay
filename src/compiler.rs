@@ -498,6 +498,7 @@ impl Compiler {
                     ret.extend(self.traverse_node(children));
 
                     //fixme: unary operators
+                    unimplemented!("unary missing");
                     None
                 }
                 else {
@@ -530,6 +531,34 @@ impl Compiler {
                     let emit = emit.get_string().unwrap();
 
                     match emit {
+                        capture if capture.starts_with("capture") => {
+                            let children = item.borrow_by_key("children");
+
+                            match capture {
+                                "capture" => {
+                                    ret.extend(self.traverse(&children));
+                                    ret.push(Op::LoadCapture)
+                                }
+
+                                "capture_index" => {
+                                    let children = children.get_dict().unwrap();
+                                    let index = self.traverse_node_value(children);
+                                    ret.push(Op::LoadFastCapture(index.borrow().to_addr()));
+                                }
+
+                                "capture_alias" => {
+                                    unimplemented!("//todo");
+                                }
+
+                                _ => {
+                                    unimplemented!("{:?} not covered", capture);
+                                }
+                            }
+
+                            println!("CAPTUR {:?}", children);
+
+                        }
+
                         "constant" => {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
