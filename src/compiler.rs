@@ -177,7 +177,8 @@ impl Compiler {
     Statics are moved into the program later on. */
     pub fn define_value(&mut self, value: RefValue) -> usize
     {
-        // todo: check for existing value
+        // todo: check for existing value, and reuse it again instead of
+        // naively adding the same value multiple times
         self.values.push(value);
         self.values.len() - 1
     }
@@ -400,6 +401,31 @@ impl Compiler {
                     let emit = emit.get_string().unwrap();
 
                     match emit {
+                        capture if capture.starts_with("capture") => {
+                            let children = item.borrow_by_key("children");
+
+                            match capture {
+                                "capture" => {
+                                    ret.extend(self.traverse(&children));
+                                    ret.push(Op::StoreCapture)
+                                }
+
+                                "capture_index" => {
+                                    let children = children.get_dict().unwrap();
+                                    let index = self.traverse_node_value(children);
+                                    ret.push(Op::StoreFastCapture(index.borrow().to_addr()));
+                                }
+
+                                "capture_alias" => {
+                                    unimplemented!("//todo");
+                                }
+
+                                _ => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
                         "variable" => {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
@@ -551,12 +577,9 @@ impl Compiler {
                                 }
 
                                 _ => {
-                                    unimplemented!("{:?} not covered", capture);
+                                    unreachable!();
                                 }
                             }
-
-                            println!("CAPTUR {:?}", children);
-
                         }
 
                         "constant" => {
@@ -583,8 +606,7 @@ impl Compiler {
                         }
 
                         other => {
-                            unimplemented!(
-                                "{:?} not implemented for lvalue", other);
+                            unreachable!();
                         }
                     }
                 }
@@ -630,7 +652,7 @@ impl Compiler {
                 }
                 // Otherwise, report unhandled node!
                 else {
-                    panic!("No traversal function for {:?} found", emit);
+                    unreachable!();
                 }
             }
         };

@@ -119,6 +119,8 @@ pub enum Op {
     StoreFast(usize),
     LoadFastCapture(usize),
     LoadCapture,
+    StoreFastCapture(usize),
+    StoreCapture,
 
     // Operations
     Add,
@@ -381,14 +383,38 @@ impl Parser for Op {
             },
 
             Op::LoadCapture => {
-                let value = context.pop();
-                let value = value.borrow();
+                let index = context.pop();
+                let index = index.borrow();
 
-                match *value {
+                match *index {
                     Value::Addr(_)
                     | Value::Integer(_)
                     | Value::Float(_) => {
-                        Op::LoadFastCapture(value.to_addr()).run(context)
+                        Op::LoadFastCapture(index.to_addr()).run(context)
+                    }
+
+                    _ => {
+                        unimplemented!("//todo")
+                    }
+                }
+            },
+
+            Op::StoreFastCapture(index) => {
+                let value = context.pop();
+
+                context.set_capture(*index, value);
+                Ok(Accept::Next)
+            },
+
+            Op::StoreCapture => {
+                let index = context.pop();
+                let index = index.borrow();
+
+                match *index {
+                    Value::Addr(_)
+                    | Value::Integer(_)
+                    | Value::Float(_) => {
+                        Op::StoreFastCapture(index.to_addr()).run(context)
                     }
 
                     _ => {
@@ -1470,24 +1496,37 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     /** Return a capture by index as RefValue. */
-    pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
-        // Capture $0 is specially handled.
-        if pos == 0 {
-            return Some(self.get_0());
-        }
-
-        // Anything else by position.
+    pub fn get_capture(&self, pos: usize) -> Option<RefValue> {
         let pos = self.capture_start + pos;
 
         if pos >= self.runtime.stack.len() {
             return None
         }
 
-        Some(self.runtime.stack[pos].0.as_value(&self.runtime))
+        if pos == 0 {
+            // Capture 0 either returns an already set value or ...
+            if let Capture::Value(value) =
+                &self.runtime.stack[self.capture_start].0
+            {
+                return Some(value.clone())
+            }
+
+            // ...returns the current range read so far.
+            Some(
+                Value::String(
+                    self.runtime.reader.extract(
+                        &(self.reader_start..self.runtime.reader.tell())
+                    )
+                ).into_ref()
+            )
+        }
+        else {
+            Some(self.runtime.stack[pos].0.as_value(&self.runtime))
+        }
     }
 
     /** Return a capture by name as RefValue. */
-    pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
+    pub fn get_capture_by_name(&self, name: &str) -> Option<RefValue> {
         // fixme: Should be examined in reversed order
         for (i, capture) in
             self.runtime.stack[self.capture_start..].iter().enumerate()
@@ -1502,27 +1541,30 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         None
     }
 
-    /** Returns the range currently consumed input */
-    pub fn get_0_range(&self) -> Range {
-        self.reader_start..self.runtime.reader.tell()
-    }
+    /** Set a capture to a RefValue by index. */
+    pub fn set_capture(&mut self, pos: usize, value: RefValue) {
+        let pos = self.capture_start + pos;
 
-    /** Returns the current $0 value */
-    pub fn get_0(&self) -> RefValue {
-        if let Capture::Value(value) =
-            &self.runtime.stack[self.capture_start].0
-        {
-            return value.clone()
+        if pos >= self.runtime.stack.len() {
+            return
         }
 
-        Value::String(
-            self.runtime.reader.extract(&self.get_0_range())
-        ).into_ref()
+        self.runtime.stack[pos].0 = Capture::Value(value)
     }
 
-    /** Save current $0 value */
-    pub fn set_0(&mut self, value: RefValue) {
-        self.runtime.stack[self.capture_start].0 = Capture::Value(value)
+    /** Set a capture to a RefValue by name. */
+    pub fn set_capture_by_name(&mut self, name: &str, value: RefValue) {
+        // fixme: Should be examined in reversed order
+        for (i, capture) in
+            self.runtime.stack[self.capture_start..].iter().enumerate()
+        {
+            if let Some(alias) = &capture.1 {
+                if alias == name {
+                    self.set_capture(i, value);
+                    break;
+                }
+            }
+        }
     }
 
     /** Helper function to collect captures from a capture_start and turn

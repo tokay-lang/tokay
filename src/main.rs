@@ -17,7 +17,7 @@ fn main() {
 
     // Captures
     //let s = "'Hello' 'World' $1 * 2 + $2 * 3";
-    let s = "a = 2 'Hello' 'World' $(a) * 2 + $( a + 1 ) * 3";
+    let s = "a = 2 'Hello' 'World' $(a) = $3 * 2 + $2 $3 * 2";
 
     println!("src = {:?}", s);
 
