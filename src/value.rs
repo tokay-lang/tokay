@@ -88,7 +88,8 @@ pub enum Value {
     Complex(Box<Complex>),      // combined map/array type
     List(Box<List>),            // list
     Dict(Box<Dict>),            // dict
-    Parselet(usize)             // executable code parselet
+    Parselet(usize),            // tokay parselet
+    Builtin(usize)              // builtin parselet
 }
 
 /*
@@ -245,7 +246,8 @@ impl Value {
             Self::Complex(c) => format!("{:?}", c),
             Self::List(l) => format!("{:?}", l),
             Self::Dict(d) => format!("{:?}", d),
-            Self::Parselet(p) => format!("{:?}", p)
+            Self::Parselet(p) => format!("{:?}", p),
+            Self::Builtin(b) => format!("{:?}", b)
         }
     }
 

@@ -7,6 +7,7 @@ use crate::value::{Dict, List, Value, RefValue};
 use crate::reader::{Reader, Range};
 use crate::compiler::Compiler;
 use crate::ccl;
+use crate::builtin;
 
 
 #[derive(Debug, Clone)]
@@ -94,12 +95,12 @@ pub enum Op {
 
     // Interrupts
     Skip,
-    Accept(Option<RefValue>),
-    Repeat(Option<RefValue>),
+    LoadAccept,
     Reject,
 
     // Call
     Call(usize),
+    Builtin(usize),
     TryCall,
     Name(String),
 
@@ -283,6 +284,12 @@ impl Parser for Op {
                 Ok(Accept::Skip)
             },
 
+            Op::LoadAccept => {
+                let value = context.pop();
+                Ok(Accept::Return(Some(value.clone())))
+            }
+
+            /*
             Op::Accept(value) => {
                 Ok(Accept::Return(value.clone()))
             },
@@ -290,6 +297,7 @@ impl Parser for Op {
             Op::Repeat(value) => {
                 Ok(Accept::Repeat(value.clone()))
             },
+            */
 
             Op::Reject => {
                 Err(Reject::Return)
@@ -300,6 +308,8 @@ impl Parser for Op {
                     context.runtime, false
                 )
             },
+
+            Op::Builtin(builtin) => builtin::call(*builtin, context),
 
             Op::TryCall => {
                 let value = context.pop();
@@ -427,9 +437,11 @@ impl Parser for Op {
                 let b = context.pop();
                 let a = context.pop();
 
-                //println!("{:?}", self);
-                //println!("a = {:?}", a);
-                //println!("b = {:?}", b);
+                /*
+                println!("{:?}", self);
+                println!("a = {:?}", a);
+                println!("b = {:?}", b);
+                */
 
                 let c = match self {
                     Op::Add => (&*a.borrow() + &*b.borrow()).into_ref(),
@@ -494,6 +506,9 @@ impl Parser for Op {
                             //println!("resolved {:?} as {:?}", name, *p);
                             *self = Op::Call(*p);
                         },
+                        Value::Builtin(b) => {
+                            *self = Op::Builtin(*b)
+                        },
                         Value::String(s) => {
                             *self = Match::new(&s.clone()).into_op();
                         },
@@ -524,10 +539,9 @@ impl std::fmt::Display for Op {
     }
 }
 
-/*
-// --- Rust -------------------------------------------------------------------
-//fixme: This should not be implement as Parser.
 
+// --- Rust --------------------------------------------------------------------
+/*
 pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
 
 impl Parser for Rust {
@@ -1141,14 +1155,21 @@ impl Parser for Block {
 
                 result = res;
 
+                // Save intermediate result in memo table
                 reader_end = context.runtime.reader.tell();
                 context.runtime.memo.insert(
                     (context.reader_start, id),
                     (reader_end, result.clone())
                 );
 
+                // Reset reader & stack
                 context.runtime.reader.reset(context.reader_start);
-                context.runtime.stack.truncate(context.capture_start);
+                context.runtime.stack.truncate(context.stack_start);
+                context.runtime.stack.resize(
+                    context.capture_start + 1,
+                    (Capture::Empty, None)
+                );
+
                 loops += 1;
             }
 
@@ -1469,14 +1490,13 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         let stack_start = runtime.stack.len();
 
         runtime.stack.resize(
-            runtime.stack.len() + preserve + 1,
+            stack_start + preserve + 1,
             (Capture::Empty, None)
         );
 
-        //ret.runtime.stack.push((Capture::Empty, None));
         Self{
             stack_start,
-            capture_start: runtime.stack.len() - 1,
+            capture_start: stack_start + preserve,
             reader_start: runtime.reader.tell(),
             runtime: runtime
         }
@@ -1497,9 +1517,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&self, pos: usize) -> Option<RefValue> {
-        let pos = self.capture_start + pos;
-
-        if pos >= self.runtime.stack.len() {
+        if self.capture_start + pos >= self.runtime.stack.len() {
             return None
         }
 
@@ -1521,7 +1539,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             )
         }
         else {
-            Some(self.runtime.stack[pos].0.as_value(&self.runtime))
+            Some(self.runtime.stack[
+                self.capture_start + pos
+            ].0.as_value(&self.runtime))
         }
     }
 

@@ -1,21 +1,19 @@
 Factor = @{
-    Float
-    '-' Expr            -$Expr
+    Integer
     '(' Expr ')'
 }
 
 Term = @{
-    Term '*' Factor     $Expr * $Factor
-    Term '/' Factor     $Expr / $Factor
+    Term '*' Factor     accept $1 * $3
+    Term '/' Factor     accept $1 / $3
     Factor
 }
 
 Expr = @{
-    Expr '+' Term       $Expr + $Factor
-    Expr '-' Term       $Expr - $Factor
+    Expr '+' Term       accept $1 + $3
+    Expr '-' Term       accept $1 - $3
     Term
 }
 
-Expr("ASK-13"+, "LS-1c") \
-                        print("Yes!")
-Expr                    print("Hello", 23 * 5, x, x(1337))
+
+Expr

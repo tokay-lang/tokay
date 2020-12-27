@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::cell::RefCell;
 use crate::tokay::*;
 use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict, List};
+use crate::builtin;
 
 
 /** Compiler symbolic scope.
@@ -25,7 +26,7 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn new() -> Self {
-        Self{
+        let mut compiler = Self{
             scopes: vec![
                 Scope{
                     variables: Some(HashMap::new()),
@@ -35,7 +36,11 @@ impl Compiler {
             ],
             values: Vec::new(),
             parselets: Vec::new()
-        }
+        };
+
+        builtin::register(&mut compiler);
+
+        compiler
     }
 
     /** Converts the compiled information into a Program. */
@@ -138,8 +143,6 @@ impl Compiler {
 
     /** Set constant to name in current scope. */
     pub fn set_constant(&mut self, name: &str, value: RefValue) {
-        assert!(Self::is_constant(name));
-
         let addr = self.define_value(value);
 
         self.scopes.first_mut().unwrap().constants.insert(
@@ -149,8 +152,6 @@ impl Compiler {
 
     /** Get constant address, either from current or preceding scope. */
     pub fn get_constant_idx(&self, name: &str) -> Option<usize> {
-        assert!(Self::is_constant(name));
-
         for scope in &self.scopes {
             if let Some(addr) = scope.constants.get(name) {
                 return Some(*addr);
@@ -162,8 +163,6 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope. */
     pub fn get_constant(&self, name: &str) -> Option<RefValue> {
-        assert!(Self::is_constant(name));
-
         if let Some(idx) = self.get_constant_idx(name) {
             Some(self.values[idx].clone())
         }
@@ -325,7 +324,7 @@ impl Compiler {
 
         let mut ret = Vec::new();
 
-        println!("emit={:?}", emit);
+        println!("emit = {:?}", emit);
 
         let op = match emit {
             // assign ---------------------------------------------------------
@@ -515,6 +514,22 @@ impl Compiler {
                         "div" => Some(Op::Div),
                         _ => {
                             unimplemented!("op_binary_{}", parts[2]);
+                        }
+                    }
+                }
+                else if parts[1] == "flow" {
+                    match parts[2] {
+                        "accept" => {
+                            let children = node.borrow_by_key("children");
+                            ret.extend(
+                                self.traverse_node(
+                                    &children.get_dict().unwrap()
+                                )
+                            );
+                            Some(Op::LoadAccept)
+                        }
+                        _ => {
+                            unimplemented!("op_flow_{}", parts[2]);
                         }
                     }
                 }

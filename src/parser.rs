@@ -189,14 +189,14 @@ impl TokayParser {
 
 (S_Expression = {
     ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
-        (Op::Create("if_else"))],
-    ["if", _, S_Expression, S_Expression, (Op::Create("if"))],
+        (Op::Create("op_flow_ifelse"))],
+    ["if", _, S_Expression, S_Expression, (Op::Create("op_flow_if"))],
     //fixme: below this, is it really an expression?
-    ["return", _, S_Expression, (Op::Create("return"))],
-    ["return", _, (Op::Create("return_void"))],
-    ["accept", _, S_Expression, (Op::Create("accept"))],
-    ["accept", _, (Op::Create("accept_void"))],
-    ["reject", _, (Op::Create("reject"))],
+    ["return", _, S_Expression, (Op::Create("op_return"))],
+    ["return", _, (Op::Create("op_flow_voidreturn"))],
+    ["accept", _, S_Expression, (Op::Create("op_flow_accept"))],
+    ["accept", _, (Op::Create("op_flow_voidaccept"))],
+    ["reject", _, (Op::Create("op_flow_reject"))],
     //fixme: until here, see above.
     [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
