@@ -141,7 +141,7 @@ impl TokayParser {
     ["true", _, (Op::Create("value_true"))],
     ["false", _, (Op::Create("value_false"))],
     ["void", _, (Op::Create("value_void"))],
-    ["unset", _, (Op::Create("value_unset"))],
+    ["null", _, (Op::Create("value_null"))],
     [S_String, _],
     [T_Float, _],
     [T_Integer, _],
@@ -188,19 +188,21 @@ impl TokayParser {
 }),
 
 (S_Expression = {
-    ["if", _, S_Expression, S_Expression, "else", _, S_Expression,
-        (Op::Create("op_flow_ifelse"))],
-    ["if", _, S_Expression, S_Expression, (Op::Create("op_flow_if"))],
-    //fixme: below this, is it really an expression?
-    ["return", _, S_Expression, (Op::Create("op_return"))],
-    ["return", _, (Op::Create("op_flow_voidreturn"))],
-    ["accept", _, S_Expression, (Op::Create("op_flow_accept"))],
-    ["accept", _, (Op::Create("op_flow_voidaccept"))],
-    ["reject", _, (Op::Create("op_flow_reject"))],
-    //fixme: until here, see above.
+    ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
+        (Op::Create("op_ifelse"))],
+    ["if", _, S_Expression, S_Statement, (Op::Create("op_if"))],
     [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
     S_Compare
+}),
+
+(S_Statement = {
+    ["return", _, S_Expression, (Op::Create("op_return"))],
+    ["return", _, (Op::Create("op_returnvoid"))],
+    ["accept", _, S_Expression, (Op::Create("op_accept"))],
+    ["accept", _, (Op::Create("op_acceptvoid"))],
+    ["reject", _, (Op::Create("op_reject"))],
+    S_Expression
 }),
 
 // Structure
@@ -229,7 +231,7 @@ impl TokayParser {
 (S_Item = {
     // todo: Recognize aliases
     S_TokenModifier,
-    S_Expression
+    S_Statement
 }),
 
 (S_TokenModifier = {

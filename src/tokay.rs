@@ -313,8 +313,9 @@ impl Parser for Op {
 
             Op::TryCall => {
                 let value = context.pop();
+                let check = value.borrow();
 
-                match *value.borrow() {
+                match *check {
 
                     Value::Parselet(p) => {
                         return context.runtime.program.parselets[p].run(
@@ -322,10 +323,12 @@ impl Parser for Op {
                         )
                     },
 
-                    _ => {}
-                }
+                    Value::Builtin(b) => {
+                        builtin::call(b, context)
+                    }
 
-                Ok(Accept::Push(Capture::Value(value)))
+                    _ => Ok(Accept::Push(Capture::Value(value.clone())))
+                }
             }
 
             Op::Name(_) => panic!("{:?} cannot be executed", self),
@@ -1439,7 +1442,6 @@ impl Parselet {
 }
 
 
-
 // --- Capture -----------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1469,6 +1471,7 @@ impl Capture {
         }
     }
 }
+
 
 // --- Context -----------------------------------------------------------------
 

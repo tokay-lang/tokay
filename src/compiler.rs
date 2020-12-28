@@ -12,7 +12,7 @@ Scoped blocks (parselets) introduce new variable scopes.
 */
 struct Scope {
     variables: Option<HashMap<String, usize>>,
-    constants: HashMap<String, usize>,
+    constants: HashMap<String, RefValue>,
     parselets: usize
 }
 
@@ -20,7 +20,7 @@ struct Scope {
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
     scopes: Vec<Scope>,                     // Current compilation scopes
-    values: Vec<RefValue>,                  // Constant values collected during compile
+    values: RefCell<Vec<RefValue>>,         // Constant values collected during compile
     parselets: Vec<RefCell<Parselet>>       // Parselets
 }
 
@@ -34,7 +34,7 @@ impl Compiler {
                     parselets: 0
                 }
             ],
-            values: Vec::new(),
+            values: RefCell::new(Vec::new()),
             parselets: Vec::new()
         };
 
@@ -59,7 +59,7 @@ impl Compiler {
         // Drain parselets into the new program
         Program::new(
             self.parselets.drain(..).map(|p| p.into_inner()).collect(),
-            self.values,
+            self.values.borrow().to_vec(),
             //self.scopes[0].variables.len()  # fixme: these are the globals...
         )
     }
@@ -143,18 +143,16 @@ impl Compiler {
 
     /** Set constant to name in current scope. */
     pub fn set_constant(&mut self, name: &str, value: RefValue) {
-        let addr = self.define_value(value);
-
         self.scopes.first_mut().unwrap().constants.insert(
-            name.to_string(), addr
+            name.to_string(), value
         );
     }
 
     /** Get constant address, either from current or preceding scope. */
     pub fn get_constant_idx(&self, name: &str) -> Option<usize> {
         for scope in &self.scopes {
-            if let Some(addr) = scope.constants.get(name) {
-                return Some(*addr);
+            if let Some(value) = scope.constants.get(name) {
+                return Some(self.define_value(value.clone()))
             }
         }
 
@@ -163,23 +161,25 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope. */
     pub fn get_constant(&self, name: &str) -> Option<RefValue> {
-        if let Some(idx) = self.get_constant_idx(name) {
-            Some(self.values[idx].clone())
+        for scope in &self.scopes {
+            if let Some(value) = scope.constants.get(name) {
+                return Some(value.clone())
+            }
         }
-        else {
-            None
-        }
+
+        None
     }
 
     /** Defines a new static value.
 
     Statics are moved into the program later on. */
-    pub fn define_value(&mut self, value: RefValue) -> usize
+    pub fn define_value(&self, value: RefValue) -> usize
     {
+        let mut values = self.values.borrow_mut();
         // todo: check for existing value, and reuse it again instead of
         // naively adding the same value multiple times
-        self.values.push(value);
-        self.values.len() - 1
+        values.push(value);
+        values.len() - 1
     }
 
     /** Defines a new parselet code element.
@@ -517,22 +517,6 @@ impl Compiler {
                         }
                     }
                 }
-                else if parts[1] == "flow" {
-                    match parts[2] {
-                        "accept" => {
-                            let children = node.borrow_by_key("children");
-                            ret.extend(
-                                self.traverse_node(
-                                    &children.get_dict().unwrap()
-                                )
-                            );
-                            Some(Op::LoadAccept)
-                        }
-                        _ => {
-                            unimplemented!("op_flow_{}", parts[2]);
-                        }
-                    }
-                }
                 else if parts[1] == "unary" {
                     let children = node.borrow_by_key("children");
                     let children = children.get_dict().unwrap();
@@ -541,6 +525,16 @@ impl Compiler {
                     //fixme: unary operators
                     unimplemented!("unary missing");
                     None
+                }
+                else if parts[1] == "accept" || parts[1] == "return" {
+                    let children = node.borrow_by_key("children");
+                    ret.extend(
+                        self.traverse_node(
+                            &children.get_dict().unwrap()
+                        )
+                    );
+
+                    Some(Op::LoadAccept)
                 }
                 else {
                     None
