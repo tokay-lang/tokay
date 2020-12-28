@@ -327,7 +327,7 @@ impl Parser for Op {
                         builtin::call(b, context)
                     }
 
-                    _ => Ok(Accept::Push(Capture::Value(value.clone())))
+                    _ => Ok(Accept::Push(Capture::Value(value.clone(), 1)))
                 }
             }
 
@@ -335,33 +335,49 @@ impl Parser for Op {
 
             Op::LoadStatic(addr) => {
                 Ok(Accept::Push(Capture::Value(
-                    context.runtime.program.statics[*addr].clone()
+                    context.runtime.program.statics[*addr].clone(), 5
                 )))
-            },
+            }
+
             Op::PushAddr(a) => {
-                Ok(Accept::Push(Capture::Value(Value::Addr(*a).into_ref())))
-            },
+                Ok(Accept::Push(
+                    Capture::Value(Value::Addr(*a).into_ref(), 5)
+                ))
+            }
+
             Op::PushInt(i) => {
-                Ok(Accept::Push(Capture::Value(Value::Integer(*i).into_ref())))
-            },
+                Ok(Accept::Push(
+                    Capture::Value(Value::Integer(*i).into_ref(), 5)
+                ))
+            }
+
             Op::PushFloat(f) => {
-                Ok(Accept::Push(Capture::Value(Value::Float(*f).into_ref())))
-            },
+                Ok(Accept::Push(
+                    Capture::Value(Value::Float(*f).into_ref(), 5))
+                )
+            }
+
             Op::PushTrue => {
-                Ok(Accept::Push(Capture::Value(Value::True.into_ref())))
+                Ok(Accept::Push(
+                    Capture::Value(Value::True.into_ref(), 5)
+                ))
             },
             Op::PushFalse => {
-                Ok(Accept::Push(Capture::Value(Value::False.into_ref())))
+                Ok(Accept::Push(
+                    Capture::Value(Value::False.into_ref(), 5)
+                ))
             },
             Op::PushVoid => {
-                Ok(Accept::Push(Capture::Value(Value::Void.into_ref())))
+                Ok(Accept::Push(
+                    Capture::Value(Value::Void.into_ref(), 5)
+                ))
             },
 
             Op::LoadGlobal(addr) => {
                 Ok(Accept::Push(
                     Capture::Value(
                         context.runtime.stack[*addr].0
-                            .as_value(&context.runtime)
+                            .as_value(&context.runtime), 5
                     )
                 ))
             },
@@ -371,7 +387,7 @@ impl Parser for Op {
                     Capture::Value(
                         context.runtime.stack[
                             context.stack_start + addr
-                        ].0.as_value(&context.runtime)
+                        ].0.as_value(&context.runtime), 5
                     )
                 ))
             },
@@ -383,7 +399,7 @@ impl Parser for Op {
 
             Op::StoreFast(addr) => {
                 context.runtime.stack[context.stack_start + addr].0 =
-                    Capture::Value(context.pop());
+                    Capture::Value(context.pop(), 0);
                 Ok(Accept::Next)
             },
 
@@ -392,7 +408,7 @@ impl Parser for Op {
                     Value::Void.into_ref()
                 );
 
-                Ok(Accept::Push(Capture::Value(value)))
+                Ok(Accept::Push(Capture::Value(value, 10)))
             },
 
             Op::LoadCapture => {
@@ -454,7 +470,7 @@ impl Parser for Op {
                     _ => unimplemented!("Unimplemented operator")
                 };
 
-                Ok(Accept::Push(Capture::Value(c)))
+                Ok(Accept::Push(Capture::Value(c, 10)))
             }
         }
     }
@@ -635,7 +651,7 @@ impl Parser for Char {
             Ok(
                 Accept::Push(
                     Capture::Range(
-                        context.runtime.reader.capture_from(start)
+                        context.runtime.reader.capture_from(start), 5
                     )
                 )
             )
@@ -711,13 +727,13 @@ impl Parser for Match {
         Ok(
             Accept::Push(
                 if self.silent {
-                    Capture::Silent(
-                        range
+                    Capture::Range(
+                        range, 0
                     )
                 }
                 else {
                     Capture::Range(
-                        range
+                        range, 5
                     )
                 }
             )
@@ -853,13 +869,11 @@ impl Parser for Repeat {
             }
             // Otherwiese, push a capture of consumed range
             else if reader_start < context.runtime.reader.tell() {
-                Ok(
-                    Accept::Push(
-                        Capture::Silent(
-                            context.runtime.reader.capture_from(reader_start)
-                        )
+                Ok(Accept::Push(
+                    Capture::Range(
+                        context.runtime.reader.capture_from(reader_start), 0
                     )
-                )
+                ))
             }
             // Else, just accept next
             else {
@@ -971,8 +985,8 @@ impl Parser for Sequence {
         else if reader_start < context.runtime.reader.tell() {
             Ok(
                 Accept::Push(
-                    Capture::Silent(
-                        context.runtime.reader.capture_from(reader_start)
+                    Capture::Range(
+                        context.runtime.reader.capture_from(reader_start), 0
                     )
                 )
             )
@@ -1295,7 +1309,7 @@ impl Parselet {
                         Ok(
                             Accept::Repeat(
                                 match capture {
-                                    Capture::Range(range) => {
+                                    Capture::Range(range, _) => {
                                         Some(
                                             Value::String(
                                                 context.runtime.reader.extract(
@@ -1304,7 +1318,7 @@ impl Parselet {
                                             ).into_ref()
                                         )
                                     },
-                                    Capture::Value(value) => {
+                                    Capture::Value(value, _) => {
                                         Some(value)
                                     },
                                     _ => {
@@ -1331,9 +1345,13 @@ impl Parselet {
                         Accept::Return(value) => {
                             if let Some(value) = value {
                                 if !self.silent {
-                                    return Ok(Accept::Push(Capture::Value(value)))
+                                    return Ok(Accept::Push(
+                                        Capture::Value(value, 5)
+                                    ))
                                 } else {
-                                    return Ok(Accept::Push(Capture::Empty))
+                                    return Ok(Accept::Push(
+                                        Capture::Empty
+                                    ))
                                 }
                             }
                             else {
@@ -1383,15 +1401,17 @@ impl Parselet {
         }
 
         if results.len() > 1 {
-            Ok(Accept::Push(
-                Capture::Value(
-                    Value::List(Box::new(results)).into_ref()
+            Ok(
+                Accept::Push(
+                    Capture::Value(
+                        Value::List(Box::new(results)).into_ref(), 5
+                    )
                 )
-            ))
+            )
         }
         else if results.len() == 1 {
             Ok(
-                Accept::Push(Capture::Value(results.pop().unwrap()))
+                Accept::Push(Capture::Value(results.pop().unwrap(), 5))
             )
         }
         else {
@@ -1447,9 +1467,8 @@ impl Parselet {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Capture {
     Empty,                      // Empty capture
-    Silent(Range),              // Silent captured range from the input
-    Range(Range),               // Captured range from the input
-    Value(RefValue)             // Captured value
+    Range(Range, u8),           // Captured range from the input & severity
+    Value(RefValue, u8)         // Captured value & severity
 }
 
 impl Capture {
@@ -1459,13 +1478,13 @@ impl Capture {
                 Value::Void.into_ref()
             },
 
-            Capture::Silent(range) | Capture::Range(range) => {
+            Capture::Range(range, _) => {
                 Value::String(
                     runtime.reader.extract(range)
                 ).into_ref()
             },
 
-            Capture::Value(value) => {
+            Capture::Value(value, _) => {
                 value.clone()
             }
         }
@@ -1506,12 +1525,13 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     pub fn push(&mut self, value: RefValue) {
-        self.runtime.stack.push((Capture::Value(value), None))
+        self.runtime.stack.push((Capture::Value(value, 10), None))
     }
 
     pub fn pop(&mut self) -> RefValue {
         let value = self.runtime.stack.pop().unwrap().0;
-        if let Capture::Value(value) = value {
+        // todo: match to Capture::Range also?
+        if let Capture::Value(value, _) = value {
             value
         } else {
             Value::Void.into_ref() // fixme: is this ok?
@@ -1526,7 +1546,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         if pos == 0 {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value) =
+            if let Capture::Value(value, _) =
                 &self.runtime.stack[self.capture_start].0
             {
                 return Some(value.clone())
@@ -1572,7 +1592,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             return
         }
 
-        self.runtime.stack[pos].0 = Capture::Value(value)
+        self.runtime.stack[pos].0 = Capture::Value(value, 5)
     }
 
     /** Set a capture to a RefValue by name. */
@@ -1603,7 +1623,6 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 self.runtime.stack[capture_start..].iter()
                     .filter(|item| !(
                         matches!(item, (Capture::Empty, None))
-                        || matches!(item, (Capture::Silent(_), None))
                     )).cloned()
             )
         }
@@ -1611,7 +1630,6 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             self.runtime.stack.drain(capture_start..)
             .filter(|item| !(
                 matches!(item, (Capture::Empty, None))
-                || matches!(item, (Capture::Silent(_), None))
             ))
             .collect()
         };
@@ -1626,18 +1644,29 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             Some(captures.pop().unwrap().0)
         }
         else {
-            let mut list = Some(List::new());
+            let mut list = List::new();
             let mut dict = Dict::new();
+            let mut max = 0;
 
             // Collect any significant captures and values
             for (capture, alias) in captures.into_iter() {
                 let value = match capture {
-                    Capture::Range(range) | Capture::Silent(range) => {
+                    Capture::Range(range, severity) if severity >= max => {
+                        if severity > max && alias.is_none() {
+                            max = severity;
+                            list.clear();
+                        }
+
                         Value::String(
                             self.runtime.reader.extract(&range)
                         ).into_ref()
                     },
-                    Capture::Value(value) => {
+                    Capture::Value(value, severity) if severity >= max => {
+                        if severity > max && alias.is_none() {
+                            max = severity;
+                            list.clear();
+                        }
+
                         value
                     },
                     _ => continue
@@ -1645,47 +1674,50 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
                 // Named capture becomes dict key
                 if let Some(name) = alias {
-                    if let Some(list) = list {
-                        for (i, item) in list.into_iter().enumerate() {
-                            dict.insert(i.to_string(), item);
-                        }
-                    }
-
-                    list = None;
                     dict.insert(name, value);
                 }
                 else {
-                    if let Some(ref mut list) = list {
-                        list.push(value);
-                    }
-                    else {
-                        dict.insert(dict.len().to_string(), value);
-                    }
+                    list.push(value);
                 }
             }
 
-            if let Some(list) = list {
+            //println!("list = {:?}", list);
+            //println!("dict = {:?}", dict);
+
+            if dict.len() == 0 {
                 if list.len() > 1 {
                     return Some(
-                        Capture::Value(Value::List(Box::new(list)).into_ref())
+                        Capture::Value(
+                            Value::List(Box::new(list)).into_ref(), 5
+                        )
                     );
                 }
                 else if list.len() == 1 {
                     return Some(
-                        Capture::Value(list[0].clone())
+                        Capture::Value(list[0].clone(), 5)
                     );
                 }
 
                 None
             }
             else {
+                for (i, item) in list.into_iter().enumerate() {
+                    dict.insert(i.to_string(), item);
+                }
+
                 if dict.len() == 1 {
                     return Some(
-                        Capture::Value(dict.values().next().unwrap().clone())
+                        Capture::Value(
+                            dict.values().next().unwrap().clone(), 5
+                        )
                     );
                 }
 
-                Some(Capture::Value(Value::Dict(Box::new(dict)).into_ref()))
+                Some(
+                    Capture::Value(
+                        Value::Dict(Box::new(dict)).into_ref(), 5
+                    )
+                )
             }
         }
     }

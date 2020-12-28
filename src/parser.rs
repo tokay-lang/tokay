@@ -299,7 +299,7 @@ impl TokayParser {
         let res = self.0.run(&mut runtime);
 
         if let Ok(accept) = res {
-            if let Accept::Push(Capture::Value(value)) = accept {
+            if let Accept::Push(Capture::Value(value, _)) = accept {
                 return Ok(Value::from_ref(value).unwrap());
             }
         }

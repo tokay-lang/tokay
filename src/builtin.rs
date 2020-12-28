@@ -21,7 +21,7 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)]
             Ok(
                 Accept::Push(
                     Capture::Value(
-                        Value::Integer(value).into_ref()
+                        Value::Integer(value).into_ref(), 5
                     )
                 )
             )
