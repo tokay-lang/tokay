@@ -29,6 +29,7 @@ fn main() {
     //let s = "'Hello' 'World' $1 == $2";
 
     //let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
+    //let s = "a:'Hello' a\na : 'Hallo' A";
 
     println!("src = {:?}", s);
 
@@ -47,7 +48,7 @@ fn main() {
 
         println!("prg = {:#?}", prg);
 
-        println!("res = {:?}", prg.run_from_str("1+2*(3+4)/3"));
-        //println!("res = {:?}", prg.run_from_str("1+2*3+4"));
+        //println!("res = {:?}", prg.run_from_str("HelloWelt"));
+        println!("res = {:?}", prg.run_from_str("1+2*3+4"));
     }
 }

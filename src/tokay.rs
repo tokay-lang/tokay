@@ -52,7 +52,11 @@ pub trait Parser: std::fmt::Debug + std::fmt::Display {
 
     /** Resolve is called by the compiler to resolve unresolved symbols
     inside or below a program structure */
-    fn resolve(&mut self, _compiler: &Compiler, _strict: bool)
+    fn resolve(
+        &mut self,
+        _compiler: &Compiler,
+        _locals: bool,
+        _strict: bool)
     {
         // default is: just do nothing ;)
     }
@@ -76,6 +80,7 @@ Specifies atomic level operations like running a parser or running VM code.
 #[derive(Debug)]
 pub enum Op {
     Nop,
+    Seq(Vec<Op>), // sequence of Op's (this is NOT the Sequence parser!)
 
     // Parsing
     Parser(Box<dyn Parser>),
@@ -152,6 +157,34 @@ impl Parser for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
             Op::Nop => Ok(Accept::Next),
+
+            Op::Seq(seq) => {
+
+                for op in seq {
+                    let ret = op.run(context);
+
+                    match ret {
+                        Ok(Accept::Next) => {}
+
+                        Ok(Accept::Push(capture)) => {
+                            context.runtime.stack.push((capture, None))
+                        }
+
+                        Err(_) => {
+                            return ret;
+                        }
+
+                        _ => {
+                            unreachable!(
+                                "Op::Seq got {:?}", ret
+                            )
+                        }
+                    }
+                }
+
+                Ok(Accept::Next)
+            }
+
             Op::Parser(p) => p.run(context),
 
             Op::Peek(p) => {
@@ -315,19 +348,25 @@ impl Parser for Op {
                 let value = context.pop();
                 let check = value.borrow();
 
-                match *check {
+                match &*check {
 
                     Value::Parselet(p) => {
-                        return context.runtime.program.parselets[p].run(
+                        return context.runtime.program.parselets[*p].run(
                             context.runtime, false
                         )
-                    },
-
-                    Value::Builtin(b) => {
-                        builtin::call(b, context)
                     }
 
-                    _ => Ok(Accept::Push(Capture::Value(value.clone(), 1)))
+                    Value::Builtin(b) => {
+                        builtin::call(*b, context)
+                    }
+
+                    Value::String(s) => {
+                        Match::new(s).run(context)
+                    }
+
+                    _ => Ok(
+                        Accept::Push(Capture::Value(value.clone(), 1))
+                    )
                 }
             }
 
@@ -399,7 +438,8 @@ impl Parser for Op {
 
             Op::StoreFast(addr) => {
                 context.runtime.stack[context.stack_start + addr].0 =
-                    Capture::Value(context.pop(), 0);
+                    Capture::Value(context.pop(), 10);
+
                 Ok(Accept::Next)
             },
 
@@ -513,31 +553,68 @@ impl Parser for Op {
         }
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
     {
         match self {
-            Op::Parser(parser) => parser.resolve(compiler, strict),
+            Op::Parser(parser) => parser.resolve(compiler, locals, strict),
 
             Op::Name(name) => {
+                let mut resolved = None;
+
+                // Resolve constants
                 if let Some(value) = compiler.get_constant(name) {
                     match &*value.borrow() {
                         Value::Parselet(p) => {
                             //println!("resolved {:?} as {:?}", name, *p);
-                            *self = Op::Call(*p);
+                            resolved = Some(Op::Call(*p));
                         },
                         Value::Builtin(b) => {
-                            *self = Op::Builtin(*b)
+                            resolved = Some(Op::Builtin(*b));
                         },
                         Value::String(s) => {
-                            *self = Match::new(&s.clone()).into_op();
+                            resolved = Some(
+                                Match::new(&s.clone()).into_op()
+                            );
                         },
 
                         _ => {
-                            *self = Op::LoadStatic(
-                                compiler.get_constant_idx(name).unwrap()
+                            resolved = Some(
+                                Op::LoadStatic(
+                                    compiler.define_value(value.clone())
+                                )
                             );
                         }
                     }
+                }
+
+                if resolved.is_none() && locals {
+                    if let Some(addr) = compiler.get_local(name) {
+                        resolved = Some(
+                            Op::Seq(vec![
+                                Op::LoadFast(addr),
+                                Op::TryCall
+                            ])
+                        );
+                    }
+                }
+
+                if resolved.is_none() {
+                    if let Some(addr) = compiler.get_global(name) {
+                        resolved = Some(
+                            Op::Seq(vec![
+                                Op::LoadGlobal(addr),
+                                Op::TryCall
+                            ])
+                        );
+                    }
+                }
+
+                if let Some(op) = resolved {
+                    *self = op;
                 }
                 else if strict {
                     panic!("Cannot resolve {:?}", name);
@@ -895,9 +972,13 @@ impl Parser for Repeat {
         }
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
     {
-        self.parser.resolve(compiler, strict);
+        self.parser.resolve(compiler, locals, strict);
     }
 }
 
@@ -969,8 +1050,6 @@ impl Parser for Sequence {
             }
         }
 
-        //println!("Sequence {:?}", &context.runtime.stack[capture_start..]);
-
         /*
             When no explicit Return is performed, first try to collect any
             non-silent captures.
@@ -1021,10 +1100,14 @@ impl Parser for Sequence {
         *nullable = self.nullable;
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
     {
         for (item, _) in self.items.iter_mut() {
-            item.resolve(compiler, strict);
+            item.resolve(compiler, locals, strict);
         }
     }
 
@@ -1233,10 +1316,14 @@ impl Parser for Block {
         *leftrec = self.leftrec;
     }
 
-    fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
     {
         for (item, _) in self.items.iter_mut() {
-            item.resolve(compiler, strict);
+            item.resolve(compiler, locals, strict);
         }
     }
 }
@@ -1419,9 +1506,13 @@ impl Parselet {
         }
     }
 
-    pub fn resolve(&mut self, compiler: &Compiler, strict: bool)
+    pub fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
     {
-        self.body.resolve(compiler, strict);
+        self.body.resolve(compiler, locals, strict);
     }
 
     pub fn finalize(parselets: &Vec<RefCell<Parselet>>) -> usize {
@@ -1518,7 +1609,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         Self{
             stack_start,
-            capture_start: stack_start + preserve,
+            capture_start: stack_start + preserve + 1,
             reader_start: runtime.reader.tell(),
             runtime: runtime
         }
@@ -1725,7 +1816,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        self.runtime.stack.truncate(self.capture_start);
+        self.runtime.stack.truncate(self.stack_start);
     }
 }
 

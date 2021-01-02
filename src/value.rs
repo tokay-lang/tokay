@@ -290,6 +290,11 @@ impl Value {
             None
         }
     }
+
+    // Check whether a value is callable
+    pub fn is_callable(&self) -> bool {
+        matches!(self, Value::Parselet(_) | Value::Builtin(_))
+    }
 }
 
 impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value

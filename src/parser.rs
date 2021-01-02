@@ -43,30 +43,6 @@ impl TokayParser {
     ]
 }),
 
-(T_Variable = {
-    [
-        (Char::new(ccl!['a'..='z'])),
-        (Repeat::optional_silent(
-            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-        )),
-        (Op::PushAddr(0)),
-        (Op::LoadCapture),
-        (Op::Lexeme("variable"))
-    ]
-}),
-
-(T_Constant = {
-    [
-        (Char::new(ccl!['A'..='Z', '_'..='_'])),
-        (Repeat::optional_silent(
-            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-        )),
-        (Op::PushAddr(0)),
-        (Op::LoadCapture),
-        (Op::Lexeme("constant"))
-    ]
-}),
-
 (T_HeavyString = {
     [
         "\"",
@@ -113,13 +89,12 @@ impl TokayParser {
 }),
 
 (S_Lvalue = {
-    [T_Variable, _, (kle S_Tail), (Op::Create("lvalue"))],
+    [T_Identifier, _, (kle S_Tail), (Op::Create("lvalue"))],
     [S_Capture, (kle S_Tail), (Op::Create("lvalue"))]
 }),
 
 (S_Rvalue = {
-    [T_Constant, _, (kle S_Tail), (Op::Create("rvalue"))],
-    [T_Variable, _, (kle S_Tail), (Op::Create("rvalue"))],
+    [T_Identifier, _, (kle S_Tail), (Op::Create("rvalue"))],
     [S_Capture, (kle S_Tail), (Op::Create("rvalue"))]
 }),
 
@@ -191,7 +166,6 @@ impl TokayParser {
     ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
         (Op::Create("op_ifelse"))],
     ["if", _, S_Expression, S_Statement, (Op::Create("op_if"))],
-    [T_Constant, _, "=", _, S_Value, (Op::Create("assign_constant"))],
     [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
     S_Compare
 }),
@@ -224,6 +198,7 @@ impl TokayParser {
 }),
 
 (S_Sequence = {
+    [T_Identifier, _, ":", _, S_Value, (Op::Create("assign_constant"))],
     [(pos S_Item), (Op::Create("sequence"))],
     [T_EOL, (Op::Skip)]
 }),
@@ -256,7 +231,7 @@ impl TokayParser {
         ))
     ]
 }),
-
+/*
 (S_ConstantCallParameter = {
     [S_TokenModifier, _],
     [S_Expression, _, (Op::Error("You may not use expressions here..."))] //fixme...
@@ -266,18 +241,17 @@ impl TokayParser {
     [S_ConstantCallParameters, ",", _, S_ConstantCallParameter],
     [S_ConstantCallParameter]
 }),
-
-(S_ConstantCall = {
-    [T_Constant, "(", _, S_ConstantCallParameters, ")",
-        (Op::Create("call_constant"))],
-    [T_Constant,
-        (Op::Create("call_constant"))]
+*/
+(S_TryCall = {
+    /*[T_Identifier, "(", _, S_ConstantCallParameters, ")",
+        (Op::Create("call_constant"))],*/
+    [T_Identifier, (Op::Create("try_call"))]
 }),
 
 (S_Token = {
     [T_HeavyString, (Op::Create("match"))],
     [T_LightString, (Op::Create("match_silent"))],
-    [S_ConstantCall],
+    [S_TryCall],
     [S_Parselet]
 }),
 

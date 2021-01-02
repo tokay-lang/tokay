@@ -12,8 +12,7 @@ Scoped blocks (parselets) introduce new variable scopes.
 */
 struct Scope {
     variables: Option<HashMap<String, usize>>,
-    constants: HashMap<String, RefValue>,
-    parselets: usize
+    constants: HashMap<String, RefValue>
 }
 
 
@@ -21,7 +20,7 @@ struct Scope {
 pub struct Compiler {
     scopes: Vec<Scope>,                     // Current compilation scopes
     values: RefCell<Vec<RefValue>>,         // Constant values collected during compile
-    parselets: Vec<RefCell<Parselet>>       // Parselets
+    pub parselets: Vec<RefCell<Parselet>>   // Parselets (public because used by macros)
 }
 
 impl Compiler {
@@ -30,8 +29,7 @@ impl Compiler {
             scopes: vec![
                 Scope{
                     variables: Some(HashMap::new()),
-                    constants: HashMap::new(),
-                    parselets: 0
+                    constants: HashMap::new()
                 }
             ],
             values: RefCell::new(Vec::new()),
@@ -50,8 +48,10 @@ impl Compiler {
             self.pop_scope();
         }
 
-        // Resolve last scope
-        self.resolve(true);
+        // Resolve constants and globals from all scopes
+        for i in 0..self.parselets.len() {
+            self.parselets[i].borrow_mut().resolve(&self, false, true);
+        }
 
         // Finalize
         Parselet::finalize(&self.parselets);
@@ -69,8 +69,7 @@ impl Compiler {
         self.scopes.insert(0,
             Scope{
                 variables: if variables { Some(HashMap::new()) } else { None },
-                constants: HashMap::new(),
-                parselets: self.parselets.len()
+                constants: HashMap::new()
             }
         );
     }
@@ -84,8 +83,12 @@ impl Compiler {
             panic!("Can't pop main scope");
         }
 
-        self.resolve(false);
         self.scopes.remove(0);
+    }
+
+    /// Returns current scope depth
+    pub fn get_depth(&self) -> usize {
+        self.scopes.len()
     }
 
     /// Returns the total number of locals in current scope.
@@ -99,31 +102,40 @@ impl Compiler {
     }
 
     /**
-    Retrieve address of a local variable under a given name;
-    The define-parameter for automatic variable inseration
-    in case it doesn't exist.
+    Retrieve address of a local variable under a given name.
     */
-    pub fn get_local(&mut self, name: &str, define: bool)
-        -> Option<usize>
+    pub fn get_local(&self, name: &str) -> Option<usize>
     {
-        for scope in &mut self.scopes {
+        for scope in &self.scopes {
             // Check for scope with variables
-            if let Some(variables) = &mut scope.variables {
+            if let Some(variables) = &scope.variables {
                 if let Some(addr) = variables.get(name) {
                     return Some(*addr)
                 }
-                else if define {
-                    let addr = variables.len();
-                    variables.insert(name.to_string(), addr);
-                    return Some(addr)
-                }
-                else {
-                    break
-                }
+
+                break
             }
         }
 
         None
+    }
+
+    /** Insert new local variable under given name in current scope. */
+    pub fn new_local(&mut self, name: &str) -> usize {
+        for scope in &mut self.scopes {
+            // Check for scope with variables
+            if let Some(variables) = &mut scope.variables {
+                if let Some(addr) = variables.get(name) {
+                    return *addr
+                }
+
+                let addr = variables.len();
+                variables.insert(name.to_string(), addr);
+                return addr
+            }
+        }
+
+        unreachable!("This should not be possible")
     }
 
     /**
@@ -146,17 +158,6 @@ impl Compiler {
         self.scopes.first_mut().unwrap().constants.insert(
             name.to_string(), value
         );
-    }
-
-    /** Get constant address, either from current or preceding scope. */
-    pub fn get_constant_idx(&self, name: &str) -> Option<usize> {
-        for scope in &self.scopes {
-            if let Some(value) = scope.constants.get(name) {
-                return Some(self.define_value(value.clone()))
-            }
-        }
-
-        None
     }
 
     /** Get constant value, either from current or preceding scope. */
@@ -191,15 +192,6 @@ impl Compiler {
         self.parselets.len() - 1
     }
 
-    /** Resolve all parseletes defined in the current scope. */
-    pub fn resolve(&mut self, strict: bool) {
-        let scope = self.scopes.first().unwrap();
-
-        for i in scope.parselets..self.parselets.len() {
-            self.parselets[i].borrow_mut().resolve(&self, strict);
-        }
-    }
-
     /** Check if a str defines a constant or not. */
     pub fn is_constant(name: &str) -> bool {
         let ch = name.chars().nth(0).unwrap();
@@ -207,26 +199,26 @@ impl Compiler {
     }
 
     pub fn gen_store(&mut self, name: &str) -> Op {
-        if let Some(addr) = self.get_local(name, false) {
+        if let Some(addr) = self.get_local(name) {
             Op::StoreFast(addr)
         }
         else if let Some(addr) = self.get_global(name) {
             Op::StoreGlobal(addr)
         }
         else {
-            Op::StoreFast(self.get_local(name, true).unwrap())
+            Op::StoreFast(self.new_local(name))
         }
     }
 
     pub fn gen_load(&mut self, name: &str) -> Op {
-        if let Some(addr) = self.get_local(name, false) {
+        if let Some(addr) = self.get_local(name) {
             Op::LoadFast(addr)
         }
         else if let Some(addr) = self.get_global(name) {
             Op::LoadGlobal(addr)
         }
         else {
-            Op::LoadFast(self.get_local(name, true).unwrap())
+            Op::LoadFast(self.new_local(name))
         }
     }
 
@@ -301,6 +293,8 @@ impl Compiler {
         // todo: handle parameters BEFORE scope push
         self.push_scope(true);
 
+        let parselets_start = self.parselets.len();
+
         let children = node.borrow_by_key("children");
         let body = self.traverse_node(&children.get_dict().unwrap());
         assert_eq!(body.len(), 1);
@@ -310,6 +304,15 @@ impl Compiler {
                 body.into_iter().next().unwrap_or(Op::Nop), self.get_locals()
             )
         );
+
+        // Resolve parselets defined from parselets_start
+        for i in parselets_start..self.parselets.len() {
+            self.parselets[i].borrow_mut().resolve(
+                // resolve local variables in last defined parselet
+                // (which was added some lines before!)
+                &self, i == self.parselets.len() - 1, false
+            );
+        }
 
         self.pop_scope();
 
@@ -334,8 +337,11 @@ impl Compiler {
 
                 let (lvalue, rvalue) = children.unwrap().borrow_first_2();
 
-                ret.extend(self.traverse_node(rvalue.get_dict().unwrap()));
-                ret.extend(self.traverse_node(lvalue.get_dict().unwrap()));
+                let rvalue = rvalue.get_dict().unwrap();
+                let lvalue = lvalue.get_dict().unwrap();
+
+                ret.extend(self.traverse_node(rvalue));
+                ret.extend(self.traverse_node(lvalue));
 
                 None
             },
@@ -370,14 +376,15 @@ impl Compiler {
                 }
             },
 
-            // call_constant --------------------------------------------------
-            "call_constant" => {
+            // try_call --------------------------------------------------
+            "try_call" => {
                 let children = node.borrow_by_key("children");
-                let constant = children.get_dict().unwrap();
-                let constant = constant.borrow_by_key("value");
+                let ident = children.get_dict().unwrap();
+                let ident = ident.borrow_by_key("value");
+                let ident = ident.to_string();
 
-                let mut item = Op::Name(constant.to_string());
-                item.resolve(self, false);
+                let mut item = Op::Name(ident);
+                item.resolve(self, true, false);
                 Some(item)
             },
 
@@ -425,9 +432,13 @@ impl Compiler {
                             }
                         }
 
-                        "variable" => {
+                        "identifier" => {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
+
+                            if self.get_constant(name).is_some() {
+                                panic!("Cannot assign to {} as it is declared as constant", name)
+                            }
 
                             if i < children.len() - 1 {
                                 ret.push(self.gen_load(name))
@@ -591,23 +602,18 @@ impl Compiler {
                             }
                         }
 
-                        "constant" => {
+                        "identifier" => {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
 
-                            if let Some(addr) = self.get_constant_idx(name) {
-                                ret.push(Op::LoadStatic(addr));
+                            if let Some(value) = self.get_constant(name) {
+                                ret.push(
+                                    Op::LoadStatic(self.define_value(value))
+                                );
                             }
                             else {
-                                panic!("Call to undefined constant {:?}", name);
+                                ret.push(self.gen_load(name));
                             }
-                        }
-
-                        "variable" => {
-                            let name = item.borrow_by_key("value");
-                            let name = name.get_string().unwrap();
-
-                            ret.push(self.gen_load(name))
                         }
 
                         val if val.starts_with("value_") => {
@@ -661,7 +667,7 @@ impl Compiler {
                 }
                 // Otherwise, report unhandled node!
                 else {
-                    unreachable!();
+                    unreachable!("No handling for {:?}", emit);
                 }
             }
         };
@@ -714,6 +720,8 @@ macro_rules! tokay_item {
     ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
             $compiler.push_scope(true);
+            let parselets_start = $compiler.parselets.len();
+
             let items = vec![
                 $(
                     tokay_item!($compiler, $item)
@@ -733,6 +741,15 @@ macro_rules! tokay_item {
                 Parselet::new_silent(body, $compiler.get_locals())
             );
 
+            // Resolve parselets defined from parselets_start
+            for i in parselets_start..$compiler.parselets.len() {
+                $compiler.parselets[i].borrow_mut().resolve(
+                    // resolve local variables in last defined parselet
+                    // (which was added some lines before!)
+                    &$compiler, i == $compiler.parselets.len() - 1, false
+                );
+            }
+
             $compiler.pop_scope();
 
             $compiler.set_constant(
@@ -751,6 +768,8 @@ macro_rules! tokay_item {
             let name = stringify!($name).to_string();
 
             $compiler.push_scope(true);
+            let parselets_start = $compiler.parselets.len();
+
             let items = vec![
                 $(
                     tokay_item!($compiler, $item)
@@ -767,6 +786,15 @@ macro_rules! tokay_item {
             let parselet = $compiler.define_parselet(
                 Parselet::new(body, $compiler.get_locals())
             );
+
+            // Resolve parselets defined from parselets_start
+            for i in parselets_start..$compiler.parselets.len() {
+                $compiler.parselets[i].borrow_mut().resolve(
+                    // resolve local variables in last defined parselet
+                    // (which was added some lines before!)
+                    &$compiler, i == $compiler.parselets.len() - 1, false
+                );
+            }
 
             $compiler.pop_scope();
 
@@ -867,7 +895,7 @@ macro_rules! tokay_item {
 
             if Compiler::is_constant(name) {
                 let mut item = Op::Name(name.to_string());
-                item.resolve(&$compiler, false);
+                item.resolve(&$compiler, true, false);
                 Some(item)
             }
             else {
@@ -888,7 +916,7 @@ macro_rules! tokay_item {
         {
             //println!("expr = {}", stringify!($expr));
             let mut item = Op::Name("_".to_string());
-            item.resolve(&$compiler, false);
+            item.resolve(&$compiler, false, false);
             Some(item)
         }
     };

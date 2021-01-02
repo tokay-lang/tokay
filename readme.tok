@@ -1,15 +1,15 @@
-Factor = @{
+Factor : @{
     Integer
     '(' Expr ')'
 }
 
-Term = @{
+Term : @{
     Term '*' Factor     $1 * $3
     Term '/' Factor     $1 / $3
     Factor
 }
 
-Expr = @{
+Expr : @{
     Expr '+' Term       $1 + $3
     Expr '-' Term       $1 - $3
     Term
