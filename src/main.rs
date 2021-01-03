@@ -6,6 +6,7 @@ use ::tokay::compiler::Compiler;
 
 fn main() {
     let p = TokayParser::new();
+    //let s = include_str!("../a.tok");
     let s = include_str!("../readme.tok");
 
     // todo: turn the examples below into a test suite

@@ -279,7 +279,7 @@ impl Compiler {
             "value_false" => Value::False,
             "value_null" => Value::Null,
             "value_void" => Value::Void,
-            "parselet" => {
+            "value_parselet" => {
                 Value::Parselet(
                     self.traverse_node_parselet(node)
                 )
@@ -550,12 +550,6 @@ impl Compiler {
                 else {
                     None
                 }
-            }
-
-            // parselet ------------------------------------------------------
-
-            "parselet" => {
-                None
             }
 
             // rvalue ---------------------------------------------------------

@@ -182,7 +182,7 @@ impl TokayParser {
 // Structure
 
 (S_Parselet = {
-    ["@", _, S_Block, (Op::Create("parselet"))]
+    ["@", _, S_Block, (Op::Create("value_parselet"))]
 }),
 
 (S_Block = {

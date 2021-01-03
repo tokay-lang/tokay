@@ -80,7 +80,6 @@ Specifies atomic level operations like running a parser or running VM code.
 #[derive(Debug)]
 pub enum Op {
     Nop,
-    Seq(Vec<Op>), // sequence of Op's (this is NOT the Sequence parser!)
 
     // Parsing
     Parser(Box<dyn Parser>),
@@ -157,33 +156,6 @@ impl Parser for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
             Op::Nop => Ok(Accept::Next),
-
-            Op::Seq(seq) => {
-
-                for op in seq {
-                    let ret = op.run(context);
-
-                    match ret {
-                        Ok(Accept::Next) => {}
-
-                        Ok(Accept::Push(capture)) => {
-                            context.runtime.stack.push((capture, None))
-                        }
-
-                        Err(_) => {
-                            return ret;
-                        }
-
-                        _ => {
-                            unreachable!(
-                                "Op::Seq got {:?}", ret
-                            )
-                        }
-                    }
-                }
-
-                Ok(Accept::Next)
-            }
 
             Op::Parser(p) => p.run(context),
 
@@ -594,9 +566,9 @@ impl Parser for Op {
                 if resolved.is_none() && locals {
                     if let Some(addr) = compiler.get_local(name) {
                         resolved = Some(
-                            Op::Seq(vec![
-                                Op::LoadFast(addr),
-                                Op::TryCall
+                            Sequence::new(vec![
+                                (Op::LoadFast(addr), None),
+                                (Op::TryCall, None)
                             ])
                         );
                     }
@@ -605,9 +577,9 @@ impl Parser for Op {
                 if resolved.is_none() {
                     if let Some(addr) = compiler.get_global(name) {
                         resolved = Some(
-                            Op::Seq(vec![
-                                Op::LoadGlobal(addr),
-                                Op::TryCall
+                            Sequence::new(vec![
+                                (Op::LoadGlobal(addr), None),
+                                (Op::TryCall, None)
                             ])
                         );
                     }
