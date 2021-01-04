@@ -117,7 +117,7 @@ pub enum Op {
     PushFalse,
     PushVoid,
 
-    // Variables
+    // Variables & Values
     LoadGlobal(usize),
     LoadFast(usize),
     StoreGlobal(usize),
@@ -387,7 +387,7 @@ impl Parser for Op {
             Op::LoadGlobal(addr) => {
                 Ok(Accept::Push(
                     Capture::Value(
-                        context.runtime.stack[*addr].0
+                        context.runtime.stack[*addr]
                             .as_value(&context.runtime), 5
                     )
                 ))
@@ -398,7 +398,7 @@ impl Parser for Op {
                     Capture::Value(
                         context.runtime.stack[
                             context.stack_start + addr
-                        ].0.as_value(&context.runtime), 5
+                        ].as_value(&context.runtime), 5
                     )
                 ))
             },
@@ -409,7 +409,7 @@ impl Parser for Op {
             },
 
             Op::StoreFast(addr) => {
-                context.runtime.stack[context.stack_start + addr].0 =
+                context.runtime.stack[context.stack_start + addr] =
                     Capture::Value(context.pop(), 10);
 
                 Ok(Accept::Next)
@@ -609,7 +609,10 @@ impl std::fmt::Display for Op {
 
 
 // --- Rust --------------------------------------------------------------------
-/*
+
+/** This is not really a parser, but it allows to run any Rust code in position
+of a parser. */
+
 pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
 
 impl Parser for Rust {
@@ -629,9 +632,15 @@ impl std::fmt::Display for Rust {
         write!(f, "{{rust-function}}")
     }
 }
-*/
 
-// --- Char -------------------------------------------------------------------
+
+// --- Char --------------------------------------------------------------------
+
+/** Char parser.
+
+This parser either matches simple characters or matches ranges until a specific
+character is found.
+*/
 
 #[derive(Debug)]
 pub struct Char {
@@ -727,7 +736,13 @@ impl std::fmt::Display for Char {
     }
 }
 
-// --- Match ------------------------------------------------------------------
+// --- Match -------------------------------------------------------------------
+
+/** Match parser.
+
+This parser implements the recognition of an exact character sequence within
+the input stream.
+*/
 
 #[derive(Debug)]
 pub struct Match{
@@ -889,7 +904,7 @@ impl Parser for Repeat {
 
                 Ok(Accept::Push(capture)) => {
                     if !self.silent {
-                        context.runtime.stack.push((capture, None))
+                        context.runtime.stack.push(capture)
                     }
                 },
 
@@ -1009,11 +1024,27 @@ impl Parser for Sequence {
                 }
 
                 Ok(Accept::Next) => {
-                    context.runtime.stack.push((Capture::Empty, alias.clone()))
+                    if let Some(alias) = alias {
+                        context.runtime.stack.push(
+                            Capture::Named(
+                                Box::new(Capture::Empty), alias.clone()
+                            )
+                        )
+                    }
+                    else {
+                        context.runtime.stack.push(Capture::Empty)
+                    }
                 },
 
                 Ok(Accept::Push(capture)) => {
-                    context.runtime.stack.push((capture, alias.clone()))
+                    if let Some(alias) = alias {
+                        context.runtime.stack.push(
+                            Capture::Named(Box::new(capture), alias.clone())
+                        )
+                    }
+                    else {
+                        context.runtime.stack.push(capture)
+                    }
                 },
 
                 other => {
@@ -1239,7 +1270,7 @@ impl Parser for Block {
                 context.runtime.stack.truncate(context.stack_start);
                 context.runtime.stack.resize(
                     context.capture_start + 1,
-                    (Capture::Empty, None)
+                    Capture::Empty
                 );
 
                 loops += 1;
@@ -1308,6 +1339,15 @@ impl std::fmt::Display for Block {
 
 // --- Parselet ----------------------------------------------------------------
 
+/** Parselet is the conceptual building block of Tokay.
+
+A parselet is like a function in ordinary programming languages, with the
+exception that it can either be a snippet of parsing instructions combined with
+semantic code, or just an ordinary function consisting of code and returning
+values. In general, the destinction if a parselet is a just a function or "more"
+is defined by the parselets instruction set.
+*/
+
 #[derive(Debug)]
 pub struct Parselet {
     leftrec: bool,
@@ -1318,6 +1358,7 @@ pub struct Parselet {
 }
 
 impl Parselet {
+    // Creates a new standard parselet.
     pub fn new(body: Op, locals: usize) -> Self {
         Self{
             leftrec: false,
@@ -1339,6 +1380,10 @@ impl Parselet {
         }
     }
 
+    /** Run parselet on runtime.
+
+    The main-parameter defines if the parselet behaves like a main loop or
+    like subsequent parselet. */
     fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
         let mut results = Vec::new();
@@ -1531,7 +1576,8 @@ impl Parselet {
 pub enum Capture {
     Empty,                      // Empty capture
     Range(Range, u8),           // Captured range from the input & severity
-    Value(RefValue, u8)         // Captured value & severity
+    Value(RefValue, u8),        // Captured value & severity
+    Named(Box<Capture>, String) // Named
 }
 
 impl Capture {
@@ -1549,6 +1595,10 @@ impl Capture {
 
             Capture::Value(value, _) => {
                 value.clone()
+            }
+
+            Capture::Named(capture, _) => {
+                capture.as_value(runtime)
             }
         }
     }
@@ -1576,7 +1626,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         runtime.stack.resize(
             stack_start + preserve + 1,
-            (Capture::Empty, None)
+            Capture::Empty
         );
 
         Self{
@@ -1587,18 +1637,16 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         }
     }
 
+    // Push value onto the stack
     pub fn push(&mut self, value: RefValue) {
-        self.runtime.stack.push((Capture::Value(value, 10), None))
+        self.runtime.stack.push(Capture::Value(value, 10))
     }
 
+    /// Pop value off the stack.
     pub fn pop(&mut self) -> RefValue {
-        let value = self.runtime.stack.pop().unwrap().0;
-        // todo: match to Capture::Range also?
-        if let Capture::Value(value, _) = value {
-            value
-        } else {
-            Value::Void.into_ref() // fixme: is this ok?
-        }
+        // todo: check for context limitations on the stack?
+        let capture = self.runtime.stack.pop().unwrap();
+        capture.as_value(self.runtime)
     }
 
     /** Return a capture by index as RefValue. */
@@ -1610,7 +1658,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         if pos == 0 {
             // Capture 0 either returns an already set value or ...
             if let Capture::Value(value, _) =
-                &self.runtime.stack[self.capture_start].0
+                &self.runtime.stack[self.capture_start]
             {
                 return Some(value.clone())
             }
@@ -1627,19 +1675,18 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         else {
             Some(self.runtime.stack[
                 self.capture_start + pos
-            ].0.as_value(&self.runtime))
+            ].as_value(&self.runtime))
         }
     }
 
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&self, name: &str) -> Option<RefValue> {
         // fixme: Should be examined in reversed order
-        for (i, capture) in
-            self.runtime.stack[self.capture_start..].iter().enumerate()
+        for capture in self.runtime.stack[self.capture_start..].iter()
         {
-            if let Some(alias) = &capture.1 {
+            if let Capture::Named(capture, alias) = &capture {
                 if alias == name {
-                    return self.get_capture(i);
+                    return Some(capture.as_value(&self.runtime))
                 }
             }
         }
@@ -1655,18 +1702,17 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             return
         }
 
-        self.runtime.stack[pos].0 = Capture::Value(value, 5)
+        self.runtime.stack[pos] = Capture::Value(value, 5)
     }
 
     /** Set a capture to a RefValue by name. */
     pub fn set_capture_by_name(&mut self, name: &str, value: RefValue) {
         // fixme: Should be examined in reversed order
-        for (i, capture) in
-            self.runtime.stack[self.capture_start..].iter().enumerate()
+        for capture in self.runtime.stack[self.capture_start..].iter_mut()
         {
-            if let Some(alias) = &capture.1 {
+            if let Capture::Named(capture, alias) = capture {
                 if alias == name {
-                    self.set_capture(i, value);
+                    *capture = Box::new(Capture::Value(value, 5));
                     break;
                 }
             }
@@ -1681,20 +1727,15 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         single: bool) -> Option<Capture>
     {
         // Eiter copy or drain captures from stack
-        let mut captures: Vec<(Capture, Option<String>)> = if copy {
+        let mut captures: Vec<Capture> = if copy {
             Vec::from_iter(
                 self.runtime.stack[capture_start..].iter()
-                    .filter(|item| !(
-                        matches!(item, (Capture::Empty, None))
-                    )).cloned()
+                    .filter(|item| !(matches!(item, Capture::Empty))).cloned()
             )
         }
         else {
             self.runtime.stack.drain(capture_start..)
-            .filter(|item| !(
-                matches!(item, (Capture::Empty, None))
-            ))
-            .collect()
+                .filter(|item| !(matches!(item, Capture::Empty))).collect()
         };
 
         //println!("captures = {:?}", captures);
@@ -1702,9 +1743,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         if captures.len() == 0 {
             None
         }
-        else if single && captures.len() == 1 && captures[0].1.is_none()
+        else if single && captures.len() == 1
+            && !matches!(captures[0], Capture::Named(_, _))
         {
-            Some(captures.pop().unwrap().0)
+            Some(captures.pop().unwrap())
         }
         else {
             let mut list = List::new();
@@ -1712,36 +1754,38 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             let mut max = 0;
 
             // Collect any significant captures and values
-            for (capture, alias) in captures.into_iter() {
+            for capture in captures.into_iter() {
                 let value = match capture {
+
                     Capture::Range(range, severity) if severity >= max => {
-                        if severity > max && alias.is_none() {
+                        if severity > max {
                             max = severity;
                             list.clear();
                         }
 
-                        Value::String(
-                            self.runtime.reader.extract(&range)
-                        ).into_ref()
+                        list.push(
+                            Value::String(
+                                self.runtime.reader.extract(&range)
+                            ).into_ref()
+                        );
                     },
+
                     Capture::Value(value, severity) if severity >= max => {
-                        if severity > max && alias.is_none() {
+                        if severity > max {
                             max = severity;
                             list.clear();
                         }
 
-                        value
+                        list.push(value);
                     },
+
+                    Capture::Named(capture, alias) => {
+                        // Named capture becomes dict key
+                        dict.insert(alias, capture.as_value(self.runtime));
+                    }
+
                     _ => continue
                 };
-
-                // Named capture becomes dict key
-                if let Some(name) = alias {
-                    dict.insert(name, value);
-                }
-                else {
-                    list.push(value);
-                }
             }
 
             //println!("list = {:?}", list);
@@ -1801,7 +1845,7 @@ pub struct Runtime<'program, 'reader> {
 
     memo: HashMap<(usize, usize), (usize, Result<Accept, Reject>)>,
 
-    stack: Vec<(Capture, Option<String>)>
+    stack: Vec<Capture>
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
