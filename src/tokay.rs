@@ -103,16 +103,13 @@ pub enum Op {
     Reject,
 
     // Call
-    Call(usize),
-    Builtin(usize),
+    Call(usize), //Direct parselet call
+    Builtin(usize), //Direct builtin call
     TryCall,
-    Name(String),
+    Symbol(String),
 
     // Constants
     LoadStatic(usize),
-    PushAddr(usize),
-    PushInt(i64),
-    PushFloat(f64),
     PushTrue,
     PushFalse,
     PushVoid,
@@ -342,30 +339,12 @@ impl Parser for Op {
                 }
             }
 
-            Op::Name(_) => panic!("{:?} cannot be executed", self),
+            Op::Symbol(_) => panic!("Symbol {:?} cannot be executed", self),
 
             Op::LoadStatic(addr) => {
                 Ok(Accept::Push(Capture::Value(
                     context.runtime.program.statics[*addr].clone(), 5
                 )))
-            }
-
-            Op::PushAddr(a) => {
-                Ok(Accept::Push(
-                    Capture::Value(Value::Addr(*a).into_ref(), 5)
-                ))
-            }
-
-            Op::PushInt(i) => {
-                Ok(Accept::Push(
-                    Capture::Value(Value::Integer(*i).into_ref(), 5)
-                ))
-            }
-
-            Op::PushFloat(f) => {
-                Ok(Accept::Push(
-                    Capture::Value(Value::Float(*f).into_ref(), 5))
-                )
             }
 
             Op::PushTrue => {
@@ -498,7 +477,7 @@ impl Parser for Op {
 
             Op::Peek(op) | Op::Not(op) => op.finalize(parselets, leftrec, nullable),
 
-            Op::Name(name) => panic!("OH no, there is Name({}) still!", name),
+            Op::Symbol(name) => panic!("OH no, there is Symbol({}) still!", name),
 
             Op::Call(idx) => {
                 if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
@@ -534,7 +513,7 @@ impl Parser for Op {
         match self {
             Op::Parser(parser) => parser.resolve(compiler, locals, strict),
 
-            Op::Name(name) => {
+            Op::Symbol(name) => {
                 let mut resolved = None;
 
                 // Resolve constants
@@ -1353,6 +1332,7 @@ pub struct Parselet {
     leftrec: bool,
     nullable: bool,
     silent: bool,
+    signature: Vec<(String, Option<usize>)>,
     locals: usize,
     body: Op
 }
@@ -1364,6 +1344,7 @@ impl Parselet {
             leftrec: false,
             nullable: true,
             silent: false,
+            signature: Vec::new(),
             locals,
             body
         }
@@ -1375,6 +1356,7 @@ impl Parselet {
             leftrec: false,
             nullable: true,
             silent: true,
+            signature: Vec::new(),
             locals,
             body
         }
@@ -1744,8 +1726,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             None
         }
         else if single && captures.len() == 1
-            && !matches!(captures[0], Capture::Named(_, _))
-        {
+            && !matches!(captures[0], Capture::Named(_, _)) {
             Some(captures.pop().unwrap())
         }
         else {

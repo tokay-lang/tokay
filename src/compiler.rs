@@ -383,7 +383,7 @@ impl Compiler {
                 let ident = ident.borrow_by_key("value");
                 let ident = ident.to_string();
 
-                let mut item = Op::Name(ident);
+                let mut item = Op::Symbol(ident);
                 item.resolve(self, true, false);
                 Some(item)
             },
@@ -888,7 +888,7 @@ macro_rules! tokay_item {
             let name = stringify!($ident);
 
             if Compiler::is_constant(name) {
-                let mut item = Op::Name(name.to_string());
+                let mut item = Op::Symbol(name.to_string());
                 item.resolve(&$compiler, true, false);
                 Some(item)
             }
@@ -909,7 +909,7 @@ macro_rules! tokay_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let mut item = Op::Name("_".to_string());
+            let mut item = Op::Symbol("_".to_string());
             item.resolve(&$compiler, false, false);
             Some(item)
         }

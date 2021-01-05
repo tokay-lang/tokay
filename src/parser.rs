@@ -37,8 +37,6 @@ impl TokayParser {
         (Repeat::optional_silent(
             Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
-        (Op::PushAddr(0)),
-        (Op::LoadCapture),
         (Op::Lexeme("identifier"))
     ]
 }),
