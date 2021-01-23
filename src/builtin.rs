@@ -1,5 +1,5 @@
 use crate::tokay::*;
-use crate::value::Value;
+use crate::value::{Value, List};
 use crate::compiler::Compiler;
 
 static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)]
@@ -30,6 +30,43 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)]
             context.runtime.reader.reset(start);
             Err(Reject::Next)
         }
+    }),
+
+    ("flatten", |context| {
+        let mut max = 0;
+        let mut flatten = List::new();
+
+        for capture in context.drain_captures() {
+            match capture {
+                Capture::Named(_, _) => {},
+                Capture::Range(_, severity)
+                | Capture::Value(_, severity) if severity >= max => {
+                    if severity > max {
+                        max = severity;
+                        flatten.clear();
+                    }
+                }
+                _ => continue
+            }
+
+            let value = capture.as_value(context.runtime);
+            let peek = value.borrow();
+
+            if let Value::List(list) = &*peek {
+                flatten.extend(list.iter().cloned());
+            }
+            else {
+                flatten.push(value.clone());
+            }
+        }
+
+        Ok(
+            Accept::Return(
+                Some(
+                    Value::List(Box::new(flatten)).into_ref()
+                )
+            )
+        )
     })
 ];
 
@@ -37,9 +74,20 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)]
 pub fn register(compiler: &mut Compiler) {
     for i in 0..BUILTINS.len() {
         compiler.set_constant(
-            BUILTINS[i].0, Value::Builtin(i).into_ref()
+            BUILTINS[i].0,
+            compiler.define_static(Value::Builtin(i).into_ref())
         );
     }
+}
+
+pub fn get(ident: &'static str) -> Option<usize> {
+    for i in 0..BUILTINS.len() {
+        if BUILTINS[i].0 == ident {
+            return Some(i)
+        }
+    }
+
+    None
 }
 
 pub fn call(builtin: usize, context: &mut Context) -> Result<Accept, Reject> {

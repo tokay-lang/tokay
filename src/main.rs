@@ -7,7 +7,8 @@ use ::tokay::compiler::Compiler;
 fn main() {
     let p = TokayParser::new();
     //let s = include_str!("../a.tok");
-    let s = include_str!("../readme.tok");
+    let s = include_str!("../faculty.tok");
+    //let s = include_str!("../readme.tok");
 
     // todo: turn the examples below into a test suite
     //let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
@@ -18,11 +19,11 @@ fn main() {
     //let s = "a = 42 a a + 1 a + 2";
     //let s = "A = 'Hello' A+ 3 + 2* ('Bernd Waldemar')";
 
-    // Capture load
+    // Capture loading
     //let s = "'Hello' 'World' $1 * 2 + $2 * 3";
     //let s = "a = 2 'Hello' 'World' $(a) * 2 + $( a + 1 ) * 3";
 
-    // Capture store
+    // Capture modification
     //let s = "a = 2 'Hello' 'World' $2 = $3 * 2 + $2 $3";
     //let s = "a = 2 'Hello' 'World' $(a) = $3 * 2 + $2 $3 * 2";
 

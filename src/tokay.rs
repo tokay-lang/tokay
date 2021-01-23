@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::iter::FromIterator;
 
 use crate::ccl::Ccl;
@@ -7,7 +8,6 @@ use crate::value::{Dict, List, Value, RefValue};
 use crate::reader::{Reader, Range};
 use crate::compiler::Compiler;
 use crate::ccl;
-use crate::builtin;
 
 
 #[derive(Debug, Clone)]
@@ -43,7 +43,7 @@ pub trait Parser: std::fmt::Debug + std::fmt::Display {
     both left-recursive and nullable (=no input consuming) structures. */
     fn finalize(
         &mut self,
-        _parselets: &Vec<RefCell<Parselet>>,
+        _statics: &Vec<RefValue>,
         _leftrec: &mut bool,
         _nullable: &mut bool)
     {
@@ -83,30 +83,31 @@ pub enum Op {
 
     // Parsing
     Parser(Box<dyn Parser>),
+
     Empty,
-    Peek(Box<Op>), // Peek-operation
-    Not(Box<Op>), // Not-predicate
+    Peek(Box<Op>),          // Peek-operation
+    Not(Box<Op>),           // Not-predicate
+
+    // Call
+    Symbol(String),
+    TryCall,
+    Call,
+    CallStatic(usize),
 
     // Debuging and error reporting
-    Print,
-    Debug(&'static str),
-    Error(&'static str),
-    Expect(Box<Op>),
+    Print,                  // todo: make this a builtin
+    Debug(&'static str),    // todo: make this a builtin
+    Error(&'static str),    // todo: make this a builtin
+    Expect(Box<Op>),        // todo: make this a builtin
 
     // AST construction
-    Create(&'static str),
-    Lexeme(&'static str),
+    Create(&'static str),   // todo: make this a builtin
+    Lexeme(&'static str),   // todo: make this a builtin
 
     // Interrupts
     Skip,
     LoadAccept,
     Reject,
-
-    // Call
-    Call(usize), //Direct parselet call
-    Builtin(usize), //Direct builtin call
-    TryCall,
-    Symbol(String),
 
     // Constants
     LoadStatic(usize),
@@ -156,6 +157,32 @@ impl Parser for Op {
 
             Op::Parser(p) => p.run(context),
 
+            Op::Symbol(_) => panic!("{:?} cannot be called", self),
+
+            Op::TryCall => {
+                let value = context.pop();
+                if value.borrow().is_callable() {
+                    value.borrow().call(context)
+                }
+                else {
+                    Ok(Accept::Push(Capture::Value(value.clone(), 1)))
+                }
+            }
+
+            Op::Call => {
+                let value = context.pop();
+                let value = value.borrow();
+                value.call(context)
+            }
+
+            Op::CallStatic(addr) => {
+                context.runtime.program.statics[*addr].borrow().call(context)
+            }
+
+            Op::Empty => {
+                Ok(Accept::Push(Capture::Empty))
+            }
+
             Op::Peek(p) => {
                 let reader_start = context.runtime.reader.tell();
                 let ret = p.run(context);
@@ -171,10 +198,6 @@ impl Parser for Op {
                     Ok(Accept::Next)
                 }
             }
-
-            Op::Empty => {
-                Ok(Accept::Push(Capture::Empty))
-            },
 
             Op::Print => {
                 let value = context.collect(
@@ -226,7 +249,7 @@ impl Parser for Op {
                             Value::String(emit.to_string()).into_ref()
                         );
 
-                        // Complex values are classified as child nodes
+                        // List or Dict values are classified as child nodes
                         if value.borrow().get_list().is_some()
                             || value.borrow().get_dict().is_some()
                         {
@@ -304,42 +327,6 @@ impl Parser for Op {
             Op::Reject => {
                 Err(Reject::Return)
             },
-
-            Op::Call(parselet) => {
-                context.runtime.program.parselets[*parselet].run(
-                    context.runtime, false
-                )
-            },
-
-            Op::Builtin(builtin) => builtin::call(*builtin, context),
-
-            Op::TryCall => {
-                let value = context.pop();
-                let check = value.borrow();
-
-                match &*check {
-
-                    Value::Parselet(p) => {
-                        return context.runtime.program.parselets[*p].run(
-                            context.runtime, false
-                        )
-                    }
-
-                    Value::Builtin(b) => {
-                        builtin::call(*b, context)
-                    }
-
-                    Value::String(s) => {
-                        Match::new(s).run(context)
-                    }
-
-                    _ => Ok(
-                        Accept::Push(Capture::Value(value.clone(), 1))
-                    )
-                }
-            }
-
-            Op::Symbol(_) => panic!("Symbol {:?} cannot be executed", self),
 
             Op::LoadStatic(addr) => {
                 Ok(Accept::Push(Capture::Value(
@@ -468,35 +455,39 @@ impl Parser for Op {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
         match self {
-            Op::Parser(parser) => parser.finalize(parselets, leftrec, nullable),
+            Op::Parser(parser) => parser.finalize(statics, leftrec, nullable),
 
-            Op::Peek(op) | Op::Not(op) => op.finalize(parselets, leftrec, nullable),
+            Op::Peek(op) | Op::Not(op) => op.finalize(statics, leftrec, nullable),
 
-            Op::Symbol(name) => panic!("OH no, there is Symbol({}) still!", name),
+            Op::Symbol(_) => panic!("{:?} cannot be finalized", self),
 
-            Op::Call(idx) => {
-                if let Ok(mut parselet) = parselets[*idx].try_borrow_mut() {
-                    let mut my_leftrec = parselet.leftrec;
-                    let mut my_nullable = parselet.nullable;
+            Op::CallStatic(addr) => {
+                if let Value::Parselet(parselet) = &*statics[*addr].borrow()
+                {
+                    if let Ok(mut parselet)= parselet.try_borrow_mut()
+                    {
+                        let mut my_leftrec = parselet.leftrec;
+                        let mut my_nullable = parselet.nullable;
 
-                    parselet.body.finalize(
-                        parselets,
-                        &mut my_leftrec,
-                        &mut my_nullable,
-                    );
+                        parselet.body.finalize(
+                            statics,
+                            &mut my_leftrec,
+                            &mut my_nullable,
+                        );
 
-                    parselet.leftrec = my_leftrec;
-                    parselet.nullable = my_nullable;
+                        parselet.leftrec = my_leftrec;
+                        parselet.nullable = my_nullable;
 
-                    *nullable = parselet.nullable;
-                }
-                else {
-                    *leftrec = true;
+                        *nullable = parselet.nullable;
+                    }
+                    else {
+                        *leftrec = true;
+                    }
                 }
             },
 
@@ -513,65 +504,39 @@ impl Parser for Op {
         match self {
             Op::Parser(parser) => parser.resolve(compiler, locals, strict),
 
+            Op::Peek(op) | Op::Not(op) => op.resolve(compiler, locals, strict),
+
             Op::Symbol(name) => {
-                let mut resolved = None;
-
                 // Resolve constants
-                if let Some(value) = compiler.get_constant(name) {
-                    match &*value.borrow() {
-                        Value::Parselet(p) => {
-                            //println!("resolved {:?} as {:?}", name, *p);
-                            resolved = Some(Op::Call(*p));
-                        },
-                        Value::Builtin(b) => {
-                            resolved = Some(Op::Builtin(*b));
-                        },
-                        Value::String(s) => {
-                            resolved = Some(
-                                Match::new(&s.clone()).into_op()
-                            );
-                        },
-
-                        _ => {
-                            resolved = Some(
-                                Op::LoadStatic(
-                                    compiler.define_value(value.clone())
-                                )
-                            );
-                        }
-                    }
+                if let Some(addr) = compiler.get_constant(name) {
+                    *self = Op::CallStatic(addr);
+                    return;
                 }
 
-                if resolved.is_none() && locals {
+                if locals {
                     if let Some(addr) = compiler.get_local(name) {
-                        resolved = Some(
-                            Sequence::new(vec![
-                                (Op::LoadFast(addr), None),
-                                (Op::TryCall, None)
-                            ])
-                        );
+                        *self = Sequence::new(vec![
+                            (Op::LoadFast(addr), None),
+                            (Op::TryCall, None)
+                        ]);
+                        return;
                     }
                 }
 
-                if resolved.is_none() {
-                    if let Some(addr) = compiler.get_global(name) {
-                        resolved = Some(
-                            Sequence::new(vec![
-                                (Op::LoadGlobal(addr), None),
-                                (Op::TryCall, None)
-                            ])
-                        );
-                    }
+                if let Some(addr) = compiler.get_global(name) {
+                    *self = Sequence::new(vec![
+                        (Op::LoadGlobal(addr), None),
+                        (Op::TryCall, None)
+                    ]);
+                    return;
                 }
 
-                if let Some(op) = resolved {
-                    *self = op;
+                if !strict {
+                    return;
                 }
-                else if strict {
-                    panic!("Cannot resolve {:?}", name);
-                }
-            },
 
+                panic!("Cannot resolve {:?}", name);
+            }
             _ => {}
         }
     }
@@ -586,6 +551,105 @@ impl std::fmt::Display for Op {
     }
 }
 
+// --- Call --------------------------------------------------------------------
+/*
+#[derive(Debug)]
+pub enum Unresolved {
+    Symbol(String),
+    Call{
+        name: String,
+        params: Vec<(Option<String>, Vec<Op>)>
+    }
+}
+
+impl Parser for Unresolved {
+
+    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        panic!("Cannot run {:?}", self)
+    }
+
+    fn finalize(
+        &mut self,
+        _statics: &Vec<RefValue>,
+        _leftrec: &mut bool,
+        _nullable: &mut bool)
+    {
+        panic!("Cannot finalize {:?}", self)
+    }
+
+    fn resolve(
+        &mut self,
+        compiler: &Compiler,
+        locals: bool,
+        strict: bool)
+    {
+        if let Unresolved::Symbol(name) = self {
+            // Resolve constants
+            if let Some(value) = compiler.get_constant(name) {
+                match &*value.borrow() {
+                    Value::Parselet(p) => {
+                        //println!("resolved {:?} as {:?}", name, *p);
+                        *self = Call::Parselet(*p, params.drain(..).collect());
+                        return;
+                    },
+                    Value::Builtin(b) => {
+                        *self = Call::Builtin(*b, params.drain(..).collect());
+                        return;
+                    },
+
+                    /* TODO!!!
+                    Value::String(s) => {
+                        resolved = Some(
+                            Match::new(&s.clone()).into_op()
+                        );
+                    },
+
+                    _ => {
+                        resolved = Some(
+                            Op::LoadStatic(
+                                compiler.define_static(value.clone())
+                            )
+                        );
+                    }
+                    */
+                    _ => panic!("#todo!")
+                }
+            }
+
+            if locals {
+                if let Some(addr) = compiler.get_local(name) {
+                    params.push(Op::LoadFast(addr));
+                    *self = Call::Dynamic(params.drain(..).collect());
+                    return;
+                }
+            }
+
+            if let Some(addr) = compiler.get_global(name) {
+                params.push(Op::LoadFast(addr));
+                *self = Call::Dynamic(params.drain(..).collect());
+                return;
+            }
+
+            if !strict {
+                return;
+            }
+
+            panic!("Cannot resolve {:?}", name);
+        }
+        else {
+            unimplemented!("Unresolved::Call is MISSING!")
+        }
+    }
+}
+
+impl std::fmt::Display for Unresolved {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            _ => write!(f, "Unresolved #todo")
+        }
+    }
+}
+*/
 
 // --- Rust --------------------------------------------------------------------
 
@@ -701,7 +765,7 @@ impl Parser for Char {
 
     fn finalize(
         &mut self,
-        _parselets: &Vec<RefCell<Parselet>>,
+        _statics: &Vec<RefValue>,
         _leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -785,7 +849,7 @@ impl Parser for Match {
 
     fn finalize(
         &mut self,
-        _parselets: &Vec<RefCell<Parselet>>,
+        _statics: &Vec<RefValue>,
         _leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -927,11 +991,11 @@ impl Parser for Repeat {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
-        self.parser.finalize(parselets, leftrec, nullable);
+        self.parser.finalize(statics, leftrec, nullable);
 
         if self.min == 0 {
             *nullable = true;
@@ -1062,13 +1126,13 @@ impl Parser for Sequence {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
         for (item, _) in self.items.iter_mut() {
             item.finalize(
-                parselets,
+                statics,
                 &mut self.leftrec,
                 &mut self.nullable
             );
@@ -1266,7 +1330,7 @@ impl Parser for Block {
 
     fn finalize(
         &mut self,
-        parselets: &Vec<RefCell<Parselet>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool)
     {
@@ -1278,7 +1342,7 @@ impl Parser for Block {
             let mut my_nullable = true;
 
             item.finalize(
-                parselets,
+                statics,
                 item_leftrec,
                 &mut my_nullable
             );
@@ -1362,11 +1426,16 @@ impl Parselet {
         }
     }
 
+    // Turn parselet into RefValue
+    pub fn into_refvalue(self) -> RefValue {
+        Value::Parselet(Rc::new(RefCell::new(self))).into_ref()
+    }
+
     /** Run parselet on runtime.
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
-    fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
+    pub fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
         let mut results = Vec::new();
 
@@ -1375,8 +1444,8 @@ impl Parselet {
             let mut res = self.body.run(&mut context);
 
             /*
-                In case this is the main parselet, rewrite results to
-                iterately repeat over the input, matching main as much
+                In case this is the main parselet, r
+            if Compiler::is_constant(&name) {hing main as much
                 as possible. This will only be the case when input was
                 consumed.
             */
@@ -1451,7 +1520,7 @@ impl Parselet {
                             }
                         },
 
-                        Accept::Push(value) if self.silent => {
+                        Accept::Push(_) if self.silent => {
                             return Ok(Accept::Push(Capture::Empty))
                         },
 
@@ -1514,32 +1583,35 @@ impl Parselet {
         self.body.resolve(compiler, locals, strict);
     }
 
-    pub fn finalize(parselets: &Vec<RefCell<Parselet>>) -> usize {
+    pub fn finalize(statics: &Vec<RefValue>) -> usize {
         let mut changes = true;
         let mut loops = 0;
 
         while changes {
             changes = false;
 
-            for i in 0..parselets.len() {
-                let mut parselet = parselets[i].borrow_mut();
-                let mut leftrec = parselet.leftrec;
-                let mut nullable = parselet.nullable;
+            for i in 0..statics.len() {
+                if let Value::Parselet(parselet) = &*statics[i].borrow()
+                {
+                    let mut parselet = parselet.borrow_mut();
+                    let mut leftrec = parselet.leftrec;
+                    let mut nullable = parselet.nullable;
 
-                parselet.body.finalize(
-                    parselets,
-                    &mut leftrec,
-                    &mut nullable
-                );
+                    parselet.body.finalize(
+                        statics,
+                        &mut leftrec,
+                        &mut nullable
+                    );
 
-                if !parselet.leftrec && leftrec {
-                    parselet.leftrec = true;
-                    changes = true;
-                }
+                    if !parselet.leftrec && leftrec {
+                        parselet.leftrec = true;
+                        changes = true;
+                    }
 
-                if parselet.nullable && !nullable {
-                    parselet.nullable = nullable;
-                    changes = true;
+                    if parselet.nullable && !nullable {
+                        parselet.nullable = nullable;
+                        changes = true;
+                    }
                 }
             }
 
@@ -1554,7 +1626,7 @@ impl Parselet {
 
 // --- Capture -----------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Capture {
     Empty,                      // Empty capture
     Range(Range, u8),           // Captured range from the input & severity
@@ -1563,7 +1635,7 @@ pub enum Capture {
 }
 
 impl Capture {
-    fn as_value(&self, runtime: &Runtime) -> RefValue {
+    pub fn as_value(&self, runtime: &Runtime) -> RefValue {
         match self {
             Capture::Empty => {
                 Value::Void.into_ref()
@@ -1701,8 +1773,22 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         }
     }
 
+    /** Get slice of all captures from current context */
+    pub fn get_captures(&self) -> &[Capture] {
+        &self.runtime.stack[self.capture_start..]
+    }
+
+    /** Drain all captures from current context */
+    pub fn drain_captures(&mut self) -> Vec<Capture> {
+        self.runtime.stack.drain(self.capture_start..).collect()
+    }
+
     /** Helper function to collect captures from a capture_start and turn
-    them either into a dict or list object capture or take them as is. */
+    them either into a dict or list object capture or take them as is.
+
+    This function is internally used for automatic AST construction and value
+    inheriting.
+    */
     fn collect(&mut self,
         capture_start: usize,
         copy: bool,
@@ -1736,8 +1822,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
             // Collect any significant captures and values
             for capture in captures.into_iter() {
-                let value = match capture {
-
+                match capture {
                     Capture::Range(range, severity) if severity >= max => {
                         if severity > max {
                             max = severity;
@@ -1850,32 +1935,34 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
 #[derive(Debug)]
 pub struct Program {
-    parselets: Vec<Parselet>,
-    statics: Vec<RefValue>
+    statics: Vec<RefValue>,
+    main: Rc<RefCell<Parselet>>
 }
 
 impl Program {
-    pub fn new(
-        parselets: Vec<Parselet>,
-        statics: Vec<RefValue>
-    ) -> Self {
-        Self{
-            parselets,
-            statics
-        }
-    }
+    pub fn new(statics: Vec<RefValue>) -> Self {
+        let mut main = None;
 
-    pub fn dump(&self) {
-        for i in 0..self.parselets.len() {
-            println!("P{}{} = {{", i, if self.parselets[i].nullable { "  # nullable" } else { "" });
-            //dump(&self.parselets[i].body, 1);
-            println!("{:#?}", self.parselets[i].body);
-            println!("}}");
+        for i in (0..statics.len()).rev() {
+            if let Value::Parselet(p) = &*statics[i].borrow() {
+                main = Some(p.clone());
+                break;
+            }
+        }
+
+        if main.is_none() {
+            panic!("No main parselet available");
+        }
+
+        Self{
+            statics,
+            main: main.unwrap()
         }
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Accept, Reject> {
-        self.parselets.last().unwrap().run(runtime, true)
+        let main = self.main.borrow();
+        main.run(runtime, true)
     }
 
     pub fn run_from_str(&self, s: &'static str) -> Result<Accept, Reject> {

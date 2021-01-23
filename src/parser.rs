@@ -102,7 +102,8 @@ impl TokayParser {
 }),
 
 (S_Call = {
-    [S_Rvalue, "(", (opt S_CallParameters), ")", (Op::Create("call"))]
+    [T_Identifier, "(", (opt S_CallParameters), ")", (Op::Create("call_identifier"))],
+    [S_Rvalue, "(", (opt S_CallParameters), ")", (Op::Create("call_rvalue"))]
 }),
 
 (S_String = {
@@ -179,8 +180,19 @@ impl TokayParser {
 
 // Structure
 
+(S_Argument = {
+    [T_Identifier, _, "=", S_Value],
+    [T_Identifier, _]
+}),
+
+(S_Arguments = {
+    [S_Arguments, ",", _, S_Argument],
+        //(Op::CallStatic(builtin::get("flatten").unwrap()).into_op())],
+    S_Argument
+}),
+
 (S_Parselet = {
-    ["@", _, S_Block, (Op::Create("value_parselet"))]
+    ["@", _, (opt S_Arguments), S_Block, (Op::Create("value_parselet"))]
 }),
 
 (S_Block = {
@@ -188,7 +200,7 @@ impl TokayParser {
         (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
         (Op::Create("block"))],
     ["{", _, (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
-        (Op::Create("block"))]
+        (Op::PushVoid), (Op::Create("block"))]
 }),
 
 (S_Sequences = {
@@ -229,28 +241,13 @@ impl TokayParser {
         ))
     ]
 }),
-/*
-(S_ConstantCallParameter = {
-    [S_TokenModifier, _],
-    [S_Expression, _, (Op::Error("You may not use expressions here..."))] //fixme...
-}),
-
-(S_ConstantCallParameters = {
-    [S_ConstantCallParameters, ",", _, S_ConstantCallParameter],
-    [S_ConstantCallParameter]
-}),
-*/
-(S_TryCall = {
-    /*[T_Identifier, "(", _, S_ConstantCallParameters, ")",
-        (Op::Create("call_constant"))],*/
-    [T_Identifier, (Op::Create("try_call"))]
-}),
 
 (S_Token = {
     [T_HeavyString, (Op::Create("match"))],
     [T_LightString, (Op::Create("match_silent"))],
-    [S_TryCall],
-    [S_Parselet]
+    S_Call,
+    [T_Identifier, (Op::Create("call_or_load"))],
+    S_Parselet
 }),
 
 (S_Tokay = {

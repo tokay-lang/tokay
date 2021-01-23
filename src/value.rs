@@ -2,7 +2,8 @@ use std::rc::Rc;
 use std::cell::{Ref, RefMut, RefCell};
 use std::collections::HashMap;
 
-use crate::map::Map;
+use crate::tokay::{Parselet, Context, Accept, Reject};
+use crate::builtin;
 
 
 pub trait BorrowByKey {
@@ -40,8 +41,6 @@ pub trait BorrowByIdx {
 
 pub type RefValue = Rc<RefCell<Value>>;
 
-pub type Complex = Map<String, RefValue>;
-
 // --- List -------------------------------------------------------------------
 pub type List = Vec<RefValue>;
 
@@ -75,20 +74,22 @@ impl BorrowByKey for Dict {
 
 // --- Value ------------------------------------------------------------------
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Void,                       // void
     Null,                       // null
     True,                       // true
     False,                      // false
+
     Integer(i64),               // integers
     Float(f64),                 // float
     Addr(usize),                // usize
     String(String),             // string
-    Complex(Box<Complex>),      // combined map/array type
+
     List(Box<List>),            // list
     Dict(Box<Dict>),            // dict
-    Parselet(usize),            // tokay parselet
+
+    Parselet(Rc<RefCell<Parselet>>),    // tokay parselet
     Builtin(usize)              // builtin parselet
 }
 
@@ -104,21 +105,6 @@ impl std::fmt::Debug for Value {
             Value::Float(v) => write!(f, "{}", v),
             Value::Addr(a) => write!(f, "{}", a),
             Value::String(s) => write!(f, "\"{}\"", s),
-            Value::Complex(c) => {
-                write!(f, "(")?;
-                for (i, (k, v)) in c.iter().enumerate() {
-                    if k.is_some() {
-                        write!(f, "{:?}: {:?}", k.unwrap(), v)?;
-                    } else {
-                        write!(f, "{:?}", v)?;
-                    }
-
-                    if i + 1 < c.len() {
-                        write!(f, ", ")?;
-                    }
-                }
-                write!(f, ")")
-            },
             Value::List(l) => {
                 write!(f, "(")?;
 
@@ -172,10 +158,11 @@ impl Value {
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
             Self::String(s) => s.len() != 0,
-            Self::Complex(c) => c.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
-            Self::Parselet(_) | Self::Addr(_) => true,
+            Self::Builtin(_)
+            | Self::Parselet(_)
+            | Self::Addr(_) => true,
             _ => false
         }
     }
@@ -243,7 +230,6 @@ impl Value {
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
-            Self::Complex(c) => format!("{:?}", c),
             Self::List(l) => format!("{:?}", l),
             Self::Dict(d) => format!("{:?}", d),
             Self::Parselet(p) => format!("{:?}", p),
@@ -251,20 +237,34 @@ impl Value {
         }
     }
 
+    // Get a Value's list representation.
+    pub fn to_list(&self) -> List {
+        if let Self::List(l) = self {
+            *l.clone()
+        }
+        else {
+            let mut l = List::new();
+            l.push(self.clone().into_ref());
+            l
+        }
+    }
+
+    // Get a Value's dict representation.
+    pub fn to_dict(&self) -> Dict {
+        if let Self::Dict(d) = self {
+            *d.clone()
+        }
+        else {
+            let mut d = Dict::new();
+            d.insert("0".to_string(), self.clone().into_ref());
+            d
+        }
+    }
+
     // Extract String from a value
     pub fn get_string(&self) -> Option<&str> {
         if let Self::String(s) = self {
             Some(&s)
-        }
-        else {
-            None
-        }
-    }
-
-    // Extract Complex from a value
-    pub fn get_complex(&self) -> Option<&Complex> {
-        if let Self::Complex(c) = self {
-            Some(&c)
         }
         else {
             None
@@ -294,6 +294,23 @@ impl Value {
     // Check whether a value is callable
     pub fn is_callable(&self) -> bool {
         matches!(self, Value::Parselet(_) | Value::Builtin(_))
+    }
+
+    // Call
+    pub fn call(&self, context: &mut Context) -> Result<Accept, Reject> {
+        match self {
+            Value::Builtin(addr) => {
+                builtin::call(*addr, context)
+            }
+
+            Value::Parselet(parselet) => {
+                parselet.borrow().run(context.runtime, false)
+            }
+
+            _ => {
+                panic!("{:?} cannot be called")
+            }
+        }
     }
 }
 
