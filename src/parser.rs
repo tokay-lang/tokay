@@ -1,29 +1,34 @@
 use crate::reader::Reader;
-use crate::tokay::*;
+use crate::vm::*;
 use crate::value::Value;
-use crate::compiler::Compiler;
-use crate::{tokay, tokay_item, ccl};
+use crate::compiler::*;
+use crate::{compile, compile_item, ccl};
 
 
-pub struct TokayParser(Program);
+/** This implements a tokay parser in tokay itself,
+    using the tokay-compiler macros. This is the
+    general place to change syntax and modify the
+    design of the abstract syntax tree. */
 
-impl TokayParser {
+pub struct Parser(Program);
+
+impl Parser {
     pub fn new() -> Self {
         Self(
-            tokay!({
+            compile!({
 // ----------------------------------------------------------------------------
 
 // Whitespace & EOL
 
 (_ = {
     [" "],
-    ["#", (Char::until('\n'))],
+    ["#", (Chars::until('\n'))],
     ["\\", "\n"]
 }),
 
 (T_EOL = {
     [
-        (Char::char('\n')),
+        (Chars::char('\n')),
         _,
         (Op::Skip)
     ]
@@ -33,9 +38,9 @@ impl TokayParser {
 
 (T_Identifier = {
     [
-        (Char::new(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
+        (Chars::new(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
         (Repeat::optional_silent(
-            Char::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
+            Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
         )),
         (Op::Lexeme("identifier"))
     ]
@@ -44,7 +49,7 @@ impl TokayParser {
 (T_HeavyString = {
     [
         "\"",
-        (Char::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
+        (Chars::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
         "\""
     ]
 }),
@@ -52,23 +57,23 @@ impl TokayParser {
 (T_LightString = {
     [
         "\'",
-        (Char::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
+        (Chars::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
         "\'"
     ]
 }),
 
 (T_Integer = {
     // todo: implement as built-in Parselet
-    [(Char::span(ccl!['0'..='9'])), (Op::Create("value_integer"))]
+    [(Chars::span(ccl!['0'..='9'])), (Op::Create("value_integer"))]
 }),
 
 (T_Float = {
     // todo: implement as built-in Parselet
-    [(Char::span(ccl!['0'..='9'])), ".",
-        (Repeat::optional_silent(Char::span(ccl!['0'..='9']))),
+    [(Chars::span(ccl!['0'..='9'])), ".",
+        (Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
             (Op::Lexeme("value_float"))],
-    [(Repeat::optional_silent(Char::span(ccl!['0'..='9']))),
-        ".", (Char::span(ccl!['0'..='9'])),
+    [(Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
+        ".", (Chars::span(ccl!['0'..='9'])),
             (Op::Lexeme("value_float"))]
 }),
 
@@ -187,7 +192,7 @@ impl TokayParser {
 
 (S_Arguments = {
     [S_Arguments, ",", _, S_Argument],
-        //(Op::CallStatic(builtin::get("flatten").unwrap()).into_op())],
+        //(Op::CallStatic(builtin::get("flatten").unwrap()))],
     S_Argument
 }),
 
@@ -197,9 +202,9 @@ impl TokayParser {
 
 (S_Block = {
     ["{", _, S_Sequences, _,
-        (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
+        (Op::Expect(Box::new(Match::new_silent("}")))), _,
         (Op::Create("block"))],
-    ["{", _, (Op::Expect(Box::new(Match::new_silent("}").into_op()))), _,
+    ["{", _, (Op::Expect(Box::new(Match::new_silent("}")))), _,
         (Op::PushVoid), (Op::Create("block"))]
 }),
 
@@ -229,7 +234,7 @@ impl TokayParser {
         S_Token, _,
         (Op::Peek(
             Op::Not(
-                Char::new(ccl![
+                Chars::new(ccl![
                     '='..='=',
                     '+'..='+',
                     '-'..='-',
@@ -267,14 +272,13 @@ impl TokayParser {
 
         let res = self.0.run(&mut runtime);
 
-        if let Ok(accept) = res {
-            if let Accept::Push(Capture::Value(value, _)) = accept {
-                return Ok(Value::from_ref(value).unwrap());
-            }
+        if let Ok(Some(ast)) = res {
+            return Ok(Value::from_ref(ast).unwrap())
         }
         else {
             println!("Error: {:#?}", res.err());
         }
+
 
         return Err("Parse error".to_string())
     }

@@ -1,9 +1,64 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
-use crate::tokay::*;
+use crate::vm::*;
 use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict};
 use crate::builtin;
 
+
+/** Unresolved symbols and calls */
+#[derive(Debug)]
+pub enum Usage {
+    Symbol(String),
+    Call{
+        name: String,
+        params: Vec<(Option<String>, Vec<Op>)>
+    }
+}
+
+impl Usage {
+    fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>>
+    {
+        match self {
+            Usage::Symbol(name) => {
+                // Resolve constants
+                if let Some(addr) = compiler.get_constant(&name) {
+                    return Some(vec![
+                        Op::CallStatic(addr)
+                    ])
+                }
+                else if let Some(addr) = compiler.get_local(&name) {
+                    return Some(vec![
+                        Op::LoadFast(addr),
+                        Op::TryCall
+                    ])
+                }
+                else if let Some(addr) = compiler.get_global(&name) {
+                    return Some(vec![
+                        Op::LoadGlobal(addr),
+                        Op::TryCall
+                    ])
+                }
+            }
+
+            _ => {
+                unimplemented!()
+            }
+        }
+
+        None
+    }
+
+    pub fn resolve_or_dispose(self, compiler: &mut Compiler) -> Vec<Op>
+    {
+        if let Some(res) = self.try_resolve(compiler) {
+            res
+        }
+        else {
+            compiler.usages.push(Err(self));
+            vec![Op::Usage(compiler.usages.len() - 1)]
+        }
+    }
+}
 
 /** Compiler symbolic scope.
 
@@ -12,70 +67,97 @@ Scoped blocks (parselets) introduce new variable scopes.
 */
 struct Scope {
     variables: Option<HashMap<String, usize>>,
-    constants: HashMap<String, usize>
+    constants: HashMap<String, usize>,
+    usage_start: usize
 }
-
 
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
+    statics: RefCell<Vec<RefValue>>,        // Static values and parselets collected during compile
     scopes: Vec<Scope>,                     // Current compilation scopes
-    pub statics: RefCell<Vec<RefValue>>,    // Static values created during compile
+    usages: Vec<Result<Vec<Op>, Usage>>     // Usages of symbols in parselets
 }
 
 impl Compiler {
     pub fn new() -> Self {
+        // Compiler initialization
         let mut compiler = Self{
-            scopes: vec![
-                Scope{
-                    variables: Some(HashMap::new()),
-                    constants: HashMap::new()
-                }
-            ],
-            statics: RefCell::new(Vec::new())
+            statics: RefCell::new(Vec::new()),
+            scopes: Vec::new(),
+            usages: Vec::new()
         };
 
+        // Preparation of global scope
+        compiler.push_scope(true);
         builtin::register(&mut compiler);
 
         compiler
     }
 
-    pub fn resolve(&self, parselet: usize, statics_start: usize) {
-        let statics = self.statics.borrow();
-
-        // Resolve parselets inside parselet defined from statics_start
-        for i in statics_start..statics.len() {
-            let value = &*statics[i].borrow();
-
-            if let Value::Parselet(p) = value {
-                p.borrow_mut().resolve(
-                    &self, i == parselet, false
-                );
-            }
-        }
-    }
-
     /** Converts the compiled information into a Program. */
     pub fn into_program(mut self) -> Program {
         // Close any open scopes
-        while self.scopes.len() > 1 {
+        while self.scopes.len() > 0 {
             self.pop_scope();
         }
 
-        // Resolve constants and globals from all scopes
+        let mut usages = self.usages.into_iter().map(
+            |usage| {
+                if let Err(usage) = usage {
+                    panic!("Unresolved usage detected {:?}", usage);
+                }
+
+                usage.unwrap()
+            }
+        ).collect();
+
         let statics = self.statics.borrow().to_vec();
 
-        for i in 0..statics.len() {
-            let value = &*statics[i].borrow();
+        /*
+        Finalize the program according to a grammar's view;
 
-            if let Value::Parselet(p) = value {
-                p.borrow_mut().resolve(&self, false, true);
+        Detect both left-recursive and nullable (=no input consuming)
+        structures inside the parselet static call chains, and insert
+        resolved usages.
+        */
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..statics.len() {
+                if let Value::Parselet(parselet) = &*statics[i].borrow()
+                {
+                    let mut parselet = parselet.borrow_mut();
+                    let mut leftrec = parselet.leftrec;
+                    let mut nullable = parselet.nullable;
+
+                    parselet.body.finalize(
+                        &statics,
+                        &mut usages,
+                        &mut leftrec,
+                        &mut nullable
+                    );
+
+                    if !parselet.leftrec && leftrec {
+                        parselet.leftrec = true;
+                        changes = true;
+                    }
+
+                    if parselet.nullable && !nullable {
+                        parselet.nullable = nullable;
+                        changes = true;
+                    }
+                }
             }
+
+            loops += 1;
         }
 
-        // Finalize
-        Parselet::finalize(&statics);
+        //println!("finalization finished after {} loops", loops);
 
-        // Drain parselets into the new program
+        // Make program from statics
         Program::new(
             statics
         )
@@ -86,7 +168,8 @@ impl Compiler {
         self.scopes.insert(0,
             Scope{
                 variables: if variables { Some(HashMap::new()) } else { None },
-                constants: HashMap::new()
+                constants: HashMap::new(),
+                usage_start: self.usages.len()
             }
         );
     }
@@ -96,16 +179,21 @@ impl Compiler {
     The final (main) scope cannot be dropped, the function panics when
     this is tried. */
     pub fn pop_scope(&mut self) {
-        if self.scopes.len() == 1 {
-            panic!("Can't pop main scope");
+        if self.scopes.len() == 0 {
+            panic!("No more scopes to pop!");
+        }
+
+        for i in self.scopes[0].usage_start..self.usages.len() {
+            if let Err(usage) = &self.usages[i] {
+                let res = usage.try_resolve(&self);
+
+                if let Some(res) = res {
+                    self.usages[i] = Ok(res)
+                }
+            }
         }
 
         self.scopes.remove(0);
-    }
-
-    /// Returns current scope depth
-    pub fn get_depth(&self) -> usize {
-        self.scopes.len()
     }
 
     /// Returns the total number of locals in current scope.
@@ -200,12 +288,12 @@ impl Compiler {
         statics.len() - 1
     }
 
-    /** Check if a str defines a constant or not. */
-    pub fn is_constant(name: &str) -> bool {
-        let ch = name.chars().nth(0).unwrap();
-        ch.is_uppercase() || ch == '_'
-    }
+    /* Generates code for a symbol store, which means:
 
+        1. look-up local variable, and store into
+        2. look-up global variable, and store into
+        3. create local variable, and store into
+    */
     pub fn gen_store(&mut self, name: &str) -> Op {
         if let Some(addr) = self.get_local(name) {
             Op::StoreFast(addr)
@@ -218,6 +306,12 @@ impl Compiler {
         }
     }
 
+    /* Generates code for a symbol load, which means:
+
+        1. look-up local variable, and load
+        2. look-up global variable, and load
+        3. create local variable, and load
+    */
     pub fn gen_load(&mut self, name: &str) -> Op {
         if let Some(addr) = self.get_local(name) {
             Op::LoadFast(addr)
@@ -293,7 +387,6 @@ impl Compiler {
 
     // Traverse a parselet node into a parselet address
     fn traverse_node_parselet(&mut self, node: &Dict) -> usize {
-        let statics_start = self.statics.borrow().len();
         self.push_scope(true);
 
         let children = node.borrow_by_key("children");
@@ -340,7 +433,7 @@ impl Compiler {
             */
         }
 
-        println!("sig = {:?}", sig);
+        //println!("sig = {:?}", sig);
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
@@ -351,7 +444,6 @@ impl Compiler {
             ).into_refvalue()
         );
 
-        self.resolve(parselet, statics_start);
         self.pop_scope();
 
         parselet
@@ -365,7 +457,7 @@ impl Compiler {
 
         let mut ret = Vec::new();
 
-        println!("emit = {:?}", emit);
+        //println!("emit = {:?}", emit);
 
         let op = match emit {
             // assign ---------------------------------------------------------
@@ -418,13 +510,13 @@ impl Compiler {
             call if call.starts_with("call_") => {
                 let children = node.borrow_by_key("children");
 
-                let mut item = if call == "call_or_load" {
+                let usage = if call == "call_or_load" {
                     let ident = children.get_dict().unwrap();
                     let ident = ident.borrow_by_key("value");
 
-                    Op::Symbol(
+                    Usage::Symbol(
                         ident.to_string()
-                    ).into_op()
+                    )
                 }
                 else {
                     let children = children.to_list();
@@ -441,7 +533,9 @@ impl Compiler {
                         let ident = ident.get_dict().unwrap();
                         let ident = ident.borrow_by_key("value");
 
-                        Op::Symbol(ident.to_string()).into_op()
+                        Usage::Symbol(
+                            ident.to_string()
+                        )
                     }
                     else if call == "call_rvalue" {
                         unimplemented!();
@@ -456,8 +550,8 @@ impl Compiler {
                     }
                 };
 
-                item.resolve(self, true, false);
-                Some(item)
+                ret.extend(usage.resolve_or_dispose(self));
+                None
             }
 
             // lvalue ---------------------------------------------------------
@@ -727,267 +821,5 @@ impl Compiler {
         }
 
         ret
-    }
-}
-
-/* A minimalistic Tokay compiler as Rust macros. */
-
-#[macro_export]
-macro_rules! tokay_item {
-
-    // Assign a value
-    ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
-        {
-            let name = stringify!($name).to_string();
-            let value = Value::String($value.to_string()).into_ref();
-            let addr = $compiler.define_static(value);
-
-            if Compiler::is_constant(&name) {
-                $compiler.set_constant(
-                    &name,
-                    addr
-                );
-
-                None
-            }
-            else {
-                Some(
-                    Sequence::new(
-                        vec![
-                            (Op::LoadStatic(addr), None),
-                            ($compiler.gen_store(&name), None)
-                        ]
-                    )
-                )
-            }
-
-            //println!("assign {} = {}", stringify!($name), stringify!($value));
-        }
-    };
-
-    // Assign whitespace
-    ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
-        {
-            $compiler.push_scope(true);
-            let statics_start = $compiler.statics.borrow().len();
-
-            let items = vec![
-                $(
-                    tokay_item!($compiler, $item)
-                ),*
-            ];
-
-            let body = Block::new(
-                items.into_iter()
-                    .filter(|item| item.is_some())
-                    .map(|item| item.unwrap())
-                    .collect()
-            );
-
-            let body = Repeat::new(body, 0, 0, true);
-
-            let parselet = $compiler.define_static(
-                Parselet::new_silent(
-                    body, $compiler.get_locals()
-                ).into_refvalue()
-            );
-
-            $compiler.resolve(parselet, statics_start);
-            $compiler.pop_scope();
-
-            $compiler.set_constant(
-                "_",
-                parselet
-            );
-
-            //println!("assign _ = {}", stringify!($item));
-            None
-        }
-    };
-
-    // Assign parselet
-    ( $compiler:expr, ( $name:ident = { $( $item:tt ),* } ) ) => {
-        {
-            let name = stringify!($name).to_string();
-
-            $compiler.push_scope(true);
-            let statics_start = $compiler.statics.borrow().len();
-
-            let items = vec![
-                $(
-                    tokay_item!($compiler, $item)
-                ),*
-            ];
-
-            let body = Block::new(
-                items.into_iter()
-                    .filter(|item| item.is_some())
-                    .map(|item| item.unwrap())
-                    .collect()
-            );
-
-            let parselet = $compiler.define_static(
-                Parselet::new(
-                    body, $compiler.get_locals()
-                ).into_refvalue()
-            );
-
-            $compiler.resolve(parselet, statics_start);
-            $compiler.pop_scope();
-
-            if Compiler::is_constant(&name) {
-                $compiler.set_constant(
-                    &name,
-                    parselet
-                );
-
-                None
-            }
-            else {
-                Some(
-                    Sequence::new(
-                        vec![
-                            (Op::LoadStatic(parselet), None),
-                            ($compiler.gen_store(&name), None)
-                        ]
-                    )
-                )
-            }
-
-            //println!("assign {} = {}", stringify!($name), stringify!($item));
-        }
-    };
-
-    // Sequence
-    ( $compiler:expr, [ $( $item:tt ),* ] ) => {
-        {
-            //println!("sequence");
-            let items = vec![
-                $(
-                    tokay_item!($compiler, $item)
-                ),*
-            ];
-
-            Some(
-                Sequence::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| (item.unwrap(), None))
-                        .collect()
-                )
-            )
-        }
-    };
-
-    // Block
-    ( $compiler:expr, { $( $item:tt ),* } ) => {
-        {
-            /*
-            $(
-                println!("{:?}", stringify!($item));
-            )*
-            */
-
-            let items = vec![
-                $(
-                    tokay_item!($compiler, $item)
-                ),*
-            ];
-
-            Some(
-                Block::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
-            )
-        }
-    };
-
-    // Kleene
-    ( $compiler:expr, (kle $item:tt) ) => {
-        Some(tokay_item!($compiler, $item).unwrap().into_kleene())
-    };
-
-    // Positive
-    ( $compiler:expr, (pos $item:tt) ) => {
-        Some(tokay_item!($compiler, $item).unwrap().into_positive())
-    };
-
-    // Optional
-    ( $compiler:expr, (opt $item:tt) ) => {
-        Some(tokay_item!($compiler, $item).unwrap().into_optional())
-    };
-
-    // Call
-    ( $compiler:expr, $ident:ident ) => {
-        {
-            //println!("call = {}", stringify!($ident));
-            let name = stringify!($ident);
-
-            if Compiler::is_constant(name) {
-                let mut item = Op::Symbol(name.to_string());
-                item.resolve(&$compiler, true, false);
-                Some(item)
-            }
-            else {
-                Some(
-                    Sequence::new(
-                        vec![
-                            ($compiler.gen_load(name), None),
-                            (Op::TryCall, None)
-                        ]
-                    )
-                )
-            }
-        }
-    };
-
-    // Whitespace
-    ( $compiler:expr, _ ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            let mut item = Op::Symbol("_".to_string());
-            item.resolve(&$compiler, false, false);
-            Some(item)
-        }
-    };
-
-    // Match / Touch
-    ( $compiler:expr, $literal:literal ) => {
-        {
-            Some(Match::new_silent($literal))
-        }
-    };
-
-    // Fallback
-    ( $compiler:expr, $expr:tt ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            Some($expr)
-        }
-    };
-}
-
-
-#[macro_export]
-macro_rules! tokay {
-    ( $( $items:tt ),* ) => {
-        {
-            let mut compiler = Compiler::new();
-            let main = tokay_item!(compiler, $( $items ),*);
-
-            if let Some(main) = main {
-                compiler.define_static(
-                    Parselet::new(
-                        main,
-                        compiler.get_locals()
-                    ).into_refvalue()
-                );
-            }
-
-            compiler.into_program()
-        }
     }
 }
