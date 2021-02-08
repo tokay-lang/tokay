@@ -41,6 +41,7 @@ pub trait BorrowByIdx {
 
 pub type RefValue = Rc<RefCell<Value>>;
 
+
 // --- List -------------------------------------------------------------------
 pub type List = Vec<RefValue>;
 
@@ -55,6 +56,7 @@ impl BorrowByIdx for List {
         value.borrow_mut()
     }
 }
+
 
 // --- Dict -------------------------------------------------------------------
 pub type Dict = HashMap<String, RefValue>;
@@ -92,6 +94,56 @@ pub enum Value {
     Parselet(Rc<RefCell<Parselet>>),    // tokay parselet
     Builtin(usize)              // builtin parselet
 }
+
+#[macro_export]
+macro_rules! value {
+    ( [ $($key:literal => $value:tt),* ] ) => {
+        {
+            let mut dict = Dict::new();
+            $( dict.insert($key.to_string(), value!($value)); )*
+            Value::Dict(Box::new(dict)).into_ref()
+        }
+    };
+
+    ( [ $($value:tt),* ] ) => {
+        {
+            let mut list = List::new();
+            $( list.push(value!($value)); )*
+            Value::List(Box::new(list)).into_ref()
+        }
+    };
+
+    ( $value:expr ) => {
+        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<bool>()
+        {
+            if *value {
+                Value::True.into_ref()
+            }
+            else {
+                Value::False.into_ref()
+            }
+        }
+        else
+        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<f64>()
+        {
+            Value::Float(*value).into_ref()
+        }
+        else
+        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i32>()
+        {
+            Value::Integer(*value as i64).into_ref()
+        }
+        else
+        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i64>()
+        {
+            Value::Integer(*value).into_ref()
+        }
+        else {
+            Value::String($value.to_string()).into_ref()
+        }
+    }
+}
+
 
 /*
 impl std::fmt::Debug for Value {

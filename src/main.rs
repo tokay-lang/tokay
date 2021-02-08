@@ -1,8 +1,10 @@
 use std::io;
-use ::tokay::value::{Value, RefValue};
+
+use ::tokay::value::{Value, RefValue, Dict, List};
 use ::tokay::reader::Reader;
 use ::tokay::parser::Parser;
 use ::tokay::compiler::Compiler;
+use ::tokay::value;
 
 
 fn compile_and_run(src: &'static str, input: &'static str, debug: bool)
@@ -34,6 +36,18 @@ fn compile_and_run(src: &'static str, input: &'static str, debug: bool)
 }
 
 #[test]
+fn test_parselet_simple() {
+    assert_eq!(
+        compile_and_run(
+            "P: @{\nP \"Hello\"}\nP",
+            "HelloHelloHelloHello",
+            false
+        ),
+        Ok(Some(value!([[["Hello", "Hello"], "Hello"], "Hello"])))
+    );
+}
+
+#[test]
 fn test_capture_loading() {
     assert_eq!(
         compile_and_run(
@@ -41,9 +55,7 @@ fn test_capture_loading() {
             "HelloWorld",
             false
         ),
-        Ok(Some(
-            Value::String("HelloHelloWorldWorldWorld".to_string()
-        ).into_ref()))
+        Ok(Some(value!("HelloHelloWorldWorldWorld")))
     );
 
     assert_eq!(
@@ -52,9 +64,7 @@ fn test_capture_loading() {
             "HelloWorld",
             false
         ),
-        Ok(Some(
-            Value::String("WorldWorldWorldHelloHello".to_string()
-        ).into_ref()))
+        Ok(Some(value!("WorldWorldWorldHelloHello")))
     );
 }
 
@@ -66,7 +76,7 @@ fn test_readme_tok() {
             "1+2*3+4",
             false
         ),
-        Ok(Some(Value::Integer(11).into_ref()))
+        Ok(Some(value!(11)))
     );
 }
 
@@ -91,11 +101,13 @@ fn test_readme_tok() {
 
 
 fn main() {
-    println!("{:?}",
+    println!("{:#?}",
         compile_and_run(
-            include_str!("../readme.tok"),
-            "1+2*3+4",
-            false
+            "P: @{\nP \"Hello\"}\nP",
+            "HelloHelloHelloHello",
+            true
         )
     );
+
+    println!("{:#?}", value!([[["Hello", "Hello"], "Hello"], "Hello"]));
 }
