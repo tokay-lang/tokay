@@ -1,7 +1,7 @@
 use super::*;
-use crate::reader::Reader;
-use crate::ccl::Ccl;
 use crate::ccl;
+use crate::ccl::Ccl;
+use crate::reader::Reader;
 
 /** Character scanner.
 
@@ -13,16 +13,17 @@ character is found.
 pub struct Chars {
     accept: Ccl,
     repeats: bool,
-    silent: bool
+    silent: bool,
 }
 
 impl Chars {
     fn _new(accept: Ccl, repeats: bool, silent: bool) -> Op {
-        Self{
+        Self {
             accept,
             repeats,
-            silent
-        }.into_op()
+            silent,
+        }
+        .into_op()
     }
 
     pub fn new_silent(accept: Ccl) -> Op {
@@ -57,7 +58,6 @@ impl Chars {
 }
 
 impl Scanable for Chars {
-
     fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         let start = reader.tell();
 
@@ -74,15 +74,8 @@ impl Scanable for Chars {
         }
 
         if start < reader.tell() {
-            Ok(
-                Accept::Push(
-                    Capture::Range(
-                        reader.capture_from(start), 5
-                    )
-                )
-            )
-        }
-        else {
+            Ok(Accept::Push(Capture::Range(reader.capture_from(start), 5)))
+        } else {
             reader.reset(start);
             Err(Reject::Next)
         }

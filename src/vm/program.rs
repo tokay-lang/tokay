@@ -2,14 +2,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::{Value, RefValue};
 use crate::reader::Reader;
-
+use crate::value::{RefValue, Value};
 
 #[derive(Debug)]
 pub struct Program {
     pub(super) statics: Vec<RefValue>,
-    main: Rc<RefCell<Parselet>>
+    main: Rc<RefCell<Parselet>>,
 }
 
 impl Program {
@@ -29,17 +28,15 @@ impl Program {
             panic!("No main parselet found!");
         }
 
-        let mut program = Self{
+        let mut program = Self {
             statics,
-            main: main.unwrap()
+            main: main.unwrap(),
         };
 
         program
     }
 
-    pub fn run(&self, runtime: &mut Runtime)
-        -> Result<Option<RefValue>, Option<String>>
-    {
+    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<String>> {
         let main = self.main.borrow();
         let res = main.run(runtime, true);
 
@@ -50,13 +47,11 @@ impl Program {
             }
             Ok(_) => Ok(None),
             Err(Reject::Error(msg)) => Err(Some(msg)),
-            Err(_) => Err(None)
+            Err(_) => Err(None),
         }
     }
 
-    pub fn run_from_str(&self, s: &'static str) ->
-        Result<Option<RefValue>, Option<String>>
-    {
+    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<String>> {
         let mut reader = Reader::new(Box::new(std::io::Cursor::new(s)));
         let mut runtime = Runtime::new(&self, &mut reader);
 

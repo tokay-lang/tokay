@@ -1,10 +1,9 @@
-use std::rc::Rc;
-use std::cell::{Ref, RefMut, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::rc::Rc;
 
-use crate::vm::{Parselet, Context, Accept, Reject};
 use crate::builtin;
-
+use crate::vm::{Accept, Context, Parselet, Reject};
 
 pub trait BorrowByKey {
     fn borrow_by_key(&self, key: &str) -> Ref<Value>;
@@ -41,7 +40,6 @@ pub trait BorrowByIdx {
 
 pub type RefValue = Rc<RefCell<Value>>;
 
-
 // --- List -------------------------------------------------------------------
 pub type List = Vec<RefValue>;
 
@@ -56,7 +54,6 @@ impl BorrowByIdx for List {
         value.borrow_mut()
     }
 }
-
 
 // --- Dict -------------------------------------------------------------------
 pub type Dict = HashMap<String, RefValue>;
@@ -73,26 +70,25 @@ impl BorrowByKey for Dict {
     }
 }
 
-
 // --- Value ------------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
-    Void,                       // void
-    Null,                       // null
-    True,                       // true
-    False,                      // false
+    Void,  // void
+    Null,  // null
+    True,  // true
+    False, // false
 
-    Integer(i64),               // integers
-    Float(f64),                 // float
-    Addr(usize),                // usize
-    String(String),             // string
+    Integer(i64),   // integers
+    Float(f64),     // float
+    Addr(usize),    // usize
+    String(String), // string
 
-    List(Box<List>),            // list
-    Dict(Box<Dict>),            // dict
+    List(Box<List>), // list
+    Dict(Box<Dict>), // dict
 
-    Parselet(Rc<RefCell<Parselet>>),    // tokay parselet
-    Builtin(usize)              // builtin parselet
+    Parselet(Rc<RefCell<Parselet>>), // tokay parselet
+    Builtin(usize),                  // builtin parselet
 }
 
 #[macro_export]
@@ -143,7 +139,6 @@ macro_rules! value {
         }
     }
 }
-
 
 /*
 impl std::fmt::Debug for Value {
@@ -199,7 +194,7 @@ impl Value {
     pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
         match Rc::try_unwrap(this) {
             Ok(this) => Ok(this.into_inner()),
-            Err(this) => Err(this)
+            Err(this) => Err(this),
         }
     }
 
@@ -212,10 +207,8 @@ impl Value {
             Self::String(s) => s.len() != 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
-            Self::Builtin(_)
-            | Self::Parselet(_)
-            | Self::Addr(_) => true,
-            _ => false
+            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,
+            _ => false,
         }
     }
 
@@ -229,10 +222,10 @@ impl Value {
                 // todo: parseInt-like behavior?
                 match s.parse::<i64>() {
                     Ok(i) => i,
-                    Err(_) => 0
+                    Err(_) => 0,
                 }
-            },
-            _ => 0
+            }
+            _ => 0,
         }
     }
 
@@ -246,10 +239,10 @@ impl Value {
                 // todo: parseFloat-like behavior?
                 match s.parse::<f64>() {
                     Ok(f) => f,
-                    Err(_) => 0.0
+                    Err(_) => 0.0,
                 }
-            },
-            _ => 0.0
+            }
+            _ => 0.0,
         }
     }
 
@@ -264,10 +257,10 @@ impl Value {
                 // todo: parseInt-like behavior?
                 match s.parse::<usize>() {
                     Ok(i) => i,
-                    Err(_) => 0
+                    Err(_) => 0,
                 }
-            },
-            _ => 0
+            }
+            _ => 0,
         }
     }
 
@@ -285,7 +278,7 @@ impl Value {
             Self::List(l) => format!("{:?}", l),
             Self::Dict(d) => format!("{:?}", d),
             Self::Parselet(p) => format!("{:?}", p),
-            Self::Builtin(b) => format!("{:?}", b)
+            Self::Builtin(b) => format!("{:?}", b),
         }
     }
 
@@ -293,8 +286,7 @@ impl Value {
     pub fn to_list(&self) -> List {
         if let Self::List(l) = self {
             *l.clone()
-        }
-        else {
+        } else {
             let mut l = List::new();
             l.push(self.clone().into_ref());
             l
@@ -305,8 +297,7 @@ impl Value {
     pub fn to_dict(&self) -> Dict {
         if let Self::Dict(d) = self {
             *d.clone()
-        }
-        else {
+        } else {
             let mut d = Dict::new();
             d.insert("0".to_string(), self.clone().into_ref());
             d
@@ -317,8 +308,7 @@ impl Value {
     pub fn get_string(&self) -> Option<&str> {
         if let Self::String(s) = self {
             Some(&s)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -327,8 +317,7 @@ impl Value {
     pub fn get_list(&self) -> Option<&List> {
         if let Self::List(l) = self {
             Some(&l)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -337,8 +326,7 @@ impl Value {
     pub fn get_dict(&self) -> Option<&Dict> {
         if let Self::Dict(d) = self {
             Some(&d)
-        }
-        else {
+        } else {
             None
         }
     }
@@ -351,13 +339,9 @@ impl Value {
     // Call
     pub fn call(&self, context: &mut Context) -> Result<Accept, Reject> {
         match self {
-            Value::Builtin(addr) => {
-                builtin::call(*addr, context)
-            }
+            Value::Builtin(addr) => builtin::call(*addr, context),
 
-            Value::Parselet(parselet) => {
-                parselet.borrow().run(context.runtime, false)
-            }
+            Value::Parselet(parselet) => parselet.borrow().run(context.runtime, false),
 
             _ => {
                 panic!("{:?} cannot be called")
@@ -366,18 +350,13 @@ impl Value {
     }
 }
 
-impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value
-{
+impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value {
     type Output = Value;
 
-    fn add(self, rhs: &'b Value) -> Value
-    {
-        match (self, rhs)
-        {
+    fn add(self, rhs: &'b Value) -> Value {
+        match (self, rhs) {
             // When one is String...
-            (Value::String(a), b) => {
-                Value::String(a.to_owned() + &b.to_string())
-            },
+            (Value::String(a), b) => Value::String(a.to_owned() + &b.to_string()),
             (a, Value::String(b)) => Value::String(a.to_string() + &b),
 
             // When one is Float...
@@ -390,14 +369,11 @@ impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value
     }
 }
 
-impl<'a, 'b> std::ops::Sub<&'b Value> for &'a Value
-{
+impl<'a, 'b> std::ops::Sub<&'b Value> for &'a Value {
     type Output = Value;
 
-    fn sub(self, rhs: &'b Value) -> Value
-    {
-        match (self, rhs)
-        {
+    fn sub(self, rhs: &'b Value) -> Value {
+        match (self, rhs) {
             // When one is Float...
             (Value::Float(a), b) => Value::Float(a - b.to_float()),
             (a, Value::Float(b)) => Value::Float(a.to_float() - b),
@@ -408,14 +384,11 @@ impl<'a, 'b> std::ops::Sub<&'b Value> for &'a Value
     }
 }
 
-impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value
-{
+impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value {
     type Output = Value;
 
-    fn mul(self, rhs: &'b Value) -> Value
-    {
-        match (self, rhs)
-        {
+    fn mul(self, rhs: &'b Value) -> Value {
+        match (self, rhs) {
             // When one is String and one is something else...
             (Value::String(s), n) | (n, Value::String(s)) => {
                 let n = n.to_integer();
@@ -428,7 +401,7 @@ impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value
                 }
 
                 Value::String(r)
-            },
+            }
 
             // When one is Float...
             (Value::Float(a), b) => Value::Float(a * b.to_float()),
@@ -440,14 +413,11 @@ impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value
     }
 }
 
-impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value
-{
+impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value {
     type Output = Value;
 
-    fn div(self, rhs: &'b Value) -> Value
-    {
-        match (self, rhs)
-        {
+    fn div(self, rhs: &'b Value) -> Value {
+        match (self, rhs) {
             // When one is Float...
             (Value::Float(a), b) => Value::Float(a / b.to_float()),
             (a, Value::Float(b)) => Value::Float(a.to_float() / b),

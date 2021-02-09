@@ -1,4 +1,3 @@
-
 pub fn unescape(s: String) -> String {
     let mut chars = s.into_bytes();
     let mut len = chars.len();
@@ -15,8 +14,7 @@ pub fn unescape(s: String) -> String {
             };
             j += 2;
             len -= 1;
-        }
-        else {
+        } else {
             if i != j {
                 chars[i] = chars[j];
             }

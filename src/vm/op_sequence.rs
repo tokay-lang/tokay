@@ -13,22 +13,21 @@ processed, including data changes, which is a wanted behavior.
 pub struct Sequence {
     leftrec: bool,
     nullable: bool,
-    items: Vec<(Op, Option<String>)>
+    items: Vec<(Op, Option<String>)>,
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Op, Option<String>)>) -> Op
-    {
-        Self{
+    pub fn new(items: Vec<(Op, Option<String>)>) -> Op {
+        Self {
             leftrec: false,
             nullable: true,
-            items
-        }.into_op()
+            items,
+        }
+        .into_op()
     }
 }
 
 impl Runable for Sequence {
-
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Empty sequence?
         if self.items.len() == 0 {
@@ -50,31 +49,27 @@ impl Runable for Sequence {
 
                 Ok(Accept::Next) => {
                     if let Some(alias) = alias {
-                        context.runtime.stack.push(
-                            Capture::Named(
-                                Box::new(Capture::Empty), alias.clone()
-                            )
-                        )
-                    }
-                    else {
+                        context
+                            .runtime
+                            .stack
+                            .push(Capture::Named(Box::new(Capture::Empty), alias.clone()))
+                    } else {
                         context.runtime.stack.push(Capture::Empty)
                     }
-                },
+                }
 
                 Ok(Accept::Push(capture)) => {
                     if let Some(alias) = alias {
-                        context.runtime.stack.push(
-                            Capture::Named(Box::new(capture), alias.clone())
-                        )
-                    }
-                    else {
+                        context
+                            .runtime
+                            .stack
+                            .push(Capture::Named(Box::new(capture), alias.clone()))
+                    } else {
                         context.runtime.stack.push(capture)
                     }
-                },
-
-                other => {
-                    return other
                 }
+
+                other => return other,
             }
         }
 
@@ -90,13 +85,10 @@ impl Runable for Sequence {
             when input was consumed.
         */
         else if reader_start < context.runtime.reader.tell() {
-            Ok(
-                Accept::Push(
-                    Capture::Range(
-                        context.runtime.reader.capture_from(reader_start), 0
-                    )
-                )
-            )
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_from(reader_start),
+                0,
+            )))
         }
         /*
             Otherwise, just return Next.
@@ -111,7 +103,7 @@ impl Runable for Sequence {
         statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
         leftrec: &mut bool,
-        nullable: &mut bool
+        nullable: &mut bool,
     ) {
         /*
             Sequences are *the* special case for the transform
@@ -134,36 +126,28 @@ impl Runable for Sequence {
             if let Op::Usage(usage) = item.0 {
                 let n = usages[usage].len();
 
-                let old = self.items.splice(
-                    i..i+1,
-                    usages[usage].drain(..).map(|item| (item, None))
-                );
+                let old = self
+                    .items
+                    .splice(i..i + 1, usages[usage].drain(..).map(|item| (item, None)));
 
                 // Re-assign alias-value of the lastly spliced item, if any.
                 if let Some(alias) = old.into_iter().last().unwrap().1 {
-                    self.items.get_mut(i + n - 1).unwrap().1 =
-                        Some(alias);
+                    self.items.get_mut(i + n - 1).unwrap().1 = Some(alias);
                 }
 
                 i += n;
                 end = self.items.len();
-            }
-            else {
+            } else {
                 i += 1
             }
         }
 
         /* Finalize throug children */
         for (item, _) in self.items.iter_mut() {
-            item.finalize(
-                statics,
-                usages,
-                &mut self.leftrec,
-                &mut self.nullable
-            );
+            item.finalize(statics, usages, &mut self.leftrec, &mut self.nullable);
 
             if !self.nullable {
-                break
+                break;
             }
         }
 

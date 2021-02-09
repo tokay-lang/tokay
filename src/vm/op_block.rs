@@ -15,32 +15,29 @@ the generated parse tree automatically until no more input can be consumed.
 pub struct Block {
     leftrec: bool,
     all_leftrec: bool,
-    items: Vec<(Op, bool)>
+    items: Vec<(Op, bool)>,
 }
 
 impl Block {
     pub fn new(items: Vec<Op>) -> Op {
-        Self{
-            items: items.into_iter().map(
-                |item| (item, false)
-            ).collect(),
+        Self {
+            items: items.into_iter().map(|item| (item, false)).collect(),
             all_leftrec: false,
-            leftrec: false
-        }.into_op()
+            leftrec: false,
+        }
+        .into_op()
     }
 }
 
 impl Runable for Block {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Internal Block run function
-        fn run(block: &Block, context: &mut Context, leftrec: bool)
-                -> Result<Accept, Reject>
-        {
+        fn run(block: &Block, context: &mut Context, leftrec: bool) -> Result<Accept, Reject> {
             let mut res = Ok(Accept::Next);
             let reader_start = context.runtime.reader.tell();
 
             for (item, item_leftrec) in &block.items {
-                // Skip over parsers that don't match leftrec configuration
+                // Skip over branches which don't match leftrec configuration
                 if *item_leftrec != leftrec {
                     continue;
                 }
@@ -55,11 +52,11 @@ impl Runable for Block {
                     if let Ok(Accept::Push(_)) = res {
                         // No consuming, no breaking!
                         if reader_start == context.runtime.reader.tell() {
-                            continue
+                            continue;
                         }
                     }
 
-                    break
+                    break;
                 }
             }
 
@@ -70,9 +67,7 @@ impl Runable for Block {
         let id = self as *const Block as usize;
 
         // Check for an existing memo-entry, and return it in case of a match
-        if let Some((reader_end, result)) =
-            context.runtime.memo.get(&(context.reader_start, id))
-        {
+        if let Some((reader_end, result)) = context.runtime.memo.get(&(context.reader_start, id)) {
             context.runtime.reader.reset(*reader_end);
             return result.clone();
         }
@@ -86,8 +81,7 @@ impl Runable for Block {
             let mut reader_end = context.reader_start;
             let mut result = if self.all_leftrec {
                 Ok(Accept::Next)
-            }
-            else {
+            } else {
                 Err(Reject::Next)
             };
 
@@ -98,10 +92,10 @@ impl Runable for Block {
             which only accepts non-left-recursive calls on the first run.
             As an additional fuse, this fake memo entry should anyway be kept.
             */
-            context.runtime.memo.insert(
-                (context.reader_start, id),
-                (reader_end, result.clone())
-            );
+            context
+                .runtime
+                .memo
+                .insert((context.reader_start, id), (reader_end, result.clone()));
 
             let mut loops = 0;
 
@@ -110,52 +104,48 @@ impl Runable for Block {
 
                 match res {
                     // Hard reject
-                    Err(Reject::Main) | Err(Reject::Error(_)) => {
-                        return res
-                    },
+                    Err(Reject::Main) | Err(Reject::Error(_)) => return res,
 
                     // Soft reject
                     Err(_) => {
                         if loops == 0 {
-                            return res
+                            return res;
+                        } else {
+                            break;
                         }
-                        else {
-                            break
-                        }
-                    },
+                    }
 
                     _ => {}
                 }
 
                 // Stop also when no more input was consumed
                 if context.runtime.reader.tell() <= reader_end {
-                    break
+                    break;
                 }
 
                 result = res;
 
                 // Save intermediate result in memo table
                 reader_end = context.runtime.reader.tell();
-                context.runtime.memo.insert(
-                    (context.reader_start, id),
-                    (reader_end, result.clone())
-                );
+                context
+                    .runtime
+                    .memo
+                    .insert((context.reader_start, id), (reader_end, result.clone()));
 
                 // Reset reader & stack
                 context.runtime.reader.reset(context.reader_start);
                 context.runtime.stack.truncate(context.stack_start);
-                context.runtime.stack.resize(
-                    context.capture_start + 1,
-                    Capture::Empty
-                );
+                context
+                    .runtime
+                    .stack
+                    .resize(context.capture_start + 1, Capture::Empty);
 
                 loops += 1;
             }
 
             context.runtime.reader.reset(reader_end);
             result
-        }
-        else {
+        } else {
             // Non-left-recursive block can be called directly.
             run(self, context, false)
         }
@@ -166,7 +156,7 @@ impl Runable for Block {
         statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
         leftrec: &mut bool,
-        nullable: &mut bool
+        nullable: &mut bool,
     ) {
         *nullable = false;
         self.all_leftrec = true;
@@ -177,12 +167,7 @@ impl Runable for Block {
             *item_leftrec = false;
             let mut item_nullable = true;
 
-            item.finalize(
-                statics,
-                usages,
-                item_leftrec,
-                &mut item_nullable
-            );
+            item.finalize(statics, usages, item_leftrec, &mut item_nullable);
 
             if item_nullable {
                 *nullable = true;
@@ -190,8 +175,7 @@ impl Runable for Block {
 
             if *item_leftrec {
                 self.leftrec = true;
-            }
-            else {
+            } else {
                 self.all_leftrec = false;
             }
         }

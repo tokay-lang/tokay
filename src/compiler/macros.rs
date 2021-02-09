@@ -4,7 +4,6 @@
     bootstrap the self-hosted tokay parser.
 */
 
-
 #[macro_export]
 macro_rules! compile_item {
 
@@ -206,7 +205,6 @@ macro_rules! compile_item {
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! compile {

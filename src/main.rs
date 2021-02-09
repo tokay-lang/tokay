@@ -1,19 +1,18 @@
 use std::io;
 
-use ::tokay::value::{Value, RefValue, Dict, List};
-use ::tokay::reader::Reader;
-use ::tokay::parser::Parser;
 use ::tokay::compiler::Compiler;
+use ::tokay::parser::Parser;
+use ::tokay::reader::Reader;
 use ::tokay::value;
+use ::tokay::value::{Dict, List, RefValue, Value};
 
-
-fn compile_and_run(src: &'static str, input: &'static str, debug: bool)
-    -> Result<Option<RefValue>, Option<String>>
-{
+fn compile_and_run(
+    src: &'static str,
+    input: &'static str,
+    debug: bool,
+) -> Result<Option<RefValue>, Option<String>> {
     let p = Parser::new();
-    let ast = p.parse(
-        Reader::new(Box::new(io::Cursor::new(src)))
-    );
+    let ast = p.parse(Reader::new(Box::new(io::Cursor::new(src))));
 
     if let Ok(ast) = ast {
         if debug {
@@ -29,8 +28,7 @@ fn compile_and_run(src: &'static str, input: &'static str, debug: bool)
         }
 
         prg.run_from_str(input)
-    }
-    else {
+    } else {
         Err(ast.err())
     }
 }
@@ -38,11 +36,7 @@ fn compile_and_run(src: &'static str, input: &'static str, debug: bool)
 #[test]
 fn test_parselet_simple() {
     assert_eq!(
-        compile_and_run(
-            "P: @{\nP \"Hello\"}\nP",
-            "HelloHelloHelloHello",
-            false
-        ),
+        compile_and_run("P: @{\nP \"Hello\"}\nP", "HelloHelloHelloHello", false),
         Ok(Some(value!([[["Hello", "Hello"], "Hello"], "Hello"])))
     );
 }
@@ -50,11 +44,7 @@ fn test_parselet_simple() {
 #[test]
 fn test_capture_loading() {
     assert_eq!(
-        compile_and_run(
-            "'Hello' 'World' $1 * 2 + $2 * 3",
-            "HelloWorld",
-            false
-        ),
+        compile_and_run("'Hello' 'World' $1 * 2 + $2 * 3", "HelloWorld", false),
         Ok(Some(value!("HelloHelloWorldWorldWorld")))
     );
 
@@ -71,11 +61,7 @@ fn test_capture_loading() {
 #[test]
 fn test_readme_tok() {
     assert_eq!(
-        compile_and_run(
-            include_str!("../readme.tok"),
-            "1+2*3+4",
-            false
-        ),
+        compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
         Ok(Some(value!(11)))
     );
 }
@@ -99,14 +85,10 @@ fn test_readme_tok() {
 //let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
-
 fn main() {
-    println!("{:#?}",
-        compile_and_run(
-            "P: @{\nP \"Hello\"}\nP",
-            "HelloHelloHelloHello",
-            true
-        )
+    println!(
+        "{:#?}",
+        compile_and_run("P: @{\nP \"Hello\"}\nP", "HelloHelloHelloHello", true)
     );
 
     println!("{:#?}", value!([[["Hello", "Hello"], "Hello"], "Hello"]));

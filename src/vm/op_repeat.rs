@@ -14,20 +14,20 @@ pub struct Repeat {
     body: Op,
     min: usize,
     max: usize,
-    silent: bool
+    silent: bool,
 }
 
 impl Repeat {
-    pub fn new(body: Op, min: usize, max: usize, silent: bool) -> Op
-    {
+    pub fn new(body: Op, min: usize, max: usize, silent: bool) -> Op {
         assert!(max == 0 || max >= min);
 
-        Self{
+        Self {
             body,
             min,
             max,
-            silent
-        }.into_op()
+            silent,
+        }
+        .into_op()
     }
 
     pub fn kleene(body: Op) -> Op {
@@ -56,7 +56,6 @@ impl Repeat {
 }
 
 impl Runable for Repeat {
-
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         // Remember capturing positions
         let capture_start = context.runtime.stack.len();
@@ -71,26 +70,24 @@ impl Runable for Repeat {
                 Err(reject) => {
                     context.runtime.stack.truncate(capture_start);
                     context.runtime.reader.reset(reader_start);
-                    return Err(reject)
-                },
+                    return Err(reject);
+                }
 
-                Ok(Accept::Next) => {},
+                Ok(Accept::Next) => {}
 
                 Ok(Accept::Push(capture)) => {
                     if !self.silent {
                         context.runtime.stack.push(capture)
                     }
-                },
-
-                Ok(accept) => {
-                    return Ok(accept)
                 }
+
+                Ok(accept) => return Ok(accept),
             }
 
             count += 1;
 
             if self.max > 0 && count == self.max {
-                break
+                break;
             }
         }
 
@@ -98,20 +95,17 @@ impl Runable for Repeat {
             context.runtime.stack.truncate(capture_start);
             context.runtime.reader.reset(reader_start);
             Err(Reject::Next)
-        }
-        else {
+        } else {
             // Push collected captures, if any
-            if let Some(capture) = context.collect(capture_start, false, false)
-            {
+            if let Some(capture) = context.collect(capture_start, false, false) {
                 Ok(Accept::Push(capture))
             }
             // Otherwiese, push a capture of consumed range
             else if reader_start < context.runtime.reader.tell() {
-                Ok(Accept::Push(
-                    Capture::Range(
-                        context.runtime.reader.capture_from(reader_start), 0
-                    )
-                ))
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_from(reader_start),
+                    0,
+                )))
             }
             // Else, just accept next
             else {
@@ -125,7 +119,7 @@ impl Runable for Repeat {
         statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
         leftrec: &mut bool,
-        nullable: &mut bool
+        nullable: &mut bool,
     ) {
         self.body.replace_usage(usages);
         self.body.finalize(statics, usages, leftrec, nullable);

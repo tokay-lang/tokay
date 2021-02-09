@@ -4,15 +4,13 @@ type CclRange = std::ops::RangeInclusive<char>;
 
 #[derive(Clone)]
 pub struct Ccl {
-    ranges: Vec<CclRange>
+    ranges: Vec<CclRange>,
 }
 
 impl Ccl {
     /** Create new empty character class. */
     pub fn new() -> Self {
-        Self{
-            ranges: Vec::new()
-        }
+        Self { ranges: Vec::new() }
     }
 
     /** Internal function for sorting ranges. */
@@ -22,7 +20,10 @@ impl Ccl {
 
     /** Retrieve total number of characters in class */
     pub fn len(&self) -> u32 {
-        self.ranges.iter().map(|r| *r.end() as u32 - *r.start() as u32 + 1).sum()
+        self.ranges
+            .iter()
+            .map(|r| *r.end() as u32 - *r.start() as u32 + 1)
+            .sum()
     }
 
     /** Dump the character ranges */
@@ -95,9 +96,7 @@ impl Ccl {
                     };
 
                     end = start;
-                }
-                else
-                {
+                } else {
                     end = if *irange.end() < std::char::MAX {
                         std::char::from_u32(*irange.end() as u32 + 1).unwrap()
                     } else {
@@ -144,27 +143,28 @@ impl Ccl {
 
     /** Test */
     pub fn test(&self, range: &CclRange) -> bool {
-        self.ranges.binary_search_by(|r|
-            if r.start() > range.end() {
-                Ordering::Greater
-            } else if r.end() < range.start()  {
-                Ordering::Less
-            } else {
-                if range.start() >= r.start() && range.end() <= r.end() {
-                    Ordering::Equal
+        self.ranges
+            .binary_search_by(|r| {
+                if r.start() > range.end() {
+                    Ordering::Greater
+                } else if r.end() < range.start() {
+                    Ordering::Less
+                } else {
+                    if range.start() >= r.start() && range.end() <= r.end() {
+                        Ordering::Equal
+                    } else {
+                        Ordering::Less // fixme: Is here also a Greater-case?
+                    }
                 }
-                else {
-                    Ordering::Less  // fixme: Is here also a Greater-case?
-                }
-            }
-        ).is_ok()
+            })
+            .is_ok()
     }
 
     /** Does this range fit all chars? */
     fn is_any(&self) -> bool {
         self.ranges.len() == 1
             && *self.ranges[0].start() == 0 as char
-                && *self.ranges[0].end() == std::char::MAX
+            && *self.ranges[0].end() == std::char::MAX
     }
 }
 
@@ -172,8 +172,7 @@ impl std::fmt::Debug for Ccl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_any() {
             write!(f, ".")?;
-        }
-        else {
+        } else {
             write!(f, "|")?;
             for range in &self.ranges {
                 if range.start() < range.end() {
@@ -200,7 +199,6 @@ macro_rules! ccl {
     }
 }
 
-
 pub fn ccl_test() {
     let mut ccl = Ccl::new();
     ccl.add('a'..='c');
@@ -223,7 +221,6 @@ pub fn ccl_test() {
     for rg in vec!['k'..='v', 'l'..='o', 'a'..='d', 'a'..='b', 'k'..='x'] {
         println!("{:?} {}", &rg, ccl.test(&rg));
     }
-
 
     let mut t = Ccl::new();
     t.add('A'..='D');

@@ -6,18 +6,17 @@ pub struct Reader {
     reader: Box<dyn BufRead>,
     buffer: Vec<char>,
     offset: usize,
-    eof: bool
+    eof: bool,
 }
 
 impl Reader {
-
     /// Creates a new reader on buffer read.
     pub fn new(reader: Box<dyn BufRead>) -> Self {
-        Self{
+        Self {
             reader,
             buffer: Vec::new(),
             offset: 0,
-            eof: false
+            eof: false,
         }
     }
 
@@ -27,7 +26,7 @@ impl Reader {
         if let Ok(n) = self.reader.read_line(&mut s) {
             if n == 0 {
                 self.eof = true;
-                return None
+                return None;
             }
 
             for ch in s.chars() {
@@ -35,8 +34,7 @@ impl Reader {
             }
 
             Some(n)
-        }
-        else {
+        } else {
             self.eof = true;
             None
         }
@@ -45,11 +43,11 @@ impl Reader {
     pub fn next(&mut self) -> Option<char> {
         if self.offset < self.buffer.len() {
             self.offset += 1;
-            return Some(self.buffer[self.offset - 1])
+            return Some(self.buffer[self.offset - 1]);
         }
 
         if self.eof {
-            return None
+            return None;
         }
 
         self.read_line();
@@ -58,11 +56,11 @@ impl Reader {
 
     pub fn peek(&mut self) -> Option<char> {
         if self.offset < self.buffer.len() {
-            return Some(self.buffer[self.offset])
+            return Some(self.buffer[self.offset]);
         }
 
         if self.eof {
-            return None
+            return None;
         }
 
         self.read_line();

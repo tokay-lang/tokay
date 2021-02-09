@@ -8,17 +8,18 @@ the input stream.
 */
 
 #[derive(Debug)]
-pub struct Match{
+pub struct Match {
     string: String,
-    silent: bool
+    silent: bool,
 }
 
 impl Match {
     fn _new(string: &str, silent: bool) -> Op {
-        Self{
+        Self {
             string: string.to_string(),
-            silent
-        }.into_op()
+            silent,
+        }
+        .into_op()
     }
 
     pub fn new(string: &str) -> Op {
@@ -33,7 +34,6 @@ impl Match {
 }
 
 impl Scanable for Match {
-
     fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         let start = reader.tell();
 
@@ -44,8 +44,7 @@ impl Scanable for Match {
                     reader.reset(start);
                     return Err(Reject::Next);
                 }
-            }
-            else {
+            } else {
                 // fixme: Optimize me!
                 reader.reset(start);
                 return Err(Reject::Next);
@@ -54,20 +53,11 @@ impl Scanable for Match {
 
         let range = reader.capture_last(self.string.len());
 
-        Ok(
-            Accept::Push(
-                if self.silent {
-                    Capture::Range(
-                        range, 0
-                    )
-                }
-                else {
-                    Capture::Range(
-                        range, 5
-                    )
-                }
-            )
-        )
+        Ok(Accept::Push(if self.silent {
+            Capture::Range(range, 0)
+        } else {
+            Capture::Range(range, 5)
+        }))
     }
 }
 
@@ -75,8 +65,7 @@ impl std::fmt::Display for Match {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.silent {
             write!(f, "'{}'", self.string)
-        }
-        else {
+        } else {
             write!(f, "\"{}\"", self.string)
         }
     }

@@ -1,42 +1,30 @@
-use std::collections::HashMap;
-use std::cell::RefCell;
-use crate::vm::*;
-use crate::value::{Value, RefValue, BorrowByKey, BorrowByIdx, Dict};
 use crate::builtin;
-
+use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
+use crate::vm::*;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 /** Unresolved symbols and calls */
 #[derive(Debug)]
 pub enum Usage {
     Symbol(String),
-    Call{
+    Call {
         name: String,
-        params: Vec<(Option<String>, Vec<Op>)>
-    }
+        params: Vec<(Option<String>, Vec<Op>)>,
+    },
 }
 
 impl Usage {
-    fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>>
-    {
+    fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>> {
         match self {
             Usage::Symbol(name) => {
                 // Resolve constants
                 if let Some(addr) = compiler.get_constant(&name) {
-                    return Some(vec![
-                        Op::CallStatic(addr)
-                    ])
-                }
-                else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![
-                        Op::LoadFast(addr),
-                        Op::TryCall
-                    ])
-                }
-                else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![
-                        Op::LoadGlobal(addr),
-                        Op::TryCall
-                    ])
+                    return Some(vec![Op::CallStatic(addr)]);
+                } else if let Some(addr) = compiler.get_local(&name) {
+                    return Some(vec![Op::LoadFast(addr), Op::TryCall]);
+                } else if let Some(addr) = compiler.get_global(&name) {
+                    return Some(vec![Op::LoadGlobal(addr), Op::TryCall]);
                 }
             }
 
@@ -48,12 +36,10 @@ impl Usage {
         None
     }
 
-    pub fn resolve_or_dispose(self, compiler: &mut Compiler) -> Vec<Op>
-    {
+    pub fn resolve_or_dispose(self, compiler: &mut Compiler) -> Vec<Op> {
         if let Some(res) = self.try_resolve(compiler) {
             res
-        }
-        else {
+        } else {
             compiler.usages.push(Err(self));
             vec![Op::Usage(compiler.usages.len() - 1)]
         }
@@ -68,23 +54,23 @@ Scoped blocks (parselets) introduce new variable scopes.
 struct Scope {
     variables: Option<HashMap<String, usize>>,
     constants: HashMap<String, usize>,
-    usage_start: usize
+    usage_start: usize,
 }
 
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
-    statics: RefCell<Vec<RefValue>>,        // Static values and parselets collected during compile
-    scopes: Vec<Scope>,                     // Current compilation scopes
-    usages: Vec<Result<Vec<Op>, Usage>>     // Usages of symbols in parselets
+    statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
+    scopes: Vec<Scope>,              // Current compilation scopes
+    usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
 }
 
 impl Compiler {
     pub fn new() -> Self {
         // Compiler initialization
-        let mut compiler = Self{
+        let mut compiler = Self {
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
-            usages: Vec::new()
+            usages: Vec::new(),
         };
 
         // Preparation of global scope
@@ -101,15 +87,17 @@ impl Compiler {
             self.pop_scope();
         }
 
-        let mut usages = self.usages.into_iter().map(
-            |usage| {
+        let mut usages = self
+            .usages
+            .into_iter()
+            .map(|usage| {
                 if let Err(usage) = usage {
                     panic!("Unresolved usage detected {:?}", usage);
                 }
 
                 usage.unwrap()
-            }
-        ).collect();
+            })
+            .collect();
 
         let statics = self.statics.borrow().to_vec();
 
@@ -127,18 +115,14 @@ impl Compiler {
             changes = false;
 
             for i in 0..statics.len() {
-                if let Value::Parselet(parselet) = &*statics[i].borrow()
-                {
+                if let Value::Parselet(parselet) = &*statics[i].borrow() {
                     let mut parselet = parselet.borrow_mut();
                     let mut leftrec = parselet.leftrec;
                     let mut nullable = parselet.nullable;
 
-                    parselet.body.finalize(
-                        &statics,
-                        &mut usages,
-                        &mut leftrec,
-                        &mut nullable
-                    );
+                    parselet
+                        .body
+                        .finalize(&statics, &mut usages, &mut leftrec, &mut nullable);
 
                     if !parselet.leftrec && leftrec {
                         parselet.leftrec = true;
@@ -158,19 +142,22 @@ impl Compiler {
         //println!("finalization finished after {} loops", loops);
 
         // Make program from statics
-        Program::new(
-            statics
-        )
+        Program::new(statics)
     }
 
     /// Introduces a new scope, either for variables or constants only.
     pub fn push_scope(&mut self, variables: bool) {
-        self.scopes.insert(0,
-            Scope{
-                variables: if variables { Some(HashMap::new()) } else { None },
+        self.scopes.insert(
+            0,
+            Scope {
+                variables: if variables {
+                    Some(HashMap::new())
+                } else {
+                    None
+                },
                 constants: HashMap::new(),
-                usage_start: self.usages.len()
-            }
+                usage_start: self.usages.len(),
+            },
         );
     }
 
@@ -200,8 +187,7 @@ impl Compiler {
     pub fn get_locals(&self) -> usize {
         if let Some(locals) = &self.scopes.first().unwrap().variables {
             locals.len()
-        }
-        else {
+        } else {
             0
         }
     }
@@ -209,16 +195,15 @@ impl Compiler {
     /**
     Retrieve address of a local variable under a given name.
     */
-    pub fn get_local(&self, name: &str) -> Option<usize>
-    {
+    pub fn get_local(&self, name: &str) -> Option<usize> {
         for scope in &self.scopes {
             // Check for scope with variables
             if let Some(variables) = &scope.variables {
                 if let Some(addr) = variables.get(name) {
-                    return Some(*addr)
+                    return Some(*addr);
                 }
 
-                break
+                break;
             }
         }
 
@@ -231,12 +216,12 @@ impl Compiler {
             // Check for scope with variables
             if let Some(variables) = &mut scope.variables {
                 if let Some(addr) = variables.get(name) {
-                    return *addr
+                    return *addr;
                 }
 
                 let addr = variables.len();
                 variables.insert(name.to_string(), addr);
-                return addr
+                return addr;
             }
         }
 
@@ -246,30 +231,30 @@ impl Compiler {
     /**
     Retrieve address of a global variable.
     */
-    pub fn get_global(&self, name: &str) -> Option<usize>
-    {
+    pub fn get_global(&self, name: &str) -> Option<usize> {
         let variables = self.scopes.last().unwrap().variables.as_ref().unwrap();
 
         if let Some(addr) = variables.get(name) {
             Some(*addr)
-        }
-        else {
+        } else {
             None
         }
     }
 
     /** Set constant to name in current scope. */
     pub fn set_constant(&mut self, name: &str, addr: usize) {
-        self.scopes.first_mut().unwrap().constants.insert(
-            name.to_string(), addr
-        );
+        self.scopes
+            .first_mut()
+            .unwrap()
+            .constants
+            .insert(name.to_string(), addr);
     }
 
     /** Get constant value, either from current or preceding scope. */
     pub fn get_constant(&self, name: &str) -> Option<usize> {
         for scope in &self.scopes {
             if let Some(addr) = scope.constants.get(name) {
-                return Some(*addr)
+                return Some(*addr);
             }
         }
 
@@ -279,8 +264,7 @@ impl Compiler {
     /** Defines a new static value.
 
     Statics are moved into the program later on. */
-    pub fn define_static(&self, value: RefValue) -> usize
-    {
+    pub fn define_static(&self, value: RefValue) -> usize {
         let mut statics = self.statics.borrow_mut();
         // todo: check for existing value, and reuse it again instead of
         // naively adding the same value multiple times
@@ -297,11 +281,9 @@ impl Compiler {
     pub fn gen_store(&mut self, name: &str) -> Op {
         if let Some(addr) = self.get_local(name) {
             Op::StoreFast(addr)
-        }
-        else if let Some(addr) = self.get_global(name) {
+        } else if let Some(addr) = self.get_global(name) {
             Op::StoreGlobal(addr)
-        }
-        else {
+        } else {
             Op::StoreFast(self.new_local(name))
         }
     }
@@ -315,11 +297,9 @@ impl Compiler {
     pub fn gen_load(&mut self, name: &str) -> Op {
         if let Some(addr) = self.get_local(name) {
             Op::LoadFast(addr)
-        }
-        else if let Some(addr) = self.get_global(name) {
+        } else if let Some(addr) = self.get_global(name) {
             Op::LoadGlobal(addr)
-        }
-        else {
+        } else {
             Op::LoadFast(self.new_local(name))
         }
     }
@@ -334,11 +314,9 @@ impl Compiler {
             for item in list.iter() {
                 ret.extend(self.traverse(&item.borrow()));
             }
-        }
-        else if let Some(dict) = value.get_dict() {
+        } else if let Some(dict) = value.get_dict() {
             ret.extend(self.traverse_node(dict));
-        }
-        else {
+        } else {
             unimplemented!("traverse() cannot traverse {:?}", value);
         }
 
@@ -354,24 +332,20 @@ impl Compiler {
             "value_string" => {
                 let value = node.borrow_by_key("value").to_string();
                 Value::String(value)
-            },
+            }
             "value_integer" => {
                 let value = node.borrow_by_key("value").to_string();
-                Value::Integer(
-                    match value.parse::<i64>() {
-                        Ok(i) => i,
-                        Err(_) => 0
-                    }
-                )
+                Value::Integer(match value.parse::<i64>() {
+                    Ok(i) => i,
+                    Err(_) => 0,
+                })
             }
             "value_float" => {
                 let value = node.borrow_by_key("value").to_string();
-                Value::Float(
-                    match value.parse::<f64>() {
-                        Ok(f) => f,
-                        Err(_) => 0.0
-                    }
-                )
+                Value::Float(match value.parse::<f64>() {
+                    Ok(f) => f,
+                    Err(_) => 0.0,
+                })
             }
             "value_true" => Value::True,
             "value_false" => Value::False,
@@ -380,9 +354,10 @@ impl Compiler {
             "value_parselet" => {
                 let parselet = self.traverse_node_parselet(node);
                 return self.statics.borrow()[parselet].clone();
-            },
-            _ => unimplemented!("unhandled value node {}", emit)
-        }.into_ref()
+            }
+            _ => unimplemented!("unhandled value node {}", emit),
+        }
+        .into_ref()
     }
 
     // Traverse a parselet node into a parselet address
@@ -393,8 +368,7 @@ impl Compiler {
 
         let (args, body) = if let Some(children) = children.get_list() {
             (Some(children[0].borrow()), children[1].borrow())
-        }
-        else {
+        } else {
             (None, children)
         };
 
@@ -406,8 +380,12 @@ impl Compiler {
                 let param = param.borrow();
                 let param = param.get_dict().unwrap();
                 sig.push((
-                    param.borrow_by_key("value").get_string().unwrap().to_string(),
-                    None
+                    param
+                        .borrow_by_key("value")
+                        .get_string()
+                        .unwrap()
+                        .to_string(),
+                    None,
                 ));
             }
 
@@ -440,8 +418,10 @@ impl Compiler {
 
         let parselet = self.define_static(
             Parselet::new(
-                body.into_iter().next().unwrap_or(Op::Nop), self.get_locals()
-            ).into_refvalue()
+                body.into_iter().next().unwrap_or(Op::Nop),
+                self.get_locals(),
+            )
+            .into_refvalue(),
         );
 
         self.pop_scope();
@@ -474,7 +454,7 @@ impl Compiler {
                 ret.extend(self.traverse_node(lvalue));
 
                 None
-            },
+            }
 
             // assign_constant ------------------------------------------------
             "assign_constant" => {
@@ -487,24 +467,20 @@ impl Compiler {
                 let constant = constant.borrow_by_key("value");
 
                 let value = self.traverse_node_value(value.get_dict().unwrap());
-                self.set_constant(
-                    constant.get_string().unwrap(),
-                    self.define_static(value)
-                );
+                self.set_constant(constant.get_string().unwrap(), self.define_static(value));
 
                 None
-            },
+            }
 
             // block ----------------------------------------------------------
             "block" => {
                 if let Some(children) = node.get("children") {
                     let body = self.traverse(&children.borrow());
                     Some(Block::new(body))
-                }
-                else {
+                } else {
                     None
                 }
-            },
+            }
 
             // call -----------------------------------------------------------
             call if call.starts_with("call_") => {
@@ -514,17 +490,13 @@ impl Compiler {
                     let ident = children.get_dict().unwrap();
                     let ident = ident.borrow_by_key("value");
 
-                    Usage::Symbol(
-                        ident.to_string()
-                    )
-                }
-                else {
+                    Usage::Symbol(ident.to_string())
+                } else {
                     let children = children.to_list();
 
                     let mut ops = if children.len() > 1 {
                         self.traverse(&children[1].borrow())
-                    }
-                    else {
+                    } else {
                         Vec::new()
                     };
 
@@ -533,19 +505,15 @@ impl Compiler {
                         let ident = ident.get_dict().unwrap();
                         let ident = ident.borrow_by_key("value");
 
-                        Usage::Symbol(
-                            ident.to_string()
-                        )
-                    }
-                    else if call == "call_rvalue" {
+                        Usage::Symbol(ident.to_string())
+                    } else if call == "call_rvalue" {
                         unimplemented!();
-                        /*
-                        ops.extend(self.traverse(&children[0].borrow()));
+                    /*
+                    ops.extend(self.traverse(&children[0].borrow()));
 
-                        Call::Dynamic(ops).into_op()
-                        */
-                    }
-                    else {
+                    Call::Dynamic(ops).into_op()
+                    */
+                    } else {
                         unimplemented!("{:?} is unhandled", call);
                     }
                 };
@@ -601,20 +569,18 @@ impl Compiler {
 
                             if i < children.len() - 1 {
                                 ret.push(self.gen_load(name))
-                            }
-                            else {
+                            } else {
                                 ret.push(self.gen_store(name))
                             }
-                        },
+                        }
                         other => {
-                            unimplemented!(
-                                "{:?} not implemented for lvalue", other);
+                            unimplemented!("{:?} not implemented for lvalue", other);
                         }
                     }
                 }
 
                 None
-            },
+            }
 
             // main -----------------------------------------------------------
             "main" => {
@@ -623,27 +589,24 @@ impl Compiler {
 
                 if main.len() > 0 {
                     self.define_static(
-                        Parselet::new(
-                            Block::new(main),
-                            self.get_locals()
-                        ).into_refvalue()
+                        Parselet::new(Block::new(main), self.get_locals()).into_refvalue(),
                     );
                 }
 
                 None
-            },
+            }
 
             // match ----------------------------------------------------------
             "match" => {
                 let value = node.borrow_by_key("value");
                 Some(Match::new(value.get_string().unwrap().clone()))
-            },
+            }
 
             // match_silent ---------------------------------------------------
             "match_silent" => {
                 let value = node.borrow_by_key("value");
                 Some(Match::new_silent(value.get_string().unwrap().clone()))
-            },
+            }
 
             // modifier -------------------------------------------------------
             modifier if modifier.starts_with("mod_") => {
@@ -659,12 +622,11 @@ impl Compiler {
                     "kleene" => Some(op.into_kleene()),
                     "positive" => Some(op.into_positive()),
                     "optional" => Some(op.into_optional()),
-                    _ => unimplemented!("{} not implemented", modifier)
+                    _ => unimplemented!("{} not implemented", modifier),
                 }
-            },
+            }
 
             // operator ------------------------------------------------------
-
             op if op.starts_with("op_") => {
                 let parts: Vec<&str> = emit.split("_").collect();
 
@@ -686,27 +648,20 @@ impl Compiler {
                             unimplemented!("op_binary_{}", parts[2]);
                         }
                     }
-                }
-                else if parts[1] == "unary" {
+                } else if parts[1] == "unary" {
                     let children = node.borrow_by_key("children");
                     let children = children.get_dict().unwrap();
                     ret.extend(self.traverse_node(children));
 
                     //fixme: unary operators
                     unimplemented!("unary missing");
-                    //None
-                }
-                else if parts[1] == "accept" || parts[1] == "return" {
+                //None
+                } else if parts[1] == "accept" || parts[1] == "return" {
                     let children = node.borrow_by_key("children");
-                    ret.extend(
-                        self.traverse_node(
-                            &children.get_dict().unwrap()
-                        )
-                    );
+                    ret.extend(self.traverse_node(&children.get_dict().unwrap()));
 
                     Some(Op::LoadAccept)
-                }
-                else {
+                } else {
                     None
                 }
             }
@@ -754,15 +709,12 @@ impl Compiler {
 
                             if let Some(addr) = self.get_constant(name) {
                                 ret.push(Op::LoadStatic(addr));
-                            }
-                            else {
+                            } else {
                                 ret.push(self.gen_load(name));
                             }
                         }
 
-                        val if val.starts_with("value_") => {
-                            ret.extend(self.traverse_node(item))
-                        }
+                        val if val.starts_with("value_") => ret.extend(self.traverse_node(item)),
 
                         _ => {
                             unreachable!();
@@ -774,35 +726,27 @@ impl Compiler {
             }
 
             // sequence ------------------------------------------------------
-
             "sequence" => {
                 let children = node.borrow_by_key("children");
                 let items = self.traverse(&children);
                 //todo: Handle aliases...
 
                 if items.len() > 0 {
-                    Some(
-                        Sequence::new(
-                            items.into_iter()
-                                .map(|item| (item, None))
-                                .collect()
-                        )
-                    )
-                }
-                else {
+                    Some(Sequence::new(
+                        items.into_iter().map(|item| (item, None)).collect(),
+                    ))
+                } else {
                     None
                 }
-            },
+            }
 
             // value ---------------------------------------------------------
-
             val if val.starts_with("value_") => {
                 let value = self.traverse_node_value(node);
                 Some(Op::LoadStatic(self.define_static(value)))
-            },
+            }
 
             // ---------------------------------------------------------------
-
             _ => {
                 // When there are children, try to traverse recursively
                 if let Some(children) = node.get("children") {

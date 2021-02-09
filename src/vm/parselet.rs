@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::{Value, RefValue};
-
+use crate::value::{RefValue, Value};
 
 /** Parselet is the conceptual building block of a Tokay program.
 
@@ -21,31 +20,31 @@ pub struct Parselet {
     silent: bool,
     signature: Vec<(String, Option<usize>)>,
     locals: usize,
-    pub(crate) body: Op
+    pub(crate) body: Op,
 }
 
 impl Parselet {
     // Creates a new standard parselet.
     pub fn new(body: Op, locals: usize) -> Self {
-        Self{
+        Self {
             leftrec: false,
             nullable: true,
             silent: false,
             signature: Vec::new(),
             locals,
-            body
+            body,
         }
     }
 
     /// Creates a new silent parselet, which does always return Capture::Empty
     pub fn new_silent(body: Op, locals: usize) -> Self {
-        Self{
+        Self {
             leftrec: false,
             nullable: true,
             silent: true,
             signature: Vec::new(),
             locals,
-            body
+            body,
         }
     }
 
@@ -58,11 +57,7 @@ impl Parselet {
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
-    pub fn run(
-        &self,
-        runtime: &mut Runtime,
-        main: bool) -> Result<Accept, Reject>
-    {
+    pub fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
         let mut results = Vec::new();
 
@@ -77,38 +72,18 @@ impl Parselet {
             if main {
                 //println!("main res(1) = {:?}", res);
                 res = match res {
-                    Ok(Accept::Next) => {
-                        Ok(Accept::Repeat(None))
-                    }
+                    Ok(Accept::Next) => Ok(Accept::Repeat(None)),
 
-                    Ok(Accept::Return(value)) => {
-                        Ok(Accept::Repeat(value))
-                    }
+                    Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
 
-                    Ok(Accept::Push(capture)) => {
-                        Ok(
-                            Accept::Repeat(
-                                match capture {
-                                    Capture::Range(range, _) => {
-                                        Some(
-                                            Value::String(
-                                                context.runtime.reader.extract(
-                                                    &range
-                                                )
-                                            ).into_ref()
-                                        )
-                                    },
-                                    Capture::Value(value, _) => {
-                                        Some(value)
-                                    },
-                                    _ => {
-                                        None
-                                    }
-                                }
-                            )
-                        )
-                    },
-                    res => res
+                    Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
+                        Capture::Range(range, _) => {
+                            Some(Value::String(context.runtime.reader.extract(&range)).into_ref())
+                        }
+                        Capture::Value(value, _) => Some(value),
+                        _ => None,
+                    })),
+                    res => res,
                 };
                 //println!("main res(2) = {:?}", res);
             }
@@ -116,47 +91,37 @@ impl Parselet {
             // Evaluate result of parselet loop.
             match res {
                 Ok(accept) => {
-                    match accept
-                    {
-                        Accept::Skip => {
-                            return Ok(Accept::Next)
-                        },
+                    match accept {
+                        Accept::Skip => return Ok(Accept::Next),
 
                         Accept::Return(value) => {
                             if let Some(value) = value {
                                 if !self.silent {
-                                    return Ok(Accept::Push(
-                                        Capture::Value(value, 5)
-                                    ))
+                                    return Ok(Accept::Push(Capture::Value(value, 5)));
                                 } else {
-                                    return Ok(Accept::Push(
-                                        Capture::Empty
-                                    ))
+                                    return Ok(Accept::Push(Capture::Empty));
                                 }
+                            } else {
+                                return Ok(Accept::Push(Capture::Empty));
                             }
-                            else {
-                                return Ok(Accept::Push(Capture::Empty))
-                            }
-                        },
+                        }
 
                         Accept::Repeat(value) => {
                             if let Some(value) = value {
                                 results.push(value);
                             }
-                        },
+                        }
 
-                        Accept::Push(_) if self.silent => {
-                            return Ok(Accept::Push(Capture::Empty))
-                        },
+                        Accept::Push(_) if self.silent => return Ok(Accept::Push(Capture::Empty)),
 
-                        accept => return Ok(accept)
+                        accept => return Ok(accept),
                     }
 
                     // In case that no more input was consumed, stop here.
                     if main && reader_start == context.runtime.reader.tell() {
                         context.runtime.reader.next();
                     }
-                },
+                }
 
                 Err(reject) => {
                     match reject {
@@ -168,40 +133,31 @@ impl Parselet {
                     // Skip character
                     if main {
                         context.runtime.reader.next();
-                    }
-                    else if results.len() == 0 {
-                        return Err(reject)
+                    } else if results.len() == 0 {
+                        return Err(reject);
                     }
                 }
             }
 
             if context.runtime.reader.eof() {
-                break
+                break;
             }
         }
 
         if results.len() > 1 {
-            Ok(
-                Accept::Push(
-                    Capture::Value(
-                        Value::List(Box::new(results)).into_ref(), 5
-                    )
-                )
-            )
-        }
-        else if results.len() == 1 {
-            Ok(
-                Accept::Push(Capture::Value(results.pop().unwrap(), 5))
-            )
-        }
-        else {
+            Ok(Accept::Push(Capture::Value(
+                Value::List(Box::new(results)).into_ref(),
+                5,
+            )))
+        } else if results.len() == 1 {
+            Ok(Accept::Push(Capture::Value(results.pop().unwrap(), 5)))
+        } else {
             Ok(Accept::Next)
         }
     }
 }
 
 impl std::cmp::PartialEq for Parselet {
-
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self as *const Parselet as usize == other as *const Parselet as usize
