@@ -71,6 +71,14 @@ pub enum Op {
 }
 
 impl Op {
+    pub fn from_vec(ops: Vec<Op>) -> Self {
+        match ops.len() {
+            0 => Op::Nop,
+            1 => ops.into_iter().next().unwrap(),
+            _ => Sequence::new(ops.into_iter().map(|item| (item, None)).collect())
+        }
+    }
+
     pub fn into_box(self) -> Box<Self> {
         Box::new(self)
     }
@@ -93,18 +101,7 @@ impl Op {
     */
     pub(super) fn replace_usage(&mut self, usages: &mut Vec<Vec<Op>>) {
         if let Op::Usage(usage) = self {
-            match usages[*usage].len() {
-                0 => panic!("Invalid"),
-                1 => {
-                    *self = usages[*usage].drain(..).next().unwrap();
-                }
-                _ => {
-                    // This could be an error, but we can also
-                    // make a sequence from it...
-                    *self =
-                        Sequence::new(usages[*usage].drain(..).map(|item| (item, None)).collect());
-                }
-            }
+            *self = Self::from_vec(usages[*usage].drain(..).collect())
         }
     }
 }

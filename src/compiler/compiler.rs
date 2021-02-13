@@ -54,6 +54,8 @@ Scoped blocks (parselets) introduce new variable scopes.
 struct Scope {
     variables: Option<HashMap<String, usize>>,
     constants: HashMap<String, usize>,
+    begin: Vec<Op>,
+    end: Vec<Op>,
     usage_start: usize,
 }
 
@@ -156,16 +158,14 @@ impl Compiler {
                     None
                 },
                 constants: HashMap::new(),
+                begin: Vec::new(),
+                end: Vec::new(),
                 usage_start: self.usages.len(),
             },
         );
     }
 
-    /** Pops current scope. Returns number of locals defined.
-
-    The final (main) scope cannot be dropped, the function panics when
-    this is tried. */
-    pub fn pop_scope(&mut self) {
+    fn _pop_scope(&mut self) -> Scope {
         if self.scopes.len() == 0 {
             panic!("No more scopes to pop!");
         }
@@ -180,7 +180,12 @@ impl Compiler {
             }
         }
 
-        self.scopes.remove(0);
+        self.scopes.remove(0)
+    }
+
+    /** Pops current scope. */
+    pub fn pop_scope(&mut self) {
+        self._pop_scope();
     }
 
     /// Returns the total number of locals in current scope.
@@ -415,16 +420,17 @@ impl Compiler {
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
+        let locals = self.get_locals();
+        let scope = self._pop_scope();
 
         let parselet = self.define_static(
             Parselet::new(
                 body.into_iter().next().unwrap_or(Op::Nop),
-                self.get_locals(),
-            )
-            .into_refvalue(),
+                locals,
+                Op::from_vec(scope.begin),
+                Op::from_vec(scope.end),
+            ).into_refvalue()
         );
-
-        self.pop_scope();
 
         parselet
     }
@@ -468,6 +474,26 @@ impl Compiler {
 
                 let value = self.traverse_node_value(value.get_dict().unwrap());
                 self.set_constant(constant.get_string().unwrap(), self.define_static(value));
+
+                None
+            }
+
+            // begin ----------------------------------------------------------
+            "begin" | "end" => {
+                if self.scopes[0].variables.is_none() {
+                    panic!("'{}' may only be used in parselet scope", emit);
+                }
+
+                if let Some(children) = node.get("children") {
+                    let ops = self.traverse(&children.borrow());
+
+                    if emit == "begin" {
+                        self.scopes[0].begin.extend(ops);
+                    }
+                    else {
+                        self.scopes[0].end.extend(ops);
+                    }
+                }
 
                 None
             }
@@ -585,11 +611,19 @@ impl Compiler {
             // main -----------------------------------------------------------
             "main" => {
                 let children = node.borrow_by_key("children");
+
                 let main = self.traverse(&children);
+                let locals = self.get_locals();
+                let scope = self._pop_scope();
 
                 if main.len() > 0 {
                     self.define_static(
-                        Parselet::new(Block::new(main), self.get_locals()).into_refvalue(),
+                        Parselet::new(
+                            Block::new(main),
+                            locals,
+                            Op::from_vec(scope.begin),
+                            Op::from_vec(scope.end),
+                        ).into_refvalue(),
                     );
                 }
 
@@ -716,8 +750,22 @@ impl Compiler {
 
                         val if val.starts_with("value_") => ret.extend(self.traverse_node(item)),
 
+                        /*
+                        val if val.starts_with("inplace_") => {
+                            let parts: Vec<&str> = emit.split("_").collect();
+                            match parts[1] {
+                                "pre" => {
+                                    self.traverse(item);
+                                    match parts[2] {
+
+                                    }
+                                }
+                            }
+                        },
+                        */
+
                         _ => {
-                            unreachable!();
+                            unimplemented!("{:?} not implemented", emit);
                         }
                     }
                 }

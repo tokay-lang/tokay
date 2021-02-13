@@ -46,7 +46,10 @@ macro_rules! compile_item {
 
             let parselet = $compiler.define_static(
                 Parselet::new_silent(
-                    body, $compiler.get_locals()
+                    body,
+                    $compiler.get_locals(),
+                    Op::Nop,
+                    Op::Nop
                 ).into_refvalue()
             );
 
@@ -84,7 +87,10 @@ macro_rules! compile_item {
 
             let parselet = $compiler.define_static(
                 Parselet::new(
-                    body, $compiler.get_locals()
+                    body,
+                    $compiler.get_locals(),
+                    Op::Nop,
+                    Op::Nop,
                 ).into_refvalue()
             );
 
@@ -217,7 +223,9 @@ macro_rules! compile {
                 compiler.define_static(
                     Parselet::new(
                         main,
-                        compiler.get_locals()
+                        compiler.get_locals(),
+                        Op::Nop,
+                        Op::Nop,
                     ).into_refvalue()
                 );
             }

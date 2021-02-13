@@ -88,8 +88,8 @@ fn test_readme_tok() {
 fn main() {
     println!(
         "{:#?}",
-        compile_and_run("P: @{\nP \"Hello\"}\nP", "HelloHelloHelloHello", true)
+        //compile_and_run("begin { x=12 return 8883 }\nend 1337\nP: @{\n'lol' x = x + 1 x}\nP", "lolalolaalolol", true)
+        compile_and_run("begin x = 1\n\"lol\" $1 * x x = x + 1", "lolAlolBlol", true)
+        //compile_and_run("begin 5\n42", "lol", true)
     );
-
-    println!("{:#?}", value!([[["Hello", "Hello"], "Hello"], "Hello"]));
 }

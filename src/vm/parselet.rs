@@ -20,30 +20,36 @@ pub struct Parselet {
     silent: bool,
     signature: Vec<(String, Option<usize>)>,
     locals: usize,
+    begin: Op,
+    end: Op,
     pub(crate) body: Op,
 }
 
 impl Parselet {
     // Creates a new standard parselet.
-    pub fn new(body: Op, locals: usize) -> Self {
+    pub fn new(body: Op, locals: usize, begin: Op, end: Op) -> Self {
         Self {
             leftrec: false,
             nullable: true,
             silent: false,
             signature: Vec::new(),
             locals,
+            begin,
+            end,
             body,
         }
     }
 
     /// Creates a new silent parselet, which does always return Capture::Empty
-    pub fn new_silent(body: Op, locals: usize) -> Self {
+    pub fn new_silent(body: Op, locals: usize, begin: Op, end: Op) -> Self {
         Self {
             leftrec: false,
             nullable: true,
             silent: true,
             signature: Vec::new(),
             locals,
+            begin,
+            end,
             body,
         }
     }
@@ -60,10 +66,24 @@ impl Parselet {
     pub fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
         let mut results = Vec::new();
+        let mut state = if let Op::Nop = self.begin { None } else { Some(true) };
 
         loop {
             let reader_start = context.runtime.reader.tell();
-            let mut res = self.body.run(&mut context);
+            println!("{:?} @ {:?}", state, reader_start);
+
+            let mut res = match state {
+                // begin
+                Some(true) => self.begin.run(&mut context),
+
+                // end
+                Some(false) => self.end.run(&mut context),
+
+                // default
+                None => self.body.run(&mut context)
+            };
+
+            println!("{:?} => {:?}", state, res);
 
             /*
                 In case this is the main parselet, try matching main as much
@@ -114,11 +134,17 @@ impl Parselet {
 
                         Accept::Push(_) if self.silent => return Ok(Accept::Push(Capture::Empty)),
 
-                        accept => return Ok(accept),
+                        accept => {
+                            if results.len() > 0 {
+                                break;
+                            }
+
+                            return Ok(accept)
+                        },
                     }
 
                     // In case that no more input was consumed, stop here.
-                    if main && reader_start == context.runtime.reader.tell() {
+                    if main && state.is_none() && reader_start == context.runtime.reader.tell() {
                         context.runtime.reader.next();
                     }
                 }
@@ -131,16 +157,26 @@ impl Parselet {
                     }
 
                     // Skip character
-                    if main {
+                    if main && state.is_none() {
                         context.runtime.reader.next();
-                    } else if results.len() == 0 {
+                    } else if results.len() > 0 && state.is_none() {
+                        state = Some(false);
+                        continue;
+                    }
+                    else if state.is_none() {
                         return Err(reject);
                     }
                 }
             }
 
-            if context.runtime.reader.eof() {
+            if let Some(false) = state {
                 break;
+            }
+            else if context.runtime.reader.eof() {
+                state = Some(false);
+            }
+            else {
+                state = None;
             }
         }
 

@@ -89,14 +89,28 @@ impl Parser {
             ["$", (Op::Error("Either use $int or $name for captures, thanks"))]
         }),
 
+        (S_Variable = {
+            T_Identifier,
+            S_Capture
+        }),
+
         (S_Lvalue = {
-            [T_Identifier, _, (kle S_Tail), (Op::Create("lvalue"))],
-            [S_Capture, (kle S_Tail), (Op::Create("lvalue"))]
+            [S_Variable, _, (kle S_Tail), (Op::Create("lvalue"))]
+        }),
+
+        (S_Inplace = {
+            /* todo: drafted support for inplace increment and decrement operators,
+            these are not supported by the compiler, yet. */
+
+            [S_Lvalue, "++", (Op::Create("inplace_post_inc"))],
+            [S_Lvalue, "--", (Op::Create("inplace_post_dec"))],
+            ["++", S_Lvalue, (Op::Create("inplace_pre_inc"))],
+            ["--", S_Variable, (Op::Create("inplace_pre_dec"))],
+            S_Variable
         }),
 
         (S_Rvalue = {
-            [T_Identifier, _, (kle S_Tail), (Op::Create("rvalue"))],
-            [S_Capture, (kle S_Tail), (Op::Create("rvalue"))]
+            [S_Inplace, _, (kle S_Tail), (Op::Create("rvalue"))]
         }),
 
         (S_CallParameters = {
@@ -164,11 +178,16 @@ impl Parser {
             S_AddSub
         }),
 
+        (S_Assign = {
+            [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))] // fixme: a = b = c is possible here...
+            // todo: add operators "+="", "-="", "*="", "/=" here as well
+        }),
+
         (S_Expression = {
             ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
                 (Op::Create("op_ifelse"))],
             ["if", _, S_Expression, S_Statement, (Op::Create("op_if"))],
-            [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))], // fixme: a = b = c is possible here...
+            S_Assign,
             S_Compare
         }),
 
@@ -177,7 +196,11 @@ impl Parser {
             ["return", _, (Op::Create("op_returnvoid"))],
             ["accept", _, S_Expression, (Op::Create("op_accept"))],
             ["accept", _, (Op::Create("op_acceptvoid"))],
-            ["reject", _, (Op::Create("op_reject"))],
+            ["reject", _, (Op::Create("op_reject"))]
+        }),
+
+        (S_StatementOrExpression = {
+            S_Statement,
             S_Expression
         }),
 
@@ -211,15 +234,17 @@ impl Parser {
         }),
 
         (S_Sequence = {
-            [T_Identifier, _, ":", _, S_Value, (Op::Create("assign_constant"))],
+            ["begin", _, S_StatementOrExpression, (Op::Create("begin"))],
+            ["end", _, S_StatementOrExpression, (Op::Create("end"))],
             [(pos S_Item), (Op::Create("sequence"))],
             [T_EOL, (Op::Skip)]
         }),
 
         (S_Item = {
             // todo: Recognize aliases
+            [T_Identifier, _, ":", _, S_Value, (Op::Create("assign_constant"))],
             S_TokenModifier,
-            S_Statement
+            S_Expression
         }),
 
         (S_TokenModifier = {
@@ -248,6 +273,8 @@ impl Parser {
         (S_Token = {
             [T_HeavyString, (Op::Create("match"))],
             [T_LightString, (Op::Create("match_silent"))],
+            [".", _, (Op::Create("any"))],
+            S_Statement,
             S_Call,
             [T_Identifier, (Op::Create("call_or_load"))],
             S_Parselet

@@ -17,7 +17,7 @@ a                                   LoadGlobal(0)               <parselet 0>
 
 --- Constant Parselet ---
 
-a : @a=10, b=100 {
+a : @a=10 b=100 {
     a + b
 }
 
@@ -43,7 +43,7 @@ a(30, b=300)                        LoadStatic(4)               30
 
 --- Variable Parselet ---
 
-a = @a=10, b=100 {
+a = @a=10 b=100 {
     a + b
 }
 
