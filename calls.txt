@@ -1,6 +1,6 @@
 --- Constant ---
 
-a : @"Hello"
+a : @'Hello'
 
 a                                   CallStatic(0)               <parselet 0>
 
@@ -8,7 +8,7 @@ a                                   CallStatic(0)               <parselet 0>
 
 --- Variable ---
 
-a = @"Hello"
+a = @'Hello'
 
 a                                   LoadGlobal(0)               <parselet 0>
                                     TryCall                     <parselet 0>

@@ -66,11 +66,14 @@ impl Parselet {
     pub fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
         let mut results = Vec::new();
-        let mut state = if let Op::Nop = self.begin { None } else { Some(true) };
+        let mut state = if let Op::Nop = self.begin {
+            None
+        } else {
+            Some(true)
+        };
 
         loop {
             let reader_start = context.runtime.reader.tell();
-            println!("{:?} @ {:?}", state, reader_start);
 
             let mut res = match state {
                 // begin
@@ -80,10 +83,8 @@ impl Parselet {
                 Some(false) => self.end.run(&mut context),
 
                 // default
-                None => self.body.run(&mut context)
+                None => self.body.run(&mut context),
             };
-
-            println!("{:?} => {:?}", state, res);
 
             /*
                 In case this is the main parselet, try matching main as much
@@ -139,8 +140,8 @@ impl Parselet {
                                 break;
                             }
 
-                            return Ok(accept)
-                        },
+                            return Ok(accept);
+                        }
                     }
 
                     // In case that no more input was consumed, stop here.
@@ -162,8 +163,7 @@ impl Parselet {
                     } else if results.len() > 0 && state.is_none() {
                         state = Some(false);
                         continue;
-                    }
-                    else if state.is_none() {
+                    } else if state.is_none() {
                         return Err(reject);
                     }
                 }
@@ -171,11 +171,9 @@ impl Parselet {
 
             if let Some(false) = state {
                 break;
-            }
-            else if context.runtime.reader.eof() {
+            } else if context.runtime.reader.eof() {
                 state = Some(false);
-            }
-            else {
+            } else {
                 state = None;
             }
         }

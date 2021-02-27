@@ -25,11 +25,8 @@ impl Parser {
         }),
 
         (T_EOL = {
-            [
-                (Chars::char('\n')),
-                _,
-                (Op::Skip)
-            ]
+            [(Chars::char('\n')), _, (Op::Skip)],
+            (Chars::char(';'))
         }),
 
         // Prime Tokens (might probably be replaced by something native, pluggable one)
@@ -44,7 +41,7 @@ impl Parser {
             ]
         }),
 
-        (T_HeavyString = {
+        (T_String = {
             [
                 "\"",
                 (Chars::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
@@ -52,7 +49,7 @@ impl Parser {
             ]
         }),
 
-        (T_LightString = {
+        (T_Match = {
             [
                 "\'",
                 (Chars::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
@@ -123,29 +120,34 @@ impl Parser {
             [S_Rvalue, "(", (opt S_CallParameters), ")", (Op::Create("call_rvalue"))]
         }),
 
-        (S_String = {
-            [T_HeavyString, _, (Op::Create("value_string"))],
-            [T_LightString, _, (Op::Create("value_string"))]
-        }),
-
-        (S_Value = {
+        (S_Literal = {
             ["true", _, (Op::Create("value_true"))],
             ["false", _, (Op::Create("value_false"))],
             ["void", _, (Op::Create("value_void"))],
             ["null", _, (Op::Create("value_null"))],
-            [S_String, _],
+            [T_String, _, (Op::Create("value_string"))],
             [T_Float, _],
-            [T_Integer, _],
-            [S_Parselet, _]
+            [T_Integer, _]
+        }),
+
+        (S_Token = {
+            ["'", T_Match, "'", _, (Op::Create("match"))],
+            [T_Match, _, (Op::Create("touch"))]
+        }),
+
+        (S_Value = {
+            S_Literal,
+            S_Parselet
         }),
 
         // Expression & Flow
 
         (S_Atomic = {
             ["(", _, S_Expression, ")", _],
+            S_Literal,
+            S_Token,
             S_Call,
             S_Rvalue,
-            S_Value,
             S_Block
         }),
 
@@ -196,29 +198,27 @@ impl Parser {
             ["return", _, (Op::Create("op_returnvoid"))],
             ["accept", _, S_Expression, (Op::Create("op_accept"))],
             ["accept", _, (Op::Create("op_acceptvoid"))],
-            ["reject", _, (Op::Create("op_reject"))]
-        }),
-
-        (S_StatementOrExpression = {
-            S_Statement,
+            ["reject", _, (Op::Create("op_reject"))],
             S_Expression
         }),
 
-        // Structure
+        // Parselet
 
         (S_Argument = {
-            [T_Identifier, _, "=", S_Value],
+            [T_Identifier, _, "=", _, (opt S_Value)],
+            [T_Identifier, _, ":", _, (opt S_Value)],
             [T_Identifier, _]
         }),
 
         (S_Arguments = {
-            [S_Arguments, ",", _, S_Argument],
+            [S_Arguments, (opt ","), _, S_Argument],
                 //(Op::CallStatic(builtin::get("flatten").unwrap()))],
             S_Argument
         }),
 
         (S_Parselet = {
-            ["@", _, (opt S_Arguments), S_Block, (Op::Create("value_parselet"))]
+            ["@", _, (opt S_Arguments), S_Block, (Op::Create("parselet"))],
+            ["@", _, S_Sequence, (Op::Create("parselet"))]
         }),
 
         (S_Block = {
@@ -229,24 +229,26 @@ impl Parser {
                 (Op::PushVoid), (Op::Create("block"))]
         }),
 
+        // Sequences
+
         (S_Sequences = {
             (pos S_Sequence)
         }),
 
         (S_Sequence = {
-            ["begin", _, S_StatementOrExpression, (Op::Create("begin"))],
-            ["end", _, S_StatementOrExpression, (Op::Create("end"))],
+            ["begin", _, S_Statement, (Op::Create("begin"))],
+            ["end", _, S_Statement, (Op::Create("end"))],
             [(pos S_Item), (Op::Create("sequence"))],
             [T_EOL, (Op::Skip)]
         }),
 
         (S_Item = {
             // todo: Recognize aliases
-            [T_Identifier, _, ":", _, S_Value, (Op::Create("assign_constant"))],
-            S_TokenModifier,
-            S_Expression
+            [T_Identifier, _, ":", _, S_Value, T_EOL, (Op::Create("assign_constant"))],
+            S_Statement
         }),
 
+        /*
         (S_TokenModifier = {
             ["!", S_TokenModifier, (Op::Create("mod_not"))],
             ["~", S_TokenModifier, (Op::Create("mod_peek"))],
@@ -271,14 +273,14 @@ impl Parser {
         }),
 
         (S_Token = {
-            [T_HeavyString, (Op::Create("match"))],
-            [T_LightString, (Op::Create("match_silent"))],
+            [T_String, (Op::Create("match"))],
+            [T_LightString, (Op::Create("touch"))],
             [".", _, (Op::Create("any"))],
-            S_Statement,
             S_Call,
             [T_Identifier, (Op::Create("call_or_load"))],
             S_Parselet
         }),
+        */
 
         (S_Tokay = {
             S_Sequences
@@ -297,7 +299,12 @@ impl Parser {
         let res = self.0.run(&mut runtime);
 
         if let Ok(Some(ast)) = res {
-            return Ok(Value::from_ref(ast).unwrap());
+            let ast = Value::from_ref(ast).unwrap();
+            if ast.get_dict().is_none() {
+                return Err("Parse error".to_string());
+            }
+
+            return Ok(ast);
         } else {
             println!("Error: {:#?}", res.err());
         }

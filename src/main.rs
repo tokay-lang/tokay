@@ -34,15 +34,41 @@ fn compile_and_run(
 }
 
 #[test]
-fn test_parselet_simple() {
+fn test_literal() {
     assert_eq!(
-        compile_and_run("P: @{\nP \"Hello\"}\nP", "HelloHelloHelloHello", false),
-        Ok(Some(value!([[["Hello", "Hello"], "Hello"], "Hello"])))
+        compile_and_run(
+            "\
+            1337 \
+            23.5 \
+            true \
+            false \
+            \"Hello World\" \
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!([1337, 23.5, true, false, "Hello World"])))
     );
 }
 
 #[test]
-fn test_capture_loading() {
+fn test_expression() {}
+
+#[test]
+fn test_parselet_leftrec() {
+    assert_eq!(
+        compile_and_run("P: @{ P ''Hello''}\nP", "HelloHelloHelloHello", false),
+        Ok(Some(value!([[["Hello", "Hello"], "Hello"], "Hello"])))
+    );
+
+    assert_eq!(
+        compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
+        Ok(Some(value!(11)))
+    );
+}
+
+#[test]
+fn test_capture() {
     assert_eq!(
         compile_and_run("'Hello' 'World' $1 * 2 + $2 * 3", "HelloWorld", false),
         Ok(Some(value!("HelloHelloWorldWorldWorld")))
@@ -50,7 +76,7 @@ fn test_capture_loading() {
 
     assert_eq!(
         compile_and_run(
-            "a = 2 'Hello' 'World' $( a + 1 ) * 3 + $(a) * 2",
+            "a=2 'Hello' 'World' $(a + 1) * 3+ $(a) * 2",
             "HelloWorld",
             false
         ),
@@ -59,10 +85,31 @@ fn test_capture_loading() {
 }
 
 #[test]
-fn test_readme_tok() {
+fn test_begin_end() {
     assert_eq!(
-        compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
-        Ok(Some(value!(11)))
+        compile_and_run(
+            "
+            begin { x = 0 1337 }
+            end 1338
+
+            P: @{ 'lol' x = x + 1 x }
+            P",
+            "lolalolaalolol",
+            false
+        ),
+        Ok(Some(value!([1337, 1, 2, 3, 1338])))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            "
+            begin x = 1
+
+            'lol' $1 * x x x = x + 1",
+            "lolAlolBlol",
+            false
+        ),
+        Ok(Some(value!([["lol", 1], ["lollol", 2], ["lollollol", 3]])))
     );
 }
 
@@ -88,8 +135,31 @@ fn test_readme_tok() {
 fn main() {
     println!(
         "{:#?}",
-        //compile_and_run("begin { x=12 return 8883 }\nend 1337\nP: @{\n'lol' x = x + 1 x}\nP", "lolalolaalolol", true)
-        compile_and_run("begin x = 1\n\"lol\" $1 * x x = x + 1", "lolAlolBlol", true)
-        //compile_and_run("begin 5\n42", "lol", true)
+        compile_and_run("''Hello'' 'World' \"Test\" + $2 + $1", "HelloWorld", true)
     );
+
+    /*
+    println!(
+        "{:#?}",
+        /*
+        compile_and_run(
+        "
+            >> x=1
+            @\"Hallo\" $1 x
+        ",
+            "HalloHallololHallo",
+            true
+        )
+        */
+        compile_and_run(
+            "
+            hw : @{'hello' 'world'}
+            hw
+            Integer
+            ",
+            " 123 helloworldworldworld 456",
+            true
+        )
+    );
+    */
 }

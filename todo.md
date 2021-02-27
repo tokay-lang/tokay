@@ -11,3 +11,9 @@
         - `[0-9]*` => `Repeat(Char([0-9], repeats=True), 0, 1)`
         - `"Hallo"+` => `Repeat(Op::Match("Hallo"), 1, 0)`
         - `P+` => `@P' { P' P ; P }` (left-recursive repetition)
+- Extensions by third-party crates
+    - [ ] indexmap for Dict (https://github.com/bluss/indexmap)
+    - [ ] lazy_static for parser and compiler
+    - [ ] regex for regular expressions
+- Use `>>` as alternative to `begin`-keyword
+- Use `<<` as alternative to `end`-keyword

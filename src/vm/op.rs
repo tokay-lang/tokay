@@ -75,7 +75,7 @@ impl Op {
         match ops.len() {
             0 => Op::Nop,
             1 => ops.into_iter().next().unwrap(),
-            _ => Sequence::new(ops.into_iter().map(|item| (item, None)).collect())
+            _ => Sequence::new(ops.into_iter().map(|item| (item, None)).collect()),
         }
     }
 
@@ -128,7 +128,7 @@ impl Runable for Op {
                 if value.borrow().is_callable() {
                     value.borrow().call(context)
                 } else {
-                    Ok(Accept::Push(Capture::Value(value.clone(), 1)))
+                    Ok(Accept::Push(Capture::Value(value.clone(), 10)))
                 }
             }
 
@@ -257,18 +257,18 @@ impl Runable for Op {
                 5,
             ))),
 
-            Op::PushTrue => Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 5))),
-            Op::PushFalse => Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 5))),
-            Op::PushVoid => Ok(Accept::Push(Capture::Value(Value::Void.into_ref(), 5))),
+            Op::PushTrue => Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10))),
+            Op::PushFalse => Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 10))),
+            Op::PushVoid => Ok(Accept::Push(Capture::Value(Value::Void.into_ref(), 10))),
 
             Op::LoadGlobal(addr) => Ok(Accept::Push(Capture::Value(
                 context.runtime.stack[*addr].as_value(&context.runtime),
-                5,
+                10,
             ))),
 
             Op::LoadFast(addr) => Ok(Accept::Push(Capture::Value(
                 context.runtime.stack[context.stack_start + *addr].as_value(&context.runtime),
-                5,
+                10,
             ))),
 
             Op::StoreGlobal(addr) => {

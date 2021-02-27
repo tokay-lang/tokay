@@ -20,7 +20,15 @@ impl Usage {
             Usage::Symbol(name) => {
                 // Resolve constants
                 if let Some(addr) = compiler.get_constant(&name) {
-                    return Some(vec![Op::CallStatic(addr)]);
+                    let statics = compiler.statics.borrow();
+
+                    // fixme: This should check if the static is callable
+                    //        without parameters!
+                    if statics[addr].borrow().is_callable() {
+                        return Some(vec![Op::CallStatic(addr)]);
+                    } else {
+                        return Some(vec![Op::LoadStatic(addr)]);
+                    }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     return Some(vec![Op::LoadFast(addr), Op::TryCall]);
                 } else if let Some(addr) = compiler.get_global(&name) {
@@ -51,6 +59,7 @@ impl Usage {
 In Tokay code, this relates to any block.
 Scoped blocks (parselets) introduce new variable scopes.
 */
+#[derive(Debug)]
 struct Scope {
     variables: Option<HashMap<String, usize>>,
     constants: HashMap<String, usize>,
@@ -293,20 +302,9 @@ impl Compiler {
         }
     }
 
-    /* Generates code for a symbol load, which means:
-
-        1. look-up local variable, and load
-        2. look-up global variable, and load
-        3. create local variable, and load
-    */
-    pub fn gen_load(&mut self, name: &str) -> Op {
-        if let Some(addr) = self.get_local(name) {
-            Op::LoadFast(addr)
-        } else if let Some(addr) = self.get_global(name) {
-            Op::LoadGlobal(addr)
-        } else {
-            Op::LoadFast(self.new_local(name))
-        }
+    /* Generates code for a symbol load. */
+    pub fn gen_load(&mut self, name: &str) -> Vec<Op> {
+        Usage::Symbol(name.to_string()).resolve_or_dispose(self)
     }
 
     /* Tokay AST node traversal */
@@ -356,7 +354,7 @@ impl Compiler {
             "value_false" => Value::False,
             "value_null" => Value::Null,
             "value_void" => Value::Void,
-            "value_parselet" => {
+            p if p.starts_with("parselet") => {
                 let parselet = self.traverse_node_parselet(node);
                 return self.statics.borrow()[parselet].clone();
             }
@@ -423,16 +421,15 @@ impl Compiler {
         let locals = self.get_locals();
         let scope = self._pop_scope();
 
-        let parselet = self.define_static(
+        self.define_static(
             Parselet::new(
                 body.into_iter().next().unwrap_or(Op::Nop),
                 locals,
                 Op::from_vec(scope.begin),
                 Op::from_vec(scope.end),
-            ).into_refvalue()
-        );
-
-        parselet
+            )
+            .into_refvalue(),
+        )
     }
 
     // Main traversal function, running recursively through the AST
@@ -489,8 +486,7 @@ impl Compiler {
 
                     if emit == "begin" {
                         self.scopes[0].begin.extend(ops);
-                    }
-                    else {
+                    } else {
                         self.scopes[0].end.extend(ops);
                     }
                 }
@@ -594,7 +590,7 @@ impl Compiler {
                             }
 
                             if i < children.len() - 1 {
-                                ret.push(self.gen_load(name))
+                                ret.extend(self.gen_load(name))
                             } else {
                                 ret.push(self.gen_store(name))
                             }
@@ -623,7 +619,8 @@ impl Compiler {
                             locals,
                             Op::from_vec(scope.begin),
                             Op::from_vec(scope.end),
-                        ).into_refvalue(),
+                        )
+                        .into_refvalue(),
                     );
                 }
 
@@ -636,8 +633,8 @@ impl Compiler {
                 Some(Match::new(value.get_string().unwrap().clone()))
             }
 
-            // match_silent ---------------------------------------------------
-            "match_silent" => {
+            // touch ----------------------------------------------------------
+            "touch" => {
                 let value = node.borrow_by_key("value");
                 Some(Match::new_silent(value.get_string().unwrap().clone()))
             }
@@ -741,11 +738,7 @@ impl Compiler {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
 
-                            if let Some(addr) = self.get_constant(name) {
-                                ret.push(Op::LoadStatic(addr));
-                            } else {
-                                ret.push(self.gen_load(name));
-                            }
+                            ret.extend(self.gen_load(name));
                         }
 
                         val if val.starts_with("value_") => ret.extend(self.traverse_node(item)),
@@ -763,7 +756,6 @@ impl Compiler {
                             }
                         },
                         */
-
                         _ => {
                             unimplemented!("{:?} not implemented", emit);
                         }
