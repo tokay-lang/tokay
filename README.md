@@ -1,6 +1,7 @@
-# The Tokay Programming Language
+# Tokay
 
-Tokay is a programming language for parsing and text-processing - under development.
+Tokay is a programming language for parsing and text-processing.
+It currently is under development and not finalized yet.
 
 
 ## About
@@ -14,38 +15,39 @@ Nevertheless, Tokay can also be used as a straightforward, procedural programmin
 
 ## Example
 
-This program recognizes and interprets expressions:
+This Tokay program recognizes and interprets expressions:
 
 ```tokay
-Factor = @{
-    Float
+Factor : @{
+    Integer
     '(' Expr ')'
 }
 
-Term = @{
-    Term:t '*' Factor:f   $t * $f
-    Term:t '/' Factor:f   $t / $f
+Term : @{
+    Term '*' Factor     $1 * $3
+    Term '/' Factor     $1 / $3
     Factor
 }
 
-Expr = @{
-    Expr:e '+' Term:t     $e + $t
-    Expr:e '-' Term:t     $e - $t
+Expr : @{
+    Expr '+' Term       $1 + $3
+    Expr '-' Term       $1 - $3
     Term
 }
 
-Expr                      print
+
+Expr
 ```
 
-This is also a Tokay program, without using the parsing facilities. It  recursively calculates faculties.
+The next example is also a Tokay program that does not use the parsing facilities at all. It recursively calculates faculties.
 
 ```
-Faculty = @x {
+faculty : @x {
     if !x return 1
-    x * Faculty(x - 1)
+    x * faculty(x - 1)
 }
 
-Faculty(4)
+faculty(4)
 ```
 
 More to come. Enjoy!
@@ -74,5 +76,5 @@ Tokay is also my very first real-world project with Rust, therefore I'm sure som
 
 ## License
 
-Tokay is licensed under the MIT license.
+Tokay is free software under the MIT license.
 Please see the LICENSE file for more details.

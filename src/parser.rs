@@ -20,13 +20,13 @@ impl Parser {
 
         (_ = {
             [" "],
-            ["#", (Chars::until('\n'))],
+            ["#", (Chars::until('\n')), "\n"],
             ["\\", "\n"]
         }),
 
         (T_EOL = {
             [(Chars::char('\n')), _, (Op::Skip)],
-            (Chars::char(';'))
+            [(Chars::char(';')), _, (Op::Skip)]
         }),
 
         // Prime Tokens (might probably be replaced by something native, pluggable one)
@@ -286,7 +286,7 @@ impl Parser {
             S_Sequences
         }),
 
-        [S_Tokay, (Op::Create("main"))]
+        [_, S_Tokay, (Op::Create("main"))]
 
         // ----------------------------------------------------------------------------
                     }))
@@ -296,19 +296,20 @@ impl Parser {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
-        let res = self.0.run(&mut runtime);
+        match self.0.run(&mut runtime) {
+            Ok(Some(ast)) => {
+                let ast = Value::from_ref(ast).unwrap();
 
-        if let Ok(Some(ast)) = res {
-            let ast = Value::from_ref(ast).unwrap();
-            if ast.get_dict().is_none() {
-                return Err("Parse error".to_string());
+                if ast.get_dict().is_some() {
+                    Ok(ast)
+                }
+                else {
+                    Err("Parse error".to_string())
+                }
             }
-
-            return Ok(ast);
-        } else {
-            println!("Error: {:#?}", res.err());
+            Ok(None) => Ok(Value::Void),
+            Err(Some(error)) => Err(error),
+            Err(None) => Err("Parse error".to_string())
         }
-
-        return Err("Parse error".to_string());
     }
 }

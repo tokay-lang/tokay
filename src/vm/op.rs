@@ -254,7 +254,7 @@ impl Runable for Op {
 
             Op::LoadStatic(addr) => Ok(Accept::Push(Capture::Value(
                 context.runtime.program.statics[*addr].clone(),
-                5,
+                10,
             ))),
 
             Op::PushTrue => Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10))),

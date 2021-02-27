@@ -1,11 +1,14 @@
-use std::io;
+use std::io::{self, Write};
+use std::fs::File;
 
 use ::tokay::compiler::Compiler;
 use ::tokay::parser::Parser;
 use ::tokay::reader::Reader;
-use ::tokay::value;
-use ::tokay::value::{Dict, List, RefValue, Value};
+use ::tokay::value; //for the value!-macro
+use ::tokay::value::{List, RefValue, Value};
 
+
+#[cfg(test)]
 fn compile_and_run(
     src: &'static str,
     input: &'static str,
@@ -132,11 +135,57 @@ fn test_begin_end() {
 //let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
+
+// A first simple REPL for Tokay
+fn repl() {
+    loop {
+        print!(">>> ");
+        io::stdout().flush().unwrap();
+
+        let mut code = String::new();
+        if io::stdin().read_line(&mut code).is_err() {
+            panic!("Error reading code")
+        }
+
+        // Stop when program is empty.
+        if code.trim().is_empty() {
+            return
+        }
+
+        //println!("code = {:?}", code);
+
+        let parser = Parser::new();
+        let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(code))));
+
+        match ast {
+            Ok(Value::Void) => {}
+
+            Ok(ast) => {
+                let mut compiler = Compiler::new();
+
+                compiler.traverse(&ast);
+                let prg = compiler.into_program();
+
+                if std::env::args().len() == 1 {
+                    println!("<<< {:?}", prg.run_from_str(""));
+                }
+                else {
+                    for filename in std::env::args().skip(1) {
+                        let file = File::open(&filename).unwrap();
+                        println!("{}: {:?}", filename, prg.run_from_reader(file));
+                    }
+                }
+            }
+
+            Err(err) => {
+                println!("<<< {:?}", err);
+            }
+        }
+    }
+}
+
 fn main() {
-    println!(
-        "{:#?}",
-        compile_and_run("''Hello'' 'World' \"Test\" + $2 + $1", "HelloWorld", true)
-    );
+    repl();
 
     /*
     println!(
@@ -145,7 +194,7 @@ fn main() {
         compile_and_run(
         "
             >> x=1
-            @\"Hallo\" $1 x
+            'Hallo' $1 x x = x + 1
         ",
             "HalloHallololHallo",
             true

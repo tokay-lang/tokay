@@ -1,3 +1,5 @@
+use std::io::prelude::*;
+use std::io::BufReader;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -28,12 +30,10 @@ impl Program {
             panic!("No main parselet found!");
         }
 
-        let mut program = Self {
+        Self {
             statics,
             main: main.unwrap(),
-        };
-
-        program
+        }
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<String>> {
@@ -51,8 +51,9 @@ impl Program {
         }
     }
 
-    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<String>> {
-        let mut reader = Reader::new(Box::new(std::io::Cursor::new(s)));
+    pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Option<String>>
+    {
+        let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
 
         let ret = self.run(&mut runtime);
@@ -63,5 +64,9 @@ impl Program {
         }
 
         ret
+    }
+
+    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<String>> {
+        self.run_from_reader(std::io::Cursor::new(s))
     }
 }

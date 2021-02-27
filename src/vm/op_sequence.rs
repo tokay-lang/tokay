@@ -80,6 +80,11 @@ impl Runable for Sequence {
         if let Some(capture) = context.collect(capture_start, false, true) {
             Ok(Accept::Push(capture))
         }
+        else {
+            Ok(Accept::Next)
+        }
+
+        /*
         /*
             When this fails, push a silent range of the current sequence
             when input was consumed.
@@ -96,6 +101,7 @@ impl Runable for Sequence {
         else {
             Ok(Accept::Next)
         }
+        */
     }
 
     fn finalize(

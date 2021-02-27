@@ -120,7 +120,7 @@ impl Compiler {
         resolved usages.
         */
         let mut changes = true;
-        let mut loops = 0;
+        //let mut loops = 0;
 
         while changes {
             changes = false;
@@ -147,7 +147,7 @@ impl Compiler {
                 }
             }
 
-            loops += 1;
+            //loops += 1;
         }
 
         //println!("finalization finished after {} loops", loops);
