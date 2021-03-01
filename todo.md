@@ -28,11 +28,12 @@ Syntax is under careful consideration.
   - The postfix-notation is more staight-forward, but its bad on symbols which aren't consumable at least and crashes with add, mul and sequence, so `a+ 1` (`kle a 1`) != `a + 1` (`a + 1`) != `a +1` (`a +1`)
 - [ ] Definition of Chars scanable structure `[A-Za-z_]` etc...
 - [ ] Definition of Regex scanable structure `/Hel+o Wo?rld/`
-- [ ] Implement backtick  for shell commands, like ```cat lol.txt```
+- [ ] Implement ` backticks for shell commands
 
 ## Semantics
 
 - [ ] Capture::Named alias inferring
+- [ ] `1/6` returns 0, because Value::Integer() are divided, and result is Value::Integer(). `1./6` correctly returns Value::Float(0.16666666666666666)
 
 ## Optimization
 

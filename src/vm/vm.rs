@@ -5,7 +5,6 @@ use super::*;
 use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value};
 
-
 // --- Capture -----------------------------------------------------------------
 
 #[derive(Debug, Clone)]

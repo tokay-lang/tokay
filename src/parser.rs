@@ -4,10 +4,10 @@ use crate::value::Value;
 use crate::vm::*;
 use crate::{ccl, compile, compile_item};
 
-/** This implements a tokay parser in tokay itself,
-using the tokay-compiler macros. This is the
-general place to change syntax and modify the
-design of the abstract syntax tree. */
+/**
+This module implements a tokay parser in tokay itself, using the tokay-compiler macros.
+This is the general place to change syntax and modify the design of the abstract syntax tree.
+*/
 
 pub struct Parser(Program);
 

@@ -9,6 +9,8 @@ use ::tokay::value::*;
 #[cfg(test)]
 use ::tokay::value; //for the value!-macro
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 #[cfg(test)]
 fn compile_and_run(
     src: &'static str,
@@ -192,6 +194,7 @@ fn repl(debug: bool) {
 }
 
 fn main() {
+    println!("Tokay v{}", VERSION);
     repl(false);
 
     /*

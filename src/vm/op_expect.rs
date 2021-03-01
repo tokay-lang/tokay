@@ -9,16 +9,12 @@ On error, a helpul error message is raised as Reject::Error.
 #[derive(Debug)]
 pub struct Expect {
     body: Op,
-    msg: Option<String>
+    msg: Option<String>,
 }
 
 impl Expect {
     pub fn new(body: Op, msg: Option<String>) -> Op {
-        Self {
-            body,
-            msg
-        }
-        .into_op()
+        Self { body, msg }.into_op()
     }
 }
 
@@ -33,15 +29,13 @@ impl Runable for Expect {
                         "Line {}, column {}: {}",
                         pos.row, pos.col, msg
                     )))
-                }
-                else {
+                } else {
                     Err(Reject::Error(format!(
                         "Line {}, column {}: Expecting {}",
                         pos.row, pos.col, self.body
                     )))
                 }
-            }
-            else {
+            } else {
                 Err(reject)
             }
         })

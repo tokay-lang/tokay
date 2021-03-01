@@ -135,7 +135,7 @@ impl std::fmt::Display for Repeat {
             (0, 1) => write!(f, "opt {}", self.body),
             (0, _) => write!(f, "kle {}", self.body),
             (1, _) => write!(f, "pos {}", self.body),
-            (m, n) => write!(f, "{}{{{}, {}}}", self.body, m, n)  // todo syntax unclear for this...
+            (m, n) => write!(f, "{}{{{}, {}}}", self.body, m, n), // todo syntax unclear for this...
         }
     }
 }
