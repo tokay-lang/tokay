@@ -10,6 +10,7 @@ mod op_repeat;
 mod op_sequence;
 mod parselet;
 mod program;
+mod vm;
 
 pub use op::*;
 pub use op_block::*;
@@ -20,6 +21,7 @@ pub use op_repeat::*;
 pub use op_sequence::*;
 pub use parselet::*;
 pub use program::*;
+pub use vm::*;
 
 pub trait Scanable: std::fmt::Debug + std::fmt::Display {
     fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject>;

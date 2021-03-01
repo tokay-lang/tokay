@@ -4,8 +4,10 @@ use std::io::{self, Write};
 use ::tokay::compiler::Compiler;
 use ::tokay::parser::Parser;
 use ::tokay::reader::Reader;
+use ::tokay::value::*;
+
+#[cfg(test)]
 use ::tokay::value; //for the value!-macro
-use ::tokay::value::{List, RefValue, Value};
 
 #[cfg(test)]
 fn compile_and_run(
@@ -135,7 +137,7 @@ fn test_begin_end() {
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
 // A first simple REPL for Tokay
-fn repl() {
+fn repl(debug: bool) {
     loop {
         print!(">>> ");
         io::stdout().flush().unwrap();
@@ -155,6 +157,10 @@ fn repl() {
         let parser = Parser::new();
         let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(code))));
 
+        if debug {
+            println!("ast = {:#?}", ast);
+        }
+
         match ast {
             Ok(Value::Void) => {}
 
@@ -163,6 +169,10 @@ fn repl() {
 
                 compiler.traverse(&ast);
                 let prg = compiler.into_program();
+
+                if debug {
+                    println!("prg = {:#?}", prg);
+                }
 
                 if std::env::args().len() == 1 {
                     println!("<<< {:?}", prg.run_from_str(""));
@@ -182,7 +192,7 @@ fn repl() {
 }
 
 fn main() {
-    repl();
+    repl(false);
 
     /*
     println!(

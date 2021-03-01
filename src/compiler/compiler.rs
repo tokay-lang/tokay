@@ -686,14 +686,13 @@ impl Compiler {
 
                     //fixme: unary operators
                     unimplemented!("unary missing");
-                //None
                 } else if parts[1] == "accept" || parts[1] == "return" {
                     let children = node.borrow_by_key("children");
                     ret.extend(self.traverse_node(&children.get_dict().unwrap()));
 
                     Some(Op::LoadAccept)
                 } else {
-                    None
+                    unimplemented!("{} missing", op);
                 }
             }
 
