@@ -99,17 +99,16 @@ impl Runable for Repeat {
             // Push collected captures, if any
             if let Some(capture) = context.collect(capture_start, false, false) {
                 Ok(Accept::Push(capture))
-            }
-            // Otherwiese, push a capture of consumed range
-            else if reader_start < context.runtime.reader.tell() {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_from(reader_start),
-                    0,
-                )))
-            }
-            // Else, just accept next
-            else {
-                Ok(Accept::Next)
+            } else {
+                // Otherwiese, push a capture of consumed range
+                let range = context.runtime.reader.capture_from(&reader_start);
+                if range.len() > 0 {
+                    Ok(Accept::Push(Capture::Range(range, 0)))
+                }
+                // Else, just accept next
+                else {
+                    Ok(Accept::Next)
+                }
             }
         }
     }
@@ -132,6 +131,11 @@ impl Runable for Repeat {
 
 impl std::fmt::Display for Repeat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Repeat #todo")
+        match (self.min, self.max) {
+            (0, 1) => write!(f, "opt {}", self.body),
+            (0, _) => write!(f, "kle {}", self.body),
+            (1, _) => write!(f, "pos {}", self.body),
+            (m, n) => write!(f, "{}{{m, n}}", self.body)  // todo syntax unclear for this...
+        }
     }
 }

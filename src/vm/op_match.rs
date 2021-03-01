@@ -66,7 +66,7 @@ impl std::fmt::Display for Match {
         if self.silent {
             write!(f, "'{}'", self.string)
         } else {
-            write!(f, "\"{}\"", self.string)
+            write!(f, "''{}''", self.string)
         }
     }
 }

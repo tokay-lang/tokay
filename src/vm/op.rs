@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::*;
-use crate::reader::{Range, Reader};
+use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value};
 
 // --- Op ----------------------------------------------------------------------
@@ -36,7 +36,6 @@ pub enum Op {
     Print,               // todo: make this a builtin
     Debug(&'static str), // todo: make this a builtin
     Error(&'static str), // todo: make this a builtin
-    Expect(Box<Op>),     // todo: make this a builtin
 
     // AST construction
     Create(&'static str), // todo: make this a builtin
@@ -174,10 +173,6 @@ impl Runable for Op {
 
             Op::Error(s) => Err(Reject::Error(s.to_string())),
 
-            Op::Expect(op) => op
-                .run(context)
-                .or_else(|_| Err(Reject::Error(format!("Expecting {}", op)))),
-
             Op::Create(emit) => {
                 /*
                 println!("Create {} from {:?}",
@@ -219,7 +214,7 @@ impl Runable for Op {
                     context
                         .runtime
                         .reader
-                        .extract(&context.runtime.reader.capture_from(context.reader_start)),
+                        .extract(&context.runtime.reader.capture_from(&context.reader_start)),
                 );
 
                 let mut ret = Dict::new();
@@ -403,8 +398,9 @@ impl Runable for Op {
 impl std::fmt::Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            //Op::Parsable(p) => write!(f, "{}", p),
-            _ => write!(f, "Op #todo"),
+            Op::Scanable(s) => write!(f, "{}", s),
+            Op::Runable(p) => write!(f, "{}", p),
+            op => write!(f, "Op {:?}", op),
         }
     }
 }
@@ -485,7 +481,7 @@ pub struct Context<'runtime, 'program, 'reader> {
 
     pub(super) stack_start: usize,
     pub(super) capture_start: usize,
-    pub(super) reader_start: usize,
+    pub(super) reader_start: Offset,
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
@@ -533,7 +529,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 Value::String(
                     self.runtime
                         .reader
-                        .extract(&(self.reader_start..self.runtime.reader.tell())),
+                        .extract(&self.runtime.reader.capture_from(&self.reader_start)),
                 )
                 .into_ref(),
             )
@@ -697,7 +693,7 @@ pub struct Runtime<'program, 'reader> {
     program: &'program Program,
     pub(crate) reader: &'reader mut Reader, // temporary pub
 
-    pub(super) memo: HashMap<(usize, usize), (usize, Result<Accept, Reject>)>,
+    pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(super) stack: Vec<Capture>,
 }
 

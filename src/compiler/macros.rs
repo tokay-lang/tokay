@@ -168,6 +168,30 @@ macro_rules! compile_item {
         Some(compile_item!($compiler, $item).unwrap().into_optional())
     };
 
+    // Not
+    ( $compiler:expr, (not $item:tt) ) => {
+        Some(Op::Not(compile_item!($compiler, $item).unwrap().into_box()))
+    };
+
+    // Peek
+    ( $compiler:expr, (peek $item:tt) ) => {
+        Some(Op::Peek(compile_item!($compiler, $item).unwrap().into_box()))
+    };
+
+    // Expect
+    ( $compiler:expr, (expect $item:tt) ) => {
+        {
+            let mut msg = "Expecting ".to_string();
+            msg.push_str(stringify!($item));
+            Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some(msg)))
+        }
+    };
+
+    // Expect with literal
+    ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
+        Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg)))
+    };
+
     // Call
     ( $compiler:expr, $ident:ident ) => {
         {

@@ -73,10 +73,11 @@ impl Scanable for Chars {
             }
         }
 
-        if start < reader.tell() {
-            Ok(Accept::Push(Capture::Range(reader.capture_from(start), 5)))
+        let range = reader.capture_from(&start);
+
+        if range.len() > 0 {
+            Ok(Accept::Push(Capture::Range(range, 5)))
         } else {
-            reader.reset(start);
             Err(Reject::Next)
         }
     }

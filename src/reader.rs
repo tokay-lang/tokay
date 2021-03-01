@@ -1,11 +1,18 @@
 use std::io::prelude::*;
 
+#[derive(Debug, Clone, Copy)]
+pub struct Offset {
+    pub offset: usize,
+    pub row: u32,
+    pub col: u32,
+}
+
 pub type Range = std::ops::Range<usize>;
 
 pub struct Reader {
     reader: Box<dyn BufRead>,
     buffer: Vec<char>,
-    offset: usize,
+    offset: Offset,
     eof: bool,
 }
 
@@ -15,7 +22,11 @@ impl Reader {
         Self {
             reader,
             buffer: Vec::new(),
-            offset: 0,
+            offset: Offset {
+                offset: 0,
+                row: 1,
+                col: 1,
+            },
             eof: false,
         }
     }
@@ -41,9 +52,18 @@ impl Reader {
     }
 
     pub fn next(&mut self) -> Option<char> {
-        if self.offset < self.buffer.len() {
-            self.offset += 1;
-            return Some(self.buffer[self.offset - 1]);
+        if self.offset.offset < self.buffer.len() {
+            self.offset.offset += 1;
+
+            let ch = self.buffer[self.offset.offset - 1];
+            if ch == '\n' {
+                self.offset.row += 1;
+                self.offset.col = 1;
+            } else {
+                self.offset.col += 1;
+            }
+
+            return Some(ch);
         }
 
         if self.eof {
@@ -55,8 +75,8 @@ impl Reader {
     }
 
     pub fn peek(&mut self) -> Option<char> {
-        if self.offset < self.buffer.len() {
-            return Some(self.buffer[self.offset]);
+        if self.offset.offset < self.buffer.len() {
+            return Some(self.buffer[self.offset.offset]);
         }
 
         if self.eof {
@@ -67,7 +87,7 @@ impl Reader {
         self.peek()
     }
 
-    pub fn tell(&self) -> usize {
+    pub fn tell(&self) -> Offset {
         self.offset
     }
 
@@ -75,38 +95,41 @@ impl Reader {
         self.eof
     }
 
-    pub fn reset(&mut self, offset: usize) {
+    pub fn reset(&mut self, offset: Offset) {
         self.offset = offset;
     }
 
     /// Capture last length characters.
     pub fn capture_last(&self, mut length: usize) -> Range {
-        if length > self.offset {
-            length = self.offset;
+        if length > self.offset.offset {
+            length = self.offset.offset;
         }
 
-        self.offset - length..self.offset
+        self.offset.offset - length..self.offset.offset
     }
 
     // Capture all characters from start to current offset.
-    pub fn capture_from(&self, mut start: usize) -> Range {
-        if start > self.offset {
-            start = self.offset;
+    pub fn capture_from(&self, start: &Offset) -> Range {
+        let mut start = start.offset;
+
+        if start > self.offset.offset {
+            start = self.offset.offset;
         }
 
-        start..self.offset
+        start..self.offset.offset
     }
 
     pub fn print(&self, start: usize) {
-        println!("{:?}", &self.buffer[start..self.offset])
+        println!("{:?}", &self.buffer[start..self.offset.offset])
     }
 
     pub fn extract(&self, range: &Range) -> String {
         self.buffer[range.start..range.end].iter().collect()
     }
 
+    /// Commits current input buffer and removes cached content
     pub fn commit(&mut self) {
-        self.buffer.drain(0..self.offset);
-        self.reset(0);
+        self.buffer.drain(0..self.offset.offset);
+        self.offset.offset = 0;
     }
 }

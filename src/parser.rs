@@ -143,7 +143,7 @@ impl Parser {
         // Expression & Flow
 
         (S_Atomic = {
-            ["(", _, S_Expression, ")", _],
+            ["(", _, S_Expression, (expect ")"), _],
             S_Literal,
             S_Token,
             S_Call,
@@ -159,14 +159,14 @@ impl Parser {
         }),
 
         (S_MulDiv = {
-            [S_MulDiv, "*", _, S_Unary, (Op::Create("op_binary_mul"))],
-            [S_MulDiv, "/", _, S_Unary, (Op::Create("op_binary_div"))],
+            [S_MulDiv, "*", _, (expect S_Unary), (Op::Create("op_binary_mul"))],
+            [S_MulDiv, "/", _, (expect S_Unary), (Op::Create("op_binary_div"))],
             S_Unary
         }),
 
         (S_AddSub = {
-            [S_AddSub, "+", _, S_MulDiv, (Op::Create("op_binary_add"))],
-            [S_AddSub, "-", _, S_MulDiv, (Op::Create("op_binary_sub"))],
+            [S_AddSub, "+", _, (expect S_MulDiv), (Op::Create("op_binary_add"))],
+            [S_AddSub, "-", _, (expect S_MulDiv), (Op::Create("op_binary_sub"))],
             S_MulDiv
         }),
 
@@ -222,11 +222,8 @@ impl Parser {
         }),
 
         (S_Block = {
-            ["{", _, S_Sequences, _,
-                (Op::Expect(Box::new(Match::new_silent("}")))), _,
-                (Op::Create("block"))],
-            ["{", _, (Op::Expect(Box::new(Match::new_silent("}")))), _,
-                (Op::PushVoid), (Op::Create("block"))]
+            ["{", _, S_Sequences, _, (expect "}"), _, (Op::Create("block"))],
+            ["{", _, (expect "}"), _, (Op::PushVoid), (Op::Create("block"))]
         }),
 
         // Sequences
@@ -302,14 +299,13 @@ impl Parser {
 
                 if ast.get_dict().is_some() {
                     Ok(ast)
-                }
-                else {
+                } else {
                     Err("Parse error".to_string())
                 }
             }
             Ok(None) => Ok(Value::Void),
             Err(Some(error)) => Err(error),
-            Err(None) => Err("Parse error".to_string())
+            Err(None) => Err("Parse error".to_string()),
         }
     }
 }

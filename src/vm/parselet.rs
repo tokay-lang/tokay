@@ -144,9 +144,19 @@ impl Parselet {
                         }
                     }
 
-                    // In case that no more input was consumed, stop here.
-                    if main && state.is_none() && reader_start == context.runtime.reader.tell() {
-                        context.runtime.reader.next();
+                    if main {
+                        // In case no input was consumed in main loop, skip character
+                        if state.is_none()
+                            && context.runtime.reader.capture_from(&reader_start).len() == 0
+                        {
+                            context.runtime.reader.next();
+                        }
+
+                        // Clear input buffer
+                        context.runtime.reader.commit();
+
+                        // Clear memo table
+                        context.runtime.memo.clear();
                     }
                 }
 

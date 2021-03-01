@@ -79,8 +79,7 @@ impl Runable for Sequence {
         */
         if let Some(capture) = context.collect(capture_start, false, true) {
             Ok(Accept::Push(capture))
-        }
-        else {
+        } else {
             Ok(Accept::Next)
         }
 
@@ -164,6 +163,10 @@ impl Runable for Sequence {
 
 impl std::fmt::Display for Sequence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Sequence #todo")
+        for (item, _) in &self.items {
+            write!(f, "{} ", item)?;
+        }
+
+        Ok(())
     }
 }

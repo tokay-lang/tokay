@@ -51,7 +51,7 @@ impl Runable for Block {
                     // being executed.
                     if let Ok(Accept::Push(_)) = res {
                         // No consuming, no breaking!
-                        if reader_start == context.runtime.reader.tell() {
+                        if context.runtime.reader.capture_from(&reader_start).len() == 0 {
                             continue;
                         }
                     }
@@ -67,7 +67,9 @@ impl Runable for Block {
         let id = self as *const Block as usize;
 
         // Check for an existing memo-entry, and return it in case of a match
-        if let Some((reader_end, result)) = context.runtime.memo.get(&(context.reader_start, id)) {
+        if let Some((reader_end, result)) =
+            context.runtime.memo.get(&(context.reader_start.offset, id))
+        {
             context.runtime.reader.reset(*reader_end);
             return result.clone();
         }
@@ -92,10 +94,10 @@ impl Runable for Block {
             which only accepts non-left-recursive calls on the first run.
             As an additional fuse, this fake memo entry should anyway be kept.
             */
-            context
-                .runtime
-                .memo
-                .insert((context.reader_start, id), (reader_end, result.clone()));
+            context.runtime.memo.insert(
+                (context.reader_start.offset, id),
+                (reader_end, result.clone()),
+            );
 
             let mut loops = 0;
 
@@ -118,19 +120,21 @@ impl Runable for Block {
                     _ => {}
                 }
 
+                let pos = context.runtime.reader.tell();
+
                 // Stop also when no more input was consumed
-                if context.runtime.reader.tell() <= reader_end {
+                if pos.offset <= reader_end.offset {
                     break;
                 }
 
                 result = res;
 
                 // Save intermediate result in memo table
-                reader_end = context.runtime.reader.tell();
-                context
-                    .runtime
-                    .memo
-                    .insert((context.reader_start, id), (reader_end, result.clone()));
+                reader_end = pos;
+                context.runtime.memo.insert(
+                    (context.reader_start.offset, id),
+                    (reader_end, result.clone()),
+                );
 
                 // Reset reader & stack
                 context.runtime.reader.reset(context.reader_start);
@@ -186,6 +190,10 @@ impl Runable for Block {
 
 impl std::fmt::Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Block #todo")
+        for (item, _) in &self.items {
+            write!(f, "{}\n", item)?;
+        }
+
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
+use std::cell::RefCell;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
@@ -51,8 +51,10 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Option<String>>
-    {
+    pub fn run_from_reader<R: 'static + Read>(
+        &self,
+        read: R,
+    ) -> Result<Option<RefValue>, Option<String>> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
 

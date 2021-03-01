@@ -16,7 +16,7 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] =
             context.runtime.reader.next();
         }
 
-        if start < context.runtime.reader.tell() {
+        if start.offset < context.runtime.reader.tell().offset {
             Ok(Accept::Push(Capture::Value(
                 Value::Integer(value).into_ref(),
                 5,

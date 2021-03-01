@@ -1,12 +1,11 @@
-use std::io::{self, Write};
 use std::fs::File;
+use std::io::{self, Write};
 
 use ::tokay::compiler::Compiler;
 use ::tokay::parser::Parser;
 use ::tokay::reader::Reader;
 use ::tokay::value; //for the value!-macro
 use ::tokay::value::{List, RefValue, Value};
-
 
 #[cfg(test)]
 fn compile_and_run(
@@ -135,7 +134,6 @@ fn test_begin_end() {
 //let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
-
 // A first simple REPL for Tokay
 fn repl() {
     loop {
@@ -149,7 +147,7 @@ fn repl() {
 
         // Stop when program is empty.
         if code.trim().is_empty() {
-            return
+            return;
         }
 
         //println!("code = {:?}", code);
@@ -168,8 +166,7 @@ fn repl() {
 
                 if std::env::args().len() == 1 {
                     println!("<<< {:?}", prg.run_from_str(""));
-                }
-                else {
+                } else {
                     for filename in std::env::args().skip(1) {
                         let file = File::open(&filename).unwrap();
                         println!("{}: {:?}", filename, prg.run_from_reader(file));
@@ -178,7 +175,7 @@ fn repl() {
             }
 
             Err(err) => {
-                println!("<<< {:?}", err);
+                println!("{}", err);
             }
         }
     }
