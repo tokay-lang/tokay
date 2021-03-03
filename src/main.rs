@@ -58,13 +58,63 @@ fn test_literal() {
 }
 
 #[test]
-fn test_expression() {}
+fn test_expression() {
+    assert_eq!(
+        compile_and_run("1 + 2 * 3 + 4", "", false),
+        Ok(Some(value![11]))
+    );
+    //assert_eq!(compile_and_run("1 + 2 == 3", "", false), Ok(Some(value![true])));
+    // todo: more expressions, please!
+}
+
+
+#[test]
+fn test_token() {
+    assert_eq!(
+        compile_and_run("'a' 'b'", "ab", false),
+        Ok(Some(value![["a", "b"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("'a' ''b''", "ab", false),
+        Ok(Some(value!["b"]))
+    );
+
+    assert_eq!(
+        compile_and_run("'a' pos ''b''", "abbb", false),
+        Ok(Some(value![["b", "b", "b"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("kle 'a' pos ''b''", "aabbb", false),
+        Ok(Some(value![[["a", "a"], ["b", "b", "b"]]]))
+    );
+
+    assert_eq!(
+        compile_and_run("kle 'a' pos ''b''", "bbb", false),
+        Ok(Some(value![["b", "b", "b"]]))
+    );
+
+    /*
+    assert_eq!(
+        compile_and_run("opt 'a' pos ''b''", "aabbb", false),
+        Ok(None)
+    );
+
+    assert_eq!(
+        compile_and_run("not 'Hello' 'World' accept; reject", "HelloWorld", false),
+        Ok(None)
+    );
+    */
+
+    // todo: more token tests, please!
+}
 
 #[test]
 fn test_parselet_leftrec() {
     assert_eq!(
-        compile_and_run("P: @{ P ''Hello''}\nP", "HelloHelloHelloHello", false),
-        Ok(Some(value!([[["Hello", "Hello"], "Hello"], "Hello"])))
+        compile_and_run("P: @{ P ''a''}\nP", "aaaa", false),
+        Ok(Some(value!([[["a", "a"], "a"], "a"])))
     );
 
     assert_eq!(
@@ -76,17 +126,17 @@ fn test_parselet_leftrec() {
 #[test]
 fn test_capture() {
     assert_eq!(
-        compile_and_run("'Hello' 'World' $1 * 2 + $2 * 3", "HelloWorld", false),
-        Ok(Some(value!("HelloHelloWorldWorldWorld")))
+        compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab", false),
+        Ok(Some(value!("aabbb")))
     );
 
     assert_eq!(
         compile_and_run(
-            "a=2 'Hello' 'World' $(a + 1) * 3+ $(a) * 2",
-            "HelloWorld",
+            "a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2",
+            "ab",
             false
         ),
-        Ok(Some(value!("WorldWorldWorldHelloHello")))
+        Ok(Some(value!("bbbaa")))
     );
 }
 
@@ -195,7 +245,7 @@ fn repl(debug: bool) {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    repl(false);
+    repl(true);
 
     /*
     println!(

@@ -599,8 +599,8 @@ impl Compiler {
                 let op = op.into_iter().next().unwrap();
 
                 match &modifier[4..] {
-                    "peek" => Some(Op::Peek(op.into_box())),
-                    "not" => Some(Op::Not(op.into_box())),
+                    "not" => Some(Not::new(op)),
+                    "peek" => Some(Peek::new(op)),
                     "kleene" => Some(op.into_kleene()),
                     "positive" => Some(op.into_positive()),
                     "optional" => Some(op.into_optional()),

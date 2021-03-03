@@ -170,12 +170,12 @@ macro_rules! compile_item {
 
     // Not
     ( $compiler:expr, (not $item:tt) ) => {
-        Some(Op::Not(compile_item!($compiler, $item).unwrap().into_box()))
+        Some(Not::new(compile_item!($compiler, $item).unwrap()))
     };
 
     // Peek
     ( $compiler:expr, (peek $item:tt) ) => {
-        Some(Op::Peek(compile_item!($compiler, $item).unwrap().into_box()))
+        Some(Peek::new(compile_item!($compiler, $item).unwrap()))
     };
 
     // Expect

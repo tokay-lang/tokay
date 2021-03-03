@@ -20,9 +20,6 @@ pub enum Op {
     Scanable(Box<dyn Scanable>), // Scanable item
     Runable(Box<dyn Runable>),   // Runable item
 
-    Peek(Box<Op>), // Peek-operation (todo: this should be a Runable)
-    Not(Box<Op>),  // Not-predicate (todo: this should be a Runable)
-
     // Call
     TryCall,
     Call,
@@ -136,21 +133,6 @@ impl Runable for Op {
             Op::CallStatic(addr) => context.runtime.program.statics[*addr]
                 .borrow()
                 .call(context),
-
-            Op::Peek(p) => {
-                let reader_start = context.runtime.reader.tell();
-                let ret = p.run(context);
-                context.runtime.reader.reset(reader_start);
-                ret
-            }
-
-            Op::Not(p) => {
-                if p.run(context).is_ok() {
-                    Err(Reject::Next)
-                } else {
-                    Ok(Accept::Next)
-                }
-            }
 
             Op::Print => {
                 let value = context.collect(context.capture_start, true, false);

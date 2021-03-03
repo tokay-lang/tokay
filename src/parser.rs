@@ -131,8 +131,14 @@ impl Parser {
         }),
 
         (S_Token = {
+            ["peek", _, S_Token, (Op::Create("mod_peek"))],
+            ["not", _, S_Token, (Op::Create("mod_not"))],
+            ["pos", _, S_Token, (Op::Create("mod_positive"))],      // fixme: not final!
+            ["kle", _, S_Token, (Op::Create("mod_kleene"))],        // fixme: not final!
+            ["opt", _, S_Token, (Op::Create("mod_optional"))],      // fixme: not final!
             ["'", T_Match, "'", _, (Op::Create("match"))],
             [T_Match, _, (Op::Create("touch"))]
+            // fixme: consumable token identifiers?
         }),
 
         (S_Value = {
@@ -171,12 +177,12 @@ impl Parser {
         }),
 
         (S_Compare = {
-            [S_Compare, "==", _, S_AddSub, (Op::Create("op_compare_equal"))],
-            [S_Compare, "!=", _, S_AddSub, (Op::Create("op_compare_unequal"))],
-            [S_Compare, "<=", _, S_AddSub, (Op::Create("op_compare_lowerequal"))],
-            [S_Compare, ">=", _, S_AddSub, (Op::Create("op_compare_greaterequal"))],
-            [S_Compare, "<", _, S_AddSub, (Op::Create("op_compare_lower"))],
-            [S_Compare, ">", _, S_AddSub, (Op::Create("op_compare_greater"))],
+            [S_Compare, "==", _, (expect S_AddSub), (Op::Create("op_compare_equal"))],
+            [S_Compare, "!=", _, (expect S_AddSub), (Op::Create("op_compare_unequal"))],
+            [S_Compare, "<=", _, (expect S_AddSub), (Op::Create("op_compare_lowerequal"))],
+            [S_Compare, ">=", _, (expect S_AddSub), (Op::Create("op_compare_greaterequal"))],
+            [S_Compare, "<", _, (expect S_AddSub), (Op::Create("op_compare_lower"))],
+            [S_Compare, ">", _, (expect S_AddSub), (Op::Create("op_compare_greater"))],
             S_AddSub
         }),
 
