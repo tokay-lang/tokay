@@ -135,7 +135,7 @@ impl Runable for Op {
                 .call(context),
 
             Op::Print => {
-                let value = context.collect(context.capture_start, true, false);
+                let value = context.collect(context.capture_start, true, false, 0);
 
                 if value.is_some() {
                     println!("{:?}", value.unwrap());
@@ -158,7 +158,7 @@ impl Runable for Op {
                 );
                 */
 
-                let value = match context.collect(context.capture_start, false, false) {
+                let value = match context.collect(context.capture_start, false, false, 0) {
                     Some(capture) => {
                         let value = capture.as_value(context.runtime);
                         let mut ret = Dict::new();

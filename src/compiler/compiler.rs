@@ -260,6 +260,39 @@ impl Compiler {
 
     /* Tokay AST node traversal */
 
+    pub fn print(ast: &Value) {
+        fn print(value: &Value, indent: usize) {
+            match value {
+                Value::Dict(d) => {
+                    let emit = d["emit"].borrow();
+                    let emit = emit.get_string().unwrap();
+                    let value = d.get("value");
+                    let children = d.get("children");
+
+                    print!("{:indent$}{}", "", emit, indent = indent);
+                    if let Some(value) = value {
+                        print!(" {:?}", value.borrow());
+                    }
+                    print!("\n");
+
+                    if let Some(children) = children {
+                        print(&children.borrow(), indent + 1);
+                    }
+                }
+
+                Value::List(l) => {
+                    for item in l.iter() {
+                        print(&item.borrow(), indent);
+                    }
+                }
+
+                other => unimplemented!("{:?} is not implemented", other),
+            }
+        }
+
+        print(ast, 0);
+    }
+
     // Traverse either a node or a list from the AST
     pub fn traverse(&mut self, value: &Value) -> Vec<Op> {
         let mut ret = Vec::new();

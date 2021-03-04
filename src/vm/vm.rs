@@ -173,6 +173,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         capture_start: usize,
         copy: bool,
         single: bool,
+        min_severity: u8,
     ) -> Option<Capture> {
         // Eiter copy or drain captures from stack
         let mut captures: Vec<Capture> = if copy {
@@ -199,7 +200,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         } else {
             let mut list = List::new();
             let mut dict = Dict::new();
-            let mut max = 0;
+            let mut max = min_severity;
 
             // Collect any significant captures and values
             for capture in captures.into_iter() {

@@ -67,7 +67,6 @@ fn test_expression() {
     // todo: more expressions, please!
 }
 
-
 #[test]
 fn test_token() {
     assert_eq!(
@@ -86,7 +85,7 @@ fn test_token() {
     );
 
     assert_eq!(
-        compile_and_run("kle 'a' pos ''b''", "aabbb", false),
+        compile_and_run("kle ''a'' pos ''b''", "aabbb", false),
         Ok(Some(value![[["a", "a"], ["b", "b", "b"]]]))
     );
 
@@ -131,11 +130,7 @@ fn test_capture() {
     );
 
     assert_eq!(
-        compile_and_run(
-            "a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2",
-            "ab",
-            false
-        ),
+        compile_and_run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab", false),
         Ok(Some(value!("bbbaa")))
     );
 }
@@ -209,22 +204,18 @@ fn repl(debug: bool) {
         let parser = Parser::new();
         let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(code))));
 
-        if debug {
-            println!("ast = {:#?}", ast);
-        }
-
         match ast {
             Ok(Value::Void) => {}
 
             Ok(ast) => {
+                if debug {
+                    Compiler::print(&ast);
+                }
+
                 let mut compiler = Compiler::new();
 
                 compiler.traverse(&ast);
                 let prg = compiler.into_program();
-
-                if debug {
-                    println!("prg = {:#?}", prg);
-                }
 
                 if std::env::args().len() == 1 {
                     println!("<<< {:?}", prg.run_from_str(""));

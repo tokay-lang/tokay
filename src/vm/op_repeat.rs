@@ -97,7 +97,7 @@ impl Runable for Repeat {
             Err(Reject::Next)
         } else {
             // Push collected captures, if any
-            if let Some(capture) = context.collect(capture_start, false, false) {
+            if let Some(capture) = context.collect(capture_start, false, false, 1) {
                 Ok(Accept::Push(capture))
             } else {
                 // Otherwiese, push a capture of consumed range
