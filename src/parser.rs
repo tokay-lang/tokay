@@ -211,15 +211,12 @@ impl Parser {
         // Parselet
 
         (S_Argument = {
-            [T_Identifier, _, "=", _, (opt S_Value), (Op::Create("arg"))],
             [T_Identifier, _, ":", _, (opt S_Value), (Op::Create("arg_constant"))],
-            [T_Identifier, _, (Op::Create("arg"))]
+            [T_Identifier, _, (opt ["=", _, (opt S_Value)]), (Op::Create("arg"))]
         }),
 
         (S_Arguments = {
-            [S_Arguments, (opt ","), _, S_Argument],
-                //(Op::CallStatic(builtin::get("flatten").unwrap()))],
-            S_Argument
+            (pos [S_Argument, (opt [",", _])])
         }),
 
         (S_Parselet = {

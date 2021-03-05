@@ -11,7 +11,7 @@ use ::tokay::value; //for the value!-macro
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-#[cfg(test)]
+//#[cfg(test)]
 fn compile_and_run(
     src: &'static str,
     input: &'static str,
@@ -22,7 +22,7 @@ fn compile_and_run(
 
     if let Ok(ast) = ast {
         if debug {
-            println!("ast = {:#?}", ast);
+            Compiler::print(&ast);
         }
 
         let mut compiler = Compiler::new();
@@ -236,7 +236,20 @@ fn repl(debug: bool) {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    repl(true);
+    //repl(false);
+
+    println!("{:#?}", compile_and_run(
+        "
+        TheOkaySayer : @Match result:\"OKAY\" {
+            Match result + \": \" + $1
+            \"FAIL\"
+        }
+
+        TheOkaySayer(Integer)
+        TheOkaySayer(pos 'Hello')
+        ",
+        "123Hello456Hello", true
+    ));
 
     /*
     println!(

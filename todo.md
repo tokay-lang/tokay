@@ -68,6 +68,7 @@ Syntax is under careful consideration.
 
 ## Optimization
 
+- [ ] Check for existing static values and reuse them on redefinition.
 - [ ] Optimize away single-item sequences and blocks, use `Op::from_vec()` whenever Sequences without aliases are used
 - [ ] Modifier optimization, modifiers should generate different code when used by char-class, string, parselet, e.g.
   - Achivement via an into_repeat() function on the Runable trait

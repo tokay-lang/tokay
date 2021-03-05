@@ -354,6 +354,7 @@ impl Compiler {
         let children = node.borrow_by_key("children");
 
         let (args, body) = if let Some(children) = children.get_list() {
+            assert!(children.len() == 2);
             (Some(children[0].borrow()), children[1].borrow())
         } else {
             (None, children)
@@ -363,47 +364,38 @@ impl Compiler {
         let mut sig: Vec<(String, Option<usize>)> = Vec::new();
 
         if let Some(args) = args {
-            for param in args.to_list() {
-                let param = param.borrow();
-                let param = param.get_dict().unwrap();
-                sig.push((
-                    param
-                        .borrow_by_key("value")
-                        .get_string()
-                        .unwrap()
-                        .to_string(),
-                    None,
-                ));
-            }
+            for node in args.to_list() {
+                let node = node.borrow();
+                let node = node.get_dict().unwrap();
+                let children = node.borrow_by_key("children").to_list();
 
-            /*
-            // todo: Write macro?
+                let emit = node.borrow_by_key("emit");
+                let ident = children.borrow_by_idx(0);
 
-            if let Some(param) = args.get_dict() {
-                sig.push((
-                    param.borrow_by_key("value").get_string().unwrap().to_string(),
+                assert!(children.len() <= 2);
+                let default = if children.len() == 2 {
+                    let default = children.borrow_by_idx(1);
+                    let value = self.traverse_node_value(default.get_dict().unwrap());
+                    Some(self.define_static(value))
+                } else {
                     None
-                ));
-            }
-            else if let Some(params) = args.get_list() {
-                for param in params {
-                    let param = param.borrow();
-                    let param = param.get_dict().unwrap();
-                    sig.push((
-                        param.borrow_by_key("value").get_string().unwrap().to_string(),
-                        None
-                    ));
-                }
-            }
-            */
-        }
+                };
 
-        //println!("sig = {:?}", sig);
+                println!(
+                    "{} {} {:?}",
+                    emit.to_string(),
+                    ident.get_dict().unwrap().borrow_by_key("value").to_string(),
+                    default
+                );
+            }
+        }
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
         let locals = self.get_locals();
-        let scope = self._pop_scope();
+        //let scope = self._pop_scope();
+        let scope = self.scopes.remove(0);
+        println!("usages = {:?}", &self.usages[scope.usage_start..]);
 
         self.define_static(
             Parselet::new(
