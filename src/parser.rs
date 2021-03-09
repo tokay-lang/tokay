@@ -211,7 +211,7 @@ impl Parser {
         // Parselet
 
         (S_Argument = {
-            [T_Identifier, _, ":", _, (opt S_Value), (Op::Create("arg_constant"))],
+            //[T_Identifier, _, ":", _, (opt S_Value), (Op::Create("arg_constant"))],  // todo: later...
             [T_Identifier, _, (opt ["=", _, (opt S_Value)]), (Op::Create("arg"))]
         }),
 

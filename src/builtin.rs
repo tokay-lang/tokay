@@ -1,5 +1,5 @@
 use crate::compiler::Compiler;
-use crate::value::{List, Value};
+use crate::value::{List, RefValue, Value};
 use crate::vm::*;
 
 static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] = &[
@@ -77,6 +77,10 @@ pub fn get(ident: &'static str) -> Option<usize> {
     None
 }
 
-pub fn call(builtin: usize, context: &mut Context) -> Result<Accept, Reject> {
+pub fn call(builtin: usize, context: &mut Context, args: Vec<RefValue>) -> Result<Accept, Reject> {
+    if args.len() > 0 {
+        unimplemented!("Builtins with parameters are yet unimplemented")
+    }
+
     BUILTINS[builtin].1(context)
 }

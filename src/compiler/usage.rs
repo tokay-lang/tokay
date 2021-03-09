@@ -5,17 +5,15 @@ use crate::vm::*;
 #[derive(Debug)]
 pub enum Usage {
     Symbol(String),
-    Call {
-        name: String,
-        params: Vec<(Option<String>, Vec<Op>)>,
-    },
+    Call(String),
+    CallArg { name: String, params: usize },
+    CallArgX { name: String, params: usize },
 }
 
 impl Usage {
     pub(super) fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>> {
         match self {
             Usage::Symbol(name) => {
-                // Resolve constants
                 if let Some(addr) = compiler.get_constant(&name) {
                     let statics = compiler.statics.borrow();
 
@@ -30,6 +28,39 @@ impl Usage {
                     return Some(vec![Op::LoadFast(addr), Op::TryCall]);
                 } else if let Some(addr) = compiler.get_global(&name) {
                     return Some(vec![Op::LoadGlobal(addr), Op::TryCall]);
+                }
+            }
+
+            Usage::Call(name) => {
+                if let Some(addr) = compiler.get_constant(&name) {
+                    let statics = compiler.statics.borrow();
+
+                    // fixme: This should check if the static is callable
+                    //        without parameters!
+                    if statics[addr].borrow().is_callable() {
+                        return Some(vec![Op::CallStatic(addr)]);
+                    }
+                } else if let Some(addr) = compiler.get_local(&name) {
+                    return Some(vec![Op::LoadFast(addr), Op::Call]);
+                } else if let Some(addr) = compiler.get_global(&name) {
+                    return Some(vec![Op::LoadGlobal(addr), Op::Call]);
+                }
+            }
+
+            Usage::CallArg { name, params } => {
+                // Resolve constants
+                if let Some(addr) = compiler.get_constant(&name) {
+                    let statics = compiler.statics.borrow();
+
+                    // fixme: This should check if the static is callable
+                    //        without parameters!
+                    if statics[addr].borrow().is_callable() {
+                        return Some(vec![Op::CallStaticArg(Box::new((addr, *params)))]);
+                    }
+                } else if let Some(addr) = compiler.get_local(&name) {
+                    return Some(vec![Op::LoadFast(addr), Op::CallArg(*params)]);
+                } else if let Some(addr) = compiler.get_global(&name) {
+                    return Some(vec![Op::LoadGlobal(addr), Op::CallArg(*params)]);
                 }
             }
 

@@ -35,8 +35,11 @@ impl Compiler {
             usages: Vec::new(),
         };
 
-        // Preparation of global scope
+        // Preparation of the global scope
         compiler.push_scope(true);
+        //compiler.new_local("args");
+        //compiler.new_local("nargs");
+
         builtin::register(&mut compiler);
 
         compiler
@@ -125,7 +128,7 @@ impl Compiler {
         );
     }
 
-    fn _pop_scope(&mut self) -> Scope {
+    fn take_scope(&mut self) -> Scope {
         if self.scopes.len() == 0 {
             panic!("No more scopes to pop!");
         }
@@ -145,7 +148,7 @@ impl Compiler {
 
     /** Pops current scope. */
     pub fn pop_scope(&mut self) {
-        self._pop_scope();
+        self.take_scope();
     }
 
     /// Returns the total number of locals in current scope.
@@ -266,10 +269,19 @@ impl Compiler {
                 Value::Dict(d) => {
                     let emit = d["emit"].borrow();
                     let emit = emit.get_string().unwrap();
+
+                    let row = d.get("row").and_then(|row| Some(row.borrow().to_addr()));
+                    let col = d.get("col").and_then(|col| Some(col.borrow().to_addr()));
+
                     let value = d.get("value");
                     let children = d.get("children");
 
-                    print!("{:indent$}{}", "", emit, indent = indent);
+                    if let (Some(row), Some(col)) = (row, col) {
+                        print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
+                    } else {
+                        print!("{:indent$}{}", "", emit, indent = indent);
+                    }
+
                     if let Some(value) = value {
                         print!(" {:?}", value.borrow());
                     }
@@ -371,6 +383,13 @@ impl Compiler {
 
                 let emit = node.borrow_by_key("emit");
                 let ident = children.borrow_by_idx(0);
+                let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
+
+                assert!(
+                    ident.chars().nth(0).unwrap().is_lowercase(),
+                    "Only lower-case parameter names are allowed currently"
+                );
+                self.new_local(&ident);
 
                 assert!(children.len() <= 2);
                 let default = if children.len() == 2 {
@@ -381,19 +400,13 @@ impl Compiler {
                     None
                 };
 
-                println!(
-                    "{} {} {:?}",
-                    emit.to_string(),
-                    ident.get_dict().unwrap().borrow_by_key("value").to_string(),
-                    default
-                );
+                println!("{} {} {:?}", emit.to_string(), ident, default);
             }
         }
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
         let locals = self.get_locals();
-        //let scope = self._pop_scope();
         let scope = self.scopes.remove(0);
         println!("usages = {:?}", &self.usages[scope.usage_start..]);
 
@@ -492,25 +505,25 @@ impl Compiler {
                 } else {
                     let children = children.to_list();
 
-                    let mut ops = if children.len() > 1 {
-                        self.traverse(&children[1].borrow())
-                    } else {
-                        Vec::new()
-                    };
+                    if children.len() > 1 {
+                        ret.extend(self.traverse(&children[1].borrow()));
+                    }
 
                     if call == "call_identifier" {
                         let ident = children[0].borrow();
                         let ident = ident.get_dict().unwrap();
                         let ident = ident.borrow_by_key("value");
 
-                        Usage::Symbol(ident.to_string())
+                        if children.len() == 0 {
+                            Usage::Call(ident.to_string())
+                        } else {
+                            Usage::CallArg {
+                                name: ident.to_string(),
+                                params: children.len() - 1,
+                            }
+                        }
                     } else if call == "call_rvalue" {
                         unimplemented!();
-                    /*
-                    ops.extend(self.traverse(&children[0].borrow()));
-
-                    Call::Dynamic(ops).into_op()
-                    */
                     } else {
                         unimplemented!("{:?} is unhandled", call);
                     }
@@ -586,7 +599,7 @@ impl Compiler {
 
                 let main = self.traverse(&children);
                 let locals = self.get_locals();
-                let scope = self._pop_scope();
+                let scope = self.take_scope();
 
                 if main.len() > 0 {
                     self.define_static(

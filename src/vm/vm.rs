@@ -157,6 +157,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         &self.runtime.stack[self.capture_start..]
     }
 
+    //temporary...
     /** Drain all captures from current context */
     pub fn drain_captures(&mut self) -> Vec<Capture> {
         self.runtime.stack.drain(self.capture_start..).collect()

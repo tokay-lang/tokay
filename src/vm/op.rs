@@ -23,7 +23,9 @@ pub enum Op {
     // Call
     TryCall,
     Call,
+    CallArg(usize),
     CallStatic(usize),
+    CallStaticArg(Box<(usize, usize)>),
 
     // Debuging and error reporting
     Print,               // todo: make this a builtin
@@ -102,6 +104,19 @@ impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         //println!("RUN {:?}", self);
 
+        fn call(context: &mut Context, target: &Value, args: usize) -> Result<Accept, Reject> {
+            let args: Vec<Capture> = context
+                .runtime
+                .stack
+                .drain(context.runtime.stack.len() - args..)
+                .collect();
+            let args = args
+                .into_iter()
+                .map(|capture| capture.as_value(context.runtime))
+                .collect();
+            target.call(context, args)
+        }
+
         match self {
             Op::Nop => Ok(Accept::Next),
 
@@ -118,7 +133,7 @@ impl Runable for Op {
             Op::TryCall => {
                 let value = context.pop();
                 if value.borrow().is_callable() {
-                    value.borrow().call(context)
+                    value.borrow().call(context, Vec::new())
                 } else {
                     Ok(Accept::Push(Capture::Value(value.clone(), 10)))
                 }
@@ -127,12 +142,24 @@ impl Runable for Op {
             Op::Call => {
                 let value = context.pop();
                 let value = value.borrow();
-                value.call(context)
+                call(context, &value, 0)
             }
 
-            Op::CallStatic(addr) => context.runtime.program.statics[*addr]
-                .borrow()
-                .call(context),
+            Op::CallArg(args) => {
+                let value = context.pop();
+                let value = value.borrow();
+                call(context, &value, *args)
+            }
+
+            Op::CallStatic(addr) => {
+                call(context, &context.runtime.program.statics[*addr].borrow(), 0)
+            }
+
+            Op::CallStaticArg(addr_args) => call(
+                context,
+                &context.runtime.program.statics[addr_args.0].borrow(),
+                addr_args.1,
+            ),
 
             Op::Print => {
                 let value = context.collect(context.capture_start, true, false, 0);
@@ -176,6 +203,15 @@ impl Runable for Op {
                         } else {
                             ret.insert("value".to_string(), value);
                         }
+
+                        ret.insert(
+                            "row".to_string(),
+                            Value::Addr(context.reader_start.row as usize).into_ref(),
+                        );
+                        ret.insert(
+                            "col".to_string(),
+                            Value::Addr(context.reader_start.col as usize).into_ref(),
+                        );
 
                         Value::Dict(Box::new(ret)).into_ref()
                     }

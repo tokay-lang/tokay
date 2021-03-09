@@ -97,15 +97,13 @@ a(30, b=300)                        LoadStatic(4)               30
 ```
 
 
-### Constant parselet with constant-only arguments
+### This is Batland...
 
 ```
 a : @a:10 b:100 {
     a + b
 }
 ```
-
-In this case parameters 
 
 ```
 a                                   CallStatic(0)               <parselet 0>
@@ -128,3 +126,15 @@ a(30, b=300)                        LoadStatic(4)               30
                                     MakeDict(1)
                                     CallStaticArgX((0, 1))
 ```
+
+match3 : @Match: res=23 {
+    Match Match Match res
+}
+
+match3('Hello', 10)
+
+match3 : @<Match> res=23 {
+    Match Match Match res
+}
+
+match3<'Hello'>(10)

@@ -63,8 +63,20 @@ impl Parselet {
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
-    pub fn run(&self, runtime: &mut Runtime, main: bool) -> Result<Accept, Reject> {
+    pub fn run(
+        &self,
+        runtime: &mut Runtime,
+        args: Vec<RefValue>,
+        main: bool,
+    ) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals);
+
+        // temporary!!!
+        // Save function parameters as locals
+        for (i, value) in args.into_iter().enumerate() {
+            context.runtime.stack[context.stack_start + i] = Capture::Value(value, 10);
+        }
+
         let mut results = Vec::new();
         let mut state = if let Op::Nop = self.begin {
             None

@@ -238,18 +238,34 @@ fn main() {
     println!("Tokay v{}", VERSION);
     //repl(false);
 
-    println!("{:#?}", compile_and_run(
-        "
-        TheOkaySayer : @Match result:\"OKAY\" {
-            Match result + \": \" + $1
-            \"FAIL\"
+    println!(
+        "{:#?}",
+        compile_and_run(
+            "
+        mul : @x {
+            x * x + x
         }
 
-        TheOkaySayer(Integer)
-        TheOkaySayer(pos 'Hello')
+        mul(4)
         ",
-        "123Hello456Hello", true
+            "",
+            true
+        )
+    );
+
+    /*
+    println!("{:#?}", compile_and_run(
+        "
+        TheTokaySayer : @Match: result:\"TOKAY!!!\" {
+            Match result + \": \" + $1
+        }
+
+        TheTokaySayer(Integer)
+        TheTokaySayer(pos 'Hello')
+        ",
+        "123HelloHelloello456Hello", true
     ));
+    */
 
     /*
     println!(
