@@ -154,7 +154,8 @@ impl Parser {
             S_Token,
             S_Call,
             S_Rvalue,
-            S_Block
+            S_Block,
+            S_Parselet
         }),
 
         (S_Unary = {
@@ -187,7 +188,7 @@ impl Parser {
         }),
 
         (S_Assign = {
-            [S_Lvalue, _, "=", _, S_Expression, _, (Op::Create("assign"))] // fixme: a = b = c is possible here...
+            [S_Lvalue, "=", _, S_Expression, (Op::Create("assign"))] // fixme: a = b = c is possible here...
             // todo: add operators "+="", "-="", "*="", "/=" here as well
         }),
 
@@ -220,8 +221,8 @@ impl Parser {
         }),
 
         (S_Parselet = {
-            ["@", _, (opt S_Arguments), S_Block, (Op::Create("parselet"))],
-            ["@", _, S_Sequence, (Op::Create("parselet"))]
+            ["@", _, (opt S_Arguments), S_Block, (Op::Create("value_parselet"))],
+            ["@", _, S_Sequence, (Op::Create("value_parselet"))]
         }),
 
         (S_Block = {

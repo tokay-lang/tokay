@@ -164,7 +164,8 @@ impl Compiler {
     Retrieve address of a local variable under a given name.
     */
     pub fn get_local(&self, name: &str) -> Option<usize> {
-        for scope in &self.scopes {
+        // Retrieve local variables from next scope owning variables, except global scope!
+        for scope in &self.scopes[..self.scopes.len() - 1] {
             // Check for scope with variables
             if let Some(variables) = &scope.variables {
                 if let Some(addr) = variables.get(name) {
@@ -350,7 +351,7 @@ impl Compiler {
             "value_false" => Value::False,
             "value_null" => Value::Null,
             "value_void" => Value::Void,
-            p if p.starts_with("parselet") => {
+            "value_parselet" => {
                 let parselet = self.traverse_node_parselet(node);
                 return self.statics.borrow()[parselet].clone();
             }
@@ -407,8 +408,7 @@ impl Compiler {
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
         let locals = self.get_locals();
-        let scope = self.scopes.remove(0);
-        println!("usages = {:?}", &self.usages[scope.usage_start..]);
+        let scope = self.take_scope();
 
         self.define_static(
             Parselet::new(
@@ -747,24 +747,7 @@ impl Compiler {
                             ret.extend(self.gen_load(name));
                         }
 
-                        val if val.starts_with("value_") => ret.extend(self.traverse_node(item)),
-
-                        /*
-                        val if val.starts_with("inplace_") => {
-                            let parts: Vec<&str> = emit.split("_").collect();
-                            match parts[1] {
-                                "pre" => {
-                                    self.traverse(item);
-                                    match parts[2] {
-
-                                    }
-                                }
-                            }
-                        },
-                        */
-                        _ => {
-                            unimplemented!("{:?} not implemented", emit);
-                        }
+                        value => ret.extend(self.traverse_node(item)),
                     }
                 }
 
@@ -801,7 +784,7 @@ impl Compiler {
                 }
                 // Otherwise, report unhandled node!
                 else {
-                    unreachable!("No handling for {:?}", emit);
+                    unreachable!("No handling for {:?}", node);
                 }
             }
         };

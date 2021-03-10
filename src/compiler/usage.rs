@@ -74,6 +74,7 @@ impl Usage {
 
     pub fn resolve_or_dispose(self, compiler: &mut Compiler) -> Vec<Op> {
         if let Some(res) = self.try_resolve(compiler) {
+            println!("Resolved {:?} into {:?}", self, res);
             res
         } else {
             compiler.usages.push(Err(self));

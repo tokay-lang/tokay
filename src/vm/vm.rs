@@ -54,6 +54,7 @@ pub enum Reject {
 
 pub struct Context<'runtime, 'program, 'reader> {
     pub runtime: &'runtime mut Runtime<'program, 'reader>, // fixme: Temporary pub?
+    take: usize,
 
     pub(super) stack_start: usize,
     pub(super) capture_start: usize,
@@ -70,6 +71,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         Self {
             stack_start,
+            take,
             capture_start: stack_start + preserve,
             reader_start: runtime.reader.tell(),
             runtime: runtime,
@@ -261,7 +263,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        self.runtime.stack.truncate(self.stack_start);
+        self.runtime.stack.truncate(self.stack_start - self.take + 1); // fixme: observe this
     }
 }
 
