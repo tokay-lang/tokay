@@ -62,7 +62,11 @@ pub struct Context<'runtime, 'program, 'reader> {
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
-    pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>, preserve: usize, take: usize) -> Self {
+    pub fn new(
+        runtime: &'runtime mut Runtime<'program, 'reader>,
+        preserve: usize,
+        take: usize,
+    ) -> Self {
         let stack_start = runtime.stack.len() - take;
 
         runtime

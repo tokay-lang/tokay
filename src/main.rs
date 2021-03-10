@@ -287,7 +287,7 @@ fn main() {
     println!(
         "{:#?}",
         compile_and_run(
-        "
+            "
         faculty = @x {
             if !x return 1
             x * faculty(x - 1)

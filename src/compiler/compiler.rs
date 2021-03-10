@@ -692,8 +692,7 @@ impl Compiler {
                     let then = Op::from_vec(self.traverse(&children[1].borrow()));
                     let eelse = if children.len() == 3 {
                         Some(Op::from_vec(self.traverse(&children[2].borrow())))
-                    }
-                    else {
+                    } else {
                         None
                     };
 

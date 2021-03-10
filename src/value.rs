@@ -341,7 +341,7 @@ impl Value {
         match self {
             Value::Builtin(addr) => builtin::call(*addr, context, args),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, false),
-            _ => panic!("{:?} cannot be called", self)
+            _ => panic!("{:?} cannot be called", self),
         }
     }
 }

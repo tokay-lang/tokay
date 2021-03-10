@@ -65,7 +65,7 @@ pub enum Op {
     Not,
 
     // Flow
-    If(Box<(Op, Option<Op>)>)
+    If(Box<(Op, Option<Op>)>),
 }
 
 impl Op {
@@ -143,11 +143,14 @@ impl Runable for Op {
                 //println!("CallArg returns {:?}", ret);
             }
 
-            Op::CallStatic(addr) =>
-                context.runtime.program.statics[*addr].borrow().call(context, 0),
+            Op::CallStatic(addr) => context.runtime.program.statics[*addr]
+                .borrow()
+                .call(context, 0),
 
             Op::CallStaticArg(addr_args) => {
-                context.runtime.program.statics[addr_args.0].borrow().call(context, addr_args.1)
+                context.runtime.program.statics[addr_args.0]
+                    .borrow()
+                    .call(context, addr_args.1)
                 //println!("CallStaticArg returns {:?}", ret);
             }
 
@@ -349,13 +352,12 @@ impl Runable for Op {
                 };
 
                 Ok(Accept::Push(Capture::Value(c, 10)))
-            },
+            }
 
             Op::Not => {
                 if context.pop().borrow().is_true() {
                     Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 10)))
-                }
-                else {
+                } else {
                     Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10)))
                 }
             }
@@ -363,11 +365,9 @@ impl Runable for Op {
             Op::If(then_else) => {
                 if context.pop().borrow().is_true() {
                     then_else.0.run(context)
-                }
-                else if let Some(eelse) = &then_else.1 {
+                } else if let Some(eelse) = &then_else.1 {
                     eelse.run(context)
-                }
-                else {
+                } else {
                     Ok(Accept::Next)
                 }
             }
