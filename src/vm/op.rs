@@ -62,6 +62,10 @@ pub enum Op {
     Sub,
     Div,
     Mul,
+    Not,
+
+    // Flow
+    If(Box<(Op, Option<Op>)>)
 }
 
 impl Op {
@@ -342,6 +346,27 @@ impl Runable for Op {
                 };
 
                 Ok(Accept::Push(Capture::Value(c, 10)))
+            },
+
+            Op::Not => {
+                if context.pop().borrow().is_true() {
+                    Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 10)))
+                }
+                else {
+                    Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10)))
+                }
+            }
+
+            Op::If(then_else) => {
+                if context.pop().borrow().is_true() {
+                    then_else.0.run(context)
+                }
+                else if let Some(eelse) = &then_else.1 {
+                    eelse.run(context)
+                }
+                else {
+                    Ok(Accept::Next)
+                }
             }
         }
     }

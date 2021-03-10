@@ -116,8 +116,8 @@ impl Parser {
         }),
 
         (S_Call = {
-            [T_Identifier, "(", (opt S_CallParameters), ")", (Op::Create("call_identifier"))],
-            [S_Rvalue, "(", (opt S_CallParameters), ")", (Op::Create("call_rvalue"))]
+            [T_Identifier, "(", _, (opt S_CallParameters), ")", _, (Op::Create("call_identifier"))],
+            [S_Rvalue, "(", _, (opt S_CallParameters), ")", _, (Op::Create("call_rvalue"))]
         }),
 
         (S_Literal = {

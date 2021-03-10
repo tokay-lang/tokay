@@ -673,13 +673,31 @@ impl Compiler {
                     let children = children.get_dict().unwrap();
                     ret.extend(self.traverse_node(children));
 
-                    //fixme: unary operators
-                    unimplemented!("unary missing");
+                    match parts[2] {
+                        "not" => Some(Op::Not),
+                        _ => {
+                            unimplemented!("op_unary_{}", parts[2]);
+                        }
+                    }
                 } else if parts[1] == "accept" || parts[1] == "return" {
                     let children = node.borrow_by_key("children");
                     ret.extend(self.traverse_node(&children.get_dict().unwrap()));
 
                     Some(Op::LoadAccept)
+                } else if parts[1] == "if" || parts[1] == "ifelse" {
+                    let children = node.borrow_by_key("children");
+                    let children = children.get_list().unwrap();
+
+                    ret.extend(self.traverse(&children[0].borrow()));
+                    let then = Op::from_vec(self.traverse(&children[1].borrow()));
+                    let eelse = if children.len() == 3 {
+                        Some(Op::from_vec(self.traverse(&children[2].borrow())))
+                    }
+                    else {
+                        None
+                    };
+
+                    Some(Op::If(Box::new((then, eelse))))
                 } else {
                     unimplemented!("{} missing", op);
                 }

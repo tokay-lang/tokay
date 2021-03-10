@@ -241,12 +241,13 @@ fn main() {
     println!(
         "{:#?}",
         compile_and_run(
-            "
-        mul : @x {
-            x * x
-        }
+        "
+            faculty : @x {
+                if !x return 1
+                x * faculty(x - 1)
+            }
 
-        mul(4)
+            faculty(1) faculty(2) faculty(3) faculty(4) faculty(5)
         ",
             "",
             true
