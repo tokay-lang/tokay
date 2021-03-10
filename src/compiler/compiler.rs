@@ -401,7 +401,7 @@ impl Compiler {
                     None
                 };
 
-                println!("{} {} {:?}", emit.to_string(), ident, default);
+                //println!("{} {} {:?}", emit.to_string(), ident, default);
             }
         }
 

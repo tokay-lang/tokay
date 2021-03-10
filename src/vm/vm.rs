@@ -263,7 +263,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        self.runtime.stack.truncate(self.stack_start - self.take + 1); // fixme: observe this
+        self.runtime.stack.truncate(self.stack_start);
     }
 }
 

@@ -110,15 +110,61 @@ fn test_token() {
 }
 
 #[test]
+fn test_parselet_static_with_args() {
+    assert_eq!(
+        compile_and_run(
+            "
+            faculty : @x {
+                if !x return 1
+                x * faculty(x - 1)
+            }
+
+            faculty(4)
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!(24)))
+    );
+}
+
+#[test]
+fn test_parselet_variable_with_args() {
+    assert_eq!(
+        compile_and_run(
+            "
+            faculty = @x {
+                if !x return 1
+                x * faculty(x - 1)
+            }
+
+            faculty(4)
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!(24)))
+    );
+}
+
+#[test]
 fn test_parselet_leftrec() {
     assert_eq!(
         compile_and_run("P: @{ P ''a''}\nP", "aaaa", false),
         Ok(Some(value!([[["a", "a"], "a"], "a"])))
     );
+}
 
+#[test]
+fn test_readme_examples() {
     assert_eq!(
         compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
         Ok(Some(value!(11)))
+    );
+
+    assert_eq!(
+        compile_and_run(include_str!("../faculty.tok"), "", false),
+        Ok(Some(value!(24)))
     );
 }
 

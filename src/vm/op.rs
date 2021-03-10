@@ -140,13 +140,16 @@ impl Runable for Op {
                 let target = context.pop();
                 let target = target.borrow();
                 target.call(context, *args)
+                //println!("CallArg returns {:?}", ret);
             }
 
             Op::CallStatic(addr) =>
                 context.runtime.program.statics[*addr].borrow().call(context, 0),
 
-            Op::CallStaticArg(addr_args) =>
-                context.runtime.program.statics[addr_args.0].borrow().call(context, addr_args.1),
+            Op::CallStaticArg(addr_args) => {
+                context.runtime.program.statics[addr_args.0].borrow().call(context, addr_args.1)
+                //println!("CallStaticArg returns {:?}", ret);
+            }
 
             Op::Print => {
                 let value = context.collect(context.capture_start, true, false, 0);
