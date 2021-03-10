@@ -61,12 +61,12 @@ pub struct Context<'runtime, 'program, 'reader> {
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
-    pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>, preserve: usize) -> Self {
-        let stack_start = runtime.stack.len();
+    pub fn new(runtime: &'runtime mut Runtime<'program, 'reader>, preserve: usize, take: usize) -> Self {
+        let stack_start = runtime.stack.len() - take;
 
         runtime
             .stack
-            .resize(stack_start + preserve + 1, Capture::Empty);
+            .resize(stack_start + preserve - take + 1, Capture::Empty);
 
         Self {
             stack_start,

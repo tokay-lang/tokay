@@ -104,19 +104,6 @@ impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         //println!("RUN {:?}", self);
 
-        fn call(context: &mut Context, target: &Value, args: usize) -> Result<Accept, Reject> {
-            let args: Vec<Capture> = context
-                .runtime
-                .stack
-                .drain(context.runtime.stack.len() - args..)
-                .collect();
-            let args = args
-                .into_iter()
-                .map(|capture| capture.as_value(context.runtime))
-                .collect();
-            target.call(context, args)
-        }
-
         match self {
             Op::Nop => Ok(Accept::Next),
 
@@ -133,33 +120,29 @@ impl Runable for Op {
             Op::TryCall => {
                 let value = context.pop();
                 if value.borrow().is_callable() {
-                    value.borrow().call(context, Vec::new())
+                    value.borrow().call(context, 0)
                 } else {
                     Ok(Accept::Push(Capture::Value(value.clone(), 10)))
                 }
             }
 
             Op::Call => {
-                let value = context.pop();
-                let value = value.borrow();
-                call(context, &value, 0)
+                let target = context.pop();
+                let target = target.borrow();
+                target.call(context, 0)
             }
 
             Op::CallArg(args) => {
-                let value = context.pop();
-                let value = value.borrow();
-                call(context, &value, *args)
+                let target = context.pop();
+                let target = target.borrow();
+                target.call(context, *args)
             }
 
-            Op::CallStatic(addr) => {
-                call(context, &context.runtime.program.statics[*addr].borrow(), 0)
-            }
+            Op::CallStatic(addr) =>
+                context.runtime.program.statics[*addr].borrow().call(context, 0),
 
-            Op::CallStaticArg(addr_args) => call(
-                context,
-                &context.runtime.program.statics[addr_args.0].borrow(),
-                addr_args.1,
-            ),
+            Op::CallStaticArg(addr_args) =>
+                context.runtime.program.statics[addr_args.0].borrow().call(context, addr_args.1),
 
             Op::Print => {
                 let value = context.collect(context.capture_start, true, false, 0);

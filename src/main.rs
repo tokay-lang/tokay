@@ -243,7 +243,7 @@ fn main() {
         compile_and_run(
             "
         mul : @x {
-            x * x + x
+            x * x
         }
 
         mul(4)

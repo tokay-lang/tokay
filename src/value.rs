@@ -337,14 +337,11 @@ impl Value {
     }
 
     // Call
-    pub fn call(&self, context: &mut Context, args: Vec<RefValue>) -> Result<Accept, Reject> {
+    pub fn call(&self, context: &mut Context, args: usize) -> Result<Accept, Reject> {
         match self {
             Value::Builtin(addr) => builtin::call(*addr, context, args),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, false),
-
-            _ => {
-                panic!("{:?} cannot be called", self)
-            }
+            _ => panic!("{:?} cannot be called", self)
         }
     }
 }

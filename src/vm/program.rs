@@ -38,7 +38,7 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<String>> {
         let main = self.main.borrow();
-        let res = main.run(runtime, Vec::new(), true);
+        let res = main.run(runtime, 0, true);
 
         match res {
             Ok(Accept::Push(capture)) => {

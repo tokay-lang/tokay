@@ -77,8 +77,8 @@ pub fn get(ident: &'static str) -> Option<usize> {
     None
 }
 
-pub fn call(builtin: usize, context: &mut Context, args: Vec<RefValue>) -> Result<Accept, Reject> {
-    if args.len() > 0 {
+pub fn call(builtin: usize, context: &mut Context, args: usize) -> Result<Accept, Reject> {
+    if args > 0 {
         unimplemented!("Builtins with parameters are yet unimplemented")
     }
 
