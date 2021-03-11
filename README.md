@@ -1,21 +1,17 @@
 # Tokay
 
-Tokay is a programming language for parsing and text-processing.
-It currently is under development and not finalized yet.
+Tokay is an imperative programming language dedicated to parsing and other text-processing tasks.
 
 
-## About
+## Examples
 
-Tokay's design goal is to provide a smart, user-friendly and expressive language and runtime environment to easily analyze, process and compile structured information.
+How Tokay greets the world
 
-It runs on an input stream and matches patterns against this stream. When a pattern successfully matches, further patterns or programmatic actions can be expressed. By default, Tokay automatically constructs an abstract syntax tree from the input successfully recognized.
+```tokay
+"Hello World"
+```
 
-Nevertheless, Tokay can also be used as a straightforward, procedural programming language to quickly operate on any information, without using the parsing features at all.
-
-
-## Example
-
-This Tokay program recognizes and interprets expressions:
+Tokay is designed as a programming language for parsers with build-in abstract-syntax tree synthesis. This example directly implements a left-recursive grammar for simple mathematical expressions.
 
 ```tokay
 Factor : @{
@@ -39,7 +35,7 @@ Expr : @{
 Expr
 ```
 
-The next example is also a Tokay program that does not use the parsing facilities at all. It recursively calculates faculties.
+This program implements a functional, recursive attempt to calculate faculties. It doesn't use any parsing features.
 
 ```
 faculty : @x {
@@ -50,8 +46,7 @@ faculty : @x {
 faculty(4)
 ```
 
-More to come. Enjoy!
-
+Ok, that's it for now. This document is currently under development, same as Tokay itself. Stay tuned!
 
 ## Features
 
