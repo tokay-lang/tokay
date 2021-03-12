@@ -288,15 +288,14 @@ fn main() {
         "{:#?}",
         compile_and_run(
             "
-        faculty = @x {
-            if !x return 1
-            x * faculty(x - 1)
+        faculty : @x y=2 {
+            x y x
         }
 
-        faculty(4)
+        faculty(4, 8) faculty(4,)
         ",
             "",
-            false
+            true
         )
     );
 

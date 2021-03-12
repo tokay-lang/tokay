@@ -15,24 +15,36 @@ can only be made by looking at the parselets instruction set.
 
 #[derive(Debug)]
 pub struct Parselet {
-    pub(crate) leftrec: bool,
-    pub(crate) nullable: bool,
-    silent: bool,
-    signature: Vec<(String, Option<usize>)>,
-    locals: usize,
-    begin: Op,
-    end: Op,
-    pub(crate) body: Op,
+    pub(crate) leftrec: bool, // Indicator if parselet is left-recursive. Determined on finalization.
+    pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
+    // todo: consuming
+    pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
+    signature: Vec<(String, Option<usize>)>, // Signature for dynamic function calls and default arguments
+    locals: usize,                           // Number of local variables present
+    begin: Op,                               // Begin-operations
+    end: Op,                                 // End-operations
+    pub(crate) body: Op,                     // Operations
 }
 
 impl Parselet {
-    // Creates a new standard parselet.
-    pub fn new(body: Op, locals: usize, begin: Op, end: Op) -> Self {
+    /// Creates a new parselet.
+    pub fn new(
+        signature: Vec<(String, Option<usize>)>,
+        locals: usize,
+        begin: Op,
+        end: Op,
+        body: Op,
+    ) -> Self {
+        assert!(
+            signature.len() <= locals,
+            "signature may not be longer than locals..."
+        );
+
         Self {
             leftrec: false,
             nullable: true,
             silent: false,
-            signature: Vec::new(),
+            signature,
             locals,
             begin,
             end,
@@ -40,32 +52,30 @@ impl Parselet {
         }
     }
 
-    /// Creates a new silent parselet, which does always return Capture::Empty
-    pub fn new_silent(body: Op, locals: usize, begin: Op, end: Op) -> Self {
-        Self {
-            leftrec: false,
-            nullable: true,
-            silent: true,
-            signature: Vec::new(),
-            locals,
-            begin,
-            end,
-            body,
-        }
-    }
-
-    // Turn parselet into RefValue
+    /// Turns parselet into a RefValue
     pub fn into_refvalue(self) -> RefValue {
         Value::Parselet(Rc::new(RefCell::new(self))).into_ref()
     }
 
-    /** Run parselet on runtime.
+    /** Run parselet on a given runtime.
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
     pub fn run(&self, runtime: &mut Runtime, args: usize, main: bool) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals, args);
 
+        // Set remaining parameters to their defaults.
+        for (i, arg) in (&self.signature[args..]).iter().enumerate() {
+            let var = &mut context.runtime.stack[context.stack_start + args + i];
+            if matches!(var, Capture::Empty) {
+                if let Some(addr) = arg.1 {
+                    *var = Capture::Value(context.runtime.program.statics[addr].clone(), 10);
+                    //println!("{} receives default {:?}", arg.0, var);
+                }
+            }
+        }
+
+        // Initialize parselet execution loop
         let mut results = Vec::new();
         let mut state = if let Op::Nop = self.begin {
             None

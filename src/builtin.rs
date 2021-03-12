@@ -1,5 +1,5 @@
 use crate::compiler::Compiler;
-use crate::value::{List, RefValue, Value};
+use crate::value::{List, Value};
 use crate::vm::*;
 
 static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] = &[

@@ -110,14 +110,18 @@ impl Parser {
             [S_Inplace, _, (kle S_Tail), (Op::Create("rvalue"))]
         }),
 
-        (S_CallParameters = {
-            [S_CallParameters, _, ",", _, S_Expression],
-            [S_Expression, _]
+        (S_Parameter = {
+            //[T_Identifier, _, "=", _, S_Expression, (Op::Create("param_named"))],
+            [S_Expression, (Op::Create("param"))]
+        }),
+
+        (S_Parameters = {
+            (pos [S_Parameter, (opt [",", _])])
         }),
 
         (S_Call = {
-            [T_Identifier, "(", _, (opt S_CallParameters), ")", _, (Op::Create("call_identifier"))],
-            [S_Rvalue, "(", _, (opt S_CallParameters), ")", _, (Op::Create("call_rvalue"))]
+            [T_Identifier, "(", _, (opt S_Parameters), ")", _, (Op::Create("call_identifier"))]
+            //[S_Rvalue, "(", _, (opt S_Parameters), ")", _, (Op::Create("call_rvalue"))]
         }),
 
         (S_Literal = {

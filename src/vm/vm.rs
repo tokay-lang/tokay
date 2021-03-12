@@ -54,8 +54,6 @@ pub enum Reject {
 
 pub struct Context<'runtime, 'program, 'reader> {
     pub runtime: &'runtime mut Runtime<'program, 'reader>, // fixme: Temporary pub?
-    take: usize,
-
     pub(super) stack_start: usize,
     pub(super) capture_start: usize,
     pub(super) reader_start: Offset,
@@ -69,13 +67,20 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     ) -> Self {
         let stack_start = runtime.stack.len() - take;
 
+        /*
+        println!("---");
+        println!("stack = {:#?}", runtime.stack);
+        println!("stack = {:?}", runtime.stack.len());
+        println!("start = {:?}", stack_start);
+        println!("resize = {:?}", stack_start + preserve + 1);
+        */
+
         runtime
             .stack
-            .resize(stack_start + preserve - take + 1, Capture::Empty);
+            .resize(stack_start + preserve + 1, Capture::Empty);
 
         Self {
             stack_start,
-            take,
             capture_start: stack_start + preserve,
             reader_start: runtime.reader.tell(),
             runtime: runtime,

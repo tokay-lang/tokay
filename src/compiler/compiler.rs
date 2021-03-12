@@ -380,9 +380,9 @@ impl Compiler {
             for node in args.to_list() {
                 let node = node.borrow();
                 let node = node.get_dict().unwrap();
+
                 let children = node.borrow_by_key("children").to_list();
 
-                let emit = node.borrow_by_key("emit");
                 let ident = children.borrow_by_idx(0);
                 let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
 
@@ -401,9 +401,13 @@ impl Compiler {
                     None
                 };
 
+                sig.push((ident.clone(), default));
+
                 //println!("{} {} {:?}", emit.to_string(), ident, default);
             }
         }
+
+        //println!("sig = {:?}", sig);
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
@@ -412,10 +416,11 @@ impl Compiler {
 
         self.define_static(
             Parselet::new(
-                body.into_iter().next().unwrap_or(Op::Nop),
+                sig,
                 locals,
                 Op::from_vec(scope.begin),
                 Op::from_vec(scope.end),
+                body.into_iter().next().unwrap_or(Op::Nop),
             )
             .into_refvalue(),
         )
@@ -505,9 +510,16 @@ impl Compiler {
                 } else {
                     let children = children.to_list();
 
-                    if children.len() > 1 {
-                        ret.extend(self.traverse(&children[1].borrow()));
-                    }
+                    let params = if children.len() > 1 {
+                        let params = children[1].borrow().to_list();
+                        for param in &params {
+                            ret.extend(self.traverse(&param.borrow()));
+                        }
+
+                        params.len()
+                    } else {
+                        0
+                    };
 
                     if call == "call_identifier" {
                         let ident = children[0].borrow();
@@ -519,7 +531,7 @@ impl Compiler {
                         } else {
                             Usage::CallArg {
                                 name: ident.to_string(),
-                                params: children.len() - 1,
+                                params: params,
                             }
                         }
                     } else if call == "call_rvalue" {
@@ -604,10 +616,11 @@ impl Compiler {
                 if main.len() > 0 {
                     self.define_static(
                         Parselet::new(
-                            Block::new(main),
+                            Vec::new(),
                             locals,
                             Op::from_vec(scope.begin),
                             Op::from_vec(scope.end),
+                            Block::new(main),
                         )
                         .into_refvalue(),
                     );
@@ -746,7 +759,7 @@ impl Compiler {
                             ret.extend(self.gen_load(name));
                         }
 
-                        value => ret.extend(self.traverse_node(item)),
+                        _ => ret.extend(self.traverse_node(item)),
                     }
                 }
 

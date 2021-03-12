@@ -44,13 +44,17 @@ macro_rules! compile_item {
 
             let body = Repeat::new(body, 0, 0, true);
 
+            let mut parselet = Parselet::new(
+                Vec::new(),
+                $compiler.get_locals(),
+                Op::Nop,
+                Op::Nop,
+                body
+            );
+            parselet.silent = true;
+
             let parselet = $compiler.define_static(
-                Parselet::new_silent(
-                    body,
-                    $compiler.get_locals(),
-                    Op::Nop,
-                    Op::Nop
-                ).into_refvalue()
+                parselet.into_refvalue()
             );
 
             $compiler.pop_scope();
@@ -87,10 +91,11 @@ macro_rules! compile_item {
 
             let parselet = $compiler.define_static(
                 Parselet::new(
-                    body,
+                    Vec::new(),
                     $compiler.get_locals(),
                     Op::Nop,
                     Op::Nop,
+                    body,
                 ).into_refvalue()
             );
 
@@ -246,10 +251,11 @@ macro_rules! compile {
             if let Some(main) = main {
                 compiler.define_static(
                     Parselet::new(
-                        main,
+                        Vec::new(),
                         compiler.get_locals(),
                         Op::Nop,
                         Op::Nop,
+                        main
                     ).into_refvalue()
                 );
             }

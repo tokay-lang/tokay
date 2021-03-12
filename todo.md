@@ -5,6 +5,7 @@ This is a recently updated brainstorming and todo scribble file.
 ## Pritority
 
 - [ ] Parametized parselets
+- [ ] Generic parselets
 
 ## General
 
