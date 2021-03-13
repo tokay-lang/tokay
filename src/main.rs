@@ -288,11 +288,11 @@ fn main() {
         "{:#?}",
         compile_and_run(
             "
-        faculty : @x y=2 {
-            x y x
+        f : @x y=2 z {
+            x y z
         }
 
-        faculty(4, 8) faculty(4,)
+        f(4, 8) f(3, 6, z=9)
         ",
             "",
             true

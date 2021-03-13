@@ -510,29 +510,59 @@ impl Compiler {
                 } else {
                     let children = children.to_list();
 
-                    let params = if children.len() > 1 {
-                        let params = children[1].borrow().to_list();
-                        for param in &params {
-                            ret.extend(self.traverse(&param.borrow()));
-                        }
+                    let mut args = 0;
+                    let mut nargs = 0;
 
-                        params.len()
-                    } else {
-                        0
-                    };
+                    if children.len() > 1 {
+                        let params = children[1].borrow().to_list();
+
+                        for param in &params {
+                            let param = param.borrow();
+                            let param = param.get_dict().unwrap();
+
+                            let emit = param.borrow_by_key("emit");
+
+                            match emit.get_string().unwrap() {
+                                "param" => {
+                                    if nargs > 0 {
+                                        panic!("Sequencial parameters must be given first!");
+                                    }
+
+                                    ret.extend(self.traverse(&param.borrow_by_key("children")));
+                                    args += 1;
+                                }
+
+                                "param_named" => {
+                                    let children = param.borrow_by_key("children").to_list();
+
+                                    ret.extend(self.traverse(&children.borrow_by_idx(1)));
+
+                                    let ident = children.borrow_by_idx(0);
+                                    let ident = ident
+                                        .get_dict()
+                                        .unwrap()
+                                        .borrow_by_key("value")
+                                        .to_string();
+                                    ret.push(Op::LoadStatic(
+                                        self.define_static(Value::String(ident).into_ref()),
+                                    ));
+
+                                    nargs += 1;
+                                }
+
+                                other => panic!("Unhandled parameter type {:?}", other),
+                            }
+                        }
+                    }
 
                     if call == "call_identifier" {
                         let ident = children[0].borrow();
-                        let ident = ident.get_dict().unwrap();
-                        let ident = ident.borrow_by_key("value");
+                        let ident = ident.get_dict().unwrap().borrow_by_key("value");
 
-                        if children.len() == 0 {
-                            Usage::Call(ident.to_string())
-                        } else {
-                            Usage::CallArg {
-                                name: ident.to_string(),
-                                params: params,
-                            }
+                        Usage::Call {
+                            name: ident.to_string(),
+                            args,
+                            nargs,
                         }
                     } else if call == "call_rvalue" {
                         unimplemented!();

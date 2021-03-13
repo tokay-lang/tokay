@@ -24,8 +24,10 @@ pub enum Op {
     TryCall,
     Call,
     CallArg(usize),
+    CallArgNamed(usize),
     CallStatic(usize),
     CallStaticArg(Box<(usize, usize)>),
+    CallStaticArgNamed(Box<(usize, usize)>),
 
     // Debuging and error reporting
     Print,               // todo: make this a builtin
@@ -56,6 +58,8 @@ pub enum Op {
     LoadCapture,
     StoreFastCapture(usize),
     StoreCapture,
+    //MakeList(usize),
+    MakeDict(usize),
 
     // Operations
     Add,
@@ -124,7 +128,7 @@ impl Runable for Op {
             Op::TryCall => {
                 let value = context.pop();
                 if value.borrow().is_callable() {
-                    value.borrow().call(context, 0)
+                    value.borrow().call(context, 0, None)
                 } else {
                     Ok(Accept::Push(Capture::Value(value.clone(), 10)))
                 }
@@ -133,25 +137,45 @@ impl Runable for Op {
             Op::Call => {
                 let target = context.pop();
                 let target = target.borrow();
-                target.call(context, 0)
+                target.call(context, 0, None)
             }
 
             Op::CallArg(args) => {
                 let target = context.pop();
                 let target = target.borrow();
-                target.call(context, *args)
+                target.call(context, *args, None)
                 //println!("CallArg returns {:?}", ret);
+            }
+
+            Op::CallArgNamed(args) => {
+                let target = context.pop();
+                let target = target.borrow();
+
+                let nargs = context.pop();
+                let nargs = nargs.borrow();
+                target.call(context, *args, nargs.get_dict())
+                //println!("CallArgNamed returns {:?}", ret);
             }
 
             Op::CallStatic(addr) => context.runtime.program.statics[*addr]
                 .borrow()
-                .call(context, 0),
+                .call(context, 0, None),
 
             Op::CallStaticArg(addr_args) => {
                 context.runtime.program.statics[addr_args.0]
                     .borrow()
-                    .call(context, addr_args.1)
+                    .call(context, addr_args.1, None)
                 //println!("CallStaticArg returns {:?}", ret);
+            }
+
+            Op::CallStaticArgNamed(addr_args) => {
+                let nargs = context.pop();
+                let nargs = nargs.borrow();
+
+                context.runtime.program.statics[addr_args.0]
+                    .borrow()
+                    .call(context, addr_args.1, nargs.get_dict())
+                //println!("CallStaticArg returns {:?}",
             }
 
             Op::Print => {
@@ -331,6 +355,20 @@ impl Runable for Op {
                         unimplemented!("//todo")
                     }
                 }
+            }
+
+            Op::MakeDict(count) => {
+                let mut dict = Dict::new();
+
+                for _ in 0..*count {
+                    let key = context.pop();
+                    let key = key.borrow();
+
+                    let value = context.pop();
+                    dict.insert(key.to_string(), value);
+                }
+
+                Ok(Accept::Push(Capture::from_value(Value::Dict(Box::new(dict)).into_ref())))
             }
 
             Op::Add | Op::Sub | Op::Div | Op::Mul => {

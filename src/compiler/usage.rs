@@ -5,9 +5,11 @@ use crate::vm::*;
 #[derive(Debug)]
 pub enum Usage {
     Symbol(String),
-    Call(String),
-    CallArg { name: String, params: usize },
-    CallArgX { name: String, params: usize },
+    Call {
+        name: String,
+        args: usize,
+        nargs: usize,
+    },
 }
 
 impl Usage {
@@ -31,23 +33,7 @@ impl Usage {
                 }
             }
 
-            Usage::Call(name) => {
-                if let Some(addr) = compiler.get_constant(&name) {
-                    let statics = compiler.statics.borrow();
-
-                    // fixme: This should check if the static is callable
-                    //        without parameters!
-                    if statics[addr].borrow().is_callable() {
-                        return Some(vec![Op::CallStatic(addr)]);
-                    }
-                } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr), Op::Call]);
-                } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr), Op::Call]);
-                }
-            }
-
-            Usage::CallArg { name, params } => {
+            Usage::Call { name, args, nargs } => {
                 // Resolve constants
                 if let Some(addr) = compiler.get_constant(&name) {
                     let statics = compiler.statics.borrow();
@@ -55,12 +41,41 @@ impl Usage {
                     // fixme: This should check if the static is callable
                     //        without parameters!
                     if statics[addr].borrow().is_callable() {
-                        return Some(vec![Op::CallStaticArg(Box::new((addr, *params)))]);
+                        if *args == 0 && *nargs == 0 {
+                            return Some(vec![Op::CallStatic(addr)]);
+                        } else if *args > 0 && *nargs == 0 {
+                            return Some(vec![Op::CallStaticArg(Box::new((addr, *args)))]);
+                        }
+
+                        return Some(vec![
+                            Op::MakeDict(*nargs),
+                            Op::CallStaticArgNamed(Box::new((addr, *args))),
+                        ]);
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr), Op::CallArg(*params)]);
+                    if *args == 0 && *nargs == 0 {
+                        return Some(vec![Op::LoadFast(addr), Op::Call]);
+                    } else if *args > 0 && *nargs == 0 {
+                        return Some(vec![Op::LoadFast(addr), Op::CallArg(*args)]);
+                    }
+
+                    return Some(vec![
+                        Op::MakeDict(*nargs),
+                        Op::LoadFast(addr),
+                        Op::CallArgNamed(*args),
+                    ]);
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr), Op::CallArg(*params)]);
+                    if *args == 0 && *nargs == 0 {
+                        return Some(vec![Op::LoadGlobal(addr), Op::Call]);
+                    } else if *args > 0 && *nargs == 0 {
+                        return Some(vec![Op::LoadGlobal(addr), Op::CallArg(*args)]);
+                    }
+
+                    return Some(vec![
+                        Op::MakeDict(*nargs),
+                        Op::LoadGlobal(addr),
+                        Op::CallArgNamed(*args),
+                    ]);
                 }
             }
 

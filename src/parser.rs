@@ -111,7 +111,7 @@ impl Parser {
         }),
 
         (S_Parameter = {
-            //[T_Identifier, _, "=", _, S_Expression, (Op::Create("param_named"))],
+            [T_Identifier, _, "=", _, S_Expression, (Op::Create("param_named"))],
             [S_Expression, (Op::Create("param"))]
         }),
 
@@ -200,7 +200,6 @@ impl Parser {
             ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
                 (Op::Create("op_ifelse"))],
             ["if", _, S_Expression, S_Statement, (Op::Create("op_if"))],
-            S_Assign,
             S_Compare
         }),
 
@@ -210,6 +209,7 @@ impl Parser {
             ["accept", _, S_Expression, (Op::Create("op_accept"))],
             ["accept", _, (Op::Create("op_acceptvoid"))],
             ["reject", _, (Op::Create("op_reject"))],
+            S_Assign,
             S_Expression
         }),
 

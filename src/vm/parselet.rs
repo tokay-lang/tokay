@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::{RefValue, Value};
+use crate::value::{Dict, RefValue, Value};
 
 /** Parselet is the conceptual building block of a Tokay program.
 
@@ -61,15 +61,29 @@ impl Parselet {
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
-    pub fn run(&self, runtime: &mut Runtime, args: usize, main: bool) -> Result<Accept, Reject> {
+    pub fn run(
+        &self,
+        runtime: &mut Runtime,
+        args: usize,
+        nargs: Option<&Dict>,
+        main: bool,
+    ) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals, args);
 
         // Set remaining parameters to their defaults.
         for (i, arg) in (&self.signature[args..]).iter().enumerate() {
             let var = &mut context.runtime.stack[context.stack_start + args + i];
             if matches!(var, Capture::Empty) {
+                // Try to fill argument by named arguments dict
+                if let Some(nargs) = nargs {
+                    if let Some(value) = nargs.get(&arg.0) {
+                        *var = Capture::from_value(value.clone());
+                        continue;
+                    }
+                }
+
                 if let Some(addr) = arg.1 {
-                    *var = Capture::Value(context.runtime.program.statics[addr].clone(), 10);
+                    *var = Capture::from_value(context.runtime.program.statics[addr].clone());
                     //println!("{} receives default {:?}", arg.0, var);
                 }
             }

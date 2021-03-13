@@ -16,6 +16,10 @@ pub enum Capture {
 }
 
 impl Capture {
+    pub fn from_value(value: RefValue) -> Self {
+        Capture::Value(value, 10)
+    }
+
     pub fn as_value(&self, runtime: &Runtime) -> RefValue {
         match self {
             Capture::Empty => Value::Void.into_ref(),
