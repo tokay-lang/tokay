@@ -81,7 +81,7 @@ pub fn call(
     builtin: usize,
     context: &mut Context,
     args: usize,
-    _nargs: Option<&Dict>,
+    _nargs: Option<Dict>,
 ) -> Result<Accept, Reject> {
     if args > 0 {
         unimplemented!("Builtins with parameters are yet unimplemented")

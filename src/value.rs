@@ -299,8 +299,36 @@ impl Value {
             *d.clone()
         } else {
             let mut d = Dict::new();
+            //fixme "0"?
             d.insert("0".to_string(), self.clone().into_ref());
             d
+        }
+    }
+
+    // Turn value into raw String, consuming the value.
+    pub fn into_string(self) -> String {
+        if let Self::String(s) = self {
+            s
+        } else {
+            self.to_string()
+        }
+    }
+
+    // Turn value into raw List, consuming the value.
+    pub fn into_list(self) -> List {
+        if let Self::List(l) = self {
+            *l
+        } else {
+            self.to_list()
+        }
+    }
+
+    // Turn value into raw Dict, consuming the value.
+    pub fn into_dict(self) -> Dict {
+        if let Self::Dict(d) = self {
+            *d
+        } else {
+            self.to_dict()
         }
     }
 
@@ -341,7 +369,7 @@ impl Value {
         &self,
         context: &mut Context,
         args: usize,
-        nargs: Option<&Dict>,
+        nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         match self {
             Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),

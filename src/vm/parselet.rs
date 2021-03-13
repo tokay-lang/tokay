@@ -65,7 +65,7 @@ impl Parselet {
         &self,
         runtime: &mut Runtime,
         args: usize,
-        nargs: Option<&Dict>,
+        mut nargs: Option<Dict>,
         main: bool,
     ) -> Result<Accept, Reject> {
         let mut context = Context::new(runtime, self.locals, args);
@@ -75,8 +75,8 @@ impl Parselet {
             let var = &mut context.runtime.stack[context.stack_start + args + i];
             if matches!(var, Capture::Empty) {
                 // Try to fill argument by named arguments dict
-                if let Some(nargs) = nargs {
-                    if let Some(value) = nargs.get(&arg.0) {
+                if let Some(ref mut nargs) = nargs {
+                    if let Some(value) = nargs.remove(&arg.0) {
                         *var = Capture::from_value(value.clone());
                         continue;
                     }
@@ -88,6 +88,8 @@ impl Parselet {
                 }
             }
         }
+
+        //println!("remaining {:?}", nargs);
 
         // Initialize parselet execution loop
         let mut results = Vec::new();

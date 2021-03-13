@@ -151,9 +151,8 @@ impl Runable for Op {
                 let target = context.pop();
                 let target = target.borrow();
 
-                let nargs = context.pop();
-                let nargs = nargs.borrow();
-                target.call(context, *args, nargs.get_dict())
+                let nargs = Value::from_ref(context.pop()).unwrap();
+                target.call(context, *args, Some(nargs.into_dict()))
                 //println!("CallArgNamed returns {:?}", ret);
             }
 
@@ -162,19 +161,22 @@ impl Runable for Op {
                 .call(context, 0, None),
 
             Op::CallStaticArg(addr_args) => {
-                context.runtime.program.statics[addr_args.0]
-                    .borrow()
-                    .call(context, addr_args.1, None)
+                context.runtime.program.statics[addr_args.0].borrow().call(
+                    context,
+                    addr_args.1,
+                    None,
+                )
                 //println!("CallStaticArg returns {:?}", ret);
             }
 
             Op::CallStaticArgNamed(addr_args) => {
-                let nargs = context.pop();
-                let nargs = nargs.borrow();
+                let nargs = Value::from_ref(context.pop()).unwrap();
 
-                context.runtime.program.statics[addr_args.0]
-                    .borrow()
-                    .call(context, addr_args.1, nargs.get_dict())
+                context.runtime.program.statics[addr_args.0].borrow().call(
+                    context,
+                    addr_args.1,
+                    Some(nargs.into_dict()),
+                )
                 //println!("CallStaticArg returns {:?}",
             }
 
@@ -368,7 +370,9 @@ impl Runable for Op {
                     dict.insert(key.to_string(), value);
                 }
 
-                Ok(Accept::Push(Capture::from_value(Value::Dict(Box::new(dict)).into_ref())))
+                Ok(Accept::Push(Capture::from_value(
+                    Value::Dict(Box::new(dict)).into_ref(),
+                )))
             }
 
             Op::Add | Op::Sub | Op::Div | Op::Mul => {
