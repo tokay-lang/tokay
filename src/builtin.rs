@@ -18,7 +18,7 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] =
 
         if start.offset < context.runtime.reader.tell().offset {
             Ok(Accept::Push(Capture::Value(
-                Value::Integer(value).into_ref(),
+                Value::Integer(value).into_refvalue(),
                 5,
             )))
         } else {
@@ -53,7 +53,7 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] =
         }
 
         Ok(Accept::Return(Some(
-            Value::List(Box::new(flatten)).into_ref(),
+            Value::List(Box::new(flatten)).into_refvalue(),
         )))
     }),
 ];
@@ -62,7 +62,7 @@ pub fn register(compiler: &mut Compiler) {
     for i in 0..BUILTINS.len() {
         compiler.set_constant(
             BUILTINS[i].0,
-            compiler.define_static(Value::Builtin(i).into_ref()),
+            compiler.define_static(Value::Builtin(i).into_refvalue()),
         );
     }
 }

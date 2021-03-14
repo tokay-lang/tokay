@@ -11,7 +11,7 @@ macro_rules! compile_item {
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
         {
             let name = stringify!($name).to_string();
-            let value = Value::String($value.to_string()).into_ref();
+            let value = Value::String($value.to_string()).into_refvalue();
             let addr = $compiler.define_static(value);
 
             $compiler.set_constant(
@@ -54,7 +54,7 @@ macro_rules! compile_item {
             parselet.silent = true;
 
             let parselet = $compiler.define_static(
-                parselet.into_refvalue()
+                parselet.into_value().into_refvalue()
             );
 
             $compiler.pop_scope();
@@ -96,7 +96,7 @@ macro_rules! compile_item {
                     Op::Nop,
                     Op::Nop,
                     body,
-                ).into_refvalue()
+                ).into_value().into_refvalue()
             );
 
             $compiler.pop_scope();
@@ -256,7 +256,7 @@ macro_rules! compile {
                         Op::Nop,
                         Op::Nop,
                         main
-                    ).into_refvalue()
+                    ).into_value().into_refvalue()
                 );
             }
 

@@ -52,9 +52,9 @@ impl Parselet {
         }
     }
 
-    /// Turns parselet into a RefValue
-    pub fn into_refvalue(self) -> RefValue {
-        Value::Parselet(Rc::new(RefCell::new(self))).into_ref()
+    /// Turns parselet into a Value
+    pub fn into_value(self) -> Value {
+        Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
     /** Run parselet on a given runtime.
@@ -125,9 +125,9 @@ impl Parselet {
                     Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
 
                     Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
-                        Capture::Range(range, _) => {
-                            Some(Value::String(context.runtime.reader.extract(&range)).into_ref())
-                        }
+                        Capture::Range(range, _) => Some(
+                            Value::String(context.runtime.reader.extract(&range)).into_refvalue(),
+                        ),
                         Capture::Value(value, _) => Some(value),
                         _ => None,
                     })),
@@ -217,7 +217,7 @@ impl Parselet {
 
         if results.len() > 1 {
             Ok(Accept::Push(Capture::Value(
-                Value::List(Box::new(results)).into_ref(),
+                Value::List(Box::new(results)).into_refvalue(),
                 5,
             )))
         } else if results.len() == 1 {

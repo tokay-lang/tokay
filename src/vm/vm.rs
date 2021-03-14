@@ -22,9 +22,11 @@ impl Capture {
 
     pub fn as_value(&self, runtime: &Runtime) -> RefValue {
         match self {
-            Capture::Empty => Value::Void.into_ref(),
+            Capture::Empty => Value::Void.into_refvalue(),
 
-            Capture::Range(range, _) => Value::String(runtime.reader.extract(range)).into_ref(),
+            Capture::Range(range, _) => {
+                Value::String(runtime.reader.extract(range)).into_refvalue()
+            }
 
             Capture::Value(value, _) => value.clone(),
 
@@ -122,7 +124,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                         .reader
                         .extract(&self.runtime.reader.capture_from(&self.reader_start)),
                 )
-                .into_ref(),
+                .into_refvalue(),
             )
         } else {
             Some(self.runtime.stack[self.capture_start + pos].as_value(&self.runtime))
@@ -227,7 +229,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                             list.clear();
                         }
 
-                        list.push(Value::String(self.runtime.reader.extract(&range)).into_ref());
+                        list.push(
+                            Value::String(self.runtime.reader.extract(&range)).into_refvalue(),
+                        );
                     }
 
                     Capture::Value(value, severity) if severity >= max => {
@@ -253,7 +257,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
             if dict.len() == 0 {
                 if list.len() > 1 {
-                    return Some(Capture::Value(Value::List(Box::new(list)).into_ref(), 5));
+                    return Some(Capture::Value(
+                        Value::List(Box::new(list)).into_refvalue(),
+                        5,
+                    ));
                 } else if list.len() == 1 {
                     return Some(Capture::Value(list[0].clone(), 5));
                 }
@@ -268,7 +275,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                     return Some(Capture::Value(dict.values().next().unwrap().clone(), 5));
                 }
 
-                Some(Capture::Value(Value::Dict(Box::new(dict)).into_ref(), 5))
+                Some(Capture::Value(
+                    Value::Dict(Box::new(dict)).into_refvalue(),
+                    5,
+                ))
             }
         }
     }

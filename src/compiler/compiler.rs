@@ -351,17 +351,14 @@ impl Compiler {
             "value_false" => Value::False,
             "value_null" => Value::Null,
             "value_void" => Value::Void,
-            "value_parselet" => {
-                let parselet = self.traverse_node_parselet(node);
-                return self.statics.borrow()[parselet].clone();
-            }
+            "value_parselet" => self.traverse_node_parselet(node),
             _ => unimplemented!("unhandled value node {}", emit),
         }
-        .into_ref()
+        .into_refvalue()
     }
 
     // Traverse a parselet node into a parselet address
-    fn traverse_node_parselet(&mut self, node: &Dict) -> usize {
+    fn traverse_node_parselet(&mut self, node: &Dict) -> Value {
         self.push_scope(true);
 
         let children = node.borrow_by_key("children");
@@ -414,16 +411,14 @@ impl Compiler {
         let locals = self.get_locals();
         let scope = self.take_scope();
 
-        self.define_static(
-            Parselet::new(
-                sig,
-                locals,
-                Op::from_vec(scope.begin),
-                Op::from_vec(scope.end),
-                body.into_iter().next().unwrap_or(Op::Nop),
-            )
-            .into_refvalue(),
+        Parselet::new(
+            sig,
+            locals,
+            Op::from_vec(scope.begin),
+            Op::from_vec(scope.end),
+            body.into_iter().next().unwrap_or(Op::Nop),
         )
+        .into_value()
     }
 
     // Main traversal function, running recursively through the AST
@@ -544,7 +539,7 @@ impl Compiler {
                                         .borrow_by_key("value")
                                         .to_string();
                                     ret.push(Op::LoadStatic(
-                                        self.define_static(Value::String(ident).into_ref()),
+                                        self.define_static(Value::String(ident).into_refvalue()),
                                     ));
 
                                     nargs += 1;
@@ -652,6 +647,7 @@ impl Compiler {
                             Op::from_vec(scope.end),
                             Block::new(main),
                         )
+                        .into_value()
                         .into_refvalue(),
                     );
                 }

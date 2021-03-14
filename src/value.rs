@@ -97,7 +97,7 @@ macro_rules! value {
         {
             let mut dict = Dict::new();
             $( dict.insert($key.to_string(), value!($value)); )*
-            Value::Dict(Box::new(dict)).into_ref()
+            Value::Dict(Box::new(dict)).into_refvalue()
         }
     };
 
@@ -105,7 +105,7 @@ macro_rules! value {
         {
             let mut list = List::new();
             $( list.push(value!($value)); )*
-            Value::List(Box::new(list)).into_ref()
+            Value::List(Box::new(list)).into_refvalue()
         }
     };
 
@@ -113,29 +113,29 @@ macro_rules! value {
         if let Some(value) = (&$value as &std::any::Any).downcast_ref::<bool>()
         {
             if *value {
-                Value::True.into_ref()
+                Value::True.into_refvalue()
             }
             else {
-                Value::False.into_ref()
+                Value::False.into_refvalue()
             }
         }
         else
         if let Some(value) = (&$value as &std::any::Any).downcast_ref::<f64>()
         {
-            Value::Float(*value).into_ref()
+            Value::Float(*value).into_refvalue()
         }
         else
         if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i32>()
         {
-            Value::Integer(*value as i64).into_ref()
+            Value::Integer(*value as i64).into_refvalue()
         }
         else
         if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i64>()
         {
-            Value::Integer(*value).into_ref()
+            Value::Integer(*value).into_refvalue()
         }
         else {
-            Value::String($value.to_string()).into_ref()
+            Value::String($value.to_string()).into_refvalue()
         }
     }
 }
@@ -186,7 +186,7 @@ impl std::fmt::Debug for Value {
 
 impl Value {
     // Create a RefValue from a Value.
-    pub fn into_ref(self) -> RefValue {
+    pub fn into_refvalue(self) -> RefValue {
         RefValue::new(RefCell::new(self))
     }
 
@@ -288,7 +288,7 @@ impl Value {
             *l.clone()
         } else {
             let mut l = List::new();
-            l.push(self.clone().into_ref());
+            l.push(self.clone().into_refvalue());
             l
         }
     }
@@ -300,7 +300,7 @@ impl Value {
         } else {
             let mut d = Dict::new();
             //fixme "0"?
-            d.insert("0".to_string(), self.clone().into_ref());
+            d.insert("0".to_string(), self.clone().into_refvalue());
             d
         }
     }

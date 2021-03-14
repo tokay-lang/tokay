@@ -211,7 +211,7 @@ impl Runable for Op {
 
                         ret.insert(
                             "emit".to_string(),
-                            Value::String(emit.to_string()).into_ref(),
+                            Value::String(emit.to_string()).into_refvalue(),
                         );
 
                         // List or Dict values are classified as child nodes
@@ -225,16 +225,16 @@ impl Runable for Op {
 
                         ret.insert(
                             "row".to_string(),
-                            Value::Addr(context.reader_start.row as usize).into_ref(),
+                            Value::Addr(context.reader_start.row as usize).into_refvalue(),
                         );
                         ret.insert(
                             "col".to_string(),
-                            Value::Addr(context.reader_start.col as usize).into_ref(),
+                            Value::Addr(context.reader_start.col as usize).into_refvalue(),
                         );
 
-                        Value::Dict(Box::new(ret)).into_ref()
+                        Value::Dict(Box::new(ret)).into_refvalue()
                     }
-                    None => Value::String(emit.to_string()).into_ref(),
+                    None => Value::String(emit.to_string()).into_refvalue(),
                 };
 
                 //println!("Create {} value = {:?}", emit, value);
@@ -254,12 +254,14 @@ impl Runable for Op {
 
                 ret.insert(
                     "emit".to_string(),
-                    Value::String(emit.to_string()).into_ref(),
+                    Value::String(emit.to_string()).into_refvalue(),
                 );
 
-                ret.insert("value".to_string(), value.into_ref());
+                ret.insert("value".to_string(), value.into_refvalue());
 
-                Ok(Accept::Return(Some(Value::Dict(Box::new(ret)).into_ref())))
+                Ok(Accept::Return(Some(
+                    Value::Dict(Box::new(ret)).into_refvalue(),
+                )))
             }
 
             Op::Skip => Ok(Accept::Skip),
@@ -285,9 +287,18 @@ impl Runable for Op {
                 10,
             ))),
 
-            Op::PushTrue => Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10))),
-            Op::PushFalse => Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 10))),
-            Op::PushVoid => Ok(Accept::Push(Capture::Value(Value::Void.into_ref(), 10))),
+            Op::PushTrue => Ok(Accept::Push(Capture::Value(
+                Value::True.into_refvalue(),
+                10,
+            ))),
+            Op::PushFalse => Ok(Accept::Push(Capture::Value(
+                Value::False.into_refvalue(),
+                10,
+            ))),
+            Op::PushVoid => Ok(Accept::Push(Capture::Value(
+                Value::Void.into_refvalue(),
+                10,
+            ))),
 
             Op::LoadGlobal(addr) => Ok(Accept::Push(Capture::Value(
                 context.runtime.stack[*addr].as_value(&context.runtime),
@@ -317,7 +328,7 @@ impl Runable for Op {
             Op::LoadFastCapture(index) => {
                 let value = context
                     .get_capture(*index)
-                    .unwrap_or(Value::Void.into_ref());
+                    .unwrap_or(Value::Void.into_refvalue());
 
                 Ok(Accept::Push(Capture::Value(value, 10)))
             }
@@ -371,7 +382,7 @@ impl Runable for Op {
                 }
 
                 Ok(Accept::Push(Capture::from_value(
-                    Value::Dict(Box::new(dict)).into_ref(),
+                    Value::Dict(Box::new(dict)).into_refvalue(),
                 )))
             }
 
@@ -386,10 +397,10 @@ impl Runable for Op {
                 */
 
                 let c = match self {
-                    Op::Add => (&*a.borrow() + &*b.borrow()).into_ref(),
-                    Op::Sub => (&*a.borrow() - &*b.borrow()).into_ref(),
-                    Op::Div => (&*a.borrow() / &*b.borrow()).into_ref(),
-                    Op::Mul => (&*a.borrow() * &*b.borrow()).into_ref(),
+                    Op::Add => (&*a.borrow() + &*b.borrow()).into_refvalue(),
+                    Op::Sub => (&*a.borrow() - &*b.borrow()).into_refvalue(),
+                    Op::Div => (&*a.borrow() / &*b.borrow()).into_refvalue(),
+                    Op::Mul => (&*a.borrow() * &*b.borrow()).into_refvalue(),
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
@@ -398,9 +409,15 @@ impl Runable for Op {
 
             Op::Not => {
                 if context.pop().borrow().is_true() {
-                    Ok(Accept::Push(Capture::Value(Value::False.into_ref(), 10)))
+                    Ok(Accept::Push(Capture::Value(
+                        Value::False.into_refvalue(),
+                        10,
+                    )))
                 } else {
-                    Ok(Accept::Push(Capture::Value(Value::True.into_ref(), 10)))
+                    Ok(Accept::Push(Capture::Value(
+                        Value::True.into_refvalue(),
+                        10,
+                    )))
                 }
             }
 
