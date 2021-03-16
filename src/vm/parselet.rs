@@ -19,7 +19,7 @@ pub struct Parselet {
     pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
     // todo: consuming
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
-    signature: Vec<(String, Option<usize>)>, // Signature for dynamic function calls and default arguments
+    signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
     locals: usize,                           // Number of local variables present
     begin: Op,                               // Begin-operations
     end: Op,                                 // End-operations

@@ -105,6 +105,20 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         capture.as_value(self.runtime)
     }
 
+    /// Peek into contexts current stack, the offset starts from the top.
+    pub(crate) fn peek(&self, offset: usize) -> Option<RefValue> {
+        if offset >= self.runtime.stack.len() {
+            return None;
+        }
+
+        let offset = self.runtime.stack.len() - 1 - offset;
+        if offset < self.stack_start {  // fixme: Maybe better check for capture_start?
+            return None;
+        }
+
+        Some(self.runtime.stack[offset].as_value(self.runtime))
+    }
+
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&self, pos: usize) -> Option<RefValue> {
         if self.capture_start + pos >= self.runtime.stack.len() {
@@ -297,7 +311,7 @@ pub struct Runtime<'program, 'reader> {
     pub(crate) reader: &'reader mut Reader, // temporary pub
 
     pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
-    pub(super) stack: Vec<Capture>,
+    pub(crate) stack: Vec<Capture>,
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {

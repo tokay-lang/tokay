@@ -1,9 +1,12 @@
 use crate::compiler::Compiler;
-use crate::value::{Dict, List, Value};
+use crate::value::{Dict, List, Value, RefValue};
 use crate::vm::*;
 
-static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] = &[
-    ("Integer", |context| {
+type Builtin = fn(&mut Context, args: usize, nargs: Option<Dict>) -> Result<Accept, Reject>;
+
+
+static BUILTINS: &[(&'static str, Builtin)] = &[
+    ("Integer", |context, _args, _nargs| {
         let mut value: i64 = 0;
         let start = context.runtime.reader.tell();
 
@@ -26,6 +29,30 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] =
             Err(Reject::Next)
         }
     }),
+    ("print", |context, args, _| {
+        if args == 0 {
+            if let Some(capture) = context.get_capture(0) {
+                println!("{:?}", capture);
+            }
+            else {
+                print!("\n");
+            }
+
+            return Ok(Accept::Next);
+        }
+
+        for i in 0..args {
+            if i > 0 {
+                print!(" ");
+            }
+
+            print!("{}", get_arg(context, args, None, i, None).unwrap().borrow().to_string());
+        }
+
+        print!("\n");
+        Ok(Accept::Next)
+    })
+    /*
     ("flatten", |context| {
         let mut max = 0;
         let mut flatten = List::new();
@@ -56,6 +83,7 @@ static BUILTINS: &[(&'static str, fn(&mut Context) -> Result<Accept, Reject>)] =
             Value::List(Box::new(flatten)).into_refvalue(),
         )))
     }),
+    */
 ];
 
 pub fn register(compiler: &mut Compiler) {
@@ -77,15 +105,32 @@ pub fn get(ident: &'static str) -> Option<usize> {
     None
 }
 
+pub fn get_arg(context: &Context, args: usize, nargs: Option<Dict>, index: usize, name: Option<&'static str>) -> Option<RefValue> {
+    // Try to retrieve argument by name
+    if let Some(name) = name {
+        if let Some(nargs) = nargs {
+            if let Some(value) = nargs.get(name) {
+                return Some(value.clone());
+            }
+        }
+    }
+
+    if index >= args {
+        panic!("Function requires to access parameter {}, but only {} parameters where given", index, args);
+    }
+
+    //println!("args = {} index = {}, peek = {}", args, index, args - index - 1);
+
+    context.peek(args - index - 1)
+}
+
 pub fn call(
     builtin: usize,
     context: &mut Context,
     args: usize,
-    _nargs: Option<Dict>,
+    mut nargs: Option<Dict>,
 ) -> Result<Accept, Reject> {
-    if args > 0 {
-        unimplemented!("Builtins with parameters are yet unimplemented")
-    }
-
-    BUILTINS[builtin].1(context)
+    let result = (&BUILTINS[builtin].1)(context, args, nargs);
+    context.runtime.stack.truncate(context.runtime.stack.len() - args);
+    result
 }

@@ -288,11 +288,8 @@ fn main() {
         "{:#?}",
         compile_and_run(
             "
-        f : @x y=2 z {
-            x y z
-        }
-
-        f(4, 8) f(3, 6, z=9)
+        print(\"Hello World\" + 23 *4, \"Mein Fridolin, der alte Racker\" )
+        23 * 5 print
         ",
             "",
             true
