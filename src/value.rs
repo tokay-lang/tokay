@@ -110,7 +110,7 @@ macro_rules! value {
     };
 
     ( $value:expr ) => {
-        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<bool>()
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<bool>()
         {
             if *value {
                 Value::True.into_refvalue()
@@ -120,17 +120,17 @@ macro_rules! value {
             }
         }
         else
-        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<f64>()
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f64>()
         {
             Value::Float(*value).into_refvalue()
         }
         else
-        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i32>()
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i32>()
         {
             Value::Integer(*value as i64).into_refvalue()
         }
         else
-        if let Some(value) = (&$value as &std::any::Any).downcast_ref::<i64>()
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i64>()
         {
             Value::Integer(*value).into_refvalue()
         }

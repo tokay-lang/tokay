@@ -197,7 +197,36 @@ macro_rules! compile_item {
         Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg)))
     };
 
-    // Call
+    // Value
+    ( $compiler:expr, (value $value:tt) ) => {
+        Some(Op::LoadStatic($compiler.define_static(value!($value))))
+    };
+
+    // Call with parameters
+    ( $compiler:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
+        {
+            let mut items = vec![
+                $(
+                    compile_item!($compiler, $param).unwrap()
+                ),*
+            ];
+
+            let name = stringify!($ident).to_string();
+
+            let item = Usage::Call{
+                name,
+                args: items.len(),
+                nargs: 0
+            }.resolve_or_dispose(&mut $compiler);
+
+            items.extend(item);
+
+            //println!("call = {} {:?}", stringify!($ident), items);
+            Some(Op::from_vec(items))
+        }
+    };
+
+    // Call without parameters
     ( $compiler:expr, $ident:ident ) => {
         {
             //println!("call = {}", stringify!($ident));
@@ -207,8 +236,7 @@ macro_rules! compile_item {
                 name.to_string()
             ).resolve_or_dispose(&mut $compiler);
 
-            assert!(item.len() == 1); // Can only process statics here!
-            Some(item.into_iter().next().unwrap())
+            Some(Op::from_vec(item))
         }
     };
 

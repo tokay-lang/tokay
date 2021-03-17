@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::{Dict, RefValue, Value};
+use crate::value::{Dict, Value};
 
 /** Parselet is the conceptual building block of a Tokay program.
 

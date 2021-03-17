@@ -78,10 +78,6 @@ impl Usage {
                     ]);
                 }
             }
-
-            _ => {
-                unimplemented!()
-            }
         }
 
         None

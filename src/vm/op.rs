@@ -29,15 +29,6 @@ pub enum Op {
     CallStaticArg(Box<(usize, usize)>),
     CallStaticArgNamed(Box<(usize, usize)>),
 
-    // Debuging and error reporting
-    Print,               // todo: make this a builtin
-    Debug(&'static str), // todo: make this a builtin
-    Error(&'static str), // todo: make this a builtin
-
-    // AST construction
-    Create(&'static str), // todo: make this a builtin
-    Lexeme(&'static str), // todo: make this a builtin
-
     // Interrupts
     Skip,
     LoadAccept,
@@ -178,90 +169,6 @@ impl Runable for Op {
                     Some(nargs.into_dict()),
                 )
                 //println!("CallStaticArg returns {:?}",
-            }
-
-            Op::Print => {
-                let value = context.collect(context.capture_start, true, false, 0);
-
-                if value.is_some() {
-                    println!("{:?}", value.unwrap());
-                }
-
-                Ok(Accept::Next)
-            }
-
-            Op::Debug(s) => {
-                println!("{}", s);
-                Ok(Accept::Next)
-            }
-
-            Op::Error(s) => Err(Reject::Error(s.to_string())),
-
-            Op::Create(emit) => {
-                /*
-                println!("Create {} from {:?}",
-                    emit, &context.runtime.stack[context.capture_start..]
-                );
-                */
-
-                let value = match context.collect(context.capture_start, false, false, 0) {
-                    Some(capture) => {
-                        let value = capture.as_value(context.runtime);
-                        let mut ret = Dict::new();
-
-                        ret.insert(
-                            "emit".to_string(),
-                            Value::String(emit.to_string()).into_refvalue(),
-                        );
-
-                        // List or Dict values are classified as child nodes
-                        if value.borrow().get_list().is_some()
-                            || value.borrow().get_dict().is_some()
-                        {
-                            ret.insert("children".to_string(), value);
-                        } else {
-                            ret.insert("value".to_string(), value);
-                        }
-
-                        ret.insert(
-                            "row".to_string(),
-                            Value::Addr(context.reader_start.row as usize).into_refvalue(),
-                        );
-                        ret.insert(
-                            "col".to_string(),
-                            Value::Addr(context.reader_start.col as usize).into_refvalue(),
-                        );
-
-                        Value::Dict(Box::new(ret)).into_refvalue()
-                    }
-                    None => Value::String(emit.to_string()).into_refvalue(),
-                };
-
-                //println!("Create {} value = {:?}", emit, value);
-
-                Ok(Accept::Return(Some(value)))
-            }
-
-            Op::Lexeme(emit) => {
-                let value = Value::String(
-                    context
-                        .runtime
-                        .reader
-                        .extract(&context.runtime.reader.capture_from(&context.reader_start)),
-                );
-
-                let mut ret = Dict::new();
-
-                ret.insert(
-                    "emit".to_string(),
-                    Value::String(emit.to_string()).into_refvalue(),
-                );
-
-                ret.insert("value".to_string(), value.into_refvalue());
-
-                Ok(Accept::Return(Some(
-                    Value::Dict(Box::new(ret)).into_refvalue(),
-                )))
             }
 
             Op::Skip => Ok(Accept::Skip),

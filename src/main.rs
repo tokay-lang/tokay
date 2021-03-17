@@ -284,13 +284,16 @@ fn main() {
     println!("Tokay v{}", VERSION);
     //repl(false);
 
-    compile_and_run(
-        "
-            print(\"Hello World\" + 23 *4)
-            print(23 * 5 + Integer())
-        ",
-        "yay42",
-        true,
+    println!(
+        "{:?}",
+        compile_and_run(
+            "
+                print(\"Hello World\" + 23 *4)
+                print(23 * 5 + Integer())
+            ",
+            "yay42",
+            true,
+        )
     );
 
     /*

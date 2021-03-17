@@ -60,9 +60,9 @@ pub enum Reject {
 
 pub struct Context<'runtime, 'program, 'reader> {
     pub runtime: &'runtime mut Runtime<'program, 'reader>, // fixme: Temporary pub?
-    pub(super) stack_start: usize,
-    pub(super) capture_start: usize,
-    pub(super) reader_start: Offset,
+    pub(crate) stack_start: usize,
+    pub(crate) capture_start: usize,
+    pub(crate) reader_start: Offset,
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
@@ -103,21 +103,6 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.pop().unwrap();
         capture.as_value(self.runtime)
-    }
-
-    /// Peek into contexts current stack, the offset starts from the top.
-    pub(crate) fn peek(&self, offset: usize) -> Option<RefValue> {
-        if offset >= self.runtime.stack.len() {
-            return None;
-        }
-
-        let offset = self.runtime.stack.len() - 1 - offset;
-        if offset < self.stack_start {
-            // fixme: Maybe better check for capture_start?
-            return None;
-        }
-
-        Some(self.runtime.stack[offset].as_value(self.runtime))
     }
 
     /** Return a capture by index as RefValue. */
@@ -201,7 +186,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     This function is internally used for automatic AST construction and value
     inheriting.
     */
-    pub(super) fn collect(
+    pub(crate) fn collect(
         &mut self,
         capture_start: usize,
         copy: bool,

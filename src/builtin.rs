@@ -1,8 +1,8 @@
 use crate::compiler::Compiler;
-use crate::value::{Dict, List, RefValue, Value};
+use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
 
-type Builtin = fn(&mut Context, args: usize, nargs: Option<Dict>) -> Result<Accept, Reject>;
+type Builtin = fn(&mut Context, args: Vec<RefValue>, nargs: Option<Dict>) -> Result<Accept, Reject>;
 
 static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
     ("Integer", 0, false, |context, _args, _nargs| {
@@ -28,8 +28,80 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             Err(Reject::Next)
         }
     }),
+    ("error", 1, false, |_, args, _| {
+        Err(Reject::Error(format!(
+            "{}",
+            get_arg(&args, None, 0, None).unwrap().borrow().to_string()
+        )))
+    }),
+    ("leaf", 1, false, |context, args, _| {
+        let emit = format!(
+            "{}",
+            get_arg(&args, None, 0, None).unwrap().borrow().to_string()
+        );
+
+        let value = Value::String(
+            context
+                .runtime
+                .reader
+                .extract(&context.runtime.reader.capture_from(&context.reader_start)),
+        );
+
+        let mut ret = Dict::new();
+
+        ret.insert(
+            "emit".to_string(),
+            Value::String(emit.to_string()).into_refvalue(),
+        );
+
+        ret.insert("value".to_string(), value.into_refvalue());
+
+        Ok(Accept::Return(Some(
+            Value::Dict(Box::new(ret)).into_refvalue(),
+        )))
+    }),
+    ("node", 1, false, |context, args, _| {
+        let emit = get_arg(&args, None, 0, None).unwrap();
+        /*
+        println!("Create {} from {:?}",
+            emit, &context.runtime.stack[context.capture_start..]
+        );
+        */
+
+        let value = match context.collect(context.capture_start, false, false, 0) {
+            Some(capture) => {
+                let value = capture.as_value(context.runtime);
+                let mut ret = Dict::new();
+
+                ret.insert("emit".to_string(), emit.clone());
+
+                // List or Dict values are classified as child nodes
+                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                    ret.insert("children".to_string(), value);
+                } else {
+                    ret.insert("value".to_string(), value);
+                }
+
+                ret.insert(
+                    "row".to_string(),
+                    Value::Addr(context.reader_start.row as usize).into_refvalue(),
+                );
+                ret.insert(
+                    "col".to_string(),
+                    Value::Addr(context.reader_start.col as usize).into_refvalue(),
+                );
+
+                Value::Dict(Box::new(ret)).into_refvalue()
+            }
+            None => emit.clone(),
+        };
+
+        //println!("Create {:?} value = {:?}", emit, value);
+
+        Ok(Accept::Return(Some(value)))
+    }),
     ("print", -1, false, |context, args, _| {
-        if args == 0 {
+        if args.len() == 0 {
             if let Some(capture) = context.get_capture(0) {
                 println!("{:?}", capture);
             } else {
@@ -39,17 +111,14 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             return Ok(Accept::Next);
         }
 
-        for i in 0..args {
+        for i in 0..args.len() {
             if i > 0 {
                 print!(" ");
             }
 
             print!(
                 "{}",
-                get_arg(context, args, None, i, None)
-                    .unwrap()
-                    .borrow()
-                    .to_string()
+                get_arg(&args, None, i, None).unwrap().borrow().to_string()
             );
         }
 
@@ -109,8 +178,7 @@ pub fn get(ident: &'static str) -> Option<usize> {
 }
 
 pub fn get_arg(
-    context: &Context,
-    args: usize,
+    args: &Vec<RefValue>,
     nargs: Option<Dict>,
     index: usize,
     name: Option<&'static str>,
@@ -124,14 +192,15 @@ pub fn get_arg(
         }
     }
 
-    if index >= args {
+    if index >= args.len() {
         Err(format!(
             "Function requires to access parameter {}, but only {} parameters where given",
-            index, args
+            index,
+            args.len()
         ))
     } else {
         //println!("args = {} index = {}, peek = {}", args, index, args - index - 1);
-        Ok(context.peek(args - index - 1).unwrap())
+        Ok(args[index].clone())
     }
 }
 
@@ -139,18 +208,30 @@ pub fn call(
     builtin: usize,
     context: &mut Context,
     args: usize,
-    mut nargs: Option<Dict>,
+    nargs: Option<Dict>,
 ) -> Result<Accept, Reject> {
     let builtin = &BUILTINS[builtin];
-    let mut result;
+
+    // First, collect all arguments and turn them into RefValues
+    let args: Vec<Capture> = context
+        .runtime
+        .stack
+        .drain(context.runtime.stack.len() - args..)
+        .collect();
+    let args: Vec<RefValue> = args
+        .into_iter()
+        .map(|item| item.as_value(context.runtime))
+        .collect();
+
+    let result;
 
     // Allow constant number of minimal parameters
-    if builtin.1 >= 0 && args < builtin.1 as usize {
+    if builtin.1 >= 0 && args.len() < builtin.1 as usize {
         result = Err(Reject::Error(format!(
             "{} requires for at least {} arguments",
             builtin.0, builtin.1
         )));
-    } else if builtin.1 == 0 && args > 0 {
+    } else if builtin.1 == 0 && args.len() > 0 {
         result = Err(Reject::Error(format!(
             "{} does not accept any sequencial arguments",
             builtin.0
@@ -164,9 +245,5 @@ pub fn call(
         result = (builtin.3)(context, args, nargs);
     }
 
-    context
-        .runtime
-        .stack
-        .truncate(context.runtime.stack.len() - args);
     result
 }
