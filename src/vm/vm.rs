@@ -112,7 +112,8 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         }
 
         let offset = self.runtime.stack.len() - 1 - offset;
-        if offset < self.stack_start {  // fixme: Maybe better check for capture_start?
+        if offset < self.stack_start {
+            // fixme: Maybe better check for capture_start?
             return None;
         }
 

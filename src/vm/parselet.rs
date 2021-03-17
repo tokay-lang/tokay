@@ -20,10 +20,10 @@ pub struct Parselet {
     // todo: consuming
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    locals: usize,                           // Number of local variables present
-    begin: Op,                               // Begin-operations
-    end: Op,                                 // End-operations
-    pub(crate) body: Op,                     // Operations
+    locals: usize,           // Number of local variables present
+    begin: Op,               // Begin-operations
+    end: Op,                 // End-operations
+    pub(crate) body: Op,     // Operations
 }
 
 impl Parselet {

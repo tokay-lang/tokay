@@ -1,12 +1,11 @@
 use crate::compiler::Compiler;
-use crate::value::{Dict, List, Value, RefValue};
+use crate::value::{Dict, List, RefValue, Value};
 use crate::vm::*;
 
 type Builtin = fn(&mut Context, args: usize, nargs: Option<Dict>) -> Result<Accept, Reject>;
 
-
-static BUILTINS: &[(&'static str, Builtin)] = &[
-    ("Integer", |context, _args, _nargs| {
+static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
+    ("Integer", 0, false, |context, _args, _nargs| {
         let mut value: i64 = 0;
         let start = context.runtime.reader.tell();
 
@@ -29,12 +28,11 @@ static BUILTINS: &[(&'static str, Builtin)] = &[
             Err(Reject::Next)
         }
     }),
-    ("print", |context, args, _| {
+    ("print", -1, false, |context, args, _| {
         if args == 0 {
             if let Some(capture) = context.get_capture(0) {
                 println!("{:?}", capture);
-            }
-            else {
+            } else {
                 print!("\n");
             }
 
@@ -46,44 +44,49 @@ static BUILTINS: &[(&'static str, Builtin)] = &[
                 print!(" ");
             }
 
-            print!("{}", get_arg(context, args, None, i, None).unwrap().borrow().to_string());
+            print!(
+                "{}",
+                get_arg(context, args, None, i, None)
+                    .unwrap()
+                    .borrow()
+                    .to_string()
+            );
         }
 
         print!("\n");
         Ok(Accept::Next)
-    })
-    /*
-    ("flatten", |context| {
-        let mut max = 0;
-        let mut flatten = List::new();
+    }), /*
+        ("flatten", |context| {
+            let mut max = 0;
+            let mut flatten = List::new();
 
-        for capture in context.drain_captures() {
-            match capture {
-                Capture::Named(_, _) => {}
-                Capture::Range(_, severity) | Capture::Value(_, severity) if severity >= max => {
-                    if severity > max {
-                        max = severity;
-                        flatten.clear();
+            for capture in context.drain_captures() {
+                match capture {
+                    Capture::Named(_, _) => {}
+                    Capture::Range(_, severity) | Capture::Value(_, severity) if severity >= max => {
+                        if severity > max {
+                            max = severity;
+                            flatten.clear();
+                        }
                     }
+                    _ => continue,
                 }
-                _ => continue,
+
+                let value = capture.as_value(context.runtime);
+                let peek = value.borrow();
+
+                if let Value::List(list) = &*peek {
+                    flatten.extend(list.iter().cloned());
+                } else {
+                    flatten.push(value.clone());
+                }
             }
 
-            let value = capture.as_value(context.runtime);
-            let peek = value.borrow();
-
-            if let Value::List(list) = &*peek {
-                flatten.extend(list.iter().cloned());
-            } else {
-                flatten.push(value.clone());
-            }
-        }
-
-        Ok(Accept::Return(Some(
-            Value::List(Box::new(flatten)).into_refvalue(),
-        )))
-    }),
-    */
+            Ok(Accept::Return(Some(
+                Value::List(Box::new(flatten)).into_refvalue(),
+            )))
+        }),
+        */
 ];
 
 pub fn register(compiler: &mut Compiler) {
@@ -105,23 +108,31 @@ pub fn get(ident: &'static str) -> Option<usize> {
     None
 }
 
-pub fn get_arg(context: &Context, args: usize, nargs: Option<Dict>, index: usize, name: Option<&'static str>) -> Option<RefValue> {
+pub fn get_arg(
+    context: &Context,
+    args: usize,
+    nargs: Option<Dict>,
+    index: usize,
+    name: Option<&'static str>,
+) -> Result<RefValue, String> {
     // Try to retrieve argument by name
     if let Some(name) = name {
         if let Some(nargs) = nargs {
             if let Some(value) = nargs.get(name) {
-                return Some(value.clone());
+                return Ok(value.clone());
             }
         }
     }
 
     if index >= args {
-        panic!("Function requires to access parameter {}, but only {} parameters where given", index, args);
+        Err(format!(
+            "Function requires to access parameter {}, but only {} parameters where given",
+            index, args
+        ))
+    } else {
+        //println!("args = {} index = {}, peek = {}", args, index, args - index - 1);
+        Ok(context.peek(args - index - 1).unwrap())
     }
-
-    //println!("args = {} index = {}, peek = {}", args, index, args - index - 1);
-
-    context.peek(args - index - 1)
 }
 
 pub fn call(
@@ -130,7 +141,32 @@ pub fn call(
     args: usize,
     mut nargs: Option<Dict>,
 ) -> Result<Accept, Reject> {
-    let result = (&BUILTINS[builtin].1)(context, args, nargs);
-    context.runtime.stack.truncate(context.runtime.stack.len() - args);
+    let builtin = &BUILTINS[builtin];
+    let mut result;
+
+    // Allow constant number of minimal parameters
+    if builtin.1 >= 0 && args < builtin.1 as usize {
+        result = Err(Reject::Error(format!(
+            "{} requires for at least {} arguments",
+            builtin.0, builtin.1
+        )));
+    } else if builtin.1 == 0 && args > 0 {
+        result = Err(Reject::Error(format!(
+            "{} does not accept any sequencial arguments",
+            builtin.0
+        )));
+    } else if nargs.is_some() && !builtin.2 {
+        result = Err(Reject::Error(format!(
+            "{} does not accept any named arguments",
+            builtin.0
+        )));
+    } else {
+        result = (builtin.3)(context, args, nargs);
+    }
+
+    context
+        .runtime
+        .stack
+        .truncate(context.runtime.stack.len() - args);
     result
 }
