@@ -284,6 +284,17 @@ fn main() {
     println!("Tokay v{}", VERSION);
     //repl(false);
 
+    let ast = compile_and_run(
+        include_str!("../readme1.tok"),
+        "1+2*3+4",
+        true,
+    ).unwrap().unwrap();
+
+    Compiler::print(
+        &ast.borrow()
+    );
+
+    /*
     println!(
         "{:?}",
         compile_and_run(
@@ -295,6 +306,7 @@ fn main() {
             true,
         )
     );
+    */
 
     /*
     println!("{:#?}", compile_and_run(

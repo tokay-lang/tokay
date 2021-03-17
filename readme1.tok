@@ -1,0 +1,19 @@
+Factor : @{
+    Integer             node("int")
+    '(' Expr ')'
+}
+
+Term : @{
+    Term '*' Factor     node("mul")
+    Term '/' Factor     node("div")
+    Factor
+}
+
+Expr : @{
+    Expr '+' Term       node("add")
+    Expr '-' Term       node("sub")
+    Term
+}
+
+
+Expr

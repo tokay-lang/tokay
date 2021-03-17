@@ -1,6 +1,6 @@
 [package]
 name = "tokay"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 edition = "2018"
 
