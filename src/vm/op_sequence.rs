@@ -41,6 +41,7 @@ impl Runable for Sequence {
         // Iterate over sequence
         for (item, alias) in &self.items {
             match item.run(context) {
+                Err(Reject::Skip) => return Err(Reject::Skip),
                 Err(reject) => {
                     context.runtime.stack.truncate(capture_start);
                     context.runtime.reader.reset(reader_start);
@@ -57,6 +58,8 @@ impl Runable for Sequence {
                         context.runtime.stack.push(Capture::Empty)
                     }
                 }
+
+                Ok(Accept::Skip) => continue,
 
                 Ok(Accept::Push(capture)) => {
                     if let Some(alias) = alias {
@@ -82,25 +85,6 @@ impl Runable for Sequence {
         } else {
             Ok(Accept::Next)
         }
-
-        /*
-        /*
-            When this fails, push a silent range of the current sequence
-            when input was consumed.
-        */
-        else if reader_start < context.runtime.reader.tell() {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_from(reader_start),
-                0,
-            )))
-        }
-        /*
-            Otherwise, just return Next.
-        */
-        else {
-            Ok(Accept::Next)
-        }
-        */
     }
 
     fn finalize(

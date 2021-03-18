@@ -4,6 +4,7 @@ use std::io::BufReader;
 use std::rc::Rc;
 
 use super::*;
+use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{RefValue, Value};
 
@@ -36,7 +37,7 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<String>> {
+    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<Error>> {
         let main = self.main.borrow();
         let res = main.run(runtime, 0, None, true); // fixme: Provide default arguments?
 
@@ -46,7 +47,7 @@ impl Program {
                 Ok(Some(capture.as_value(runtime)))
             }
             Ok(_) => Ok(None),
-            Err(Reject::Error(msg)) => Err(Some(msg)),
+            Err(Reject::Error(error)) => Err(Some(*error)),
             Err(_) => Err(None),
         }
     }
@@ -54,7 +55,7 @@ impl Program {
     pub fn run_from_reader<R: 'static + Read>(
         &self,
         read: R,
-    ) -> Result<Option<RefValue>, Option<String>> {
+    ) -> Result<Option<RefValue>, Option<Error>> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
 
@@ -68,7 +69,7 @@ impl Program {
         ret
     }
 
-    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<String>> {
+    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<Error>> {
         self.run_from_reader(std::io::Cursor::new(s))
     }
 }

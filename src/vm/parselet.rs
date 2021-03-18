@@ -189,7 +189,15 @@ impl Parselet {
 
                 Err(reject) => {
                     match reject {
-                        Reject::Error(err) => return Err(Reject::Error(err)),
+                        Reject::Skip => return Ok(Accept::Next),
+                        Reject::Error(mut err) => {
+                            // Patch source position on error, when no position already set
+                            if let Some(source_offset) = context.source_offset {
+                                err.patch_offset(source_offset);
+                            }
+
+                            return Err(Reject::Error(err));
+                        }
                         Reject::Main if !main => return Err(Reject::Main),
                         _ => {}
                     }

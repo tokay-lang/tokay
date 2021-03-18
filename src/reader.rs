@@ -1,7 +1,8 @@
 use std::io::prelude::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Offset {
+    // fixme: Hold source filename information as well in the future?
     pub offset: usize,
     pub row: u32,
     pub col: u32,

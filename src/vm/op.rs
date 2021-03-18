@@ -1,4 +1,5 @@
 use super::*;
+use crate::reader::Offset;
 use crate::value::{Dict, RefValue, Value};
 
 // --- Op ----------------------------------------------------------------------
@@ -61,6 +62,9 @@ pub enum Op {
 
     // Flow
     If(Box<(Op, Option<Op>)>),
+
+    // Debug
+    Offset(Box<Offset>),
 }
 
 impl Op {
@@ -171,7 +175,7 @@ impl Runable for Op {
                 //println!("CallStaticArg returns {:?}",
             }
 
-            Op::Skip => Ok(Accept::Skip),
+            Op::Skip => Err(Reject::Skip),
 
             Op::LoadAccept => {
                 let value = context.pop();
@@ -336,6 +340,11 @@ impl Runable for Op {
                 } else {
                     Ok(Accept::Next)
                 }
+            }
+
+            Op::Offset(offset) => {
+                context.source_offset = Some(**offset);
+                Ok(Accept::Skip)
             }
         }
     }

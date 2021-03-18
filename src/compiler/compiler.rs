@@ -1,5 +1,6 @@
 use super::*;
 use crate::builtin;
+use crate::reader::Offset;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
 use std::cell::RefCell;
@@ -258,8 +259,12 @@ impl Compiler {
     }
 
     /* Generates code for a symbol load. */
-    pub fn gen_load(&mut self, name: &str) -> Vec<Op> {
-        Usage::Symbol(name.to_string()).resolve_or_dispose(self)
+    pub fn gen_load(&mut self, name: &str, offset: Option<Offset>) -> Vec<Op> {
+        Usage::Symbol {
+            name: name.to_string(),
+            offset,
+        }
+        .resolve_or_dispose(self)
     }
 
     /* Tokay AST node traversal */
@@ -273,11 +278,30 @@ impl Compiler {
 
                     let row = d.get("row").and_then(|row| Some(row.borrow().to_addr()));
                     let col = d.get("col").and_then(|col| Some(col.borrow().to_addr()));
+                    let end_row = d
+                        .get("end_row")
+                        .and_then(|row| Some(row.borrow().to_addr()));
+                    let end_col = d
+                        .get("end_col")
+                        .and_then(|col| Some(col.borrow().to_addr()));
 
                     let value = d.get("value");
                     let children = d.get("children");
 
-                    if let (Some(row), Some(col)) = (row, col) {
+                    if let (Some(row), Some(col), Some(end_row), Some(end_col)) =
+                        (row, col, end_row, end_col)
+                    {
+                        print!(
+                            "{:indent$}{} [{}:{} - {}:{}]",
+                            "",
+                            emit,
+                            row,
+                            col,
+                            end_row,
+                            end_col,
+                            indent = indent
+                        );
+                    } else if let (Some(row), Some(col)) = (row, col) {
                         print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
                     } else {
                         print!("{:indent$}{}", "", emit, indent = indent);
@@ -421,6 +445,25 @@ impl Compiler {
         .into_value()
     }
 
+    // Insert offset positions
+    fn traverse_node_offset(&self, node: &Dict) -> Option<Offset> {
+        let offset = node
+            .get("offset")
+            .and_then(|offset| Some(offset.borrow().to_addr()));
+        let row = node
+            .get("row")
+            .and_then(|row| Some(row.borrow().to_addr() as u32));
+        let col = node
+            .get("col")
+            .and_then(|col| Some(col.borrow().to_addr() as u32));
+
+        if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
+            Some(Offset { offset, row, col })
+        } else {
+            None
+        }
+    }
+
     // Main traversal function, running recursively through the AST
     pub fn traverse_node(&mut self, node: &Dict) -> Vec<Op> {
         // Normal node processing...
@@ -501,7 +544,10 @@ impl Compiler {
                     let ident = children.get_dict().unwrap();
                     let ident = ident.borrow_by_key("value");
 
-                    Usage::Symbol(ident.to_string())
+                    Usage::Symbol {
+                        name: ident.to_string(),
+                        offset: self.traverse_node_offset(node),
+                    }
                 } else {
                     let children = children.to_list();
 
@@ -558,6 +604,7 @@ impl Compiler {
                             name: ident.to_string(),
                             args,
                             nargs,
+                            offset: self.traverse_node_offset(node),
                         }
                     } else if call == "call_rvalue" {
                         unimplemented!();
@@ -566,7 +613,12 @@ impl Compiler {
                     }
                 };
 
-                ret.extend(usage.resolve_or_dispose(self));
+                if let Some(offset) = self.traverse_node_offset(node) {
+                    ret.push(Op::Offset(Box::new(offset))); // Push call position here
+                }
+
+                ret.extend(usage.resolve_or_dispose(self)); // Push usage or resolved call
+
                 None
             }
 
@@ -616,7 +668,7 @@ impl Compiler {
                             }
 
                             if i < children.len() - 1 {
-                                ret.extend(self.gen_load(name))
+                                ret.extend(self.gen_load(name, self.traverse_node_offset(item)))
                             } else {
                                 ret.push(self.gen_store(name))
                             }
@@ -782,7 +834,7 @@ impl Compiler {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
 
-                            ret.extend(self.gen_load(name));
+                            ret.extend(self.gen_load(name, self.traverse_node_offset(node)));
                         }
 
                         _ => ret.extend(self.traverse_node(item)),

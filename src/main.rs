@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{self, Write};
 
 use ::tokay::compiler::Compiler;
+use ::tokay::error::Error;
 use ::tokay::parser::Parser;
 use ::tokay::reader::Reader;
 use ::tokay::value::*;
@@ -16,7 +17,7 @@ fn compile_and_run(
     src: &'static str,
     input: &'static str,
     debug: bool,
-) -> Result<Option<RefValue>, Option<String>> {
+) -> Result<Option<RefValue>, Option<Error>> {
     let p = Parser::new();
     let ast = p.parse(Reader::new(Box::new(io::Cursor::new(src))));
 
@@ -284,6 +285,7 @@ fn main() {
     println!("Tokay v{}", VERSION);
     //repl(false);
 
+    /*
     let ast = compile_and_run(
         include_str!("../readme1.tok"),
         "1+2*3+4",
@@ -293,20 +295,19 @@ fn main() {
     Compiler::print(
         &ast.borrow()
     );
+    */
 
-    /*
     println!(
         "{:?}",
         compile_and_run(
             "
-                print(\"Hello World\" + 23 *4)
-                print(23 * 5 + Integer())
+                print(\"Hello World\" + 23 * 4)
+                Integer print(\"Have \" + $1)
             ",
             "yay42",
             true,
         )
     );
-    */
 
     /*
     println!("{:#?}", compile_and_run(

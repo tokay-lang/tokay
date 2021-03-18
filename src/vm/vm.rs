@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::*;
+use crate::error::Error;
 use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value};
 
@@ -51,18 +52,20 @@ pub enum Accept {
 #[derive(Debug, Clone)]
 pub enum Reject {
     Next,
+    Skip,
     Return,
     Main,
-    Error(String),
+    Error(Box<Error>),
 }
 
 // --- Context -----------------------------------------------------------------
 
 pub struct Context<'runtime, 'program, 'reader> {
     pub runtime: &'runtime mut Runtime<'program, 'reader>, // fixme: Temporary pub?
-    pub(crate) stack_start: usize,
-    pub(crate) capture_start: usize,
-    pub(crate) reader_start: Offset,
+    pub(crate) stack_start: usize, // Stack start (including locals and parameters)
+    pub(crate) capture_start: usize, // Stack capturing start
+    pub(crate) reader_start: Offset, // Current reader offset
+    pub(super) source_offset: Option<Offset>, // Tokay source offset
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
@@ -90,6 +93,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             capture_start: stack_start + preserve,
             reader_start: runtime.reader.tell(),
             runtime: runtime,
+            source_offset: None,
         }
     }
 

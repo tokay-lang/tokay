@@ -1,21 +1,26 @@
 use super::*;
+use crate::reader::Offset;
 use crate::vm::*;
 
 /** Unresolved symbols and calls */
 #[derive(Debug)]
 pub enum Usage {
-    Symbol(String),
+    Symbol {
+        name: String,
+        offset: Option<Offset>,
+    },
     Call {
         name: String,
         args: usize,
         nargs: usize,
+        offset: Option<Offset>,
     },
 }
 
 impl Usage {
     pub(super) fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>> {
         match self {
-            Usage::Symbol(name) => {
+            Usage::Symbol { name, offset: _ } => {
                 if let Some(addr) = compiler.get_constant(&name) {
                     let statics = compiler.statics.borrow();
 
@@ -33,7 +38,12 @@ impl Usage {
                 }
             }
 
-            Usage::Call { name, args, nargs } => {
+            Usage::Call {
+                name,
+                args,
+                nargs,
+                offset: _,
+            } => {
                 // Resolve constants
                 if let Some(addr) = compiler.get_constant(&name) {
                     let statics = compiler.statics.borrow();

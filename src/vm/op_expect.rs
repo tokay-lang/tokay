@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::Error;
 
 /** Expecting parser.
 
@@ -22,18 +23,14 @@ impl Runable for Expect {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         self.body.run(context).or_else(|reject| {
             if let Reject::Next = reject {
-                let pos = context.runtime.reader.tell();
-
                 if let Some(msg) = &self.msg {
-                    Err(Reject::Error(format!(
-                        "Line {}, column {}: {}",
-                        pos.row, pos.col, msg
-                    )))
+                    Error::new(Some(context.runtime.reader.tell()), msg.clone()).into_reject()
                 } else {
-                    Err(Reject::Error(format!(
-                        "Line {}, column {}: Expecting {}",
-                        pos.row, pos.col, self.body
-                    )))
+                    Error::new(
+                        Some(context.runtime.reader.tell()),
+                        format!("Expecting {}", self.body),
+                    )
+                    .into_reject()
                 }
             } else {
                 Err(reject)

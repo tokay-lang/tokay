@@ -1,4 +1,5 @@
 use crate::compiler::*;
+use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::Value;
 use crate::vm::*;
@@ -297,7 +298,7 @@ impl Parser {
                     }))
     }
 
-    pub fn parse(&self, mut reader: Reader) -> Result<Value, String> {
+    pub fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
@@ -308,12 +309,12 @@ impl Parser {
                 if ast.get_dict().is_some() {
                     Ok(ast)
                 } else {
-                    Err("Parse error".to_string())
+                    Err(Error::new(None, "Parse error".to_string()))
                 }
             }
             Ok(None) => Ok(Value::Void),
             Err(Some(error)) => Err(error),
-            Err(None) => Err("Parse error".to_string()),
+            Err(None) => Err(Error::new(None, "Parse error".to_string())),
         }
     }
 }

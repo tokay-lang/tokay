@@ -1,4 +1,5 @@
 use crate::compiler::Compiler;
+use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
 
@@ -28,11 +29,12 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             Err(Reject::Next)
         }
     }),
-    ("error", 1, false, |_, args, _| {
-        Err(Reject::Error(format!(
-            "{}",
-            get_arg(&args, None, 0, None).unwrap().borrow().to_string()
-        )))
+    ("error", 1, false, |context, args, _| {
+        Error::new(
+            Some(context.runtime.reader.tell()),
+            get_arg(&args, None, 0, None).unwrap().borrow().to_string(),
+        )
+        .into_reject()
     }),
     ("leaf", 1, false, |context, args, _| {
         let emit = format!(
@@ -83,6 +85,10 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
                 }
 
                 ret.insert(
+                    "offset".to_string(),
+                    Value::Addr(context.reader_start.offset).into_refvalue(),
+                );
+                ret.insert(
                     "row".to_string(),
                     Value::Addr(context.reader_start.row as usize).into_refvalue(),
                 );
@@ -90,6 +96,23 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
                     "col".to_string(),
                     Value::Addr(context.reader_start.col as usize).into_refvalue(),
                 );
+
+                /*
+                let current = context.runtime.reader.tell();
+
+                ret.insert(
+                    "end_offset".to_string(),
+                    Value::Addr(current.offset).into_refvalue(),
+                );
+                ret.insert(
+                    "end_row".to_string(),
+                    Value::Addr(current.row as usize).into_refvalue(),
+                );
+                ret.insert(
+                    "end_col".to_string(),
+                    Value::Addr(current.col as usize).into_refvalue(),
+                );
+                */
 
                 Value::Dict(Box::new(ret)).into_refvalue()
             }
@@ -227,20 +250,26 @@ pub fn call(
 
     // Allow constant number of minimal parameters
     if builtin.1 >= 0 && args.len() < builtin.1 as usize {
-        result = Err(Reject::Error(format!(
-            "{} requires for at least {} arguments",
-            builtin.0, builtin.1
-        )));
+        result = Error::new(
+            None,
+            format!(
+                "'{}' requires for at least {} arguments",
+                builtin.0, builtin.1
+            ),
+        )
+        .into_reject();
     } else if builtin.1 == 0 && args.len() > 0 {
-        result = Err(Reject::Error(format!(
-            "{} does not accept any sequencial arguments",
-            builtin.0
-        )));
+        result = Error::new(
+            None,
+            format!("'{}' does not accept any sequencial arguments", builtin.0),
+        )
+        .into_reject();
     } else if nargs.is_some() && !builtin.2 {
-        result = Err(Reject::Error(format!(
-            "{} does not accept any named arguments",
-            builtin.0
-        )));
+        result = Error::new(
+            None,
+            format!("'{}' does not accept any named arguments", builtin.0),
+        )
+        .into_reject();
     } else {
         result = (builtin.3)(context, args, nargs);
     }

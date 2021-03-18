@@ -216,7 +216,8 @@ macro_rules! compile_item {
             let item = Usage::Call{
                 name,
                 args: items.len(),
-                nargs: 0
+                nargs: 0,
+                offset: None
             }.resolve_or_dispose(&mut $compiler);
 
             items.extend(item);
@@ -232,9 +233,10 @@ macro_rules! compile_item {
             //println!("call = {}", stringify!($ident));
             let name = stringify!($ident);
 
-            let item = Usage::Symbol(
-                name.to_string()
-            ).resolve_or_dispose(&mut $compiler);
+            let item = Usage::Symbol{
+                name: name.to_string(),
+                offset: None
+            }.resolve_or_dispose(&mut $compiler);
 
             Some(Op::from_vec(item))
         }
@@ -244,9 +246,10 @@ macro_rules! compile_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let item = Usage::Symbol(
-                "_".to_string()
-            ).resolve_or_dispose(&mut $compiler);
+            let item = Usage::Symbol{
+                name: "_".to_string(),
+                offset: None
+            }.resolve_or_dispose(&mut $compiler);
 
             assert!(item.len() == 1); // Can only process statics here!
             Some(item.into_iter().next().unwrap())
