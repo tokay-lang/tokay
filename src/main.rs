@@ -231,6 +231,7 @@ fn test_begin_end() {
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
 // A first simple REPL for Tokay
+#[cfg(not(test))]
 fn repl(debug: bool) {
     loop {
         print!(">>> ");
@@ -265,11 +266,24 @@ fn repl(debug: bool) {
                 let prg = compiler.into_program();
 
                 if std::env::args().len() == 1 {
-                    println!("<<< {:?}", prg.run_from_str(""));
+                    let res = prg.run_from_str("");
+                    match res {
+                        Ok(None) => {}
+                        Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
+                        _ => println!("<<< {:?}", res),
+                    }
                 } else {
                     for filename in std::env::args().skip(1) {
                         let file = File::open(&filename).unwrap();
-                        println!("{}: {:?}", filename, prg.run_from_reader(file));
+                        let res = prg.run_from_reader(file);
+
+                        match res {
+                            Ok(None) => {}
+                            Ok(Some(value)) => {
+                                println!("{}: {:?}", filename, value.borrow().to_string())
+                            }
+                            _ => println!("{}: {:?}", filename, res),
+                        }
                     }
                 }
             }
@@ -283,7 +297,7 @@ fn repl(debug: bool) {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    //repl(false);
+    repl(false);
 
     /*
     let ast = compile_and_run(
@@ -297,6 +311,7 @@ fn main() {
     );
     */
 
+    /*
     println!(
         "{:?}",
         compile_and_run(
@@ -308,6 +323,7 @@ fn main() {
             true,
         )
     );
+    */
 
     /*
     println!("{:#?}", compile_and_run(

@@ -275,8 +275,32 @@ impl Value {
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
-            Self::List(l) => format!("{:?}", l),
-            Self::Dict(d) => format!("{:?}", d),
+            Self::List(l) => {
+                let mut s = "[".to_string();
+                for item in l.iter() {
+                    if s.len() > 1 {
+                        s.push_str(", ");
+                    }
+
+                    s.push_str(&item.borrow().to_string());
+                }
+                s.push_str("]");
+                s
+            }
+            Self::Dict(d) => {
+                let mut s = "[".to_string();
+                for (key, value) in d.iter() {
+                    if s.len() > 1 {
+                        s.push_str(", ");
+                    }
+
+                    s.push_str(key);
+                    s.push_str(" = ");
+                    s.push_str(&value.borrow().to_string());
+                }
+                s.push_str("]");
+                s
+            }
             Self::Parselet(p) => format!("{:?}", p),
             Self::Builtin(b) => format!("{:?}", b),
         }
@@ -455,6 +479,12 @@ impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value {
             (a, b) => Value::Integer(a.to_integer() / b.to_integer()),
             // todo: handle float as results?
         }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }
 

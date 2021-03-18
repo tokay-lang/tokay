@@ -1,17 +1,24 @@
 # Tokay
 
-Tokay is an imperative programming language dedicated to parsing and other text-processing tasks.
+Tokay is an imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
 
 ## Examples
 
-How Tokay greets the world
+This is how Tokay greets the world
 
 ```tokay
-"Hello World"
+print("Hello World")
 ```
 
-Tokay is designed as a programming language for parsers with build-in abstract-syntax tree synthesis. This example directly implements a left-recursive grammar for simple mathematical expressions.
+Tokay can also first match the world, and then greets it... or any other planet?
+
+```tokay
+'World' print("Hello World")
+'Mars' print("Hello Mars")
+```
+
+Tokay is designed as a programming language for ad-hoc parsers with build-in abstract-syntax tree synthesis. This example directly implements a left-recursive parser for simple mathematical expressions. It slightly looks like a BNF-grammar, but this is exactly what Tokay is meant to be. //Integer// is a built-in matching arbitrary integer numbers from a stream and pushing them as 64-bit signed integer values.
 
 ```tokay
 Factor : @{
@@ -66,7 +73,7 @@ We're looking for volunteers to extend this list!
 
 Contributions of any kind are very welcome. Feel free to contact me.
 
-Tokay is also my very first real-world project with Rust, therefore I'm sure some things inside the code could easily be improved by more experienced Rustaceans out there.
+Tokay is also my very first project with Rust, therefore I'm sure some things inside the code could easily be improved by more experienced Rustaceans out there.
 
 
 ## License
