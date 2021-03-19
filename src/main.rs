@@ -18,10 +18,11 @@ fn compile_and_run(
     debug: bool,
 ) -> Result<Option<RefValue>, Error> {
     let mut compiler = Compiler::new();
+    compiler.debug = debug;
+
     if let Some(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(src)))) {
         program.run_from_str(input)
-    }
-    else {
+    } else {
         Err(Error::new(None, "Error during compilations".to_string()))
     }
 }
@@ -217,7 +218,7 @@ fn test_begin_end() {
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
 // A first simple REPL for Tokay
-fn repl(debug: bool) {
+fn repl() {
     let mut compiler = Compiler::new();
 
     loop {
@@ -235,25 +236,40 @@ fn repl(debug: bool) {
         }
 
         //println!("code = {:?}", code);
-        if let Some(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(code)))) {
-            if std::env::args().len() == 1 {
-                let res = program.run_from_str("");
-                match res {
-                    Ok(None) => {}
-                    Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
-                    _ => println!("<<< {:?}", res),
-                }
-            } else {
-                for filename in std::env::args().skip(1) {
-                    let file = File::open(&filename).unwrap();
-                    let res = program.run_from_reader(file);
 
-                    match res {
-                        Ok(None) => {}
-                        Ok(Some(value)) => {
-                            println!("{}: {:?}", filename, value.borrow().to_string())
+        match code.as_str() {
+            "#debug\n" => {
+                compiler.debug = true;
+                println!("<<< Debug switched on")
+            }
+            "#nodebug\n" => {
+                compiler.debug = false;
+                println!("<<< Debug switched off")
+            }
+            _ => {
+                if let Some(program) =
+                    compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
+                {
+                    if std::env::args().len() == 1 {
+                        let res = program.run_from_str("");
+                        match res {
+                            Ok(None) => {}
+                            Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
+                            _ => println!("<<< {:?}", res),
                         }
-                        _ => println!("{}: {:?}", filename, res),
+                    } else {
+                        for filename in std::env::args().skip(1) {
+                            let file = File::open(&filename).unwrap();
+                            let res = program.run_from_reader(file);
+
+                            match res {
+                                Ok(None) => {}
+                                Ok(Some(value)) => {
+                                    println!("{}: {:?}", filename, value.borrow().to_string())
+                                }
+                                _ => println!("{}: {:?}", filename, res),
+                            }
+                        }
                     }
                 }
             }
@@ -263,7 +279,7 @@ fn repl(debug: bool) {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    repl(false);
+    repl();
 
     /*
     let ast = compile_and_run(

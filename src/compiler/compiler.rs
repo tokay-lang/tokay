@@ -1,7 +1,7 @@
 use super::*;
 use crate::builtin;
-use crate::reader::{Reader, Offset};
 use crate::error::Error;
+use crate::reader::{Offset, Reader};
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
 use std::cell::RefCell;
@@ -23,7 +23,8 @@ struct Scope {
 
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
-    parser: Option<parser::Parser>,  //Tokay parser
+    parser: Option<parser::Parser>, //Tokay parser
+    pub debug: bool,
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     scopes: Vec<Scope>,                         // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
@@ -34,6 +35,7 @@ impl Compiler {
         // Compiler initialization
         Self {
             parser: None,
+            debug: false,
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
             usages: Vec::new(),
@@ -44,8 +46,8 @@ impl Compiler {
         // Preparation of the global scope (this is currenlty required on every compile)
         assert!(self.scopes.len() == 0);
 
-        self.push_scope(true);  // Global scope
-        builtin::register(self);  // Builtins
+        self.push_scope(true); // Global scope
+        builtin::register(self); // Builtins
     }
 
     /** Compile a Tokay program from source into a Program struct. */
@@ -61,11 +63,16 @@ impl Compiler {
             Ok(ast) => ast,
             Err(error) => {
                 println!("{}", error);
-                return None
+                return None;
             }
         };
 
+        if self.debug {
+            parser::Parser::print(&ast);
+        }
+
         self.traverse(&ast);
+
         let program = match self.to_program() {
             Ok(program) => program,
             Err(errors) => {
@@ -73,7 +80,7 @@ impl Compiler {
                     println!("{}", error);
                 }
 
-                return None
+                return None;
             }
         };
 
@@ -84,10 +91,12 @@ impl Compiler {
     pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
         let mut errors = Vec::new();
 
-        // Close any open scopes except the main scope.
+        // Close any open scopes
         while self.scopes.len() > 0 {
             self.pop_scope();
         }
+
+        let statics: Vec<RefValue> = self.statics.borrow_mut().drain(..).collect();
 
         let mut usages = self
             .usages
@@ -97,28 +106,29 @@ impl Compiler {
                     Ok(usage) => usage,
                     Err(usage) => {
                         let error = match usage {
-                            Usage::Symbol{name, offset} => {
+                            Usage::Symbol { name, offset } => {
                                 Error::new(offset, format!("Unresolved symbol '{}'", name))
                             }
 
-                            Usage::Call{name, args: _, nargs: _, offset} => {
-                                Error::new(offset, format!("Unresolved call to '{}'", name))
-                            }
+                            Usage::Call {
+                                name,
+                                args: _,
+                                nargs: _,
+                                offset,
+                            } => Error::new(offset, format!("Unresolved call to '{}'", name)),
                         };
 
                         errors.push(error);
-                        vec![Op::Nop]  // Dummy instruction
+                        vec![Op::Nop] // Dummy instruction
                     }
                 }
             })
             .collect();
 
-        // Stop when errors are found
+        // Stop when any unresolved usages occured
         if errors.len() > 0 {
             return Err(errors);
         }
-
-        let statics = self.statics.borrow().to_vec();
 
         /*
         Finalize the program according to a grammar's view;
@@ -321,67 +331,6 @@ impl Compiler {
     }
 
     /* Tokay AST node traversal */
-
-    pub fn print(ast: &Value) {
-        fn print(value: &Value, indent: usize) {
-            match value {
-                Value::Dict(d) => {
-                    let emit = d["emit"].borrow();
-                    let emit = emit.get_string().unwrap();
-
-                    let row = d.get("row").and_then(|row| Some(row.borrow().to_addr()));
-                    let col = d.get("col").and_then(|col| Some(col.borrow().to_addr()));
-                    let end_row = d
-                        .get("end_row")
-                        .and_then(|row| Some(row.borrow().to_addr()));
-                    let end_col = d
-                        .get("end_col")
-                        .and_then(|col| Some(col.borrow().to_addr()));
-
-                    let value = d.get("value");
-                    let children = d.get("children");
-
-                    if let (Some(row), Some(col), Some(end_row), Some(end_col)) =
-                        (row, col, end_row, end_col)
-                    {
-                        print!(
-                            "{:indent$}{} [{}:{} - {}:{}]",
-                            "",
-                            emit,
-                            row,
-                            col,
-                            end_row,
-                            end_col,
-                            indent = indent
-                        );
-                    } else if let (Some(row), Some(col)) = (row, col) {
-                        print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
-                    } else {
-                        print!("{:indent$}{}", "", emit, indent = indent);
-                    }
-
-                    if let Some(value) = value {
-                        print!(" {:?}", value.borrow());
-                    }
-                    print!("\n");
-
-                    if let Some(children) = children {
-                        print(&children.borrow(), indent + 1);
-                    }
-                }
-
-                Value::List(l) => {
-                    for item in l.iter() {
-                        print(&item.borrow(), indent);
-                    }
-                }
-
-                other => unimplemented!("{:?} is not implemented", other),
-            }
-        }
-
-        print(ast, 0);
-    }
 
     // Traverse either a node or a list from the AST
     pub fn traverse(&mut self, value: &Value) -> Vec<Op> {

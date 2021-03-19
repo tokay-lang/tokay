@@ -310,7 +310,6 @@ macro_rules! compile {
     }
 }
 
-
 /**
 Implements a Tokay parser in Tokay itself, using the compiler macros from above.
 This is the general place to change syntax and modify the design of the abstract syntax tree.
@@ -619,7 +618,68 @@ impl Parser {
                 }
             }
             Ok(None) => Ok(Value::Void),
-            Err(error) => Err(error)
+            Err(error) => Err(error),
         }
+    }
+
+    pub(super) fn print(ast: &Value) {
+        fn print(value: &Value, indent: usize) {
+            match value {
+                Value::Dict(d) => {
+                    let emit = d["emit"].borrow();
+                    let emit = emit.get_string().unwrap();
+
+                    let row = d.get("row").and_then(|row| Some(row.borrow().to_addr()));
+                    let col = d.get("col").and_then(|col| Some(col.borrow().to_addr()));
+                    let end_row = d
+                        .get("end_row")
+                        .and_then(|row| Some(row.borrow().to_addr()));
+                    let end_col = d
+                        .get("end_col")
+                        .and_then(|col| Some(col.borrow().to_addr()));
+
+                    let value = d.get("value");
+                    let children = d.get("children");
+
+                    if let (Some(row), Some(col), Some(end_row), Some(end_col)) =
+                        (row, col, end_row, end_col)
+                    {
+                        print!(
+                            "{:indent$}{} [{}:{} - {}:{}]",
+                            "",
+                            emit,
+                            row,
+                            col,
+                            end_row,
+                            end_col,
+                            indent = indent
+                        );
+                    } else if let (Some(row), Some(col)) = (row, col) {
+                        print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
+                    } else {
+                        print!("{:indent$}{}", "", emit, indent = indent);
+                    }
+
+                    if let Some(value) = value {
+                        print!(" {:?}", value.borrow());
+                    }
+                    print!("\n");
+
+                    if let Some(children) = children {
+                        print(&children.borrow(), indent + 1);
+                    }
+                }
+
+                Value::List(l) => {
+                    for item in l.iter() {
+                        print(&item.borrow(), indent);
+                    }
+                }
+
+                other => unimplemented!("{:?} is not implemented", other),
+            }
+        }
+
+        print(ast, 0);
     }
 }

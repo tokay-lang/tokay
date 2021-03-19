@@ -52,10 +52,7 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader<R: 'static + Read>(
-        &self,
-        read: R,
-    ) -> Result<Option<RefValue>, Error> {
+    pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Error> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
 
