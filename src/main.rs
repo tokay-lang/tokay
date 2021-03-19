@@ -3,7 +3,6 @@ use std::io::{self, Write};
 
 use ::tokay::compiler::Compiler;
 use ::tokay::error::Error;
-use ::tokay::parser::Parser;
 use ::tokay::reader::Reader;
 use ::tokay::value::*;
 
@@ -17,26 +16,13 @@ fn compile_and_run(
     src: &'static str,
     input: &'static str,
     debug: bool,
-) -> Result<Option<RefValue>, Option<Error>> {
-    let p = Parser::new();
-    let ast = p.parse(Reader::new(Box::new(io::Cursor::new(src))));
-
-    if let Ok(ast) = ast {
-        if debug {
-            Compiler::print(&ast);
-        }
-
-        let mut compiler = Compiler::new();
-        compiler.traverse(&ast);
-
-        let prg = compiler.into_program();
-        if debug {
-            println!("prg = {:#?}", prg);
-        }
-
-        prg.run_from_str(input)
-    } else {
-        Err(ast.err())
+) -> Result<Option<RefValue>, Error> {
+    let mut compiler = Compiler::new();
+    if let Some(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(src)))) {
+        program.run_from_str(input)
+    }
+    else {
+        Err(Error::new(None, "Error during compilations".to_string()))
     }
 }
 
@@ -231,8 +217,9 @@ fn test_begin_end() {
 //let s = "a:'Hello' a\na : 'Hallo' A";
 
 // A first simple REPL for Tokay
-#[cfg(not(test))]
 fn repl(debug: bool) {
+    let mut compiler = Compiler::new();
+
     loop {
         print!(">>> ");
         io::stdout().flush().unwrap();
@@ -248,48 +235,27 @@ fn repl(debug: bool) {
         }
 
         //println!("code = {:?}", code);
-
-        let parser = Parser::new();
-        let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(code))));
-
-        match ast {
-            Ok(Value::Void) => {}
-
-            Ok(ast) => {
-                if debug {
-                    Compiler::print(&ast);
+        if let Some(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(code)))) {
+            if std::env::args().len() == 1 {
+                let res = program.run_from_str("");
+                match res {
+                    Ok(None) => {}
+                    Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
+                    _ => println!("<<< {:?}", res),
                 }
+            } else {
+                for filename in std::env::args().skip(1) {
+                    let file = File::open(&filename).unwrap();
+                    let res = program.run_from_reader(file);
 
-                let mut compiler = Compiler::new();
-
-                compiler.traverse(&ast);
-                let prg = compiler.into_program();
-
-                if std::env::args().len() == 1 {
-                    let res = prg.run_from_str("");
                     match res {
                         Ok(None) => {}
-                        Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
-                        _ => println!("<<< {:?}", res),
-                    }
-                } else {
-                    for filename in std::env::args().skip(1) {
-                        let file = File::open(&filename).unwrap();
-                        let res = prg.run_from_reader(file);
-
-                        match res {
-                            Ok(None) => {}
-                            Ok(Some(value)) => {
-                                println!("{}: {:?}", filename, value.borrow().to_string())
-                            }
-                            _ => println!("{}: {:?}", filename, res),
+                        Ok(Some(value)) => {
+                            println!("{}: {:?}", filename, value.borrow().to_string())
                         }
+                        _ => println!("{}: {:?}", filename, res),
                     }
                 }
-            }
-
-            Err(err) => {
-                println!("{}", err);
             }
         }
     }

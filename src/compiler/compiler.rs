@@ -1,6 +1,7 @@
 use super::*;
 use crate::builtin;
-use crate::reader::Offset;
+use crate::reader::{Reader, Offset};
+use crate::error::Error;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
 use std::cell::RefCell;
@@ -22,6 +23,7 @@ struct Scope {
 
 /** Tokay compiler instance, with related objects. */
 pub struct Compiler {
+    parser: Option<parser::Parser>,  //Tokay parser
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     scopes: Vec<Scope>,                         // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
@@ -30,40 +32,91 @@ pub struct Compiler {
 impl Compiler {
     pub fn new() -> Self {
         // Compiler initialization
-        let mut compiler = Self {
+        Self {
+            parser: None,
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
             usages: Vec::new(),
+        }
+    }
+
+    pub fn init(&mut self) {
+        // Preparation of the global scope (this is currenlty required on every compile)
+        assert!(self.scopes.len() == 0);
+
+        self.push_scope(true);  // Global scope
+        builtin::register(self);  // Builtins
+    }
+
+    /** Compile a Tokay program from source into a Program struct. */
+    pub fn compile(&mut self, reader: Reader) -> Option<Program> {
+        self.init();
+
+        // Create a parser when not already done
+        if self.parser.is_none() {
+            self.parser = Some(Parser::new());
+        }
+
+        let ast = match self.parser.as_ref().unwrap().parse(reader) {
+            Ok(ast) => ast,
+            Err(error) => {
+                println!("{}", error);
+                return None
+            }
         };
 
-        // Preparation of the global scope
-        compiler.push_scope(true);
-        //compiler.new_local("args");
-        //compiler.new_local("nargs");
+        self.traverse(&ast);
+        let program = match self.to_program() {
+            Ok(program) => program,
+            Err(errors) => {
+                for error in errors {
+                    println!("{}", error);
+                }
 
-        builtin::register(&mut compiler);
+                return None
+            }
+        };
 
-        compiler
+        Some(program)
     }
 
     /** Converts the compiled information into a Program. */
-    pub fn into_program(mut self) -> Program {
-        // Close any open scopes
+    pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
+        let mut errors = Vec::new();
+
+        // Close any open scopes except the main scope.
         while self.scopes.len() > 0 {
             self.pop_scope();
         }
 
         let mut usages = self
             .usages
-            .into_iter()
+            .drain(..)
             .map(|usage| {
-                if let Err(usage) = usage {
-                    panic!("Unresolved usage detected {:?}", usage);
-                }
+                match usage {
+                    Ok(usage) => usage,
+                    Err(usage) => {
+                        let error = match usage {
+                            Usage::Symbol{name, offset} => {
+                                Error::new(offset, format!("Unresolved symbol '{}'", name))
+                            }
 
-                usage.unwrap()
+                            Usage::Call{name, args: _, nargs: _, offset} => {
+                                Error::new(offset, format!("Unresolved call to '{}'", name))
+                            }
+                        };
+
+                        errors.push(error);
+                        vec![Op::Nop]  // Dummy instruction
+                    }
+                }
             })
             .collect();
+
+        // Stop when errors are found
+        if errors.len() > 0 {
+            return Err(errors);
+        }
 
         let statics = self.statics.borrow().to_vec();
 
@@ -108,7 +161,7 @@ impl Compiler {
         //println!("finalization finished after {} loops", loops);
 
         // Make program from statics
-        Program::new(statics)
+        Ok(Program::new(statics))
     }
 
     /// Introduces a new scope, either for variables or constants only.

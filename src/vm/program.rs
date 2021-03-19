@@ -37,7 +37,7 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Option<Error>> {
+    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         let main = self.main.borrow();
         let res = main.run(runtime, 0, None, true); // fixme: Provide default arguments?
 
@@ -47,15 +47,15 @@ impl Program {
                 Ok(Some(capture.as_value(runtime)))
             }
             Ok(_) => Ok(None),
-            Err(Reject::Error(error)) => Err(Some(*error)),
-            Err(_) => Err(None),
+            Err(Reject::Error(error)) => Err(*error),
+            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
         }
     }
 
     pub fn run_from_reader<R: 'static + Read>(
         &self,
         read: R,
-    ) -> Result<Option<RefValue>, Option<Error>> {
+    ) -> Result<Option<RefValue>, Error> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
 
@@ -69,7 +69,7 @@ impl Program {
         ret
     }
 
-    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Option<Error>> {
+    pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Error> {
         self.run_from_reader(std::io::Cursor::new(s))
     }
 }

@@ -1,19 +1,325 @@
-use crate::compiler::*;
+use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::Value;
 use crate::vm::*;
-use crate::{ccl, compile, compile_item, value};
+use crate::{ccl, value};
+
+/*
+    This is a minimalistic Tokay compiler implemented with Rust macros to
+    bootstrap the self-hosted Tokay parser defined below.
+*/
+
+macro_rules! compile_item {
+
+    // Assign a value
+    ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
+        {
+            let name = stringify!($name).to_string();
+            let value = Value::String($value.to_string()).into_refvalue();
+            let addr = $compiler.define_static(value);
+
+            $compiler.set_constant(
+                &name,
+                addr
+            );
+
+            //println!("assign {} = {}", stringify!($name), stringify!($value));
+            None
+        }
+    };
+
+    // Assign whitespace
+    ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
+        {
+            $compiler.push_scope(true);
+
+            let items = vec![
+                $(
+                    compile_item!($compiler, $item)
+                ),*
+            ];
+
+            let body = Block::new(
+                items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
+            );
+
+            let body = Repeat::new(body, 0, 0, true);
+
+            let mut parselet = Parselet::new(
+                Vec::new(),
+                $compiler.get_locals(),
+                Op::Nop,
+                Op::Nop,
+                body
+            );
+            parselet.silent = true;
+
+            let parselet = $compiler.define_static(
+                parselet.into_value().into_refvalue()
+            );
+
+            $compiler.pop_scope();
+
+            $compiler.set_constant(
+                "_",
+                parselet
+            );
+
+            //println!("assign _ = {}", stringify!($item));
+            None
+        }
+    };
+
+    // Assign parselet
+    ( $compiler:expr, ( $name:ident = { $( $item:tt ),* } ) ) => {
+        {
+            let name = stringify!($name).to_string();
+
+            $compiler.push_scope(true);
+
+            let items = vec![
+                $(
+                    compile_item!($compiler, $item)
+                ),*
+            ];
+
+            let body = Block::new(
+                items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
+            );
+
+            let parselet = $compiler.define_static(
+                Parselet::new(
+                    Vec::new(),
+                    $compiler.get_locals(),
+                    Op::Nop,
+                    Op::Nop,
+                    body,
+                ).into_value().into_refvalue()
+            );
+
+            $compiler.pop_scope();
+
+            $compiler.set_constant(
+                &name,
+                parselet
+            );
+
+            //println!("assign {} = {}", stringify!($name), stringify!($item));
+            None
+        }
+    };
+
+    // Sequence
+    ( $compiler:expr, [ $( $item:tt ),* ] ) => {
+        {
+            //println!("sequence");
+            let items = vec![
+                $(
+                    compile_item!($compiler, $item)
+                ),*
+            ];
+
+            Some(
+                Sequence::new(
+                    items.into_iter()
+                        .filter(|item| item.is_some())
+                        .map(|item| (item.unwrap(), None))
+                        .collect()
+                )
+            )
+        }
+    };
+
+    // Block
+    ( $compiler:expr, { $( $item:tt ),* } ) => {
+        {
+            /*
+            $(
+                println!("{:?}", stringify!($item));
+            )*
+            */
+
+            let items = vec![
+                $(
+                    compile_item!($compiler, $item)
+                ),*
+            ];
+
+            Some(
+                Block::new(
+                    items.into_iter()
+                        .filter(|item| item.is_some())
+                        .map(|item| item.unwrap())
+                        .collect()
+                )
+            )
+        }
+    };
+
+    // Kleene
+    ( $compiler:expr, (kle $item:tt) ) => {
+        Some(compile_item!($compiler, $item).unwrap().into_kleene())
+    };
+
+    // Positive
+    ( $compiler:expr, (pos $item:tt) ) => {
+        Some(compile_item!($compiler, $item).unwrap().into_positive())
+    };
+
+    // Optional
+    ( $compiler:expr, (opt $item:tt) ) => {
+        Some(compile_item!($compiler, $item).unwrap().into_optional())
+    };
+
+    // Not
+    ( $compiler:expr, (not $item:tt) ) => {
+        Some(Not::new(compile_item!($compiler, $item).unwrap()))
+    };
+
+    // Peek
+    ( $compiler:expr, (peek $item:tt) ) => {
+        Some(Peek::new(compile_item!($compiler, $item).unwrap()))
+    };
+
+    // Expect
+    ( $compiler:expr, (expect $item:tt) ) => {
+        {
+            let mut msg = "Expecting ".to_string();
+            msg.push_str(stringify!($item));
+            Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some(msg)))
+        }
+    };
+
+    // Expect with literal
+    ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
+        Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg)))
+    };
+
+    // Value
+    ( $compiler:expr, (value $value:tt) ) => {
+        Some(Op::LoadStatic($compiler.define_static(value!($value))))
+    };
+
+    // Call with parameters
+    ( $compiler:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
+        {
+            let mut items = vec![
+                $(
+                    compile_item!($compiler, $param).unwrap()
+                ),*
+            ];
+
+            let name = stringify!($ident).to_string();
+
+            let item = Usage::Call{
+                name,
+                args: items.len(),
+                nargs: 0,
+                offset: None
+            }.resolve_or_dispose(&mut $compiler);
+
+            items.extend(item);
+
+            //println!("call = {} {:?}", stringify!($ident), items);
+            Some(Op::from_vec(items))
+        }
+    };
+
+    // Call without parameters
+    ( $compiler:expr, $ident:ident ) => {
+        {
+            //println!("call = {}", stringify!($ident));
+            let name = stringify!($ident);
+
+            let item = Usage::Symbol{
+                name: name.to_string(),
+                offset: None
+            }.resolve_or_dispose(&mut $compiler);
+
+            Some(Op::from_vec(item))
+        }
+    };
+
+    // Whitespace
+    ( $compiler:expr, _ ) => {
+        {
+            //println!("expr = {}", stringify!($expr));
+            let item = Usage::Symbol{
+                name: "_".to_string(),
+                offset: None
+            }.resolve_or_dispose(&mut $compiler);
+
+            assert!(item.len() == 1); // Can only process statics here!
+            Some(item.into_iter().next().unwrap())
+        }
+    };
+
+    // Match / Touch
+    ( $compiler:expr, $literal:literal ) => {
+        {
+            Some(Match::new_silent($literal))
+        }
+    };
+
+    // Fallback
+    ( $compiler:expr, $expr:tt ) => {
+        {
+            //println!("expr = {}", stringify!($expr));
+            Some($expr)
+        }
+    };
+}
+
+macro_rules! compile {
+    ( $( $items:tt ),* ) => {
+        {
+            let mut compiler = Compiler::new();
+            compiler.init();
+            let main = compile_item!(compiler, $( $items ),*);
+
+            if let Some(main) = main {
+                compiler.define_static(
+                    Parselet::new(
+                        Vec::new(),
+                        compiler.get_locals(),
+                        Op::Nop,
+                        Op::Nop,
+                        main
+                    ).into_value().into_refvalue()
+                );
+            }
+
+            match compiler.to_program() {
+                Ok(program) => program,
+                Err(errors) => {
+                    for error in errors {
+                        println!("{}", error);
+                    }
+
+                    panic!("Errors in compile!");
+                }
+            }
+        }
+    }
+}
+
 
 /**
-This module implements a tokay parser in tokay itself, using the tokay-compiler macros.
+Implements a Tokay parser in Tokay itself, using the compiler macros from above.
 This is the general place to change syntax and modify the design of the abstract syntax tree.
 */
 
 pub struct Parser(Program);
 
 impl Parser {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self(compile!({
         // ----------------------------------------------------------------------------
 
@@ -298,7 +604,7 @@ impl Parser {
                     }))
     }
 
-    pub fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
+    pub(super) fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
@@ -313,8 +619,7 @@ impl Parser {
                 }
             }
             Ok(None) => Ok(Value::Void),
-            Err(Some(error)) => Err(error),
-            Err(None) => Err(Error::new(None, "Parse error".to_string())),
+            Err(error) => Err(error)
         }
     }
 }
