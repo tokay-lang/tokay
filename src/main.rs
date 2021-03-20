@@ -220,6 +220,7 @@ fn test_begin_end() {
 // A first simple REPL for Tokay
 fn repl() {
     let mut compiler = Compiler::new();
+    compiler.interactive = true;
 
     loop {
         print!(">>> ");
