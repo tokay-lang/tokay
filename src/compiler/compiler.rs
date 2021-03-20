@@ -311,11 +311,22 @@ impl Compiler {
     /** Defines a new static value.
 
     Statics are moved into the program later on. */
-    pub fn define_static(&self, value: RefValue) -> usize {
+    pub fn define_static(&self, new_value: RefValue) -> usize {
         let mut statics = self.statics.borrow_mut();
-        // todo: check for existing value, and reuse it again instead of
-        // naively adding the same value multiple times
-        statics.push(value);
+
+        // Check if there exists already a static equivalent to new_value
+        // fixme: A HashTab might be more faster here...
+        {
+            let new_value = new_value.borrow();
+
+            for (i, value) in statics.iter().enumerate() {
+                if *value.borrow() == *new_value {
+                    return i;
+                }
+            }
+        }
+
+        statics.push(new_value);
         statics.len() - 1
     }
 

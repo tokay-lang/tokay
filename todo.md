@@ -18,7 +18,7 @@ This is a recently updated brainstorming and todo scribble file.
 ## Compiler
 
 - [x] Don't require to re-initialize builtins every time a new compile is done.
-- [ ] Reuse statics when accesse multiple times
+- [x] Re-use statics when accessed multiple times
 
 ## REPL
 
