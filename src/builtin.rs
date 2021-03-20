@@ -1,4 +1,3 @@
-use crate::compiler::Compiler;
 use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
@@ -181,16 +180,8 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
         */
 ];
 
-pub fn register(compiler: &mut Compiler) {
-    for i in 0..BUILTINS.len() {
-        compiler.set_constant(
-            BUILTINS[i].0,
-            compiler.define_static(Value::Builtin(i).into_refvalue()),
-        );
-    }
-}
-
-pub fn get(ident: &'static str) -> Option<usize> {
+/// Retrieve builtin by name.
+pub fn get(ident: &str) -> Option<usize> {
     for i in 0..BUILTINS.len() {
         if BUILTINS[i].0 == ident {
             return Some(i);
@@ -200,6 +191,7 @@ pub fn get(ident: &'static str) -> Option<usize> {
     None
 }
 
+/// Examine arguments from constant call.
 pub fn get_arg(
     args: &Vec<RefValue>,
     nargs: Option<Dict>,
@@ -227,6 +219,7 @@ pub fn get_arg(
     }
 }
 
+// Call builtin from the VM.
 pub fn call(
     builtin: usize,
     context: &mut Context,

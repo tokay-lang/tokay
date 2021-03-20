@@ -4,7 +4,7 @@ This is a recently updated brainstorming and todo scribble file.
 
 ## Pritority
 
-- [ ] Parametized parselets
+- [x] Parametized parselets
 - [ ] Generic parselets
 
 ## General
@@ -14,6 +14,15 @@ This is a recently updated brainstorming and todo scribble file.
     - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
     - [ ] **lazy_static** for parser and compiler
     - [ ] **regex** for regular expressions
+
+## Compiler
+
+- [x] Don't require to re-initialize builtins every time a new compile is done.
+- [ ] Reuse statics when accesse multiple times
+
+## REPL
+
+- [ ] REPL should hold global variables and statics context during execution
 
 ## Syntax
 

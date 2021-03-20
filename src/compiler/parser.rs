@@ -281,7 +281,8 @@ macro_rules! compile {
     ( $( $items:tt ),* ) => {
         {
             let mut compiler = Compiler::new();
-            compiler.init();
+            compiler.push_scope(true); // Main scope
+
             let main = compile_item!(compiler, $( $items ),*);
 
             if let Some(main) = main {

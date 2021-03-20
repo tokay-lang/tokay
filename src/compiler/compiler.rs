@@ -42,17 +42,9 @@ impl Compiler {
         }
     }
 
-    pub fn init(&mut self) {
-        // Preparation of the global scope (this is currenlty required on every compile)
-        assert!(self.scopes.len() == 0);
-
-        self.push_scope(true); // Global scope
-        builtin::register(self); // Builtins
-    }
-
     /** Compile a Tokay program from source into a Program struct. */
     pub fn compile(&mut self, reader: Reader) -> Option<Program> {
-        self.init();
+        self.push_scope(true); // Main scope
 
         // Create a parser when not already done
         if self.parser.is_none() {
@@ -84,6 +76,10 @@ impl Compiler {
             }
         };
 
+        if self.debug {
+            println!("{:#?}", program);
+        }
+
         Some(program)
     }
 
@@ -91,7 +87,7 @@ impl Compiler {
     pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
         let mut errors = Vec::new();
 
-        // Close any open scopes
+        // Close all scopes
         while self.scopes.len() > 0 {
             self.pop_scope();
         }
@@ -175,11 +171,11 @@ impl Compiler {
     }
 
     /// Introduces a new scope, either for variables or constants only.
-    pub fn push_scope(&mut self, variables: bool) {
+    pub fn push_scope(&mut self, has_variables: bool) {
         self.scopes.insert(
             0,
             Scope {
-                variables: if variables {
+                variables: if has_variables {
                     Some(HashMap::new())
                 } else {
                     None
@@ -192,25 +188,35 @@ impl Compiler {
         );
     }
 
+    // Pops a scope and returns it.
     fn take_scope(&mut self) -> Scope {
         if self.scopes.len() == 0 {
             panic!("No more scopes to pop!");
         }
 
-        for i in self.scopes[0].usage_start..self.usages.len() {
-            if let Err(usage) = &self.usages[i] {
-                let res = usage.try_resolve(&self);
+        // Cut out usages created inside this scope for processing
+        let usages: Vec<Result<Vec<Op>, Usage>> =
+            self.usages.drain(self.scopes[0].usage_start..).collect();
 
-                if let Some(res) = res {
-                    self.usages[i] = Ok(res)
+        // Afterwards, resolve and insert them again
+        for usage in usages.into_iter() {
+            match usage {
+                Err(usage) => {
+                    if let Some(res) = usage.try_resolve(self) {
+                        self.usages.push(Ok(res))
+                    } else {
+                        self.usages.push(Err(usage))
+                    }
                 }
+                Ok(res) => self.usages.push(Ok(res)),
             }
         }
 
+        // Now scope can be removed
         self.scopes.remove(0)
     }
 
-    /** Pops current scope. */
+    /** Pops a scope. */
     pub fn pop_scope(&mut self) {
         self.take_scope();
     }
@@ -283,12 +289,20 @@ impl Compiler {
             .insert(name.to_string(), addr);
     }
 
-    /** Get constant value, either from current or preceding scope. */
-    pub fn get_constant(&self, name: &str) -> Option<usize> {
+    /** Get constant value, either from current or preceding scope.
+
+    The function accepts self as mutable, because it might introduce
+    new constants made available from builtins. */
+    pub fn get_constant(&mut self, name: &str) -> Option<usize> {
         for scope in &self.scopes {
             if let Some(addr) = scope.constants.get(name) {
                 return Some(*addr);
             }
+        }
+
+        // When not found, check for a builtin
+        if let Some(builtin) = builtin::get(name) {
+            return Some(self.define_static(Value::Builtin(builtin).into_refvalue()));
         }
 
         None

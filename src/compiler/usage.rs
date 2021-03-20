@@ -18,7 +18,7 @@ pub enum Usage {
 }
 
 impl Usage {
-    pub(super) fn try_resolve(&self, compiler: &Compiler) -> Option<Vec<Op>> {
+    pub(super) fn try_resolve(&self, compiler: &mut Compiler) -> Option<Vec<Op>> {
         match self {
             Usage::Symbol { name, offset: _ } => {
                 if let Some(addr) = compiler.get_constant(&name) {
