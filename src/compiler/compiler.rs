@@ -25,6 +25,7 @@ struct Scope {
 pub struct Compiler {
     parser: Option<parser::Parser>, //Tokay parser
     pub debug: bool,
+    pub interactive: bool,
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     scopes: Vec<Scope>,                         // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
@@ -33,18 +34,25 @@ pub struct Compiler {
 impl Compiler {
     pub fn new() -> Self {
         // Compiler initialization
-        Self {
+        let mut compiler = Self {
             parser: None,
             debug: false,
+            interactive: false,
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
             usages: Vec::new(),
-        }
+        };
+
+        compiler.push_scope(true); // Main scope
+        compiler
     }
 
     /** Compile a Tokay program from source into a Program struct. */
     pub fn compile(&mut self, reader: Reader) -> Option<Program> {
-        self.push_scope(true); // Main scope
+        // Push a main scope on
+        if self.scopes.len() == 0 {
+            self.push_scope(true); // Main scope
+        }
 
         // Create a parser when not already done
         if self.parser.is_none() {
@@ -87,12 +95,23 @@ impl Compiler {
     pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
         let mut errors = Vec::new();
 
-        // Close all scopes
-        while self.scopes.len() > 0 {
+        // Close all scopes except main
+        while self.scopes.len() > 1 {
             self.pop_scope();
         }
 
-        let statics: Vec<RefValue> = self.statics.borrow_mut().drain(..).collect();
+        // Either resolve or pop global scope
+        if self.interactive {
+            self.resolve_scope();
+        } else {
+            self.pop_scope();
+        }
+
+        let statics: Vec<RefValue> = if self.interactive {
+            self.statics.borrow().clone()
+        } else {
+            self.statics.borrow_mut().drain(..).collect()
+        };
 
         let mut usages = self
             .usages
@@ -120,11 +139,6 @@ impl Compiler {
                 }
             })
             .collect();
-
-        // Stop when any unresolved usages occured
-        if errors.len() > 0 {
-            return Err(errors);
-        }
 
         /*
         Finalize the program according to a grammar's view;
@@ -166,6 +180,13 @@ impl Compiler {
 
         //println!("finalization finished after {} loops", loops);
 
+        // Stop when any unresolved usages occured;
+        // We do this here so that eventual undefined symbols are replaced by Op::Nop,
+        // and later don't throw other errors especially when in interactive mode.
+        if errors.len() > 0 {
+            return Err(errors);
+        }
+
         // Make program from statics
         Ok(Program::new(statics))
     }
@@ -188,12 +209,8 @@ impl Compiler {
         );
     }
 
-    // Pops a scope and returns it.
-    fn take_scope(&mut self) -> Scope {
-        if self.scopes.len() == 0 {
-            panic!("No more scopes to pop!");
-        }
-
+    // Resolve current scope
+    fn resolve_scope(&mut self) {
         // Cut out usages created inside this scope for processing
         let usages: Vec<Result<Vec<Op>, Usage>> =
             self.usages.drain(self.scopes[0].usage_start..).collect();
@@ -211,6 +228,15 @@ impl Compiler {
                 Ok(res) => self.usages.push(Ok(res)),
             }
         }
+    }
+
+    // Pops a scope and returns it.
+    fn take_scope(&mut self) -> Scope {
+        if self.scopes.len() == 0 {
+            panic!("No more scopes to pop!");
+        }
+
+        self.resolve_scope();
 
         // Now scope can be removed
         self.scopes.remove(0)
@@ -715,15 +741,17 @@ impl Compiler {
 
                 let main = self.traverse(&children);
                 let locals = self.get_locals();
-                let scope = self.take_scope();
+
+                let begin = self.scopes[0].begin.drain(..).collect();
+                let end = self.scopes[0].end.drain(..).collect();
 
                 if main.len() > 0 {
                     self.define_static(
                         Parselet::new(
                             Vec::new(),
                             locals,
-                            Op::from_vec(scope.begin),
-                            Op::from_vec(scope.end),
+                            Op::from_vec(begin),
+                            Op::from_vec(end),
                             Block::new(main),
                         )
                         .into_value()

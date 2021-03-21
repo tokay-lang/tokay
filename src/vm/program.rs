@@ -11,7 +11,7 @@ use crate::value::{RefValue, Value};
 #[derive(Debug)]
 pub struct Program {
     pub(super) statics: Vec<RefValue>,
-    main: Rc<RefCell<Parselet>>,
+    main: Option<Rc<RefCell<Parselet>>>,
 }
 
 impl Program {
@@ -27,28 +27,24 @@ impl Program {
             }
         }
 
-        if main.is_none() {
-            panic!("No main parselet found!");
-        }
-
-        Self {
-            statics,
-            main: main.unwrap(),
-        }
+        Self { statics, main }
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        let main = self.main.borrow();
-        let res = main.run(runtime, 0, None, true); // fixme: Provide default arguments?
+        if let Some(main) = &self.main {
+            let main = main.borrow();
+            let res = main.run(runtime, runtime.stack.len(), None, true);
 
-        match res {
-            Ok(Accept::Push(capture)) => {
-                //println!("capture = {:?}", capture.as_value(runtime));
-                Ok(Some(capture.as_value(runtime)))
-            }
-            Ok(_) => Ok(None),
-            Err(Reject::Error(error)) => Err(*error),
-            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
+            let res = match res {
+                Ok(Accept::Push(capture)) => Ok(Some(capture.as_value(runtime))),
+                Ok(_) => Ok(None),
+                Err(Reject::Error(error)) => Err(*error),
+                Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
+            };
+
+            res
+        } else {
+            Ok(None)
         }
     }
 

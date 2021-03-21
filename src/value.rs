@@ -275,6 +275,7 @@ impl Value {
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
+            //Self::String(s) => format!("\"{}\"", s),  // fixme!!
             Self::List(l) => {
                 let mut s = "[".to_string();
                 for item in l.iter() {

@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::io::{self, Write};
+use std::io;
 
 use ::tokay::compiler::Compiler;
 use ::tokay::error::Error;
 use ::tokay::reader::Reader;
+use ::tokay::repl::repl;
 use ::tokay::value::*;
 
 #[cfg(test)]
@@ -216,66 +216,6 @@ fn test_begin_end() {
 
 //let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
 //let s = "a:'Hello' a\na : 'Hallo' A";
-
-// A first simple REPL for Tokay
-fn repl() {
-    let mut compiler = Compiler::new();
-
-    loop {
-        print!(">>> ");
-        io::stdout().flush().unwrap();
-
-        let mut code = String::new();
-        if io::stdin().read_line(&mut code).is_err() {
-            panic!("Error reading code")
-        }
-
-        // Stop when program is empty.
-        if code.trim().is_empty() {
-            return;
-        }
-
-        //println!("code = {:?}", code);
-
-        match code.as_str() {
-            "#debug\n" => {
-                compiler.debug = true;
-                println!("<<< Debug switched on")
-            }
-            "#nodebug\n" => {
-                compiler.debug = false;
-                println!("<<< Debug switched off")
-            }
-            _ => {
-                if let Some(program) =
-                    compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
-                {
-                    if std::env::args().len() == 1 {
-                        let res = program.run_from_str("");
-                        match res {
-                            Ok(None) => {}
-                            Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
-                            _ => println!("<<< {:?}", res),
-                        }
-                    } else {
-                        for filename in std::env::args().skip(1) {
-                            let file = File::open(&filename).unwrap();
-                            let res = program.run_from_reader(file);
-
-                            match res {
-                                Ok(None) => {}
-                                Ok(Some(value)) => {
-                                    println!("{}: {:?}", filename, value.borrow().to_string())
-                                }
-                                _ => println!("{}: {:?}", filename, res),
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 fn main() {
     println!("Tokay v{}", VERSION);

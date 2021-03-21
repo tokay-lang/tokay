@@ -61,11 +61,12 @@ pub enum Reject {
 // --- Context -----------------------------------------------------------------
 
 pub struct Context<'runtime, 'program, 'reader> {
-    pub runtime: &'runtime mut Runtime<'program, 'reader>, // fixme: Temporary pub?
+    pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>,
     pub(crate) stack_start: usize, // Stack start (including locals and parameters)
     pub(crate) capture_start: usize, // Stack capturing start
     pub(crate) reader_start: Offset, // Current reader offset
     pub(super) source_offset: Option<Offset>, // Tokay source offset
+    main: bool, // Defines if context is the main context, and used by a main parselet
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
@@ -73,6 +74,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         runtime: &'runtime mut Runtime<'program, 'reader>,
         preserve: usize,
         take: usize,
+        main: bool,
     ) -> Self {
         let stack_start = runtime.stack.len() - take;
 
@@ -92,8 +94,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             stack_start,
             capture_start: stack_start + preserve,
             reader_start: runtime.reader.tell(),
-            runtime: runtime,
+            runtime,
             source_offset: None,
+            main,
         }
     }
 
@@ -290,15 +293,17 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        self.runtime.stack.truncate(self.stack_start);
+        if !self.main {
+            self.runtime.stack.truncate(self.stack_start);
+        }
     }
 }
 
 // --- Runtime -----------------------------------------------------------------
 
 pub struct Runtime<'program, 'reader> {
-    pub(super) program: &'program Program,
-    pub(crate) reader: &'reader mut Reader, // temporary pub
+    pub(crate) program: &'program Program,
+    pub(crate) reader: &'reader mut Reader,
 
     pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
@@ -312,6 +317,23 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             memo: HashMap::new(),
             stack: Vec::new(),
         }
+    }
+
+    pub fn load_stack(&mut self, stack: Vec<RefValue>) {
+        for item in stack {
+            self.stack.push(Capture::Value(item, 10));
+        }
+    }
+
+    pub fn into_stack(mut self) -> Vec<RefValue> {
+        let mut ret = Vec::new();
+        let stack: Vec<Capture> = self.stack.drain(..).collect();
+
+        for item in stack {
+            ret.push(item.as_value(&self));
+        }
+
+        ret
     }
 
     pub fn dump(&self) {

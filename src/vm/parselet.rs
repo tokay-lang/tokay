@@ -68,25 +68,29 @@ impl Parselet {
         mut nargs: Option<Dict>,
         main: bool,
     ) -> Result<Accept, Reject> {
-        let mut context = Context::new(runtime, self.locals, args);
+        let mut context = Context::new(runtime, self.locals, args, main);
 
-        // Set remaining parameters to their defaults.
-        for (i, arg) in (&self.signature[args..]).iter().enumerate() {
-            let var = &mut context.runtime.stack[context.stack_start + args + i];
-            if matches!(var, Capture::Empty) {
-                // Try to fill argument by named arguments dict
-                if let Some(ref mut nargs) = nargs {
-                    if let Some(value) = nargs.remove(&arg.0) {
-                        *var = Capture::from_value(value.clone());
-                        continue;
+        if !main {
+            // Set remaining parameters to their defaults.
+            for (i, arg) in (&self.signature[args..]).iter().enumerate() {
+                let var = &mut context.runtime.stack[context.stack_start + args + i];
+                if matches!(var, Capture::Empty) {
+                    // Try to fill argument by named arguments dict
+                    if let Some(ref mut nargs) = nargs {
+                        if let Some(value) = nargs.remove(&arg.0) {
+                            *var = Capture::from_value(value.clone());
+                            continue;
+                        }
+                    }
+
+                    if let Some(addr) = arg.1 {
+                        *var = Capture::from_value(context.runtime.program.statics[addr].clone());
+                        //println!("{} receives default {:?}", arg.0, var);
                     }
                 }
-
-                if let Some(addr) = arg.1 {
-                    *var = Capture::from_value(context.runtime.program.statics[addr].clone());
-                    //println!("{} receives default {:?}", arg.0, var);
-                }
             }
+        } else {
+            assert!(self.signature.len() == 0)
         }
 
         //println!("remaining {:?}", nargs);
