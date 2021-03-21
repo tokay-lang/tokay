@@ -1,4 +1,5 @@
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::{self, BufReader, Write};
 
 use crate::compiler::Compiler;
 use crate::reader::Reader;
@@ -41,32 +42,28 @@ pub fn repl() {
                 if let Some(program) =
                     compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
                 {
-                    let mut reader = Reader::new(Box::new(io::Cursor::new("")));
-                    let mut runtime = Runtime::new(&program, &mut reader);
-                    runtime.load_stack(globals);
-
-                    let res = program.run(&mut runtime);
-                    match res {
-                        Ok(None) => {}
-                        Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
-                        _ => println!("<<< {:?}", res),
-                    }
-
-                    globals = runtime.into_stack();
-                    //println!("globals = {:?}", globals);
-
-                    /*
                     if std::env::args().len() == 1 {
-                        let res = program.run_from_str("");
+                        let mut reader = Reader::new(Box::new(io::Cursor::new("")));
+                        let mut runtime = Runtime::new(&program, &mut reader);
+                        runtime.load_stack(globals);
+
+                        let res = program.run(&mut runtime);
                         match res {
                             Ok(None) => {}
                             Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
                             _ => println!("<<< {:?}", res),
                         }
+
+                        globals = runtime.into_stack();
                     } else {
                         for filename in std::env::args().skip(1) {
                             let file = File::open(&filename).unwrap();
-                            let res = program.run_from_reader(file);
+
+                            let mut reader = Reader::new(Box::new(BufReader::new(file)));
+                            let mut runtime = Runtime::new(&program, &mut reader);
+                            runtime.load_stack(globals);
+
+                            let res = program.run(&mut runtime);
 
                             match res {
                                 Ok(None) => {}
@@ -75,9 +72,10 @@ pub fn repl() {
                                 }
                                 _ => println!("{}: {:?}", filename, res),
                             }
+
+                            globals = runtime.into_stack();
                         }
                     }
-                    */
                 }
             }
         }

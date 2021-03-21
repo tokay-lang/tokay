@@ -140,11 +140,6 @@ impl Compiler {
             })
             .collect();
 
-        // Stop when any unresolved usages occured
-        if errors.len() > 0 {
-            return Err(errors);
-        }
-
         /*
         Finalize the program according to a grammar's view;
 
@@ -184,6 +179,13 @@ impl Compiler {
         }
 
         //println!("finalization finished after {} loops", loops);
+
+        // Stop when any unresolved usages occured;
+        // We do this here so that eventual undefined symbols are replaced by Op::Nop,
+        // and later don't throw other errors especially when in interactive mode.
+        if errors.len() > 0 {
+            return Err(errors);
+        }
 
         // Make program from statics
         Ok(Program::new(statics))
