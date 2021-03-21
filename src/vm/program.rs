@@ -39,17 +39,16 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         let main = self.main.borrow();
-        let res = main.run(runtime, 0, None, true); // fixme: Provide default arguments?
+        let res = main.run(runtime, runtime.stack.len(), None, true);
 
-        match res {
-            Ok(Accept::Push(capture)) => {
-                //println!("capture = {:?}", capture.as_value(runtime));
-                Ok(Some(capture.as_value(runtime)))
-            }
+        let res = match res {
+            Ok(Accept::Push(capture)) => Ok(Some(capture.as_value(runtime))),
             Ok(_) => Ok(None),
             Err(Reject::Error(error)) => Err(*error),
             Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
-        }
+        };
+
+        res
     }
 
     pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Error> {

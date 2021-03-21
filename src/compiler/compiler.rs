@@ -103,15 +103,13 @@ impl Compiler {
         // Either resolve or pop global scope
         if self.interactive {
             self.resolve_scope();
-        }
-        else {
+        } else {
             self.pop_scope();
         }
 
         let statics: Vec<RefValue> = if self.interactive {
             self.statics.borrow().clone()
-        }
-        else {
+        } else {
             self.statics.borrow_mut().drain(..).collect()
         };
 
