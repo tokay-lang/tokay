@@ -264,6 +264,59 @@ impl Value {
         }
     }
 
+    // Get Value's Tokay code representation.
+    pub fn repr(&self) -> String {
+        match self {
+            Self::Void => "void".to_string(),
+            Self::String(s) => {
+                let mut ret = String::with_capacity(s.len() + 2);
+                ret.push('"');
+
+                for ch in s.chars() {
+                    match ch {
+                        '\"' => ret.push_str("!!"),
+                        '\n' => ret.push_str("\\n"),
+                        '\r' => ret.push_str("\\r"),
+                        '\t' => ret.push_str("\\t"),
+                        ch => ret.push(ch)
+                    }
+                }
+
+                ret.push('"');
+                ret
+            }
+            Self::List(l) => {
+                let mut ret = "[".to_string();
+                for item in l.iter() {
+                    if ret.len() > 1 {
+                        ret.push_str(", ");
+                    }
+
+                    ret.push_str(&item.borrow().repr());
+                }
+                ret.push(']');
+                ret
+            }
+            Self::Dict(d) => {
+                let mut ret = "[".to_string();
+                for (key, value) in d.iter() {
+                    if ret.len() > 1 {
+                        ret.push_str(", ");
+                    }
+
+                    ret.push_str(key);
+                    ret.push_str(" = ");
+                    ret.push_str(&value.borrow().repr());
+                }
+                ret.push(']');
+                ret
+            }
+            Self::Parselet(p) => format!("<parselet {:?}>", p),
+            Self::Builtin(b) => format!("<builtin {:?}>", b),
+            other => other.to_string()
+        }
+    }
+
     // Get Value's string representation.
     pub fn to_string(&self) -> String {
         match self {
@@ -275,35 +328,7 @@ impl Value {
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
-            //Self::String(s) => format!("\"{}\"", s),  // fixme!!
-            Self::List(l) => {
-                let mut s = "[".to_string();
-                for item in l.iter() {
-                    if s.len() > 1 {
-                        s.push_str(", ");
-                    }
-
-                    s.push_str(&item.borrow().to_string());
-                }
-                s.push_str("]");
-                s
-            }
-            Self::Dict(d) => {
-                let mut s = "[".to_string();
-                for (key, value) in d.iter() {
-                    if s.len() > 1 {
-                        s.push_str(", ");
-                    }
-
-                    s.push_str(key);
-                    s.push_str(" = ");
-                    s.push_str(&value.borrow().to_string());
-                }
-                s.push_str("]");
-                s
-            }
-            Self::Parselet(p) => format!("{:?}", p),
-            Self::Builtin(b) => format!("{:?}", b),
+            other => other.repr(),
         }
     }
 

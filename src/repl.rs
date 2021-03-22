@@ -50,7 +50,7 @@ pub fn repl() {
                         let res = program.run(&mut runtime);
                         match res {
                             Ok(None) => {}
-                            Ok(Some(value)) => println!("<<< {}", value.borrow().to_string()),
+                            Ok(Some(value)) => println!("<<< {}", value.borrow().repr()),
                             _ => println!("<<< {:?}", res),
                         }
 
@@ -68,7 +68,7 @@ pub fn repl() {
                             match res {
                                 Ok(None) => {}
                                 Ok(Some(value)) => {
-                                    println!("{}: {:?}", filename, value.borrow().to_string())
+                                    println!("{}: {}", filename, value.borrow().repr())
                                 }
                                 _ => println!("{}: {:?}", filename, res),
                             }
