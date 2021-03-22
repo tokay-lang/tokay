@@ -380,57 +380,57 @@ impl Parser {
 
         // Statics, Variables & Constants
 
-        (S_Tail = {
+        (Tail = {
             [".", _, T_Identifier, _, (call collect[(value "attribute")])],
-            ["[", _, S_Expression, "]", _, (call collect[(value "index")])]
+            ["[", _, Expression, "]", _, (call collect[(value "index")])]
         }),
 
-        (S_Capture = {
+        (Capture = {
             ["$", T_Identifier, _, (call collect[(value "capture_alias")])],
             ["$", T_Integer, _, (call collect[(value "capture_index")])],
-            ["$", "(", _, S_Expression, ")", _, (call collect[(value "capture")])],
+            ["$", "(", _, Expression, ")", _, (call collect[(value "capture")])],
             ["$", (call error[(value "Either use $int or $name for captures, thanks")])]
         }),
 
-        (S_Variable = {
+        (Variable = {
             T_Identifier,
-            S_Capture
+            Capture
         }),
 
-        (S_Lvalue = {
-            [S_Variable, _, (kle S_Tail), (call collect[(value "lvalue")])]
+        (Lvalue = {
+            [Variable, _, (kle Tail), (call collect[(value "lvalue")])]
         }),
 
-        (S_Inplace = {
+        (Inplace = {
             /* todo: drafted support for inplace increment and decrement operators,
             these are not supported by the compiler, yet. */
 
-            [S_Lvalue, "++", (call collect[(value "inplace_post_inc")])],
-            [S_Lvalue, "--", (call collect[(value "inplace_post_dec")])],
-            ["++", S_Lvalue, (call collect[(value "inplace_pre_inc")])],
-            ["--", S_Variable, (call collect[(value "inplace_pre_dec")])],
-            S_Variable
+            [Lvalue, "++", (call collect[(value "inplace_post_inc")])],
+            [Lvalue, "--", (call collect[(value "inplace_post_dec")])],
+            ["++", Lvalue, (call collect[(value "inplace_pre_inc")])],
+            ["--", Variable, (call collect[(value "inplace_pre_dec")])],
+            Variable
         }),
 
-        (S_Rvalue = {
-            [S_Inplace, _, (kle S_Tail), (call collect[(value "rvalue")])]
+        (Rvalue = {
+            [Inplace, _, (kle Tail), (call collect[(value "rvalue")])]
         }),
 
-        (S_Parameter = {
-            [T_Identifier, _, "=", _, S_Expression, (call collect[(value "param_named")])],
-            [S_Expression, (call collect[(value "param")])]
+        (Parameter = {
+            [T_Identifier, _, "=", _, Expression, (call collect[(value "param_named")])],
+            [Expression, (call collect[(value "param")])]
         }),
 
-        (S_Parameters = {
-            (pos [S_Parameter, (opt [",", _])])
+        (Parameters = {
+            (pos [Parameter, (opt [",", _])])
         }),
 
-        (S_Call = {
-            [T_Identifier, "(", _, (opt S_Parameters), ")", _, (call collect[(value "call_identifier")])]
-            //[S_Rvalue, "(", _, (opt S_Parameters), ")", _, (call collect[(value "call_rvalue")])]
+        (Call = {
+            [T_Identifier, "(", _, (opt Parameters), ")", _, (call collect[(value "call_identifier")])]
+            //[Rvalue, "(", _, (opt Parameters), ")", _, (call collect[(value "call_rvalue")])]
         }),
 
-        (S_Literal = {
+        (Literal = {
             ["true", _, (call collect[(value "value_true")])],
             ["false", _, (call collect[(value "value_false")])],
             ["void", _, (call collect[(value "value_void")])],
@@ -440,134 +440,134 @@ impl Parser {
             [T_Integer, _]
         }),
 
-        (S_Token = {
-            ["peek", _, S_Token, (call collect[(value "mod_peek")])],
-            ["not", _, S_Token, (call collect[(value "mod_not")])],
-            ["pos", _, S_Token, (call collect[(value "mod_positive")])],      // fixme: not final!
-            ["kle", _, S_Token, (call collect[(value "mod_kleene")])],        // fixme: not final!
-            ["opt", _, S_Token, (call collect[(value "mod_optional")])],      // fixme: not final!
+        (Token = {
+            ["peek", _, Token, (call collect[(value "mod_peek")])],
+            ["not", _, Token, (call collect[(value "mod_not")])],
+            ["pos", _, Token, (call collect[(value "mod_positive")])],      // fixme: not final!
+            ["kle", _, Token, (call collect[(value "mod_kleene")])],        // fixme: not final!
+            ["opt", _, Token, (call collect[(value "mod_optional")])],      // fixme: not final!
             ["'", T_Match, "'", _, (call collect[(value "match")])],
             [T_Match, _, (call collect[(value "touch")])]
             // fixme: consumable token identifiers?
         }),
 
-        (S_Value = {
-            S_Literal,
-            S_Parselet
+        (Value = {
+            Literal,
+            Parselet
         }),
 
         // Expression & Flow
 
-        (S_Atomic = {
-            ["(", _, S_Expression, (expect ")"), _],
-            S_Literal,
-            S_Token,
-            S_Call,
-            S_Rvalue,
-            S_Block,
-            S_Parselet
+        (Atomic = {
+            ["(", _, Expression, (expect ")"), _],
+            Literal,
+            Token,
+            Call,
+            Rvalue,
+            Block,
+            Parselet
         }),
 
-        (S_Unary = {
-            ["-", _, S_Atomic, (call collect[(value "op_unary_sub")])],
-            ["+", _, S_Atomic, (call collect[(value "op_unary_add")])],
-            ["!", _, S_Atomic, (call collect[(value "op_unary_not")])],
-            S_Atomic
+        (Unary = {
+            ["-", _, Atomic, (call collect[(value "op_unary_sub")])],
+            ["+", _, Atomic, (call collect[(value "op_unary_add")])],
+            ["!", _, Atomic, (call collect[(value "op_unary_not")])],
+            Atomic
         }),
 
-        (S_MulDiv = {
-            [S_MulDiv, "*", _, (expect S_Unary), (call collect[(value "op_binary_mul")])],
-            [S_MulDiv, "/", _, (expect S_Unary), (call collect[(value "op_binary_div")])],
-            S_Unary
+        (MulDiv = {
+            [MulDiv, "*", _, (expect Unary), (call collect[(value "op_binary_mul")])],
+            [MulDiv, "/", _, (expect Unary), (call collect[(value "op_binary_div")])],
+            Unary
         }),
 
-        (S_AddSub = {
-            [S_AddSub, "+", _, (expect S_MulDiv), (call collect[(value "op_binary_add")])],
-            [S_AddSub, "-", _, (expect S_MulDiv), (call collect[(value "op_binary_sub")])],
-            S_MulDiv
+        (AddSub = {
+            [AddSub, "+", _, (expect MulDiv), (call collect[(value "op_binary_add")])],
+            [AddSub, "-", _, (expect MulDiv), (call collect[(value "op_binary_sub")])],
+            MulDiv
         }),
 
-        (S_Compare = {
-            [S_Compare, "==", _, (expect S_AddSub), (call collect[(value "op_compare_equal")])],
-            [S_Compare, "!=", _, (expect S_AddSub), (call collect[(value "op_compare_unequal")])],
-            [S_Compare, "<=", _, (expect S_AddSub), (call collect[(value "op_compare_lowerequal")])],
-            [S_Compare, ">=", _, (expect S_AddSub), (call collect[(value "op_compare_greaterequal")])],
-            [S_Compare, "<", _, (expect S_AddSub), (call collect[(value "op_compare_lower")])],
-            [S_Compare, ">", _, (expect S_AddSub), (call collect[(value "op_compare_greater")])],
-            S_AddSub
+        (Compare = {
+            [Compare, "==", _, (expect AddSub), (call collect[(value "op_compare_equal")])],
+            [Compare, "!=", _, (expect AddSub), (call collect[(value "op_compare_unequal")])],
+            [Compare, "<=", _, (expect AddSub), (call collect[(value "op_compare_lowerequal")])],
+            [Compare, ">=", _, (expect AddSub), (call collect[(value "op_compare_greaterequal")])],
+            [Compare, "<", _, (expect AddSub), (call collect[(value "op_compare_lower")])],
+            [Compare, ">", _, (expect AddSub), (call collect[(value "op_compare_greater")])],
+            AddSub
         }),
 
-        (S_Assign = {
-            [S_Lvalue, "=", _, S_Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
+        (Assign = {
+            [Lvalue, "=", _, Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
             // todo: add operators "+="", "-="", "*="", "/=" here as well
         }),
 
-        (S_Expression = {
-            ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
+        (Expression = {
+            ["if", _, Expression, Statement, "else", _, Statement,
                 (call collect[(value "op_ifelse")])],
-            ["if", _, S_Expression, S_Statement, (call collect[(value "op_if")])],
-            S_Compare
+            ["if", _, Expression, Statement, (call collect[(value "op_if")])],
+            Compare
         }),
 
-        (S_Statement = {
-            ["return", _, S_Expression, (call collect[(value "op_return")])],
+        (Statement = {
+            ["return", _, Expression, (call collect[(value "op_return")])],
             ["return", _, (call collect[(value "op_returnvoid")])],
-            ["accept", _, S_Expression, (call collect[(value "op_accept")])],
+            ["accept", _, Expression, (call collect[(value "op_accept")])],
             ["accept", _, (call collect[(value "op_acceptvoid")])],
             ["reject", _, (call collect[(value "op_reject")])],
-            S_Assign,
-            S_Expression
+            Assign,
+            Expression
         }),
 
         // Parselet
 
-        (S_Argument = {
-            //[T_Identifier, _, ":", _, (opt S_Value), (call collect[(value "arg_constant")])],  // todo: later...
-            [T_Identifier, _, (opt ["=", _, (opt S_Value)]), (call collect[(value "arg")])]
+        (Argument = {
+            //[T_Identifier, _, ":", _, (opt Value), (call collect[(value "arg_constant")])],  // todo: later...
+            [T_Identifier, _, (opt ["=", _, (opt Value)]), (call collect[(value "arg")])]
         }),
 
-        (S_Arguments = {
-            (pos [S_Argument, (opt [",", _])])
+        (Arguments = {
+            (pos [Argument, (opt [",", _])])
         }),
 
-        (S_Parselet = {
-            ["@", _, (opt S_Arguments), S_Block, (call collect[(value "value_parselet")])],
-            ["@", _, S_Sequence, (call collect[(value "value_parselet")])]
+        (Parselet = {
+            ["@", _, (opt Arguments), Block, (call collect[(value "value_parselet")])],
+            ["@", _, Sequence, (call collect[(value "value_parselet")])]
         }),
 
-        (S_Block = {
-            ["{", _, S_Sequences, _, (expect "}"), _, (call collect[(value "block")])],
+        (Block = {
+            ["{", _, Sequences, _, (expect "}"), _, (call collect[(value "block")])],
             ["{", _, (expect "}"), _, (Op::PushVoid), (call collect[(value "block")])]
         }),
 
         // Sequences
 
-        (S_Sequences = {
-            (pos S_Sequence)
+        (Sequences = {
+            (pos Sequence)
         }),
 
-        (S_Sequence = {
-            ["begin", _, S_Statement, (call collect[(value "begin")])],
-            ["end", _, S_Statement, (call collect[(value "end")])],
-            [(pos S_Item), (call collect[(value "sequence")])],
+        (Sequence = {
+            ["begin", _, Statement, (call collect[(value "begin")])],
+            ["end", _, Statement, (call collect[(value "end")])],
+            [(pos Item), (call collect[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),
 
-        (S_Item = {
+        (Item = {
             // todo: Recognize aliases
-            [T_Identifier, _, ":", _, S_Value, T_EOL, (call collect[(value "assign_constant")])],
-            S_Statement
+            [T_Identifier, _, ":", _, Value, T_EOL, (call collect[(value "assign_constant")])],
+            Statement
         }),
 
         /*
-        (S_TokenModifier = {
-            ["!", S_TokenModifier, (call collect[(value "mod_not")])],
-            ["~", S_TokenModifier, (call collect[(value "mod_peek")])],
-            [S_Token, "+", _, (call collect[(value "mod_positive")])],
-            [S_Token, "*", _, (call collect[(value "mod_kleene")])],
-            [S_Token, "?", _, (call collect[(value "mod_optional")])],
+        (TokenModifier = {
+            ["!", TokenModifier, (call collect[(value "mod_not")])],
+            ["~", TokenModifier, (call collect[(value "mod_peek")])],
+            [Token, "+", _, (call collect[(value "mod_positive")])],
+            [Token, "*", _, (call collect[(value "mod_kleene")])],
+            [Token, "?", _, (call collect[(value "mod_optional")])],
             [
-                S_Token, _,
+                Token, _,
                 (Op::Peek(
                     Op::Not(
                         Chars::new(ccl![
@@ -583,21 +583,21 @@ impl Parser {
             ]
         }),
 
-        (S_Token = {
+        (Token = {
             [T_String, (call collect[(value "match")])],
             [T_LightString, (call collect[(value "touch")])],
             [".", _, (call collect[(value "any")])],
-            S_Call,
+            Call,
             [T_Identifier, (call collect[(value "call_or_load")])],
-            S_Parselet
+            Parselet
         }),
         */
 
-        (S_Tokay = {
-            S_Sequences
+        (Tokay = {
+            Sequences
         }),
 
-        [_, S_Tokay, (call collect[(value "main")])]
+        [_, Tokay, (call collect[(value "main")])]
 
         // ----------------------------------------------------------------------------
                     }))
