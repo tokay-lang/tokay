@@ -35,97 +35,71 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
         )
         .into_reject()
     }),
-    ("leaf", 1, false, |context, args, _| {
-        let emit = format!(
-            "{}",
-            get_arg(&args, None, 0, None).unwrap().borrow().to_string()
-        );
+    ("collect", 1, false, |context, args, nargs| {
+        let emit = get_arg(&args, nargs.as_ref(), 0, Some("emit")).unwrap();
+        let mut value = get_arg(&args, nargs.as_ref(), 1, Some("value"));
 
-        let value = Value::String(
-            context
-                .runtime
-                .reader
-                .extract(&context.runtime.reader.capture_from(&context.reader_start)),
-        );
-
-        let mut ret = Dict::new();
-
-        ret.insert(
-            "emit".to_string(),
-            Value::String(emit.to_string()).into_refvalue(),
-        );
-
-        ret.insert("value".to_string(), value.into_refvalue());
-
-        Ok(Accept::Return(Some(
-            Value::Dict(Box::new(ret)).into_refvalue(),
-        )))
-    }),
-    ("node", 1, false, |context, args, _| {
-        let emit = get_arg(&args, None, 0, None).unwrap();
-        /*
-        println!("Create {} from {:?}",
-            emit, &context.runtime.stack[context.capture_start..]
-        );
-        */
-
-        let value = match context.collect(context.capture_start, false, false, 0) {
-            Some(capture) => {
-                let value = capture.as_value(context.runtime);
-                let mut ret = Dict::new();
-
-                ret.insert("emit".to_string(), emit.clone());
-
-                // List or Dict values are classified as child nodes
-                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
-                    ret.insert("children".to_string(), value);
-                } else {
-                    ret.insert("value".to_string(), value);
-                }
-
-                ret.insert(
-                    "offset".to_string(),
-                    Value::Addr(context.reader_start.offset).into_refvalue(),
-                );
-                ret.insert(
-                    "row".to_string(),
-                    Value::Addr(context.reader_start.row as usize).into_refvalue(),
-                );
-                ret.insert(
-                    "col".to_string(),
-                    Value::Addr(context.reader_start.col as usize).into_refvalue(),
-                );
-
-                /*
-                let current = context.runtime.reader.tell();
-
-                ret.insert(
-                    "end_offset".to_string(),
-                    Value::Addr(current.offset).into_refvalue(),
-                );
-                ret.insert(
-                    "end_row".to_string(),
-                    Value::Addr(current.row as usize).into_refvalue(),
-                );
-                ret.insert(
-                    "end_col".to_string(),
-                    Value::Addr(current.col as usize).into_refvalue(),
-                );
-                */
-
-                Value::Dict(Box::new(ret)).into_refvalue()
+        // In case no value is set, collect them from the current context.
+        if value.is_err() {
+            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                value = Ok(capture.as_value(context.runtime));
             }
-            None => emit.clone(),
+        }
+
+        let ret = if let Ok(value) = value {
+            let mut ret = Dict::new();
+
+            ret.insert("emit".to_string(), emit.clone());
+
+            // List or Dict values are classified as child nodes
+            if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                ret.insert("children".to_string(), value);
+            } else {
+                ret.insert("value".to_string(), value);
+            }
+
+            ret.insert(
+                "offset".to_string(),
+                Value::Addr(context.reader_start.offset).into_refvalue(),
+            );
+            ret.insert(
+                "row".to_string(),
+                Value::Addr(context.reader_start.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "col".to_string(),
+                Value::Addr(context.reader_start.col as usize).into_refvalue(),
+            );
+
+            /*
+            let current = context.runtime.reader.tell();
+
+            ret.insert(
+                "end_offset".to_string(),
+                Value::Addr(current.offset).into_refvalue(),
+            );
+            ret.insert(
+                "end_row".to_string(),
+                Value::Addr(current.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "end_col".to_string(),
+                Value::Addr(current.col as usize).into_refvalue(),
+            );
+            */
+
+            Value::Dict(Box::new(ret)).into_refvalue()
+        }
+        else {
+            emit.clone()
         };
 
-        //println!("Create {:?} value = {:?}", emit, value);
-
-        Ok(Accept::Return(Some(value)))
+        Ok(Accept::Return(Some(ret)))
     }),
     ("print", -1, false, |context, args, _| {
         if args.len() == 0 {
             if let Some(capture) = context.get_capture(0) {
-                println!("{:?}", capture);
+                println!("{}", capture.borrow());
             } else {
                 print!("\n");
             }
@@ -194,7 +168,7 @@ pub fn get(ident: &str) -> Option<usize> {
 /// Examine arguments from constant call.
 pub fn get_arg(
     args: &Vec<RefValue>,
-    nargs: Option<Dict>,
+    nargs: Option<&Dict>,
     index: usize,
     name: Option<&'static str>,
 ) -> Result<RefValue, String> {

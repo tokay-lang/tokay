@@ -339,11 +339,11 @@ impl Parser {
 
         (T_Identifier = {
             [
-                (Chars::new(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
+                (Chars::new_silent(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
                 (Repeat::optional_silent(
                     Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
                 )),
-                (call leaf[(value "identifier")])
+                (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
@@ -365,30 +365,30 @@ impl Parser {
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(Chars::span(ccl!['0'..='9'])), (call node[(value "value_integer")])]
+            [(Chars::span(ccl!['0'..='9'])), (call collect[(value "value_integer")])]
         }),
 
         (T_Float = {
             // todo: implement as built-in Parselet
             [(Chars::span(ccl!['0'..='9'])), ".",
                 (Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
-                    (call leaf[(value "value_float")])],
+                    (call collect[(value "value_float"), (Op::LoadFastCapture(0))])],
             [(Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
                 ".", (Chars::span(ccl!['0'..='9'])),
-                    (call leaf[(value "value_float")])]
+                    (call collect[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 
         // Statics, Variables & Constants
 
         (S_Tail = {
-            [".", _, T_Identifier, _, (call node[(value "attribute")])],
-            ["[", _, S_Expression, "]", _, (call node[(value "index")])]
+            [".", _, T_Identifier, _, (call collect[(value "attribute")])],
+            ["[", _, S_Expression, "]", _, (call collect[(value "index")])]
         }),
 
         (S_Capture = {
-            ["$", T_Identifier, _, (call node[(value "capture_alias")])],
-            ["$", T_Integer, _, (call node[(value "capture_index")])],
-            ["$", "(", _, S_Expression, ")", _, (call node[(value "capture")])],
+            ["$", T_Identifier, _, (call collect[(value "capture_alias")])],
+            ["$", T_Integer, _, (call collect[(value "capture_index")])],
+            ["$", "(", _, S_Expression, ")", _, (call collect[(value "capture")])],
             ["$", (call error[(value "Either use $int or $name for captures, thanks")])]
         }),
 
@@ -398,27 +398,27 @@ impl Parser {
         }),
 
         (S_Lvalue = {
-            [S_Variable, _, (kle S_Tail), (call node[(value "lvalue")])]
+            [S_Variable, _, (kle S_Tail), (call collect[(value "lvalue")])]
         }),
 
         (S_Inplace = {
             /* todo: drafted support for inplace increment and decrement operators,
             these are not supported by the compiler, yet. */
 
-            [S_Lvalue, "++", (call node[(value "inplace_post_inc")])],
-            [S_Lvalue, "--", (call node[(value "inplace_post_dec")])],
-            ["++", S_Lvalue, (call node[(value "inplace_pre_inc")])],
-            ["--", S_Variable, (call node[(value "inplace_pre_dec")])],
+            [S_Lvalue, "++", (call collect[(value "inplace_post_inc")])],
+            [S_Lvalue, "--", (call collect[(value "inplace_post_dec")])],
+            ["++", S_Lvalue, (call collect[(value "inplace_pre_inc")])],
+            ["--", S_Variable, (call collect[(value "inplace_pre_dec")])],
             S_Variable
         }),
 
         (S_Rvalue = {
-            [S_Inplace, _, (kle S_Tail), (call node[(value "rvalue")])]
+            [S_Inplace, _, (kle S_Tail), (call collect[(value "rvalue")])]
         }),
 
         (S_Parameter = {
-            [T_Identifier, _, "=", _, S_Expression, (call node[(value "param_named")])],
-            [S_Expression, (call node[(value "param")])]
+            [T_Identifier, _, "=", _, S_Expression, (call collect[(value "param_named")])],
+            [S_Expression, (call collect[(value "param")])]
         }),
 
         (S_Parameters = {
@@ -426,28 +426,28 @@ impl Parser {
         }),
 
         (S_Call = {
-            [T_Identifier, "(", _, (opt S_Parameters), ")", _, (call node[(value "call_identifier")])]
-            //[S_Rvalue, "(", _, (opt S_Parameters), ")", _, (call node[(value "call_rvalue")])]
+            [T_Identifier, "(", _, (opt S_Parameters), ")", _, (call collect[(value "call_identifier")])]
+            //[S_Rvalue, "(", _, (opt S_Parameters), ")", _, (call collect[(value "call_rvalue")])]
         }),
 
         (S_Literal = {
-            ["true", _, (call node[(value "value_true")])],
-            ["false", _, (call node[(value "value_false")])],
-            ["void", _, (call node[(value "value_void")])],
-            ["null", _, (call node[(value "value_null")])],
-            [T_String, _, (call node[(value "value_string")])],
+            ["true", _, (call collect[(value "value_true")])],
+            ["false", _, (call collect[(value "value_false")])],
+            ["void", _, (call collect[(value "value_void")])],
+            ["null", _, (call collect[(value "value_null")])],
+            [T_String, _, (call collect[(value "value_string")])],
             [T_Float, _],
             [T_Integer, _]
         }),
 
         (S_Token = {
-            ["peek", _, S_Token, (call node[(value "mod_peek")])],
-            ["not", _, S_Token, (call node[(value "mod_not")])],
-            ["pos", _, S_Token, (call node[(value "mod_positive")])],      // fixme: not final!
-            ["kle", _, S_Token, (call node[(value "mod_kleene")])],        // fixme: not final!
-            ["opt", _, S_Token, (call node[(value "mod_optional")])],      // fixme: not final!
-            ["'", T_Match, "'", _, (call node[(value "match")])],
-            [T_Match, _, (call node[(value "touch")])]
+            ["peek", _, S_Token, (call collect[(value "mod_peek")])],
+            ["not", _, S_Token, (call collect[(value "mod_not")])],
+            ["pos", _, S_Token, (call collect[(value "mod_positive")])],      // fixme: not final!
+            ["kle", _, S_Token, (call collect[(value "mod_kleene")])],        // fixme: not final!
+            ["opt", _, S_Token, (call collect[(value "mod_optional")])],      // fixme: not final!
+            ["'", T_Match, "'", _, (call collect[(value "match")])],
+            [T_Match, _, (call collect[(value "touch")])]
             // fixme: consumable token identifiers?
         }),
 
@@ -469,52 +469,52 @@ impl Parser {
         }),
 
         (S_Unary = {
-            ["-", _, S_Atomic, (call node[(value "op_unary_sub")])],
-            ["+", _, S_Atomic, (call node[(value "op_unary_add")])],
-            ["!", _, S_Atomic, (call node[(value "op_unary_not")])],
+            ["-", _, S_Atomic, (call collect[(value "op_unary_sub")])],
+            ["+", _, S_Atomic, (call collect[(value "op_unary_add")])],
+            ["!", _, S_Atomic, (call collect[(value "op_unary_not")])],
             S_Atomic
         }),
 
         (S_MulDiv = {
-            [S_MulDiv, "*", _, (expect S_Unary), (call node[(value "op_binary_mul")])],
-            [S_MulDiv, "/", _, (expect S_Unary), (call node[(value "op_binary_div")])],
+            [S_MulDiv, "*", _, (expect S_Unary), (call collect[(value "op_binary_mul")])],
+            [S_MulDiv, "/", _, (expect S_Unary), (call collect[(value "op_binary_div")])],
             S_Unary
         }),
 
         (S_AddSub = {
-            [S_AddSub, "+", _, (expect S_MulDiv), (call node[(value "op_binary_add")])],
-            [S_AddSub, "-", _, (expect S_MulDiv), (call node[(value "op_binary_sub")])],
+            [S_AddSub, "+", _, (expect S_MulDiv), (call collect[(value "op_binary_add")])],
+            [S_AddSub, "-", _, (expect S_MulDiv), (call collect[(value "op_binary_sub")])],
             S_MulDiv
         }),
 
         (S_Compare = {
-            [S_Compare, "==", _, (expect S_AddSub), (call node[(value "op_compare_equal")])],
-            [S_Compare, "!=", _, (expect S_AddSub), (call node[(value "op_compare_unequal")])],
-            [S_Compare, "<=", _, (expect S_AddSub), (call node[(value "op_compare_lowerequal")])],
-            [S_Compare, ">=", _, (expect S_AddSub), (call node[(value "op_compare_greaterequal")])],
-            [S_Compare, "<", _, (expect S_AddSub), (call node[(value "op_compare_lower")])],
-            [S_Compare, ">", _, (expect S_AddSub), (call node[(value "op_compare_greater")])],
+            [S_Compare, "==", _, (expect S_AddSub), (call collect[(value "op_compare_equal")])],
+            [S_Compare, "!=", _, (expect S_AddSub), (call collect[(value "op_compare_unequal")])],
+            [S_Compare, "<=", _, (expect S_AddSub), (call collect[(value "op_compare_lowerequal")])],
+            [S_Compare, ">=", _, (expect S_AddSub), (call collect[(value "op_compare_greaterequal")])],
+            [S_Compare, "<", _, (expect S_AddSub), (call collect[(value "op_compare_lower")])],
+            [S_Compare, ">", _, (expect S_AddSub), (call collect[(value "op_compare_greater")])],
             S_AddSub
         }),
 
         (S_Assign = {
-            [S_Lvalue, "=", _, S_Expression, (call node[(value "assign")])] // fixme: a = b = c is possible here...
+            [S_Lvalue, "=", _, S_Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
             // todo: add operators "+="", "-="", "*="", "/=" here as well
         }),
 
         (S_Expression = {
             ["if", _, S_Expression, S_Statement, "else", _, S_Statement,
-                (call node[(value "op_ifelse")])],
-            ["if", _, S_Expression, S_Statement, (call node[(value "op_if")])],
+                (call collect[(value "op_ifelse")])],
+            ["if", _, S_Expression, S_Statement, (call collect[(value "op_if")])],
             S_Compare
         }),
 
         (S_Statement = {
-            ["return", _, S_Expression, (call node[(value "op_return")])],
-            ["return", _, (call node[(value "op_returnvoid")])],
-            ["accept", _, S_Expression, (call node[(value "op_accept")])],
-            ["accept", _, (call node[(value "op_acceptvoid")])],
-            ["reject", _, (call node[(value "op_reject")])],
+            ["return", _, S_Expression, (call collect[(value "op_return")])],
+            ["return", _, (call collect[(value "op_returnvoid")])],
+            ["accept", _, S_Expression, (call collect[(value "op_accept")])],
+            ["accept", _, (call collect[(value "op_acceptvoid")])],
+            ["reject", _, (call collect[(value "op_reject")])],
             S_Assign,
             S_Expression
         }),
@@ -522,8 +522,8 @@ impl Parser {
         // Parselet
 
         (S_Argument = {
-            //[T_Identifier, _, ":", _, (opt S_Value), (call node[(value "arg_constant")])],  // todo: later...
-            [T_Identifier, _, (opt ["=", _, (opt S_Value)]), (call node[(value "arg")])]
+            //[T_Identifier, _, ":", _, (opt S_Value), (call collect[(value "arg_constant")])],  // todo: later...
+            [T_Identifier, _, (opt ["=", _, (opt S_Value)]), (call collect[(value "arg")])]
         }),
 
         (S_Arguments = {
@@ -531,13 +531,13 @@ impl Parser {
         }),
 
         (S_Parselet = {
-            ["@", _, (opt S_Arguments), S_Block, (call node[(value "value_parselet")])],
-            ["@", _, S_Sequence, (call node[(value "value_parselet")])]
+            ["@", _, (opt S_Arguments), S_Block, (call collect[(value "value_parselet")])],
+            ["@", _, S_Sequence, (call collect[(value "value_parselet")])]
         }),
 
         (S_Block = {
-            ["{", _, S_Sequences, _, (expect "}"), _, (call node[(value "block")])],
-            ["{", _, (expect "}"), _, (Op::PushVoid), (call node[(value "block")])]
+            ["{", _, S_Sequences, _, (expect "}"), _, (call collect[(value "block")])],
+            ["{", _, (expect "}"), _, (Op::PushVoid), (call collect[(value "block")])]
         }),
 
         // Sequences
@@ -547,25 +547,25 @@ impl Parser {
         }),
 
         (S_Sequence = {
-            ["begin", _, S_Statement, (call node[(value "begin")])],
-            ["end", _, S_Statement, (call node[(value "end")])],
-            [(pos S_Item), (call node[(value "sequence")])],
+            ["begin", _, S_Statement, (call collect[(value "begin")])],
+            ["end", _, S_Statement, (call collect[(value "end")])],
+            [(pos S_Item), (call collect[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),
 
         (S_Item = {
             // todo: Recognize aliases
-            [T_Identifier, _, ":", _, S_Value, T_EOL, (call node[(value "assign_constant")])],
+            [T_Identifier, _, ":", _, S_Value, T_EOL, (call collect[(value "assign_constant")])],
             S_Statement
         }),
 
         /*
         (S_TokenModifier = {
-            ["!", S_TokenModifier, (call node[(value "mod_not")])],
-            ["~", S_TokenModifier, (call node[(value "mod_peek")])],
-            [S_Token, "+", _, (call node[(value "mod_positive")])],
-            [S_Token, "*", _, (call node[(value "mod_kleene")])],
-            [S_Token, "?", _, (call node[(value "mod_optional")])],
+            ["!", S_TokenModifier, (call collect[(value "mod_not")])],
+            ["~", S_TokenModifier, (call collect[(value "mod_peek")])],
+            [S_Token, "+", _, (call collect[(value "mod_positive")])],
+            [S_Token, "*", _, (call collect[(value "mod_kleene")])],
+            [S_Token, "?", _, (call collect[(value "mod_optional")])],
             [
                 S_Token, _,
                 (Op::Peek(
@@ -584,11 +584,11 @@ impl Parser {
         }),
 
         (S_Token = {
-            [T_String, (call node[(value "match")])],
-            [T_LightString, (call node[(value "touch")])],
-            [".", _, (call node[(value "any")])],
+            [T_String, (call collect[(value "match")])],
+            [T_LightString, (call collect[(value "touch")])],
+            [".", _, (call collect[(value "any")])],
             S_Call,
-            [T_Identifier, (call node[(value "call_or_load")])],
+            [T_Identifier, (call collect[(value "call_or_load")])],
             S_Parselet
         }),
         */
@@ -597,7 +597,7 @@ impl Parser {
             S_Sequences
         }),
 
-        [_, S_Tokay, (call node[(value "main")])]
+        [_, S_Tokay, (call collect[(value "main")])]
 
         // ----------------------------------------------------------------------------
                     }))
