@@ -68,7 +68,12 @@ impl Parselet {
         mut nargs: Option<Dict>,
         main: bool,
     ) -> Result<Accept, Reject> {
-        let mut context = Context::new(runtime, self.locals, args, main);
+        let mut context = Context::new(
+            runtime,
+            self.locals,
+            args,
+            if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
+        );
 
         if !main {
             // Set remaining parameters to their defaults.

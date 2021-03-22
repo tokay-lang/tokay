@@ -35,7 +35,7 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
         )
         .into_reject()
     }),
-    ("collect", 1, false, |context, args, nargs| {
+    ("collect", 1, true, |context, args, nargs| {
         let emit = get_arg(&args, nargs.as_ref(), 0, Some("emit")).unwrap();
         let mut value = get_arg(&args, nargs.as_ref(), 1, Some("value"));
 
@@ -89,8 +89,7 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             */
 
             Value::Dict(Box::new(ret)).into_refvalue()
-        }
-        else {
+        } else {
             emit.clone()
         };
 
@@ -216,7 +215,17 @@ pub fn call(
     let result;
 
     // Allow constant number of minimal parameters
-    if builtin.1 >= 0 && args.len() < builtin.1 as usize {
+    if builtin.1 >= 0
+        && (args.len() < builtin.1 as usize
+            && (!builtin.2
+                || builtin.2 && {
+                    if let Some(nargs) = nargs.as_ref() {
+                        nargs.len()
+                    } else {
+                        0
+                    }
+                } < builtin.1 as usize))
+    {
         result = Error::new(
             None,
             format!(

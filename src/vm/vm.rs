@@ -66,7 +66,7 @@ pub struct Context<'runtime, 'program, 'reader> {
     pub(crate) capture_start: usize, // Stack capturing start
     pub(crate) reader_start: Offset, // Current reader offset
     pub(super) source_offset: Option<Offset>, // Tokay source offset
-    main: bool, // Defines if context is the main context, and used by a main parselet
+    hold: usize,                   // Defines number of stack items to hold on context drop
 }
 
 impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
@@ -74,7 +74,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         runtime: &'runtime mut Runtime<'program, 'reader>,
         preserve: usize,
         take: usize,
-        main: bool,
+        hold: usize,
     ) -> Self {
         let stack_start = runtime.stack.len() - take;
 
@@ -96,7 +96,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             reader_start: runtime.reader.tell(),
             runtime,
             source_offset: None,
-            main,
+            hold,
         }
     }
 
@@ -293,9 +293,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
 impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
     fn drop(&mut self) {
-        if !self.main {
-            self.runtime.stack.truncate(self.stack_start);
-        }
+        self.runtime.stack.truncate(self.stack_start + self.hold);
     }
 }
 

@@ -278,7 +278,7 @@ impl Value {
                         '\n' => ret.push_str("\\n"),
                         '\r' => ret.push_str("\\r"),
                         '\t' => ret.push_str("\\t"),
-                        ch => ret.push(ch)
+                        ch => ret.push(ch),
                     }
                 }
 
@@ -313,7 +313,7 @@ impl Value {
             }
             Self::Parselet(p) => format!("<parselet {:?}>", p),
             Self::Builtin(b) => format!("<builtin {:?}>", b),
-            other => other.to_string()
+            other => other.to_string(),
         }
     }
 
