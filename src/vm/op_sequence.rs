@@ -93,6 +93,7 @@ impl Runable for Sequence {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     ) {
         /*
             Sequences are *the* special case for the transform
@@ -135,11 +136,17 @@ impl Runable for Sequence {
         for (item, _) in self.items.iter_mut() {
             // While sequence is nullable, try to find left-recursions
             if self.nullable {
-                item.finalize(usages, statics, &mut self.leftrec, &mut self.nullable);
+                item.finalize(
+                    usages,
+                    statics,
+                    &mut self.leftrec,
+                    &mut self.nullable,
+                    consumes,
+                );
             }
             // Otherwise, continue finalization and resolve usages only
             else {
-                item.finalize(usages, &Vec::new(), &mut false, &mut true);
+                item.finalize(usages, &Vec::new(), &mut false, &mut true, consumes);
             }
         }
 

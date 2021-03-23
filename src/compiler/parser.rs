@@ -297,7 +297,7 @@ macro_rules! compile {
 
             match compiler.to_program() {
                 Ok(program) => {
-                    println!("{:#?}", program);
+                    //println!("{:#?}", program);
                     program
                 },
                 Err(errors) => {

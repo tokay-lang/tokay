@@ -34,9 +34,11 @@ impl Runable for Peek {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     ) {
         self.body.replace_usage(usages);
-        self.body.finalize(usages, statics, leftrec, nullable);
+        self.body
+            .finalize(usages, statics, leftrec, nullable, consumes);
     }
 }
 

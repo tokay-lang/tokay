@@ -119,9 +119,11 @@ impl Runable for Repeat {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     ) {
         self.body.replace_usage(usages);
-        self.body.finalize(usages, statics, leftrec, nullable);
+        self.body
+            .finalize(usages, statics, leftrec, nullable, consumes);
 
         if self.min == 0 {
             *nullable = true;

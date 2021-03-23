@@ -161,6 +161,7 @@ impl Runable for Block {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     ) {
         *nullable = false;
         self.all_leftrec = true;
@@ -171,7 +172,7 @@ impl Runable for Block {
             *item_leftrec = false;
             let mut item_nullable = true;
 
-            item.finalize(usages, statics, item_leftrec, &mut item_nullable);
+            item.finalize(usages, statics, item_leftrec, &mut item_nullable, consumes);
 
             if item_nullable {
                 *nullable = true;

@@ -355,14 +355,16 @@ impl Runable for Op {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     ) {
         match self {
             Op::Scanable(_) => {
                 *nullable = false;
+                *consumes = true;
             }
 
             Op::Runable(runable) => {
-                runable.finalize(usages, statics, leftrec, nullable);
+                runable.finalize(usages, statics, leftrec, nullable, consumes);
             }
 
             Op::Usage(_) => self.replace_usage(usages),
@@ -376,18 +378,22 @@ impl Runable for Op {
                     if let Ok(mut parselet) = parselet.try_borrow_mut() {
                         let mut call_leftrec = parselet.leftrec;
                         let mut call_nullable = parselet.nullable;
+                        let mut call_consumes = parselet.consumes;
 
                         parselet.body.finalize(
                             usages,
                             statics,
                             &mut call_leftrec,
                             &mut call_nullable,
+                            &mut call_consumes,
                         );
 
                         parselet.leftrec = call_leftrec;
                         parselet.nullable = call_nullable;
+                        parselet.consumes = call_consumes;
 
                         *nullable = parselet.nullable;
+                        *consumes = parselet.consumes;
                     } else {
                         *leftrec = true;
                     }
@@ -395,10 +401,12 @@ impl Runable for Op {
             }
 
             Op::If(then_else) => {
-                then_else.0.finalize(usages, statics, leftrec, nullable);
+                then_else
+                    .0
+                    .finalize(usages, statics, leftrec, nullable, consumes);
 
                 if let Some(eelse) = &mut then_else.1 {
-                    eelse.finalize(usages, statics, leftrec, nullable);
+                    eelse.finalize(usages, statics, leftrec, nullable, consumes);
                 }
             }
 

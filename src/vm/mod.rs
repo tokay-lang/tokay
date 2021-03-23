@@ -51,6 +51,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
         statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
+        consumes: &mut bool,
     );
 
     /** Convert parser object into boxed dyn Parser Op */

@@ -17,13 +17,13 @@ can only be made by looking at the parselets instruction set.
 pub struct Parselet {
     pub(crate) leftrec: bool, // Indicator if parselet is left-recursive. Determined on finalization.
     pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
-    // todo: consuming
-    pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
+    pub(crate) consumes: bool, // Indicator if parselet is consuming input. Determined on finalization.
+    pub(crate) silent: bool,   // Indicator if parselet is silent. Results are discarded.
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    locals: usize,           // Number of local variables present
-    begin: Op,               // Begin-operations
-    end: Op,                 // End-operations
-    pub(crate) body: Op,     // Operations
+    locals: usize,             // Number of local variables present
+    begin: Op,                 // Begin-operations
+    end: Op,                   // End-operations
+    pub(crate) body: Op,       // Operations
 }
 
 impl Parselet {
@@ -43,6 +43,7 @@ impl Parselet {
         Self {
             leftrec: false,
             nullable: true,
+            consumes: false,
             silent: false,
             signature,
             locals,

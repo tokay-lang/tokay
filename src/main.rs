@@ -4,10 +4,8 @@ use ::tokay::compiler::Compiler;
 use ::tokay::error::Error;
 use ::tokay::reader::Reader;
 use ::tokay::repl::repl;
+use ::tokay::value;
 use ::tokay::value::*;
-
-#[cfg(test)]
-use ::tokay::value; //for the value!-macro
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -219,23 +217,7 @@ fn test_begin_end() {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    //repl();
-
-    println!(
-        "{:?}",
-        compile_and_run(
-            "
-                for a in b { print(c) }
-                for a; b; c print(d)
-                for ;; c print(d)
-                for ;; print(a)
-                for ;;
-                print(\"This is the End\")
-            ",
-            "",
-            true,
-        )
-    );
+    repl();
 
     /*
     let ast = compile_and_run(

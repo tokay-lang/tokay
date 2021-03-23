@@ -158,10 +158,15 @@ impl Compiler {
                     let mut parselet = parselet.borrow_mut();
                     let mut leftrec = parselet.leftrec;
                     let mut nullable = parselet.nullable;
+                    let mut consumes = parselet.consumes;
 
-                    parselet
-                        .body
-                        .finalize(&mut usages, &statics, &mut leftrec, &mut nullable);
+                    parselet.body.finalize(
+                        &mut usages,
+                        &statics,
+                        &mut leftrec,
+                        &mut nullable,
+                        &mut consumes,
+                    );
 
                     if !parselet.leftrec && leftrec {
                         parselet.leftrec = true;
@@ -172,6 +177,18 @@ impl Compiler {
                         parselet.nullable = nullable;
                         changes = true;
                     }
+
+                    if !parselet.consumes && consumes {
+                        parselet.consumes = true;
+                        changes = true;
+                    }
+
+                    /*
+                    println!(
+                        "--- {} --- leftrec: {} nullable: {} consumes: {}",
+                        i, leftrec, nullable, consumes
+                    );
+                    */
                 }
             }
 
