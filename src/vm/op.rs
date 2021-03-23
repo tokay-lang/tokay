@@ -351,8 +351,8 @@ impl Runable for Op {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
     ) {
@@ -362,20 +362,24 @@ impl Runable for Op {
             }
 
             Op::Runable(runable) => {
-                runable.finalize(statics, usages, leftrec, nullable);
+                runable.finalize(usages, statics, leftrec, nullable);
             }
 
             Op::Usage(_) => self.replace_usage(usages),
 
             Op::CallStatic(addr) => {
+                if statics.len() == 0 {
+                    return;
+                }
+
                 if let Value::Parselet(parselet) = &*statics[*addr].borrow() {
                     if let Ok(mut parselet) = parselet.try_borrow_mut() {
                         let mut call_leftrec = parselet.leftrec;
                         let mut call_nullable = parselet.nullable;
 
                         parselet.body.finalize(
-                            statics,
                             usages,
+                            statics,
                             &mut call_leftrec,
                             &mut call_nullable,
                         );
@@ -387,6 +391,14 @@ impl Runable for Op {
                     } else {
                         *leftrec = true;
                     }
+                }
+            }
+
+            Op::If(then_else) => {
+                then_else.0.finalize(usages, statics, leftrec, nullable);
+
+                if let Some(eelse) = &mut then_else.1 {
+                    eelse.finalize(usages, statics, leftrec, nullable);
                 }
             }
 

@@ -157,8 +157,8 @@ impl Runable for Block {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
     ) {
@@ -171,7 +171,7 @@ impl Runable for Block {
             *item_leftrec = false;
             let mut item_nullable = true;
 
-            item.finalize(statics, usages, item_leftrec, &mut item_nullable);
+            item.finalize(usages, statics, item_leftrec, &mut item_nullable);
 
             if item_nullable {
                 *nullable = true;

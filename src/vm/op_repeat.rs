@@ -115,13 +115,13 @@ impl Runable for Repeat {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
     ) {
         self.body.replace_usage(usages);
-        self.body.finalize(statics, usages, leftrec, nullable);
+        self.body.finalize(usages, statics, leftrec, nullable);
 
         if self.min == 0 {
             *nullable = true;

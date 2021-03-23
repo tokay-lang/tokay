@@ -47,8 +47,8 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
     both left-recursive and nullable (=no input consuming) structures. */
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
     );

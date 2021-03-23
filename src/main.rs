@@ -219,7 +219,23 @@ fn test_begin_end() {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-    repl();
+    //repl();
+
+    println!(
+        "{:?}",
+        compile_and_run(
+            "
+                for a in b { print(c) }
+                for a; b; c print(d)
+                for ;; c print(d)
+                for ;; print(a)
+                for ;;
+                print(\"This is the End\")
+            ",
+            "",
+            true,
+        )
+    );
 
     /*
     let ast = compile_and_run(

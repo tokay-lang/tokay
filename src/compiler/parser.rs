@@ -281,7 +281,6 @@ macro_rules! compile {
     ( $( $items:tt ),* ) => {
         {
             let mut compiler = Compiler::new();
-
             let main = compile_item!(compiler, $( $items ),*);
 
             if let Some(main) = main {
@@ -297,7 +296,10 @@ macro_rules! compile {
             }
 
             match compiler.to_program() {
-                Ok(program) => program,
+                Ok(program) => {
+                    println!("{:#?}", program);
+                    program
+                },
                 Err(errors) => {
                     for error in errors {
                         println!("{}", error);
@@ -389,7 +391,7 @@ impl Parser {
             ["$", T_Identifier, _, (call collect[(value "capture_alias")])],
             ["$", T_Integer, _, (call collect[(value "capture_index")])],
             ["$", "(", _, Expression, ")", _, (call collect[(value "capture")])],
-            ["$", (call error[(value "Either use $int or $name for captures, thanks")])]
+            ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
         }),
 
         (Variable = {
@@ -503,10 +505,28 @@ impl Parser {
         }),
 
         (Expression = {
+            // if
             ["if", _, Expression, Statement, "else", _, Statement,
                 (call collect[(value "op_ifelse")])],
             ["if", _, Expression, Statement, (call collect[(value "op_if")])],
+            ["if", _, (call error[(value "'if': Expecting condition and statement")])],
+
+            // while
+            ["while", _, Expression, (kle T_EOL), Statement, (call collect[(value "op_while")])],
+            ["while", _, (call error[(value "'while': Expecting end-condition and statement")])],
+
+            // for
+            ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call collect[(value "op_for_in")])],
+            ["for", _, VoidStatement, ";", _, VoidStatement, ";", _, VoidStatement, VoidStatement, (call collect[(value "op_for")])],
+            ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+
+            // normal comparison
             Compare
+        }),
+
+        (VoidStatement = {
+            Statement,
+            (call collect[(value "value_void")])
         }),
 
         (Statement = {

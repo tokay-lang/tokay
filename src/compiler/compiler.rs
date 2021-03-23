@@ -161,7 +161,7 @@ impl Compiler {
 
                     parselet
                         .body
-                        .finalize(&statics, &mut usages, &mut leftrec, &mut nullable);
+                        .finalize(&mut usages, &statics, &mut leftrec, &mut nullable);
 
                     if !parselet.leftrec && leftrec {
                         parselet.leftrec = true;

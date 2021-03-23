@@ -89,16 +89,16 @@ impl Runable for Sequence {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
         usages: &mut Vec<Vec<Op>>,
+        statics: &Vec<RefValue>,
         leftrec: &mut bool,
         nullable: &mut bool,
     ) {
         /*
             Sequences are *the* special case for the transform
             facility. When a transform replaces one Op by
-            multiple ops, and this happens in a sequence, then
-            the entire sequence must be extended in-place.
+            multiple Ops, and this happens inside of a sequence,
+            then the entire sequence must be extended in-place.
 
             So `a B c D e` may become `a x c y z e`.
 
@@ -131,12 +131,15 @@ impl Runable for Sequence {
             }
         }
 
-        /* Finalize throug children */
+        // Finalize through children
         for (item, _) in self.items.iter_mut() {
-            item.finalize(statics, usages, &mut self.leftrec, &mut self.nullable);
-
-            if !self.nullable {
-                break;
+            // While sequence is nullable, try to find left-recursions
+            if self.nullable {
+                item.finalize(usages, statics, &mut self.leftrec, &mut self.nullable);
+            }
+            // Otherwise, continue finalization and resolve usages only
+            else {
+                item.finalize(usages, &Vec::new(), &mut false, &mut true);
             }
         }
 

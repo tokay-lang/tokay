@@ -46,54 +46,52 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             }
         }
 
-        let ret = if let Ok(value) = value {
-            let mut ret = Dict::new();
+        let mut ret = Dict::new();
 
-            ret.insert("emit".to_string(), emit.clone());
+        ret.insert("emit".to_string(), emit.clone());
 
-            // List or Dict values are classified as child nodes
+        // List or Dict values are classified as child nodes
+        if let Ok(value) = value {
             if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
                 ret.insert("children".to_string(), value);
             } else {
                 ret.insert("value".to_string(), value);
             }
+        }
 
-            ret.insert(
-                "offset".to_string(),
-                Value::Addr(context.reader_start.offset).into_refvalue(),
-            );
-            ret.insert(
-                "row".to_string(),
-                Value::Addr(context.reader_start.row as usize).into_refvalue(),
-            );
-            ret.insert(
-                "col".to_string(),
-                Value::Addr(context.reader_start.col as usize).into_refvalue(),
-            );
+        ret.insert(
+            "offset".to_string(),
+            Value::Addr(context.reader_start.offset).into_refvalue(),
+        );
+        ret.insert(
+            "row".to_string(),
+            Value::Addr(context.reader_start.row as usize).into_refvalue(),
+        );
+        ret.insert(
+            "col".to_string(),
+            Value::Addr(context.reader_start.col as usize).into_refvalue(),
+        );
 
-            /*
-            let current = context.runtime.reader.tell();
+        /*
+        let current = context.runtime.reader.tell();
 
-            ret.insert(
-                "end_offset".to_string(),
-                Value::Addr(current.offset).into_refvalue(),
-            );
-            ret.insert(
-                "end_row".to_string(),
-                Value::Addr(current.row as usize).into_refvalue(),
-            );
-            ret.insert(
-                "end_col".to_string(),
-                Value::Addr(current.col as usize).into_refvalue(),
-            );
-            */
+        ret.insert(
+            "end_offset".to_string(),
+            Value::Addr(current.offset).into_refvalue(),
+        );
+        ret.insert(
+            "end_row".to_string(),
+            Value::Addr(current.row as usize).into_refvalue(),
+        );
+        ret.insert(
+            "end_col".to_string(),
+            Value::Addr(current.col as usize).into_refvalue(),
+        );
+        */
 
-            Value::Dict(Box::new(ret)).into_refvalue()
-        } else {
-            emit.clone()
-        };
-
-        Ok(Accept::Return(Some(ret)))
+        Ok(Accept::Return(Some(
+            Value::Dict(Box::new(ret)).into_refvalue(),
+        )))
     }),
     ("print", -1, false, |context, args, _| {
         if args.len() == 0 {
