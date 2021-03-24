@@ -60,6 +60,13 @@ pub enum Op {
     Mul,
     Not,
 
+    Equal,
+    NotEqual,
+    LowerEqual,
+    GreaterEqual,
+    Lower,
+    Greater,
+
     // Flow
     If(Box<(Op, Option<Op>)>),
 
@@ -316,6 +323,40 @@ impl Runable for Op {
                 };
 
                 Ok(Accept::Push(Capture::Value(c, 10)))
+            }
+
+            Op::Equal
+            | Op::NotEqual
+            | Op::LowerEqual
+            | Op::GreaterEqual
+            | Op::Lower
+            | Op::Greater => {
+                let b = context.pop();
+                let a = context.pop();
+
+                /*
+                println!("{:?}", self);
+                println!("a = {:?}", a);
+                println!("b = {:?}", b);
+                */
+
+                let c = match self {
+                    Op::Equal => &*a.borrow() == &*b.borrow(),
+                    Op::NotEqual => &*a.borrow() != &*b.borrow(),
+                    /*
+                    Op::LowerEqual => &*a.borrow() <= &*b.borrow(),
+                    Op::GreaterEqual => &*a.borrow() >= &*b.borrow(),
+                    Op::Lower => &*a.borrow() < &*b.borrow(),
+                    Op::Greater => &*a.borrow() > &*b.borrow(),
+                    */
+
+                    _ => unimplemented!("Unimplemented operator"),
+                };
+
+                Ok(Accept::Push(Capture::Value(
+                    (if c { Value::True } else { Value::False }).into_refvalue(),
+                    10,
+                )))
             }
 
             Op::Not => {

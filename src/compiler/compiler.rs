@@ -813,55 +813,84 @@ impl Compiler {
             op if op.starts_with("op_") => {
                 let parts: Vec<&str> = emit.split("_").collect();
 
-                if parts[1] == "binary" {
-                    let children = node.borrow_by_key("children");
-                    let children = children.get_list().unwrap();
-                    assert_eq!(children.len(), 2);
+                match parts[1] {
+                    "binary" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_list().unwrap();
+                        assert_eq!(children.len(), 2);
 
-                    let (left, right) = children.borrow_first_2();
-                    ret.extend(self.traverse_node(&left.get_dict().unwrap()));
-                    ret.extend(self.traverse_node(&right.get_dict().unwrap()));
+                        let (left, right) = children.borrow_first_2();
+                        ret.extend(self.traverse_node(&left.get_dict().unwrap()));
+                        ret.extend(self.traverse_node(&right.get_dict().unwrap()));
 
-                    match parts[2] {
-                        "add" => Some(Op::Add),
-                        "sub" => Some(Op::Sub),
-                        "mul" => Some(Op::Mul),
-                        "div" => Some(Op::Div),
-                        _ => {
-                            unimplemented!("op_binary_{}", parts[2]);
+                        match parts[2] {
+                            "add" => Some(Op::Add),
+                            "sub" => Some(Op::Sub),
+                            "mul" => Some(Op::Mul),
+                            "div" => Some(Op::Div),
+                            _ => {
+                                unimplemented!("op_binary_{}", parts[2]);
+                            }
                         }
                     }
-                } else if parts[1] == "unary" {
-                    let children = node.borrow_by_key("children");
-                    let children = children.get_dict().unwrap();
-                    ret.extend(self.traverse_node(children));
+                    "compare" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_list().unwrap();
+                        assert_eq!(children.len(), 2);
 
-                    match parts[2] {
-                        "not" => Some(Op::Not),
-                        _ => {
-                            unimplemented!("op_unary_{}", parts[2]);
+                        let (left, right) = children.borrow_first_2();
+                        ret.extend(self.traverse_node(&left.get_dict().unwrap()));
+                        ret.extend(self.traverse_node(&right.get_dict().unwrap()));
+
+                        match parts[2] {
+                            "equal" => Some(Op::Equal),
+                            "unequal" => Some(Op::NotEqual),
+                            "lowerequal" => Some(Op::LowerEqual),
+                            "greaterequal" => Some(Op::GreaterEqual),
+                            "lower" => Some(Op::Lower),
+                            "greater" => Some(Op::Greater),
+                            _ => {
+                                unimplemented!("op_compare_{}", parts[2]);
+                            }
                         }
                     }
-                } else if parts[1] == "accept" || parts[1] == "return" {
-                    let children = node.borrow_by_key("children");
-                    ret.extend(self.traverse_node(&children.get_dict().unwrap()));
 
-                    Some(Op::LoadAccept)
-                } else if parts[1] == "if" || parts[1] == "ifelse" {
-                    let children = node.borrow_by_key("children");
-                    let children = children.get_list().unwrap();
+                    "unary" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_dict().unwrap();
+                        ret.extend(self.traverse_node(children));
 
-                    ret.extend(self.traverse(&children[0].borrow()));
-                    let then = Op::from_vec(self.traverse(&children[1].borrow()));
-                    let eelse = if children.len() == 3 {
-                        Some(Op::from_vec(self.traverse(&children[2].borrow())))
-                    } else {
-                        None
-                    };
+                        match parts[2] {
+                            "not" => Some(Op::Not),
+                            _ => {
+                                unimplemented!("op_unary_{}", parts[2]);
+                            }
+                        }
+                    }
+                    "accept" | "return" => {
+                        let children = node.borrow_by_key("children");
+                        ret.extend(self.traverse_node(&children.get_dict().unwrap()));
 
-                    Some(Op::If(Box::new((then, eelse))))
-                } else {
-                    unimplemented!("{} missing", op);
+                        Some(Op::LoadAccept)
+                    }
+                    "if" | "ifelse" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_list().unwrap();
+
+                        ret.extend(self.traverse(&children[0].borrow()));
+                        let then = Op::from_vec(self.traverse(&children[1].borrow()));
+                        let eelse = if children.len() == 3 {
+                            Some(Op::from_vec(self.traverse(&children[2].borrow())))
+                        } else {
+                            None
+                        };
+
+                        Some(Op::If(Box::new((then, eelse))))
+                    }
+
+                    _ => {
+                        unimplemented!("{} missing", op);
+                    }
                 }
             }
 

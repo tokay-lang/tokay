@@ -19,6 +19,11 @@ This is a recently updated brainstorming and todo scribble file.
 
 - [x] Don't require to re-initialize builtins every time a new compile is done.
 - [x] Re-use statics when accessed multiple times
+- [ ] Missing traversals for
+  - [ ] Comparison operators
+  - [ ] In-place increment and decrement
+  - [ ] for/while loops
+  - [ ] Assignment operations +=, -= etc.
 
 ## REPL
 
