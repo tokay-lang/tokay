@@ -252,3 +252,19 @@ impl std::cmp::PartialEq for Parselet {
         self as *const Parselet as usize == other as *const Parselet as usize
     }
 }
+
+impl std::hash::Hash for Parselet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        (self as *const Parselet as usize).hash(state);
+    }
+}
+
+impl std::cmp::PartialOrd for Parselet {
+    // It satisfies to just compare the parselet's memory address for equality
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let left = self as *const Parselet as usize;
+        let right = other as *const Parselet as usize;
+
+        left.partial_cmp(&right)
+    }
+}

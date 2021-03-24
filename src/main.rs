@@ -45,12 +45,119 @@ fn test_literal() {
 
 #[test]
 fn test_expression() {
+    // Simple Integer expressions
     assert_eq!(
-        compile_and_run("1 + 2 * 3 + 4", "", false),
-        Ok(Some(value![11]))
+        compile_and_run(
+            "\
+            1 + 2 \
+            100 - 99 \
+            7 * 3 \
+            21 / 3 \
+            1 + 2 * 3 + 4 \
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([3, 1, 21, 7, 11])))
     );
-    //assert_eq!(compile_and_run("1 + 2 == 3", "", false), Ok(Some(value![true])));
-    // todo: more expressions, please!
+
+    // Simple Float expressions
+    assert_eq!(
+        compile_and_run(
+            "\
+            .2  + .3 \
+            1.9 - 1.1 \
+            2.1 * 6.5 \
+            13.6 / 15.1 \
+            1.1 + 2.2 * 3.3 + 4.4 \
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            0.5,
+            0.7999999999999998,
+            13.65,
+            0.9006622516556292,
+            12.76
+        ])))
+    );
+
+    // Simple String expressions
+    assert_eq!(
+        compile_and_run(
+            "\
+            \"a\" + \"b\" \
+            \"a\" + 2 \
+            \"a\" + 1.337 \
+            \"a\" + \"b\" * 3 \
+            \"a\" * 9 \
+            \"a\" * 3.3 \
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            "ab",
+            "a2",
+            "a1.337",
+            "abbb",
+            "aaaaaaaaa",
+            "aaa"
+        ])))
+    );
+
+    // Equality Comparisons
+    assert_eq!(
+        compile_and_run(
+            "\
+            42 == 42 \
+            42 != 42 \
+            42 != 23 \
+            42 == 23 \
+            1.3 != 3.7 \
+            1.3 == 3.7 \
+            1.12345 == 1.12345 \
+            1.12345 != 1.12345 \
+            \"a\" == \"a\" \
+            \"a\" != \"a\" \
+            \"a\" != \"a\" * 2 \
+            \"a\" == \"a\" * 2 \
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            true, false, true, false, true, false, true, false, true, false, true, false
+        ])))
+    );
+
+    // Ordered Comparisons
+    assert_eq!(
+        compile_and_run(
+            "\
+            42 >= 42 \
+            42 <= 42 \
+            42 < 42 \
+            42 > 42 \
+            \
+            42.23 >= 42.23 \
+            42.23 <= 42.23 \
+            42.23 < 42.23 \
+            42.23 > 42.23 \
+            \
+            \"42.23\" >= 42.23 \
+            \"42.23\" <= 42.23 \
+            \"42.23\" < 42.23 \
+            \"42.23\" > 42.23 \
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            true, true, false, false, true, true, false, false, true, false, false, true
+        ])))
+    );
 }
 
 #[test]

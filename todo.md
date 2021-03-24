@@ -15,26 +15,18 @@ This is a recently updated brainstorming and todo scribble file.
     - [ ] **lazy_static** for parser and compiler
     - [ ] **regex** for regular expressions
 
-## Compiler
-
-- [x] Don't require to re-initialize builtins every time a new compile is done.
-- [x] Re-use statics when accessed multiple times
-- [ ] Missing traversals for
-  - [ ] Comparison operators
-  - [ ] In-place increment and decrement
-  - [ ] for/while loops
-  - [ ] Assignment operations +=, -= etc.
-
-## REPL
-
-- [x] REPL should hold global variables and statics context during execution
-
 ## Syntax
 
 Syntax is under careful consideration.
 
-- [ ] Use `>>` as alternative for `begin`-keyword
-- [ ] Use `<<` as alternative for `end`-keyword
+- [ ] Missing expressional constructs
+  - [ ] Assignment operations `+=`, `-=`, `*=`, `/=`
+  - [ ] `&&` and `||`
+  - [ ] `&` and `|`
+  - [ ] `^`
+- [ ] Loops with value collection using `continue` and `break`
+- [ ] Use `>>` as alternative for `begin`-keyword (under consideration...)
+- [ ] Use `<<` as alternative for `end`-keyword (under consideration...)
 - Token call modifiers
   - [ ] How to distinguish token symbolic constants?
   - [ ] `expect` keyword
@@ -46,6 +38,22 @@ Syntax is under careful consideration.
 - [ ] Definition of Chars scanable structure `[A-Za-z_]` etc...
 - [ ] Definition of Regex scanable structure `/Hel+o Wo?rld/`
 - [ ] Implement ` backticks for shell commands
+
+## Compiler
+
+- [x] Don't require to re-initialize builtins every time a new compile is done.
+- [x] Re-use statics when accessed multiple times
+- [ ] Missing traversals for
+  - [ ] Comparison operators
+  - [ ] In-place increment and decrement
+  - [ ] while-loops
+  - [ ] for-loops
+  - [ ] break and continue
+  - [ ] Assignment operations `+=`, `-=`, `*=`, `/=`
+
+## REPL
+
+- [x] REPL should hold global variables and statics context during execution
 
 ## Semantics
 

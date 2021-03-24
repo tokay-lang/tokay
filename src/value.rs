@@ -1,5 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin;
@@ -56,7 +56,7 @@ impl BorrowByIdx for List {
 }
 
 // --- Dict -------------------------------------------------------------------
-pub type Dict = HashMap<String, RefValue>;
+pub type Dict = BTreeMap<String, RefValue>;
 
 impl BorrowByKey for Dict {
     fn borrow_by_key(&self, key: &str) -> Ref<Value> {
@@ -72,14 +72,14 @@ impl BorrowByKey for Dict {
 
 // --- Value ------------------------------------------------------------------
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     Void,  // void
     Null,  // null
     True,  // true
     False, // false
 
-    Integer(i64),   // integers
+    Integer(i64),   // integer
     Float(f64),     // float
     Addr(usize),    // usize
     String(String), // string
@@ -118,6 +118,11 @@ macro_rules! value {
             else {
                 Value::False.into_refvalue()
             }
+        }
+        else
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f32>()
+        {
+            Value::Float(*value as f64).into_refvalue()
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f64>()

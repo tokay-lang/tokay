@@ -343,12 +343,10 @@ impl Runable for Op {
                 let c = match self {
                     Op::Equal => &*a.borrow() == &*b.borrow(),
                     Op::NotEqual => &*a.borrow() != &*b.borrow(),
-                    /*
                     Op::LowerEqual => &*a.borrow() <= &*b.borrow(),
                     Op::GreaterEqual => &*a.borrow() >= &*b.borrow(),
                     Op::Lower => &*a.borrow() < &*b.borrow(),
                     Op::Greater => &*a.borrow() > &*b.borrow(),
-                    */
 
                     _ => unimplemented!("Unimplemented operator"),
                 };

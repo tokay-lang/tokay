@@ -477,9 +477,12 @@ impl Parser {
             Atomic
         }),
 
+        // todo: & and |
+
         (MulDiv = {
             [MulDiv, "*", _, (expect Unary), (call collect[(value "op_binary_mul")])],
             [MulDiv, "/", _, (expect Unary), (call collect[(value "op_binary_div")])],
+            // todo: ^ (pow)
             Unary
         }),
 
@@ -498,6 +501,8 @@ impl Parser {
             [Compare, ">", _, (expect AddSub), (call collect[(value "op_compare_greater")])],
             AddSub
         }),
+
+        // todo: && and ||
 
         (Assign = {
             [Lvalue, "=", _, Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
