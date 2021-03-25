@@ -1,17 +1,17 @@
 Factor : @{
-    Integer             node("int")
+    Integer             collect("int")
     '(' Expr ')'
 }
 
 Term : @{
-    Term '*' Factor     node("mul")
-    Term '/' Factor     node("div")
+    Term '*' Factor     collect("mul")
+    Term '/' Factor     collect("div")
     Factor
 }
 
 Expr : @{
-    Expr '+' Term       node("add")
-    Expr '-' Term       node("sub")
+    Expr '+' Term       collect("add")
+    Expr '-' Term       collect("sub")
     Term
 }
 

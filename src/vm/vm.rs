@@ -305,6 +305,7 @@ pub struct Runtime<'program, 'reader> {
 
     pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
+    pub debug: bool,
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
@@ -314,6 +315,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             reader,
             memo: HashMap::new(),
             stack: Vec::new(),
+            debug: false,
         }
     }
 
@@ -323,7 +325,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
         }
     }
 
-    pub fn into_stack(mut self) -> Vec<RefValue> {
+    pub fn save_stack(mut self) -> Vec<RefValue> {
         let mut ret = Vec::new();
         let stack: Vec<Capture> = self.stack.drain(..).collect();
 

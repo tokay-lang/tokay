@@ -449,8 +449,9 @@ impl Parser {
             ["kle", _, Token, (call collect[(value "mod_kleene")])],        // fixme: not final!
             ["opt", _, Token, (call collect[(value "mod_optional")])],      // fixme: not final!
             ["'", T_Match, "'", _, (call collect[(value "match")])],
-            [T_Match, _, (call collect[(value "touch")])]
-            // fixme: consumable token identifiers?
+            [T_Match, _, (call collect[(value "touch")])],
+            Call,
+            Rvalue
         }),
 
         (Value = {
@@ -464,8 +465,6 @@ impl Parser {
             ["(", _, Expression, (expect ")"), _],
             Literal,
             Token,
-            Call,
-            Rvalue,
             Block,
             Parselet
         }),
@@ -574,13 +573,15 @@ impl Parser {
         (Sequence = {
             ["begin", _, Statement, (call collect[(value "begin")])],
             ["end", _, Statement, (call collect[(value "end")])],
+            [T_Identifier, _, ":", _, (expect Value), T_EOL, (call collect[(value "assign_constant")])],
+            //fixme: considering here to allow for `a : {}` shorthand syntax for a static parselet...
+            //       but its a little inconsistent
             [(pos Item), (call collect[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),
 
         (Item = {
             // todo: Recognize aliases
-            [T_Identifier, _, ":", _, Value, T_EOL, (call collect[(value "assign_constant")])],
             Statement
         }),
 
@@ -628,7 +629,7 @@ impl Parser {
                     }))
     }
 
-    pub(super) fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
+    pub fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
@@ -647,7 +648,7 @@ impl Parser {
         }
     }
 
-    pub(super) fn print(ast: &Value) {
+    pub fn print(ast: &Value) {
         fn print(value: &Value, indent: usize) {
             match value {
                 Value::Dict(d) => {

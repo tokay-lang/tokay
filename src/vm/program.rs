@@ -10,8 +10,8 @@ use crate::value::{RefValue, Value};
 
 #[derive(Debug)]
 pub struct Program {
-    pub(super) statics: Vec<RefValue>,
-    main: Option<Rc<RefCell<Parselet>>>,
+    pub(super) statics: Vec<RefValue>, // Static values referenced by this program
+    main: Option<Rc<RefCell<Parselet>>>, // The main parselet to run
 }
 
 impl Program {
@@ -51,6 +51,7 @@ impl Program {
     pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Error> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
+        runtime.debug = true;
 
         let ret = self.run(&mut runtime);
 

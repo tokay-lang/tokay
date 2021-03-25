@@ -2,10 +2,13 @@ use super::*;
 use crate::builtin;
 use crate::error::Error;
 use crate::reader::{Offset, Reader};
+use crate::utils;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::prelude::*;
+use std::io::BufReader;
 
 /** Compiler symbolic scope.
 
@@ -89,6 +92,13 @@ impl Compiler {
         }
 
         Some(program)
+    }
+
+    /// Compile a Tokay program from a &str.
+    pub fn compile_str(&mut self, src: &'static str) -> Option<Program> {
+        self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
+            src,
+        )))))
     }
 
     /** Converts the compiled information into a Program. */
@@ -782,13 +792,15 @@ impl Compiler {
             // match ----------------------------------------------------------
             "match" => {
                 let value = node.borrow_by_key("value");
-                Some(Match::new(value.get_string().unwrap().clone()))
+                let string = value.get_string().unwrap().to_string();
+                Some(Match::new(&utils::unescape(string)))
             }
 
             // touch ----------------------------------------------------------
             "touch" => {
                 let value = node.borrow_by_key("value");
-                Some(Match::new_silent(value.get_string().unwrap().clone()))
+                let string = value.get_string().unwrap().to_string();
+                Some(Match::new_silent(&utils::unescape(string)))
             }
 
             // modifier -------------------------------------------------------

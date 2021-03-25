@@ -54,7 +54,7 @@ pub fn repl() {
                             _ => println!("<<< {:?}", res),
                         }
 
-                        globals = runtime.into_stack();
+                        globals = runtime.save_stack();
                     } else {
                         for filename in std::env::args().skip(1) {
                             let file = File::open(&filename).unwrap();
@@ -73,7 +73,7 @@ pub fn repl() {
                                 _ => println!("{}: {:?}", filename, res),
                             }
 
-                            globals = runtime.into_stack();
+                            globals = runtime.save_stack();
                         }
                     }
                 }

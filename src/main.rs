@@ -1,6 +1,6 @@
 use std::io;
 
-use ::tokay::compiler::Compiler;
+use ::tokay::compiler::{Compiler, Parser};
 use ::tokay::error::Error;
 use ::tokay::reader::Reader;
 use ::tokay::repl::repl;
@@ -162,26 +162,31 @@ fn test_expression() {
 
 #[test]
 fn test_token() {
+    // Simple touch
     assert_eq!(
         compile_and_run("'a' 'b'", "ab", false),
         Ok(Some(value![["a", "b"]]))
     );
 
+    // Touch and match
     assert_eq!(
         compile_and_run("'a' ''b''", "ab", false),
         Ok(Some(value!["b"]))
     );
 
+    // Match with positive modifier
     assert_eq!(
         compile_and_run("'a' pos ''b''", "abbb", false),
         Ok(Some(value![["b", "b", "b"]]))
     );
 
+    // Match with kleene and positive modifiers
     assert_eq!(
         compile_and_run("kle ''a'' pos ''b''", "aabbb", false),
         Ok(Some(value![[["a", "a"], ["b", "b", "b"]]]))
     );
 
+    // Touch with kleene and positive modifiers
     assert_eq!(
         compile_and_run("kle 'a' pos ''b''", "bbb", false),
         Ok(Some(value![["b", "b", "b"]]))
@@ -246,6 +251,8 @@ fn test_parselet_leftrec() {
         compile_and_run("P: @{ P ''a''}\nP", "aaaa", false),
         Ok(Some(value!([[["a", "a"], "a"], "a"])))
     );
+
+    // todo: More examples here please!
 }
 
 #[test]
@@ -325,6 +332,20 @@ fn test_begin_end() {
 fn main() {
     println!("Tokay v{}", VERSION);
     repl();
+
+    //println!("{:?}", compile_and_run("A:@{'lol'}\nA", "lol", true,));
+
+    /*
+    let ast = compile_and_run(
+        include_str!("repl.tok"),
+        "#debug\n",
+        true,
+    ).unwrap().unwrap();
+
+    Parser::print(
+        &ast.borrow()
+    );
+    */
 
     /*
     let ast = compile_and_run(
