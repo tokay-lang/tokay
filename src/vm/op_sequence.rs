@@ -91,7 +91,7 @@ impl Runable for Sequence {
         &mut self,
         usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: &mut bool,
+        leftrec: Option<&mut bool>,
         nullable: &mut bool,
         consumes: &mut bool,
     ) {
@@ -139,18 +139,21 @@ impl Runable for Sequence {
                 item.finalize(
                     usages,
                     statics,
-                    &mut self.leftrec,
+                    Some(&mut self.leftrec),
                     &mut self.nullable,
                     consumes,
                 );
             }
             // Otherwise, continue finalization and resolve usages only
             else {
-                item.finalize(usages, &Vec::new(), &mut false, &mut true, consumes);
+                item.finalize(usages, statics, None, &mut true, consumes);
             }
         }
 
-        *leftrec = self.leftrec;
+        if let Some(leftrec) = leftrec {
+            *leftrec = self.leftrec;
+        }
+
         *nullable = self.nullable;
     }
 }

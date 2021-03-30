@@ -159,7 +159,7 @@ impl Runable for Block {
         &mut self,
         usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: &mut bool,
+        leftrec: Option<&mut bool>,
         nullable: &mut bool,
         consumes: &mut bool,
     ) {
@@ -172,7 +172,13 @@ impl Runable for Block {
             *item_leftrec = false;
             let mut item_nullable = true;
 
-            item.finalize(usages, statics, item_leftrec, &mut item_nullable, consumes);
+            item.finalize(
+                usages,
+                statics,
+                Some(item_leftrec),
+                &mut item_nullable,
+                consumes,
+            );
 
             if item_nullable {
                 *nullable = true;
@@ -185,7 +191,9 @@ impl Runable for Block {
             }
         }
 
-        *leftrec = self.leftrec;
+        if let Some(leftrec) = leftrec {
+            *leftrec = self.leftrec;
+        }
     }
 }
 

@@ -32,7 +32,7 @@ impl Runable for Peek {
         &mut self,
         usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: &mut bool,
+        leftrec: Option<&mut bool>,
         nullable: &mut bool,
         consumes: &mut bool,
     ) {

@@ -26,7 +26,7 @@ impl Usage {
 
                     // fixme: This should check if the static is callable
                     //        without parameters!
-                    if statics[addr].borrow().is_callable() {
+                    if statics[addr].borrow().is_callable(0, 0) {
                         return Some(vec![Op::CallStatic(addr)]);
                     } else {
                         return Some(vec![Op::LoadStatic(addr)]);
@@ -50,7 +50,7 @@ impl Usage {
 
                     // fixme: This should check if the static is callable
                     //        without parameters!
-                    if statics[addr].borrow().is_callable() {
+                    if statics[addr].borrow().is_callable(*args, *nargs) {
                         if *args == 0 && *nargs == 0 {
                             return Some(vec![Op::CallStatic(addr)]);
                         } else if *args > 0 && *nargs == 0 {

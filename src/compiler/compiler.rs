@@ -1,3 +1,8 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::io::prelude::*;
+use std::io::BufReader;
+
 use super::*;
 use crate::builtin;
 use crate::error::Error;
@@ -5,10 +10,6 @@ use crate::reader::{Offset, Reader};
 use crate::utils;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::io::prelude::*;
-use std::io::BufReader;
 
 /** Compiler symbolic scope.
 
@@ -173,7 +174,7 @@ impl Compiler {
                     parselet.body.finalize(
                         &mut usages,
                         &statics,
-                        &mut leftrec,
+                        Some(&mut leftrec),
                         &mut nullable,
                         &mut consumes,
                     );

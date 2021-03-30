@@ -129,7 +129,7 @@ impl Runable for Op {
 
             Op::TryCall => {
                 let value = context.pop();
-                if value.borrow().is_callable() {
+                if value.borrow().is_callable(0, 0) {
                     value.borrow().call(context, 0, None)
                 } else {
                     Ok(Accept::Push(Capture::Value(value.clone(), 10)))
@@ -392,7 +392,7 @@ impl Runable for Op {
         &mut self,
         usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: &mut bool,
+        leftrec: Option<&mut bool>,
         nullable: &mut bool,
         consumes: &mut bool,
     ) {
@@ -409,43 +409,51 @@ impl Runable for Op {
             Op::Usage(_) => self.replace_usage(usages),
 
             Op::CallStatic(addr) => {
-                if statics.len() == 0 {
-                    return;
-                }
+                // Is left-recursion detection generally wanted?
+                if let Some(leftrec) = leftrec {
+                    // Is this static a parselet?
+                    if let Value::Parselet(parselet) = &*statics[*addr].borrow() {
+                        // Can the parselet be borrowed mutably?
+                        // If not, it already is borrowed and we have a left-recursion here!
+                        if let Ok(mut parselet) = parselet.try_borrow_mut() {
+                            let mut call_leftrec = parselet.leftrec;
+                            let mut call_nullable = parselet.nullable;
+                            let mut call_consumes = parselet.consumes;
 
-                if let Value::Parselet(parselet) = &*statics[*addr].borrow() {
-                    if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                        let mut call_leftrec = parselet.leftrec;
-                        let mut call_nullable = parselet.nullable;
-                        let mut call_consumes = parselet.consumes;
+                            parselet.body.finalize(
+                                usages,
+                                statics,
+                                Some(&mut call_leftrec),
+                                &mut call_nullable,
+                                &mut call_consumes,
+                            );
 
-                        parselet.body.finalize(
-                            usages,
-                            statics,
-                            &mut call_leftrec,
-                            &mut call_nullable,
-                            &mut call_consumes,
-                        );
+                            parselet.leftrec = call_leftrec;
+                            parselet.nullable = call_nullable;
+                            parselet.consumes = call_consumes;
 
-                        parselet.leftrec = call_leftrec;
-                        parselet.nullable = call_nullable;
-                        parselet.consumes = call_consumes;
-
-                        *nullable = parselet.nullable;
-                        *consumes = parselet.consumes;
-                    } else {
-                        *leftrec = true;
+                            *nullable = parselet.nullable;
+                            *consumes = parselet.consumes;
+                        } else {
+                            *leftrec = true;
+                        }
                     }
                 }
             }
 
             Op::If(then_else) => {
+                let mut if_leftrec = false;
+
                 then_else
                     .0
-                    .finalize(usages, statics, leftrec, nullable, consumes);
+                    .finalize(usages, statics, Some(&mut if_leftrec), nullable, consumes);
 
                 if let Some(eelse) = &mut then_else.1 {
-                    eelse.finalize(usages, statics, leftrec, nullable, consumes);
+                    eelse.finalize(usages, statics, Some(&mut if_leftrec), nullable, consumes);
+                }
+
+                if let Some(leftrec) = leftrec {
+                    *leftrec = if_leftrec;
                 }
             }
 

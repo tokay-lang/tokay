@@ -74,21 +74,25 @@ impl BorrowByKey for Dict {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
+    // Atomics
     Void,  // void
     Null,  // null
     True,  // true
     False, // false
 
-    Integer(i64),   // integer
-    Float(f64),     // float
-    Addr(usize),    // usize
-    String(String), // string
+    // Primitives
+    Integer(i64), // integer
+    Float(f64),   // float
+    Addr(usize),  // usize
 
+    // Extended
+    String(String),  // string
     List(Box<List>), // list
     Dict(Box<Dict>), // dict
 
-    Parselet(Rc<RefCell<Parselet>>), // tokay parselet
-    Builtin(usize),                  // builtin parselet
+    // Objects
+    Parselet(Rc<RefCell<Parselet>>), // Parselet
+    Builtin(usize),                  // Builtin
 }
 
 #[macro_export]
@@ -415,8 +419,13 @@ impl Value {
     }
 
     // Check whether a value is callable
-    pub fn is_callable(&self) -> bool {
-        matches!(self, Value::Parselet(_) | Value::Builtin(_))
+    pub fn is_callable(&self, args: usize, nargs: usize) -> bool {
+        // fixme: this is under construction...
+        match self {
+            Value::Parselet(_) => true, // fixme
+            Value::Builtin(_) => true,  // fixme
+            _ => false,
+        }
     }
 
     // Call
