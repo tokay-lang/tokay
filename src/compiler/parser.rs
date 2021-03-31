@@ -238,7 +238,7 @@ macro_rules! compile_item {
             //println!("call = {}", stringify!($ident));
             let name = stringify!($ident);
 
-            let item = Usage::Symbol{
+            let item = Usage::TryCall{
                 name: name.to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
@@ -251,7 +251,7 @@ macro_rules! compile_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let item = Usage::Symbol{
+            let item = Usage::TryCall{
                 name: "_".to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
@@ -333,8 +333,8 @@ impl Parser {
         }),
 
         (T_EOL = {
-            [(Chars::char('\n')), _, (Op::Skip)],
-            [(Chars::char(';')), _, (Op::Skip)]
+            ["\n", _, (Op::Skip)],
+            [";", _, (Op::Skip)]
         }),
 
         // Prime Tokens (might probably be replaced by something native, pluggable one)
@@ -342,9 +342,15 @@ impl Parser {
         (T_Identifier = {
             [
                 (Chars::new_silent(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
-                (Repeat::optional_silent(
-                    Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])
-                )),
+                (opt (Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_']))),
+                (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
+            ]
+        }),
+
+        (T_Consumable = {
+            [
+                (Chars::new_silent(ccl!['A'..='Z', '_'..='_'])),
+                (opt (Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_']))),
                 (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
@@ -372,12 +378,10 @@ impl Parser {
 
         (T_Float = {
             // todo: implement as built-in Parselet
-            [(Chars::span(ccl!['0'..='9'])), ".",
-                (Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
-                    (call collect[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(Repeat::optional_silent(Chars::span(ccl!['0'..='9']))),
-                ".", (Chars::span(ccl!['0'..='9'])),
-                    (call collect[(value "value_float"), (Op::LoadFastCapture(0))])]
+            [(Chars::span(ccl!['0'..='9'])), ".", (opt (Chars::span(ccl!['0'..='9']))),
+                (call collect[(value "value_float"), (Op::LoadFastCapture(0))])],
+            [(opt (Chars::span(ccl!['0'..='9']))), ".", (Chars::span(ccl!['0'..='9'])),
+                (call collect[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 
         // Statics, Variables & Constants
@@ -410,7 +414,7 @@ impl Parser {
             [Lvalue, "++", (call collect[(value "inplace_post_inc")])],
             [Lvalue, "--", (call collect[(value "inplace_post_dec")])],
             ["++", Lvalue, (call collect[(value "inplace_pre_inc")])],
-            ["--", Variable, (call collect[(value "inplace_pre_dec")])],
+            ["--", Lvalue, (call collect[(value "inplace_pre_dec")])],
             Variable
         }),
 
@@ -450,8 +454,7 @@ impl Parser {
             ["opt", _, Token, (call collect[(value "mod_optional")])],      // fixme: not final!
             ["'", T_Match, "'", _, (call collect[(value "match")])],
             [T_Match, _, (call collect[(value "touch")])],
-            Call,
-            Rvalue
+            [T_Consumable, _, (call collect[(value "call_or_load")])]
         }),
 
         (Value = {
@@ -464,7 +467,9 @@ impl Parser {
         (Atomic = {
             ["(", _, Expression, (expect ")"), _],
             Literal,
+            Call,
             Token,
+            Rvalue,
             Block,
             Parselet
         }),
@@ -510,8 +515,7 @@ impl Parser {
 
         (Expression = {
             // if
-            ["if", _, Expression, Statement, "else", _, Statement,
-                (call collect[(value "op_ifelse")])],
+            ["if", _, Expression, Statement, "else", _, Statement, (call collect[(value "op_ifelse")])],
             ["if", _, Expression, Statement, (call collect[(value "op_if")])],
             ["if", _, (call error[(value "'if': Expecting condition and statement")])],
 
@@ -521,14 +525,14 @@ impl Parser {
 
             // for
             ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call collect[(value "op_for_in")])],
-            ["for", _, VoidStatement, ";", _, VoidStatement, ";", _, VoidStatement, VoidStatement, (call collect[(value "op_for")])],
+            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, StatementOrVoid, (call collect[(value "op_for")])],
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // normal comparison
             Compare
         }),
 
-        (VoidStatement = {
+        (StatementOrVoid = {
             Statement,
             (call collect[(value "value_void")])
         }),
@@ -539,6 +543,7 @@ impl Parser {
             ["accept", _, Expression, (call collect[(value "op_accept")])],
             ["accept", _, (call collect[(value "op_acceptvoid")])],
             ["reject", _, (call collect[(value "op_reject")])],
+            // todo: report, escape, repeat
             Assign,
             Expression
         }),
@@ -546,7 +551,6 @@ impl Parser {
         // Parselet
 
         (Argument = {
-            //[T_Identifier, _, ":", _, (opt Value), (call collect[(value "arg_constant")])],  // todo: later...
             [T_Identifier, _, (opt ["=", _, (opt Value)]), (call collect[(value "arg")])]
         }),
 
@@ -556,7 +560,7 @@ impl Parser {
 
         (Parselet = {
             ["@", _, (opt Arguments), Block, (call collect[(value "value_parselet")])],
-            ["@", _, Sequence, (call collect[(value "value_parselet")])]
+            ["@", _, (opt Arguments), Token, (call collect[(value "value_parselet")])]
         }),
 
         (Block = {
@@ -573,7 +577,7 @@ impl Parser {
         (Sequence = {
             ["begin", _, Statement, (call collect[(value "begin")])],
             ["end", _, Statement, (call collect[(value "end")])],
-            [T_Identifier, _, ":", _, (expect Value), T_EOL, (call collect[(value "assign_constant")])],
+            [T_Identifier, _, ":", _, (expect Value), (expect T_EOL), (call collect[(value "assign_constant")])],
             //fixme: considering here to allow for `a : {}` shorthand syntax for a static parselet...
             //       but its a little inconsistent
             [(pos Item), (call collect[(value "sequence")])],

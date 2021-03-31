@@ -5,7 +5,11 @@ use crate::vm::*;
 /** Unresolved symbols and calls */
 #[derive(Debug)]
 pub enum Usage {
-    Symbol {
+    Load {
+        name: String,
+        offset: Option<Offset>,
+    },
+    TryCall {
         name: String,
         offset: Option<Offset>,
     },
@@ -20,7 +24,17 @@ pub enum Usage {
 impl Usage {
     pub(super) fn try_resolve(&self, compiler: &mut Compiler) -> Option<Vec<Op>> {
         match self {
-            Usage::Symbol { name, offset: _ } => {
+            Usage::Load { name, offset: _ } => {
+                if let Some(addr) = compiler.get_constant(&name) {
+                    return Some(vec![Op::LoadStatic(addr)]);
+                } else if let Some(addr) = compiler.get_local(&name) {
+                    return Some(vec![Op::LoadFast(addr)]);
+                } else if let Some(addr) = compiler.get_global(&name) {
+                    return Some(vec![Op::LoadGlobal(addr)]);
+                }
+            }
+
+            Usage::TryCall { name, offset: _ } => {
                 if let Some(addr) = compiler.get_constant(&name) {
                     let statics = compiler.statics.borrow();
 

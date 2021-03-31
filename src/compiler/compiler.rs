@@ -132,8 +132,9 @@ impl Compiler {
                     Ok(usage) => usage,
                     Err(usage) => {
                         let error = match usage {
-                            Usage::Symbol { name, offset } => {
-                                Error::new(offset, format!("Unresolved symbol '{}'", name))
+                            Usage::Load { name, offset }
+                            | Usage::TryCall { name, offset } => {
+                                Error::new(offset, format!("Use of unresolved symbol '{}'", name))
                             }
 
                             Usage::Call {
@@ -141,7 +142,7 @@ impl Compiler {
                                 args: _,
                                 nargs: _,
                                 offset,
-                            } => Error::new(offset, format!("Unresolved call to '{}'", name)),
+                            } => Error::new(offset, format!("Call to unresolved symbol '{}'", name)),
                         };
 
                         errors.push(error);
@@ -402,7 +403,7 @@ impl Compiler {
 
     /* Generates code for a symbol load. */
     pub fn gen_load(&mut self, name: &str, offset: Option<Offset>) -> Vec<Op> {
-        Usage::Symbol {
+        Usage::Load {
             name: name.to_string(),
             offset,
         }
@@ -625,7 +626,7 @@ impl Compiler {
                     let ident = children.get_dict().unwrap();
                     let ident = ident.borrow_by_key("value");
 
-                    Usage::Symbol {
+                    Usage::TryCall {
                         name: ident.to_string(),
                         offset: self.traverse_node_offset(node),
                     }

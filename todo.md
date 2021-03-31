@@ -76,7 +76,7 @@ Syntax is under careful consideration.
   - Benefits
     - Solution for parameterized parselets with static values
     - A parselet can immediately be identified as consumable when it either calls
-      - a scanable or
+      - a token or
       - consuming parselet identified by a capitalized identifier again
     - It is backward-compatible to existing Tokay code
     - Parselet parameters immediatelly can be classified by their name if they're consumable
