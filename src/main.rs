@@ -1,6 +1,6 @@
 use std::io;
 
-use ::tokay::compiler::{Compiler, Parser};
+use ::tokay::compiler::Compiler;
 use ::tokay::error::Error;
 use ::tokay::reader::Reader;
 use ::tokay::repl::repl;

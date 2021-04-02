@@ -54,6 +54,8 @@ Syntax is under careful consideration.
 ## REPL
 
 - [x] REPL should hold global variables and statics context during execution
+- [ ] REPL creates a new main parselet for every prompt executed; Old mains stay until program end.
+- [ ] Main scope stays consumable even when the next prompt inserted unconsumable input
 
 ## Semantics
 

@@ -419,11 +419,20 @@ impl Value {
     }
 
     // Check whether a value is callable
-    pub fn is_callable(&self, args: usize, nargs: usize) -> bool {
+    pub fn is_callable(&self, _args: usize, _nargs: usize) -> bool {
         // fixme: this is under construction...
         match self {
             Value::Parselet(_) => true, // fixme
             Value::Builtin(_) => true,  // fixme
+            _ => false,
+        }
+    }
+
+    // Check whether a value is consuming
+    pub fn is_consuming(&self) -> bool {
+        match self {
+            Value::Parselet(parselet) => parselet.borrow().consumes,
+            Value::Builtin(addr) => builtin::is_consumable(*addr),
             _ => false,
         }
     }

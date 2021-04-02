@@ -49,20 +49,11 @@ macro_rules! compile_item {
 
             let body = Repeat::new(body, 0, 0, true);
 
-            let mut parselet = Parselet::new(
-                Vec::new(),
-                $compiler.get_locals(),
-                Op::Nop,
-                Op::Nop,
-                body
-            );
-            parselet.silent = true;
+            let parselet = $compiler.create_parselet(Vec::new(), body, true, false);
 
             let parselet = $compiler.define_static(
                 parselet.into_value().into_refvalue()
             );
-
-            $compiler.pop_scope();
 
             $compiler.set_constant(
                 "_",
@@ -94,17 +85,10 @@ macro_rules! compile_item {
                     .collect()
             );
 
+            let parselet = $compiler.create_parselet(Vec::new(), body, false, false);
             let parselet = $compiler.define_static(
-                Parselet::new(
-                    Vec::new(),
-                    $compiler.get_locals(),
-                    Op::Nop,
-                    Op::Nop,
-                    body,
-                ).into_value().into_refvalue()
+                parselet.into_value().into_refvalue()
             );
-
-            $compiler.pop_scope();
 
             $compiler.set_constant(
                 &name,
@@ -284,15 +268,13 @@ macro_rules! compile {
             let main = compile_item!(compiler, $( $items ),*);
 
             if let Some(main) = main {
-                compiler.define_static(
-                    Parselet::new(
-                        Vec::new(),
-                        compiler.get_locals(),
-                        Op::Nop,
-                        Op::Nop,
-                        main
-                    ).into_value().into_refvalue()
-                );
+                let parselet = compiler.create_parselet(
+                    Vec::new(),
+                    main,
+                    false,
+                    true
+                ).into_value().into_refvalue();
+                compiler.define_static(parselet);
             }
 
             match compiler.to_program() {

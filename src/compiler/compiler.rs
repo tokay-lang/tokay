@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::prelude::*;
 use std::io::BufReader;
 
 use super::*;
@@ -13,16 +12,16 @@ use crate::vm::*;
 
 /** Compiler symbolic scope.
 
-In Tokay code, this relates to any block.
-Scoped blocks (parselets) introduce new variable scopes.
+In Tokay code, this relates to any block. Parselet blocks (parselets) introduce new variable scopes.
 */
 #[derive(Debug)]
-struct Scope {
-    variables: Option<HashMap<String, usize>>,
-    constants: HashMap<String, usize>,
-    begin: Vec<Op>,
-    end: Vec<Op>,
-    usage_start: usize,
+pub(crate) struct Scope {
+    variables: Option<HashMap<String, usize>>, // Variable symbol table; Determines whether a scope is a parselet-level scope or just block scope
+    constants: HashMap<String, usize>,         // Constants symbol table
+    begin: Vec<Op>,     // Begin operations; Can only be set for parselet-scopes
+    end: Vec<Op>,       // End operations; Can only be set for parselet-scopes
+    usage_start: usize, // Begin of usages to resolve until when scope is closed
+    consumes: bool, // Determines whether the scope consumes input for early consumable detection
 }
 
 /** Tokay compiler instance, with related objects. */
@@ -33,6 +32,7 @@ pub struct Compiler {
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     scopes: Vec<Scope>,                         // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
+    pub(super) errors: Vec<Error>,              // Collected errors during compilation
 }
 
 impl Compiler {
@@ -45,6 +45,7 @@ impl Compiler {
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
             usages: Vec::new(),
+            errors: Vec::new(),
         };
 
         compiler.push_scope(true); // Main scope
@@ -53,7 +54,7 @@ impl Compiler {
 
     /** Compile a Tokay program from source into a Program struct. */
     pub fn compile(&mut self, reader: Reader) -> Option<Program> {
-        // Push a main scope on
+        // Push a main scope on if not present
         if self.scopes.len() == 0 {
             self.push_scope(true); // Main scope
         }
@@ -104,7 +105,7 @@ impl Compiler {
 
     /** Converts the compiled information into a Program. */
     pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
-        let mut errors = Vec::new();
+        let mut errors: Vec<Error> = self.errors.drain(..).collect();
 
         // Close all scopes except main
         while self.scopes.len() > 1 {
@@ -132,8 +133,7 @@ impl Compiler {
                     Ok(usage) => usage,
                     Err(usage) => {
                         let error = match usage {
-                            Usage::Load { name, offset }
-                            | Usage::TryCall { name, offset } => {
+                            Usage::Load { name, offset } | Usage::TryCall { name, offset } => {
                                 Error::new(offset, format!("Use of unresolved symbol '{}'", name))
                             }
 
@@ -142,7 +142,9 @@ impl Compiler {
                                 args: _,
                                 nargs: _,
                                 offset,
-                            } => Error::new(offset, format!("Call to unresolved symbol '{}'", name)),
+                            } => {
+                                Error::new(offset, format!("Call to unresolved symbol '{}'", name))
+                            }
                         };
 
                         errors.push(error);
@@ -221,7 +223,7 @@ impl Compiler {
     }
 
     /// Introduces a new scope, either for variables or constants only.
-    pub fn push_scope(&mut self, has_variables: bool) {
+    pub(crate) fn push_scope(&mut self, has_variables: bool) {
         self.scopes.insert(
             0,
             Scope {
@@ -234,6 +236,7 @@ impl Compiler {
                 begin: Vec::new(),
                 end: Vec::new(),
                 usage_start: self.usages.len(),
+                consumes: false,
             },
         );
     }
@@ -260,7 +263,7 @@ impl Compiler {
     }
 
     // Pops a scope and returns it.
-    fn take_scope(&mut self) -> Scope {
+    fn pop_scope(&mut self) -> Scope {
         if self.scopes.len() == 0 {
             panic!("No more scopes to pop!");
         }
@@ -268,26 +271,61 @@ impl Compiler {
         self.resolve_scope();
 
         // Now scope can be removed
-        self.scopes.remove(0)
+        let scope = self.scopes.remove(0);
+
+        // Inherit consumable attribute to upper scope when this is not a variable-holding scope
+        if scope.consumes && self.scopes.len() > 0 && self.scopes[0].variables.is_none() {
+            self.scopes[0].consumes = true;
+        }
+
+        scope
     }
 
-    /** Pops a scope. */
-    pub fn pop_scope(&mut self) {
-        self.take_scope();
-    }
+    // Pops scope and creates a parselet from it
+    pub(crate) fn create_parselet(
+        &mut self,
+        sig: Vec<(String, Option<usize>)>,
+        body: Op,
+        silent: bool,
+        main: bool,
+    ) -> Parselet {
+        if main {
+            assert!(
+                self.scopes[0].variables.is_some(),
+                "Main scope must be a parselet-level scope."
+            );
 
-    /// Returns the total number of locals in current scope.
-    pub fn get_locals(&self) -> usize {
-        if let Some(locals) = &self.scopes.first().unwrap().variables {
-            locals.len()
+            Parselet::new(
+                sig,
+                self.scopes[0]
+                    .variables
+                    .as_ref()
+                    .map_or(0, |vars| vars.len()),
+                self.scopes[0].consumes,
+                silent,
+                Op::from_vec(self.scopes[0].begin.drain(..).collect()),
+                Op::from_vec(self.scopes[0].end.drain(..).collect()),
+                body,
+            )
         } else {
-            0
+            loop {
+                let scope = self.pop_scope();
+                if scope.variables.is_some() {
+                    break Parselet::new(
+                        sig,
+                        scope.variables.map_or(0, |vars| vars.len()),
+                        scope.consumes,
+                        silent,
+                        Op::from_vec(scope.begin),
+                        Op::from_vec(scope.end),
+                        body,
+                    );
+                }
+            }
         }
     }
 
-    /**
-    Retrieve address of a local variable under a given name.
-    */
+    /// Retrieve address of a local variable under a given name.
     pub fn get_local(&self, name: &str) -> Option<usize> {
         // Retrieve local variables from next scope owning variables, except global scope!
         for scope in &self.scopes[..self.scopes.len() - 1] {
@@ -412,6 +450,21 @@ impl Compiler {
 
     /* Tokay AST node traversal */
 
+    pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
+        match ident {
+            "accept" | "begin" | "end" | "false" | "for" | "if" | "in" | "kle" | "not" | "null"
+            | "opt" | "peek" | "pos" | "reject" | "return" | "true" | "void" | "while" => Err(
+                Error::new(None, format!("'{}' is a reserved keyword", ident)),
+            ),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn identifier_is_consumable(ident: &str) -> bool {
+        let ch = ident.chars().next().unwrap();
+        ch.is_uppercase() || ch == '_'
+    }
+
     // Traverse either a node or a list from the AST
     pub fn traverse(&mut self, value: &Value) -> Vec<Op> {
         let mut ret = Vec::new();
@@ -489,6 +542,7 @@ impl Compiler {
                 let ident = children.borrow_by_idx(0);
                 let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
 
+                // fixme....
                 assert!(
                     ident.chars().nth(0).unwrap().is_lowercase(),
                     "Only lower-case parameter names are allowed currently"
@@ -514,15 +568,11 @@ impl Compiler {
 
         // Body
         let body = self.traverse_node(&body.get_dict().unwrap());
-        let locals = self.get_locals();
-        let scope = self.take_scope();
-
-        Parselet::new(
+        self.create_parselet(
             sig,
-            locals,
-            Op::from_vec(scope.begin),
-            Op::from_vec(scope.end),
             body.into_iter().next().unwrap_or(Op::Nop),
+            false,
+            false,
         )
         .into_value()
     }
@@ -582,17 +632,50 @@ impl Compiler {
 
                 let constant = constant.get_dict().unwrap();
                 let constant = constant.borrow_by_key("value");
+                let constant = constant.get_string().unwrap();
+
+                if let Err(mut error) = Self::identifier_is_valid(constant) {
+                    if let Some(offset) = self.traverse_node_offset(node) {
+                        error.patch_offset(offset);
+                    }
+
+                    self.errors.push(error);
+                    return ret;
+                }
 
                 let value = self.traverse_node_value(value.get_dict().unwrap());
-                self.set_constant(constant.get_string().unwrap(), self.define_static(value));
 
+                if value.borrow().is_consuming() {
+                    if !Self::identifier_is_consumable(constant) {
+                        self.errors.push(Error::new(
+                            self.traverse_node_offset(node),
+                            format!(
+                                "Cannot assign constant '{}' as consumable. Use upper-case identfier.",
+                                constant
+                            ),
+                        ));
+                    }
+                } else if Self::identifier_is_consumable(constant) {
+                    self.errors.push(Error::new(
+                        self.traverse_node_offset(node),
+                        format!(
+                            "Cannot assign to constant '{}'. Use lower-case identifier.",
+                            constant
+                        ),
+                    ));
+                }
+
+                self.set_constant(constant, self.define_static(value));
                 None
             }
 
             // begin ----------------------------------------------------------
             "begin" | "end" => {
                 if self.scopes[0].variables.is_none() {
-                    panic!("'{}' may only be used in parselet scope", emit);
+                    self.errors.push(Error::new(
+                        self.traverse_node_offset(node),
+                        format!("'{}' may only be used in parselet scope", emit),
+                    ))
                 }
 
                 if let Some(children) = node.get("children") {
@@ -625,9 +708,14 @@ impl Compiler {
                 let usage = if call == "call_or_load" {
                     let ident = children.get_dict().unwrap();
                     let ident = ident.borrow_by_key("value");
+                    let ident = ident.to_string();
+
+                    if Self::identifier_is_consumable(&ident) {
+                        self.scopes[0].consumes = true;
+                    }
 
                     Usage::TryCall {
-                        name: ident.to_string(),
+                        name: ident,
                         offset: self.traverse_node_offset(node),
                     }
                 } else {
@@ -648,7 +736,14 @@ impl Compiler {
                             match emit.get_string().unwrap() {
                                 "param" => {
                                     if nargs > 0 {
-                                        panic!("Sequencial parameters must be given first!");
+                                        self.errors.push(Error::new(
+                                            self.traverse_node_offset(node),
+                                            format!(
+                                                "Sequencial arguments need to be specified before named arguments."
+                                            ),
+                                        ));
+
+                                        continue;
                                     }
 
                                     ret.extend(self.traverse(&param.borrow_by_key("children")));
@@ -673,7 +768,7 @@ impl Compiler {
                                     nargs += 1;
                                 }
 
-                                other => panic!("Unhandled parameter type {:?}", other),
+                                other => unimplemented!("Unhandled parameter type {:?}", other),
                             }
                         }
                     }
@@ -682,6 +777,10 @@ impl Compiler {
                         let ident = children[0].borrow();
                         let ident = ident.get_dict().unwrap().borrow_by_key("value");
 
+                        if Self::identifier_is_consumable(ident.get_string().unwrap()) {
+                            self.scopes[0].consumes = true;
+                        }
+
                         Usage::Call {
                             name: ident.to_string(),
                             args,
@@ -689,7 +788,7 @@ impl Compiler {
                             offset: self.traverse_node_offset(node),
                         }
                     } else if call == "call_rvalue" {
-                        unimplemented!();
+                        todo!();
                     } else {
                         unimplemented!("{:?} is unhandled", call);
                     }
@@ -745,13 +844,39 @@ impl Compiler {
                             let name = item.borrow_by_key("value");
                             let name = name.get_string().unwrap();
 
+                            // Check for not assigning to a constant (at any level)
                             if self.get_constant(name).is_some() {
-                                panic!("Cannot assign to {} as it is declared as constant", name)
+                                self.errors.push(Error::new(
+                                    self.traverse_node_offset(node),
+                                    format!("Cannot assign to constant '{}'", name),
+                                ));
+
+                                break;
                             }
 
                             if i < children.len() - 1 {
                                 ret.extend(self.gen_load(name, self.traverse_node_offset(item)))
                             } else {
+                                // Check if identifier is valid
+                                if let Err(mut error) = Self::identifier_is_valid(name) {
+                                    if let Some(offset) = self.traverse_node_offset(node) {
+                                        error.patch_offset(offset);
+                                    }
+
+                                    self.errors.push(error);
+                                    break;
+                                }
+
+                                // Check if identifier is not defining a consumable
+                                if Self::identifier_is_consumable(name) {
+                                    self.errors.push(Error::new(
+                                        self.traverse_node_offset(node),
+                                        format!("Cannot assign variable named '{}'; Use lower-case identifier.", name),
+                                    ));
+
+                                    break;
+                                }
+
                                 ret.push(self.gen_store(name))
                             }
                         }
@@ -768,40 +893,39 @@ impl Compiler {
             "main" => {
                 let children = node.borrow_by_key("children");
 
-                let main = self.traverse(&children);
-                let locals = self.get_locals();
-
-                let begin = self.scopes[0].begin.drain(..).collect();
-                let end = self.scopes[0].end.drain(..).collect();
-
-                if main.len() > 0 {
-                    self.define_static(
-                        Parselet::new(
-                            Vec::new(),
-                            locals,
-                            Op::from_vec(begin),
-                            Op::from_vec(end),
-                            Block::new(main),
-                        )
-                        .into_value()
-                        .into_refvalue(),
-                    );
-                }
+                let body = self.traverse(&children);
+                let main = self.create_parselet(
+                    Vec::new(),
+                    if body.len() > 0 {
+                        Block::new(body)
+                    } else {
+                        Op::Nop
+                    },
+                    false,
+                    true,
+                );
+                self.define_static(main.into_value().into_refvalue());
 
                 None
             }
 
             // match ----------------------------------------------------------
             "match" => {
+                self.scopes[0].consumes = true;
+
                 let value = node.borrow_by_key("value");
                 let string = value.get_string().unwrap().to_string();
+
                 Some(Match::new(&utils::unescape(string)))
             }
 
             // touch ----------------------------------------------------------
             "touch" => {
+                self.scopes[0].consumes = true;
+
                 let value = node.borrow_by_key("value");
                 let string = value.get_string().unwrap().to_string();
+
                 Some(Match::new_silent(&utils::unescape(string)))
             }
 
@@ -936,7 +1060,7 @@ impl Compiler {
                                 }
 
                                 "capture_alias" => {
-                                    unimplemented!("//todo");
+                                    todo!();
                                 }
 
                                 _ => {

@@ -12,6 +12,7 @@ pub fn repl() {
 
     let mut compiler = Compiler::new();
     compiler.interactive = true;
+    //compiler.debug = true;
 
     loop {
         print!(">>> ");

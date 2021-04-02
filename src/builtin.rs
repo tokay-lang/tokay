@@ -1,3 +1,4 @@
+use crate::compiler::Compiler;
 use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
@@ -160,6 +161,11 @@ pub fn get(ident: &str) -> Option<usize> {
     }
 
     None
+}
+
+/// Retrieve builtin by name.
+pub fn is_consumable(builtin: usize) -> bool {
+    Compiler::identifier_is_consumable(BUILTINS[builtin].0)
 }
 
 /// Examine arguments from constant call.
