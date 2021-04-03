@@ -3,39 +3,39 @@ use crate::value::RefValue;
 
 mod op;
 mod op_block;
-mod op_chars;
 mod op_expect;
-mod op_match;
 mod op_not;
 mod op_peek;
 mod op_repeat;
 mod op_sequence;
+mod tok_chars;
+mod tok_match;
 mod parselet;
 mod program;
 mod vm;
 
 pub use op::*;
 pub use op_block::*;
-pub use op_chars::*;
 pub use op_expect::*;
-pub use op_match::*;
 pub use op_not::*;
 pub use op_peek::*;
 pub use op_repeat::*;
 pub use op_sequence::*;
+pub use tok_chars::*;
+pub use tok_match::*;
 pub use parselet::*;
 pub use program::*;
 pub use vm::*;
 
-pub trait Scanable: std::fmt::Debug + std::fmt::Display {
-    fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject>;
+pub trait Token: std::fmt::Debug + std::fmt::Display {
+    fn read(&self, reader: &mut Reader) -> Result<Accept, Reject>;
 
-    /** Convert scanable into boxed dyn Scanable Op */
+    /** Convert token into boxed dyn Token Op */
     fn into_op(self) -> Op
     where
         Self: Sized + 'static,
     {
-        Op::Scanable(Box::new(self))
+        Op::Token(Box::new(self))
     }
 }
 

@@ -33,8 +33,8 @@ impl Match {
     // Todo: Match Until!
 }
 
-impl Scanable for Match {
-    fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject> {
+impl Token for Match {
+    fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         let start = reader.tell();
 
         for ch in self.string.chars() {

@@ -18,7 +18,7 @@ pub enum Op {
     // Parsing constructs
     Empty, // The empty word
 
-    Scanable(Box<dyn Scanable>), // Scanable item
+    Token(Box<dyn Token>), // Token item
     Runable(Box<dyn Runable>),   // Runable item
 
     // Call
@@ -124,7 +124,7 @@ impl Runable for Op {
 
             Op::Empty => Ok(Accept::Push(Capture::Empty)),
 
-            Op::Scanable(scanable) => scanable.scan(&mut context.runtime.reader),
+            Op::Token(token) => token.read(&mut context.runtime.reader),
             Op::Runable(runable) => runable.run(context),
 
             Op::TryCall => {
@@ -397,7 +397,7 @@ impl Runable for Op {
         consumes: &mut bool,
     ) {
         match self {
-            Op::Scanable(_) => {
+            Op::Token(_) => {
                 *nullable = false;
                 *consumes = true;
             }
@@ -465,7 +465,7 @@ impl Runable for Op {
 impl std::fmt::Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Scanable(s) => write!(f, "{}", s),
+            Op::Token(s) => write!(f, "{}", s),
             Op::Runable(p) => write!(f, "{}", p),
             op => write!(f, "Op {:?}", op),
         }

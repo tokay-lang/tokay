@@ -57,8 +57,8 @@ impl Chars {
     }
 }
 
-impl Scanable for Chars {
-    fn scan(&self, reader: &mut Reader) -> Result<Accept, Reject> {
+impl Token for Chars {
+    fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         let start = reader.tell();
 
         while let Some(ch) = reader.peek() {

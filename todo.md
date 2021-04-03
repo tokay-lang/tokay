@@ -44,7 +44,7 @@ Syntax is under careful consideration.
 - [x] Don't require to re-initialize builtins every time a new compile is done.
 - [x] Re-use statics when accessed multiple times
 - [ ] Missing traversals for
-  - [ ] Comparison operators
+  - [x] Comparison operators
   - [ ] In-place increment and decrement
   - [ ] while-loops
   - [ ] for-loops
