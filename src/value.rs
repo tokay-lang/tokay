@@ -547,6 +547,17 @@ impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value {
     }
 }
 
+impl<'v> std::ops::Neg for &'v Value {
+    type Output = Value;
+
+    fn neg(self) -> Value {
+        match self {
+            Value::Float(v) => Value::Float(-v),
+            v => Value::Integer(-v.to_integer()),
+        }
+    }
+}
+
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())

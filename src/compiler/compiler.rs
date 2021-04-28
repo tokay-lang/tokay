@@ -12,6 +12,10 @@ use crate::utils;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
 
+/** Traversal result.
+
+This enum is used to allow either for a value or ops created during the AST traversal in the compiler.
+*/
 #[derive(Debug)]
 enum TraversalResult {
     Empty,
@@ -36,7 +40,13 @@ impl TraversalResult {
 
                     Op::CallStatic(compiler.define_static(value))
                 } else {
-                    Op::LoadStatic(compiler.define_static(value))
+                    // void, true and false can be directly pushed
+                    match &*value.borrow() {
+                        Value::Void => Op::PushVoid,
+                        Value::True => Op::PushTrue,
+                        Value::False => Op::PushFalse,
+                        _ => Op::LoadStatic(compiler.define_static(value.clone())),
+                    }
                 }]
             }
             TraversalResult::Ops(ops) => ops,
@@ -93,7 +103,7 @@ impl Compiler {
             self.push_scope(true); // Main scope
         }
 
-        // Create a parser when not already done
+        // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
         }
@@ -360,7 +370,7 @@ impl Compiler {
     }
 
     /// Retrieve address of a local variable under a given name.
-    pub fn get_local(&self, name: &str) -> Option<usize> {
+    pub(crate) fn get_local(&self, name: &str) -> Option<usize> {
         // Retrieve local variables from next scope owning variables, except global scope!
         for scope in &self.scopes[..self.scopes.len() - 1] {
             // Check for scope with variables
@@ -377,7 +387,7 @@ impl Compiler {
     }
 
     /** Insert new local variable under given name in current scope. */
-    pub fn new_local(&mut self, name: &str) -> usize {
+    pub(crate) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Some(variables) = &mut scope.variables {
@@ -395,7 +405,7 @@ impl Compiler {
     }
 
     /** Retrieve address of a global variable. */
-    pub fn get_global(&self, name: &str) -> Option<usize> {
+    pub(crate) fn get_global(&self, name: &str) -> Option<usize> {
         let variables = self.scopes.last().unwrap().variables.as_ref().unwrap();
 
         if let Some(addr) = variables.get(name) {
@@ -406,7 +416,7 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub fn set_constant(&mut self, name: &str, value: RefValue) {
+    pub(crate) fn set_constant(&mut self, name: &str, value: RefValue) {
         self.scopes
             .first_mut()
             .unwrap()
@@ -416,7 +426,7 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope,
     a builtin or special. */
-    pub fn get_constant(&self, name: &str) -> Option<RefValue> {
+    pub(crate) fn get_constant(&self, name: &str) -> Option<RefValue> {
         for scope in &self.scopes {
             if let Some(value) = scope.constants.get(name) {
                 return Some(value.clone());
@@ -439,7 +449,7 @@ impl Compiler {
 
     /** Defines a new static value inside the program.
     Statics are only inserted once when they already exist. */
-    pub fn define_static(&self, value: RefValue) -> usize {
+    pub(crate) fn define_static(&self, value: RefValue) -> usize {
         let mut statics = self.statics.borrow_mut();
 
         // Check if there exists already a static equivalent to new_value
@@ -461,7 +471,7 @@ impl Compiler {
 
     /* Tokay AST node traversal */
 
-    pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
+    pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
         match ident {
             "accept" | "begin" | "end" | "expect" | "false" | "for" | "if" | "in" | "not"
             | "null" | "peek" | "reject" | "return" | "true" | "void" | "while" => Err(Error::new(
@@ -472,7 +482,7 @@ impl Compiler {
         }
     }
 
-    pub fn identifier_is_consumable(ident: &str) -> bool {
+    pub(crate) fn identifier_is_consumable(ident: &str) -> bool {
         let ch = ident.chars().next().unwrap();
         ch.is_uppercase() || ch == '_'
     }
@@ -1044,49 +1054,130 @@ impl Compiler {
                         assert_eq!(children.len(), 2);
 
                         let (left, right) = children.borrow_first_2();
-                        ops.extend(
-                            self.traverse_node(&left.get_dict().unwrap())
-                                .into_ops(self, true),
-                        );
-                        ops.extend(
-                            self.traverse_node(&right.get_dict().unwrap())
-                                .into_ops(self, true),
-                        );
 
-                        match parts[2] {
-                            "add" => Op::Add,
-                            "sub" => Op::Sub,
-                            "mul" => Op::Mul,
-                            "div" => Op::Div,
-                            _ => {
-                                unimplemented!("op_binary_{}", parts[2]);
+                        let left = self.traverse_node(&left.get_dict().unwrap());
+                        let right = self.traverse_node(&right.get_dict().unwrap());
+
+                        match (cfg!(feature = "static_expression_evaluation"), left, right) {
+                            // When both results are values, calculate in-place
+                            (true, TraversalResult::Value(left), TraversalResult::Value(right)) => {
+                                return TraversalResult::Value(
+                                    match parts[2] {
+                                        "add" => &*left.borrow() + &*right.borrow(),
+                                        "sub" => &*left.borrow() - &*right.borrow(),
+                                        "mul" => &*left.borrow() * &*right.borrow(),
+                                        "div" => &*left.borrow() / &*right.borrow(),
+                                        _ => {
+                                            unimplemented!("op_binary_{}", parts[2]);
+                                        }
+                                    }
+                                    .into_refvalue(),
+                                )
+                            }
+                            // Otherwise, generate operational code
+                            (_, left, right) => {
+                                ops.extend(left.into_ops(self, true));
+                                ops.extend(right.into_ops(self, true));
+
+                                match parts[2] {
+                                    "add" => Op::Add,
+                                    "sub" => Op::Sub,
+                                    "mul" => Op::Mul,
+                                    "div" => Op::Div,
+                                    _ => {
+                                        unimplemented!("op_binary_{}", parts[2]);
+                                    }
+                                }
                             }
                         }
                     }
+
+                    "unary" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_dict().unwrap();
+
+                        match (
+                            cfg!(feature = "static_expression_evaluation"),
+                            self.traverse_node(children),
+                        ) {
+                            (true, TraversalResult::Value(value)) => {
+                                return TraversalResult::Value(
+                                    match parts[2] {
+                                        "not" => {
+                                            if value.borrow().is_true() {
+                                                Value::False
+                                            } else {
+                                                Value::True
+                                            }
+                                        }
+                                        "neg" => -&*value.borrow(),
+                                        _ => {
+                                            unimplemented!("op_unary_{}", parts[2]);
+                                        }
+                                    }
+                                    .into_refvalue(),
+                                )
+                            }
+                            (_, res) => {
+                                ops.extend(res.into_ops(self, true));
+
+                                match parts[2] {
+                                    "not" => Op::Not,
+                                    "neg" => Op::Neg,
+                                    _ => {
+                                        unimplemented!("op_unary_{}", parts[2]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     "compare" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
                         assert_eq!(children.len(), 2);
 
                         let (left, right) = children.borrow_first_2();
-                        ops.extend(
-                            self.traverse_node(&left.get_dict().unwrap())
-                                .into_ops(self, false),
-                        );
-                        ops.extend(
-                            self.traverse_node(&right.get_dict().unwrap())
-                                .into_ops(self, false),
-                        );
+                        let left = self.traverse_node(&left.get_dict().unwrap());
+                        let right = self.traverse_node(&right.get_dict().unwrap());
 
-                        match parts[2] {
-                            "equal" => Op::Equal,
-                            "unequal" => Op::NotEqual,
-                            "lowerequal" => Op::LowerEqual,
-                            "greaterequal" => Op::GreaterEqual,
-                            "lower" => Op::Lower,
-                            "greater" => Op::Greater,
-                            _ => {
-                                unimplemented!("op_compare_{}", parts[2]);
+                        match (cfg!(feature = "static_expression_evaluation"), left, right) {
+                            // When both results are values, calculate in-place
+                            (true, TraversalResult::Value(left), TraversalResult::Value(right)) => {
+                                return TraversalResult::Value(
+                                    if match parts[2] {
+                                        "equal" => &*left.borrow() == &*right.borrow(),
+                                        "unequal" => &*left.borrow() != &*right.borrow(),
+                                        "lowerequal" => &*left.borrow() <= &*right.borrow(),
+                                        "greaterequal" => &*left.borrow() >= &*right.borrow(),
+                                        "lower" => &*left.borrow() < &*right.borrow(),
+                                        "greater" => &*left.borrow() > &*right.borrow(),
+                                        _ => {
+                                            unimplemented!("op_compare_{}", parts[2]);
+                                        }
+                                    } {
+                                        Value::True.into_refvalue()
+                                    } else {
+                                        Value::False.into_refvalue()
+                                    },
+                                )
+                            }
+                            // Otherwise, generate operational code
+                            (_, left, right) => {
+                                ops.extend(left.into_ops(self, false));
+                                ops.extend(right.into_ops(self, false));
+
+                                match parts[2] {
+                                    "equal" => Op::Equal,
+                                    "unequal" => Op::NotEqual,
+                                    "lowerequal" => Op::LowerEqual,
+                                    "greaterequal" => Op::GreaterEqual,
+                                    "lower" => Op::Lower,
+                                    "greater" => Op::Greater,
+                                    _ => {
+                                        unimplemented!("op_compare_{}", parts[2]);
+                                    }
+                                }
                             }
                         }
                     }
@@ -1123,18 +1214,6 @@ impl Compiler {
                         }
                     }
 
-                    "unary" => {
-                        let children = node.borrow_by_key("children");
-                        let children = children.get_dict().unwrap();
-                        ops.extend(self.traverse_node(children).into_ops(self, true));
-
-                        match parts[2] {
-                            "not" => Op::Not,
-                            _ => {
-                                unimplemented!("op_unary_{}", parts[2]);
-                            }
-                        }
-                    }
                     "accept" | "return" => {
                         let children = node.borrow_by_key("children");
                         ops.extend(

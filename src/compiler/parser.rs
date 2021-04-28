@@ -482,9 +482,8 @@ impl Parser {
         }),
 
         (Unary = {
-            ["-", _, Atomic, (call collect[(value "op_unary_sub")])],
-            ["+", _, Atomic, (call collect[(value "op_unary_add")])],
-            ["!", _, Atomic, (call collect[(value "op_unary_not")])],
+            ["-", _, Unary, (call collect[(value "op_unary_neg")])],
+            ["!", _, Unary, (call collect[(value "op_unary_not")])],
             Atomic
         }),
 

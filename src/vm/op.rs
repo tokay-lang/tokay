@@ -55,7 +55,9 @@ pub enum Op {
     Sub,
     Div,
     Mul,
+
     Not,
+    Neg,
 
     Equal,
     NotEqual,
@@ -369,6 +371,11 @@ impl Runable for Op {
                     )))
                 }
             }
+
+            Op::Neg => Ok(Accept::Push(Capture::Value(
+                (-&*context.pop().borrow()).into_refvalue(),
+                10,
+            ))),
 
             Op::If(then_else) => {
                 if context.pop().borrow().is_true() {
