@@ -4,6 +4,7 @@ pub mod compiler;
 pub mod error;
 pub mod reader;
 pub mod repl;
+pub mod token;
 pub mod utils;
 pub mod value;
 pub mod vm;

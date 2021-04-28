@@ -4,11 +4,45 @@ use std::io::BufReader;
 
 use super::*;
 use crate::builtin;
+use crate::ccl::Ccl;
 use crate::error::Error;
 use crate::reader::{Offset, Reader};
+use crate::token::Token;
 use crate::utils;
 use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
 use crate::vm::*;
+
+#[derive(Debug)]
+enum TraversalResult {
+    Empty,
+    Value(RefValue),
+    Ops(Vec<Op>),
+}
+
+impl TraversalResult {
+    /** Turns a traversal result into a vector of operations;
+
+    In case the result is a Value, it can either be called when calling with 0 arguments is possible,
+    which is specified by the call flag.
+    */
+    fn into_ops(self, compiler: &mut Compiler, call: bool) -> Vec<Op> {
+        match self {
+            TraversalResult::Empty => Vec::new(),
+            TraversalResult::Value(value) => {
+                vec![if call && value.borrow().is_callable(0, 0) {
+                    if let Value::Token(_) = &*value.borrow() {
+                        compiler.scopes[0].consumes = true;
+                    }
+
+                    Op::CallStatic(compiler.define_static(value))
+                } else {
+                    Op::LoadStatic(compiler.define_static(value))
+                }]
+            }
+            TraversalResult::Ops(ops) => ops,
+        }
+    }
+}
 
 /** Compiler symbolic scope.
 
@@ -17,7 +51,7 @@ In Tokay code, this relates to any block. Parselet blocks (parselets) introduce 
 #[derive(Debug)]
 pub(crate) struct Scope {
     variables: Option<HashMap<String, usize>>, // Variable symbol table; Determines whether a scope is a parselet-level scope or just block scope
-    constants: HashMap<String, usize>,         // Constants symbol table
+    constants: HashMap<String, RefValue>,      // Constants symbol table
     begin: Vec<Op>,     // Begin operations; Can only be set for parselet-scopes
     end: Vec<Op>,       // End operations; Can only be set for parselet-scopes
     usage_start: usize, // Begin of usages to resolve until when scope is closed
@@ -133,7 +167,7 @@ impl Compiler {
                     Ok(usage) => usage,
                     Err(usage) => {
                         let error = match usage {
-                            Usage::Load { name, offset } | Usage::TryCall { name, offset } => {
+                            Usage::Load { name, offset } | Usage::LoadOrCall { name, offset } => {
                                 Error::new(offset, format!("Use of unresolved symbol '{}'", name))
                             }
 
@@ -155,7 +189,7 @@ impl Compiler {
             .collect();
 
         /*
-        Finalize the program according to a grammar's view;
+        Finalize the program according to a grammar's point of view;
 
         Detect both left-recursive and nullable (=no input consuming)
         structures inside the parselet static call chains, and insert
@@ -360,9 +394,7 @@ impl Compiler {
         unreachable!("This should not be possible")
     }
 
-    /**
-    Retrieve address of a global variable.
-    */
+    /** Retrieve address of a global variable. */
     pub fn get_global(&self, name: &str) -> Option<usize> {
         let variables = self.scopes.last().unwrap().variables.as_ref().unwrap();
 
@@ -374,88 +406,68 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub fn set_constant(&mut self, name: &str, addr: usize) {
+    pub fn set_constant(&mut self, name: &str, value: RefValue) {
         self.scopes
             .first_mut()
             .unwrap()
             .constants
-            .insert(name.to_string(), addr);
+            .insert(name.to_string(), value);
     }
 
-    /** Get constant value, either from current or preceding scope.
-
-    The function accepts self as mutable, because it might introduce
-    new constants made available from builtins. */
-    pub fn get_constant(&mut self, name: &str) -> Option<usize> {
+    /** Get constant value, either from current or preceding scope,
+    a builtin or special. */
+    pub fn get_constant(&self, name: &str) -> Option<RefValue> {
         for scope in &self.scopes {
-            if let Some(addr) = scope.constants.get(name) {
-                return Some(*addr);
+            if let Some(value) = scope.constants.get(name) {
+                return Some(value.clone());
             }
         }
 
         // When not found, check for a builtin
         if let Some(builtin) = builtin::get(name) {
-            return Some(self.define_static(Value::Builtin(builtin).into_refvalue()));
+            return Some(Value::Builtin(builtin).into_refvalue());
         }
 
-        None
+        // Special tokens
+        match name {
+            "Void" => Some(Token::Void.into_value().into_refvalue()),
+            "Any" => Some(Token::Any.into_value().into_refvalue()),
+            "EOF" => Some(Token::EOF.into_value().into_refvalue()),
+            _ => None,
+        }
     }
 
-    /** Defines a new static value.
-
-    Statics are moved into the program later on. */
-    pub fn define_static(&self, new_value: RefValue) -> usize {
+    /** Defines a new static value inside the program.
+    Statics are only inserted once when they already exist. */
+    pub fn define_static(&self, value: RefValue) -> usize {
         let mut statics = self.statics.borrow_mut();
 
         // Check if there exists already a static equivalent to new_value
         // fixme: A HashTab might be more faster here...
         {
-            let new_value = new_value.borrow();
+            let value = value.borrow();
 
-            for (i, value) in statics.iter().enumerate() {
-                if *value.borrow() == *new_value {
-                    return i;
+            for (i, known) in statics.iter().enumerate() {
+                if *known.borrow() == *value {
+                    return i; // Reuse existing value address
                 }
             }
         }
 
-        statics.push(new_value);
+        // Save value as new
+        statics.push(value);
         statics.len() - 1
-    }
-
-    /* Generates code for a symbol store, which means:
-
-        1. look-up local variable, and store into
-        2. look-up global variable, and store into
-        3. create local variable, and store into
-    */
-    pub fn gen_store(&mut self, name: &str) -> Op {
-        if let Some(addr) = self.get_local(name) {
-            Op::StoreFast(addr)
-        } else if let Some(addr) = self.get_global(name) {
-            Op::StoreGlobal(addr)
-        } else {
-            Op::StoreFast(self.new_local(name))
-        }
-    }
-
-    /* Generates code for a symbol load. */
-    pub fn gen_load(&mut self, name: &str, offset: Option<Offset>) -> Vec<Op> {
-        Usage::Load {
-            name: name.to_string(),
-            offset,
-        }
-        .resolve_or_dispose(self)
     }
 
     /* Tokay AST node traversal */
 
     pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
         match ident {
-            "accept" | "begin" | "end" | "false" | "for" | "if" | "in" | "kle" | "not" | "null"
-            | "opt" | "peek" | "pos" | "reject" | "return" | "true" | "void" | "while" => Err(
-                Error::new(None, format!("'{}' is a reserved keyword", ident)),
-            ),
+            "accept" | "begin" | "end" | "expect" | "false" | "for" | "if" | "in" | "not"
+            | "null" | "peek" | "reject" | "return" | "true" | "void" | "while" => Err(Error::new(
+                None,
+                format!("Expected identifier, found reserved word '{}'", ident),
+            )),
             _ => Ok(()),
         }
     }
@@ -466,28 +478,78 @@ impl Compiler {
     }
 
     // Traverse either a node or a list from the AST
-    pub fn traverse(&mut self, value: &Value) -> Vec<Op> {
-        let mut ret = Vec::new();
+    fn traverse(&mut self, ast: &Value) -> TraversalResult {
+        if let Some(list) = ast.get_list() {
+            let mut ops = Vec::new();
 
-        if let Some(list) = value.get_list() {
             for item in list.iter() {
-                ret.extend(self.traverse(&item.borrow()));
+                match self.traverse(&item.borrow()) {
+                    TraversalResult::Empty => {}
+                    TraversalResult::Value(_) => {
+                        panic!("Cannot handle value return here!")
+                    }
+                    TraversalResult::Ops(oplist) => ops.extend(oplist),
+                }
             }
-        } else if let Some(dict) = value.get_dict() {
-            ret.extend(self.traverse_node(dict));
-        } else {
-            unimplemented!("traverse() cannot traverse {:?}", value);
-        }
 
-        ret
+            if ops.len() > 0 {
+                TraversalResult::Ops(ops)
+            } else {
+                TraversalResult::Empty
+            }
+        } else if let Some(dict) = ast.get_dict() {
+            self.traverse_node(dict)
+        } else {
+            panic!("Cannot traverse {:?}", ast);
+        }
     }
 
-    // Traverse a value node into a RefValue instance
-    fn traverse_node_value(&mut self, node: &Dict) -> RefValue {
+    // Extract offset positions into an Offset structure
+    fn traverse_node_offset(&self, node: &Dict) -> Option<Offset> {
+        let offset = node
+            .get("offset")
+            .and_then(|offset| Some(offset.borrow().to_addr()));
+        let row = node
+            .get("row")
+            .and_then(|row| Some(row.borrow().to_addr() as u32));
+        let col = node
+            .get("col")
+            .and_then(|col| Some(col.borrow().to_addr() as u32));
+
+        if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
+            Some(Offset { offset, row, col })
+        } else {
+            None
+        }
+    }
+
+    // Traverse a value node into a Value instance
+    fn traverse_node_value(&mut self, node: &Dict) -> Value {
         let emit = node.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
+        // A value can always point to an already define constant
+        /*
+        if emit == "identifier" {
+            let ident = node.borrow_by_key("value");
+            let ident = ident.get_string().unwrap();
+
+            if let Some(addr) = self.get_constant(ident) {
+                return self.statics.borrow()[addr].clone();
+            }
+
+            self.errors.push(
+                Error::new(self.traverse_node_offset(node),
+                format!("'{}' is not known as a constant", ident))
+            );
+
+            return Value::Void.into_refvalue();
+        }
+        */
+
+        // Generate a value from the given code
         match emit {
+            // Literals
             "value_string" => {
                 let value = node.borrow_by_key("value").to_string();
                 Value::String(value)
@@ -510,103 +572,145 @@ impl Compiler {
             "value_false" => Value::False,
             "value_null" => Value::Null,
             "value_void" => Value::Void,
-            "value_parselet" => self.traverse_node_parselet(node),
-            _ => unimplemented!("unhandled value node {}", emit),
-        }
-        .into_refvalue()
-    }
 
-    // Traverse a parselet node into a parselet address
-    fn traverse_node_parselet(&mut self, node: &Dict) -> Value {
-        self.push_scope(true);
+            // Tokens
+            "value_token_match" | "value_token_touch" => {
+                let value = utils::unescape(node.borrow_by_key("value").to_string());
 
-        let children = node.borrow_by_key("children");
+                if emit == "value_token_match" {
+                    Token::Match(value).into_value()
+                } else {
+                    Token::Touch(value).into_value()
+                }
+            }
+            "value_token_any" => Token::Any.into_value(),
+            "value_token_ccl" => {
+                let node = node.borrow_by_key("children").to_dict();
 
-        let (args, body) = if let Some(children) = children.get_list() {
-            assert!(children.len() == 2);
-            (Some(children[0].borrow()), children[1].borrow())
-        } else {
-            (None, children)
-        };
-
-        // Create signature
-        let mut sig: Vec<(String, Option<usize>)> = Vec::new();
-
-        if let Some(args) = args {
-            for node in args.to_list() {
-                let node = node.borrow();
-                let node = node.get_dict().unwrap();
+                let emit = node.borrow_by_key("emit");
+                let emit = emit.get_string().unwrap();
 
                 let children = node.borrow_by_key("children").to_list();
 
-                let ident = children.borrow_by_idx(0);
-                let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
+                let mut ccl = Ccl::new();
 
-                // fixme....
-                assert!(
-                    ident.chars().nth(0).unwrap().is_lowercase(),
-                    "Only lower-case parameter names are allowed currently"
-                );
-                self.new_local(&ident);
+                for range in children {
+                    let range = range.borrow().to_dict();
 
-                assert!(children.len() <= 2);
-                let default = if children.len() == 2 {
-                    let default = children.borrow_by_idx(1);
-                    let value = self.traverse_node_value(default.get_dict().unwrap());
-                    Some(self.define_static(value))
+                    let emit = range.borrow_by_key("emit");
+                    let emit = emit.get_string().unwrap();
+
+                    let value = range.borrow_by_key("value");
+                    let value = value.get_string().unwrap();
+
+                    match &emit[..] {
+                        "char" => {
+                            let ch = value.chars().next().unwrap();
+                            ccl.add(ch..=ch);
+                        }
+                        "range" => {
+                            let from = value.chars().nth(0).unwrap();
+                            let to = value.chars().nth(1).unwrap();
+
+                            ccl.add(from..=to);
+                        }
+                        _ => {
+                            unreachable!();
+                        }
+                    }
+                }
+
+                Token::Char(ccl).into_value()
+            }
+
+            // Parselets
+            "value_parselet" => {
+                self.push_scope(true);
+
+                let children = node.borrow_by_key("children");
+
+                let (args, body) = if let Some(children) = children.get_list() {
+                    assert!(children.len() == 2);
+                    (Some(children[0].borrow()), children[1].borrow())
                 } else {
-                    None
+                    (None, children)
                 };
 
-                sig.push((ident.clone(), default));
+                // Create signature
+                let mut sig: Vec<(String, Option<usize>)> = Vec::new();
 
-                //println!("{} {} {:?}", emit.to_string(), ident, default);
+                if let Some(args) = args {
+                    for node in args.to_list() {
+                        let node = node.borrow();
+                        let node = node.get_dict().unwrap();
+
+                        let children = node.borrow_by_key("children").to_list();
+
+                        let ident = children.borrow_by_idx(0);
+                        let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
+
+                        // fixme....
+                        assert!(
+                            ident.chars().nth(0).unwrap().is_lowercase(),
+                            "Only lower-case parameter names are allowed currently"
+                        );
+                        self.new_local(&ident);
+
+                        assert!(children.len() <= 2);
+                        let default = if children.len() == 2 {
+                            let default = children.borrow_by_idx(1);
+                            let value = self.traverse_node_static(default.get_dict().unwrap());
+                            Some(self.define_static(value))
+                        } else {
+                            None
+                        };
+
+                        sig.push((ident.clone(), default));
+
+                        //println!("{} {} {:?}", emit.to_string(), ident, default);
+                    }
+                }
+
+                //println!("sig = {:?}", sig);
+
+                // Body
+                let body = self.traverse_node(&body.get_dict().unwrap());
+                let body = Op::from_vec(body.into_ops(self, true));
+                self.create_parselet(sig, body, false, false).into_value()
             }
+            _ => unimplemented!("unhandled value node {}", emit),
         }
-
-        //println!("sig = {:?}", sig);
-
-        // Body
-        let body = self.traverse_node(&body.get_dict().unwrap());
-        self.create_parselet(
-            sig,
-            body.into_iter().next().unwrap_or(Op::Nop),
-            false,
-            false,
-        )
-        .into_value()
     }
 
-    // Insert offset positions
-    fn traverse_node_offset(&self, node: &Dict) -> Option<Offset> {
-        let offset = node
-            .get("offset")
-            .and_then(|offset| Some(offset.borrow().to_addr()));
-        let row = node
-            .get("row")
-            .and_then(|row| Some(row.borrow().to_addr() as u32));
-        let col = node
-            .get("col")
-            .and_then(|col| Some(col.borrow().to_addr() as u32));
+    // Traverse a static value
+    fn traverse_node_static(&mut self, node: &Dict) -> RefValue {
+        self.push_scope(true);
 
-        if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
-            Some(Offset { offset, row, col })
-        } else {
-            None
+        match self.traverse_node(node) {
+            TraversalResult::Empty => {
+                self.pop_scope();
+                Value::Void.into_refvalue()
+            }
+            TraversalResult::Value(value) => {
+                self.pop_scope();
+                value
+            }
+            TraversalResult::Ops(ops) => self
+                .create_parselet(Vec::new(), Op::from_vec(ops), false, false)
+                .into_value()
+                .into_refvalue(),
         }
     }
 
     // Main traversal function, running recursively through the AST
-    pub fn traverse_node(&mut self, node: &Dict) -> Vec<Op> {
+    fn traverse_node(&mut self, node: &Dict) -> TraversalResult {
         // Normal node processing...
         let emit = node.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
-        let mut ret = Vec::new();
-
         //println!("emit = {:?}", emit);
 
-        let op = match emit {
+        match emit {
             // assign ---------------------------------------------------------
             "assign" => {
                 let children = node.borrow_by_key("children");
@@ -617,10 +721,12 @@ impl Compiler {
                 let rvalue = rvalue.get_dict().unwrap();
                 let lvalue = lvalue.get_dict().unwrap();
 
-                ret.extend(self.traverse_node(rvalue));
-                ret.extend(self.traverse_node(lvalue));
+                let mut ops = Vec::new();
 
-                None
+                ops.extend(self.traverse_node(rvalue).into_ops(self, false));
+                ops.extend(self.traverse_node(lvalue).into_ops(self, false));
+
+                TraversalResult::Ops(ops)
             }
 
             // assign_constant ------------------------------------------------
@@ -628,45 +734,52 @@ impl Compiler {
                 let children = node.borrow_by_key("children");
                 let children = children.get_list();
 
-                let (constant, value) = children.unwrap().borrow_first_2();
+                let (ident, value) = children.unwrap().borrow_first_2();
 
-                let constant = constant.get_dict().unwrap();
-                let constant = constant.borrow_by_key("value");
-                let constant = constant.get_string().unwrap();
+                let ident = ident.get_dict().unwrap();
+                let ident = ident.borrow_by_key("value");
+                let ident = ident.get_string().unwrap();
 
-                if let Err(mut error) = Self::identifier_is_valid(constant) {
+                if let Err(mut error) = Self::identifier_is_valid(ident) {
                     if let Some(offset) = self.traverse_node_offset(node) {
                         error.patch_offset(offset);
                     }
 
                     self.errors.push(error);
-                    return ret;
+                    return TraversalResult::Empty;
                 }
 
-                let value = self.traverse_node_value(value.get_dict().unwrap());
+                // Distinguish between pure values or an expression
+                let node = value.get_dict().unwrap();
+                let emit = node["emit"].borrow();
+                let emit = emit.get_string().unwrap();
+
+                // fixme: Restricted to pure values currently.
+                let value = self.traverse_node_static(node);
 
                 if value.borrow().is_consuming() {
-                    if !Self::identifier_is_consumable(constant) {
+                    if !Self::identifier_is_consumable(ident) {
                         self.errors.push(Error::new(
                             self.traverse_node_offset(node),
                             format!(
                                 "Cannot assign constant '{}' as consumable. Use upper-case identfier.",
-                                constant
+                                ident
                             ),
                         ));
                     }
-                } else if Self::identifier_is_consumable(constant) {
+                } else if Self::identifier_is_consumable(ident) {
                     self.errors.push(Error::new(
                         self.traverse_node_offset(node),
                         format!(
                             "Cannot assign to constant '{}'. Use lower-case identifier.",
-                            constant
+                            ident
                         ),
                     ));
                 }
 
-                self.set_constant(constant, self.define_static(value));
-                None
+                //println!("{} : {:?}", ident, value);
+                self.set_constant(ident, value);
+                TraversalResult::Empty
             }
 
             // begin ----------------------------------------------------------
@@ -679,7 +792,7 @@ impl Compiler {
                 }
 
                 if let Some(children) = node.get("children") {
-                    let ops = self.traverse(&children.borrow());
+                    let ops = self.traverse(&children.borrow()).into_ops(self, true);
 
                     if emit == "begin" {
                         self.scopes[0].begin.extend(ops);
@@ -688,92 +801,82 @@ impl Compiler {
                     }
                 }
 
-                None
+                TraversalResult::Empty
             }
 
             // block ----------------------------------------------------------
             "block" => {
                 if let Some(children) = node.get("children") {
-                    let body = self.traverse(&children.borrow());
-                    Some(Block::new(body))
+                    let body = self.traverse(&children.borrow()).into_ops(self, true);
+                    TraversalResult::Ops(vec![Block::new(body)])
                 } else {
-                    None
+                    TraversalResult::Empty
                 }
             }
 
             // call -----------------------------------------------------------
             call if call.starts_with("call_") => {
                 let children = node.borrow_by_key("children");
+                let children = children.to_list();
 
-                let usage = if call == "call_or_load" {
-                    let ident = children.get_dict().unwrap();
-                    let ident = ident.borrow_by_key("value");
-                    let ident = ident.to_string();
+                let mut ops = Vec::new();
+                let mut args = 0;
+                let mut nargs = 0;
 
-                    if Self::identifier_is_consumable(&ident) {
-                        self.scopes[0].consumes = true;
-                    }
+                if children.len() > 1 {
+                    let params = children[1].borrow().to_list();
 
-                    Usage::TryCall {
-                        name: ident,
-                        offset: self.traverse_node_offset(node),
-                    }
-                } else {
-                    let children = children.to_list();
+                    for param in &params {
+                        let param = param.borrow();
+                        let param = param.get_dict().unwrap();
 
-                    let mut args = 0;
-                    let mut nargs = 0;
+                        let emit = param.borrow_by_key("emit");
 
-                    if children.len() > 1 {
-                        let params = children[1].borrow().to_list();
-
-                        for param in &params {
-                            let param = param.borrow();
-                            let param = param.get_dict().unwrap();
-
-                            let emit = param.borrow_by_key("emit");
-
-                            match emit.get_string().unwrap() {
-                                "param" => {
-                                    if nargs > 0 {
-                                        self.errors.push(Error::new(
-                                            self.traverse_node_offset(node),
-                                            format!(
-                                                "Sequencial arguments need to be specified before named arguments."
-                                            ),
-                                        ));
-
-                                        continue;
-                                    }
-
-                                    ret.extend(self.traverse(&param.borrow_by_key("children")));
-                                    args += 1;
-                                }
-
-                                "param_named" => {
-                                    let children = param.borrow_by_key("children").to_list();
-
-                                    ret.extend(self.traverse(&children.borrow_by_idx(1)));
-
-                                    let ident = children.borrow_by_idx(0);
-                                    let ident = ident
-                                        .get_dict()
-                                        .unwrap()
-                                        .borrow_by_key("value")
-                                        .to_string();
-                                    ret.push(Op::LoadStatic(
-                                        self.define_static(Value::String(ident).into_refvalue()),
+                        match emit.get_string().unwrap() {
+                            "param" => {
+                                if nargs > 0 {
+                                    self.errors.push(Error::new(
+                                        self.traverse_node_offset(node),
+                                        format!(
+                                            "Sequencial arguments need to be specified before named arguments."
+                                        ),
                                     ));
 
-                                    nargs += 1;
+                                    continue;
                                 }
 
-                                other => unimplemented!("Unhandled parameter type {:?}", other),
+                                ops.extend(
+                                    self.traverse(&param.borrow_by_key("children"))
+                                        .into_ops(self, false),
+                                );
+                                args += 1;
                             }
+
+                            "param_named" => {
+                                let children = param.borrow_by_key("children").to_list();
+
+                                ops.extend(
+                                    self.traverse(&children.borrow_by_idx(1))
+                                        .into_ops(self, false),
+                                );
+
+                                let ident = children.borrow_by_idx(0);
+                                let ident =
+                                    ident.get_dict().unwrap().borrow_by_key("value").to_string();
+                                ops.push(Op::LoadStatic(
+                                    self.define_static(Value::String(ident).into_refvalue()),
+                                ));
+
+                                nargs += 1;
+                            }
+
+                            other => unimplemented!("Unhandled parameter type {:?}", other),
                         }
                     }
+                }
 
-                    if call == "call_identifier" {
+                let usage = match call {
+                    "call_identifier" => {
                         let ident = children[0].borrow();
                         let ident = ident.get_dict().unwrap().borrow_by_key("value");
 
@@ -787,25 +890,25 @@ impl Compiler {
                             nargs,
                             offset: self.traverse_node_offset(node),
                         }
-                    } else if call == "call_rvalue" {
-                        todo!();
-                    } else {
-                        unimplemented!("{:?} is unhandled", call);
                     }
+
+                    _ => unimplemented!("{:?} is unhandled", call),
                 };
 
                 if let Some(offset) = self.traverse_node_offset(node) {
-                    ret.push(Op::Offset(Box::new(offset))); // Push call position here
+                    ops.push(Op::Offset(Box::new(offset))); // Push call position here
                 }
 
-                ret.extend(usage.resolve_or_dispose(self)); // Push usage or resolved call
+                ops.extend(usage.resolve_or_dispose(self)); // Push usage or resolved call
 
-                None
+                TraversalResult::Ops(ops)
             }
 
             // lvalue ---------------------------------------------------------
             "lvalue" => {
                 let children = node.borrow_by_key("children").to_list();
+
+                let mut ops = Vec::new();
 
                 for (i, item) in children.iter().enumerate() {
                     let item = item.borrow();
@@ -820,14 +923,14 @@ impl Compiler {
 
                             match capture {
                                 "capture" => {
-                                    ret.extend(self.traverse(&children));
-                                    ret.push(Op::StoreCapture)
+                                    ops.extend(self.traverse(&children).into_ops(self, false));
+                                    ops.push(Op::StoreCapture)
                                 }
 
                                 "capture_index" => {
                                     let children = children.get_dict().unwrap();
                                     let index = self.traverse_node_value(children);
-                                    ret.push(Op::StoreFastCapture(index.borrow().to_addr()));
+                                    ops.push(Op::StoreFastCapture(index.to_addr()));
                                 }
 
                                 "capture_alias" => {
@@ -855,7 +958,13 @@ impl Compiler {
                             }
 
                             if i < children.len() - 1 {
-                                ret.extend(self.gen_load(name, self.traverse_node_offset(item)))
+                                ops.extend(
+                                    Usage::Load {
+                                        name: name.to_string(),
+                                        offset: self.traverse_node_offset(item),
+                                    }
+                                    .resolve_or_dispose(self),
+                                )
                             } else {
                                 // Check if identifier is valid
                                 if let Err(mut error) = Self::identifier_is_valid(name) {
@@ -877,7 +986,21 @@ impl Compiler {
                                     break;
                                 }
 
-                                ret.push(self.gen_store(name))
+                                ops.push(
+                                    /* Generates code for a symbol store, which means:
+
+                                        1. look-up local variable, and store into
+                                        2. look-up global variable, and store into
+                                        3. create local variable, and store into
+                                    */
+                                    if let Some(addr) = self.get_local(name) {
+                                        Op::StoreFast(addr)
+                                    } else if let Some(addr) = self.get_global(name) {
+                                        Op::StoreGlobal(addr)
+                                    } else {
+                                        Op::StoreFast(self.new_local(name))
+                                    },
+                                )
                             }
                         }
                         other => {
@@ -886,14 +1009,14 @@ impl Compiler {
                     }
                 }
 
-                None
+                TraversalResult::Ops(ops)
             }
 
             // main -----------------------------------------------------------
             "main" => {
                 let children = node.borrow_by_key("children");
 
-                let body = self.traverse(&children);
+                let body = self.traverse(&children).into_ops(self, true);
                 let main = self.create_parselet(
                     Vec::new(),
                     if body.len() > 0 {
@@ -904,68 +1027,37 @@ impl Compiler {
                     false,
                     true,
                 );
+
                 self.define_static(main.into_value().into_refvalue());
-
-                None
-            }
-
-            // match ----------------------------------------------------------
-            "match" => {
-                self.scopes[0].consumes = true;
-
-                let value = node.borrow_by_key("value");
-                let string = value.get_string().unwrap().to_string();
-
-                Some(Match::new(&utils::unescape(string)))
-            }
-
-            // touch ----------------------------------------------------------
-            "touch" => {
-                self.scopes[0].consumes = true;
-
-                let value = node.borrow_by_key("value");
-                let string = value.get_string().unwrap().to_string();
-
-                Some(Match::new_silent(&utils::unescape(string)))
-            }
-
-            // modifier -------------------------------------------------------
-            modifier if modifier.starts_with("mod_") => {
-                let children = node.borrow_by_key("children");
-                let op = self.traverse_node(children.get_dict().unwrap());
-                assert_eq!(op.len(), 1);
-
-                let op = op.into_iter().next().unwrap();
-
-                match &modifier[4..] {
-                    "not" => Some(Not::new(op)),
-                    "peek" => Some(Peek::new(op)),
-                    "kleene" => Some(op.into_kleene()),
-                    "positive" => Some(op.into_positive()),
-                    "optional" => Some(op.into_optional()),
-                    _ => unimplemented!("{} not implemented", modifier),
-                }
+                TraversalResult::Empty
             }
 
             // operator ------------------------------------------------------
             op if op.starts_with("op_") => {
                 let parts: Vec<&str> = emit.split("_").collect();
+                let mut ops = Vec::new();
 
-                match parts[1] {
+                let op = match parts[1] {
                     "binary" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
                         assert_eq!(children.len(), 2);
 
                         let (left, right) = children.borrow_first_2();
-                        ret.extend(self.traverse_node(&left.get_dict().unwrap()));
-                        ret.extend(self.traverse_node(&right.get_dict().unwrap()));
+                        ops.extend(
+                            self.traverse_node(&left.get_dict().unwrap())
+                                .into_ops(self, true),
+                        );
+                        ops.extend(
+                            self.traverse_node(&right.get_dict().unwrap())
+                                .into_ops(self, true),
+                        );
 
                         match parts[2] {
-                            "add" => Some(Op::Add),
-                            "sub" => Some(Op::Sub),
-                            "mul" => Some(Op::Mul),
-                            "div" => Some(Op::Div),
+                            "add" => Op::Add,
+                            "sub" => Op::Sub,
+                            "mul" => Op::Mul,
+                            "div" => Op::Div,
                             _ => {
                                 unimplemented!("op_binary_{}", parts[2]);
                             }
@@ -977,29 +1069,67 @@ impl Compiler {
                         assert_eq!(children.len(), 2);
 
                         let (left, right) = children.borrow_first_2();
-                        ret.extend(self.traverse_node(&left.get_dict().unwrap()));
-                        ret.extend(self.traverse_node(&right.get_dict().unwrap()));
+                        ops.extend(
+                            self.traverse_node(&left.get_dict().unwrap())
+                                .into_ops(self, false),
+                        );
+                        ops.extend(
+                            self.traverse_node(&right.get_dict().unwrap())
+                                .into_ops(self, false),
+                        );
 
                         match parts[2] {
-                            "equal" => Some(Op::Equal),
-                            "unequal" => Some(Op::NotEqual),
-                            "lowerequal" => Some(Op::LowerEqual),
-                            "greaterequal" => Some(Op::GreaterEqual),
-                            "lower" => Some(Op::Lower),
-                            "greater" => Some(Op::Greater),
+                            "equal" => Op::Equal,
+                            "unequal" => Op::NotEqual,
+                            "lowerequal" => Op::LowerEqual,
+                            "greaterequal" => Op::GreaterEqual,
+                            "lower" => Op::Lower,
+                            "greater" => Op::Greater,
                             _ => {
                                 unimplemented!("op_compare_{}", parts[2]);
                             }
                         }
                     }
 
+                    "mod" => {
+                        let children = node.borrow_by_key("children");
+                        let children = children.get_dict().unwrap();
+
+                        let res = self.traverse_node(children);
+
+                        // Absolute special case: [a-z]+ becomes Token::Chars()
+                        if parts[2] == "pos" {
+                            if let TraversalResult::Value(value) = &res {
+                                if let Value::Token(token) = &*value.borrow() {
+                                    if let Token::Char(ccl) = *token.clone() {
+                                        return TraversalResult::Value(
+                                            Token::Chars(ccl).into_value().into_refvalue(),
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        let op = Op::from_vec(res.into_ops(self, true));
+
+                        match parts[2] {
+                            "pos" => op.into_positive(),
+                            "kle" => op.into_kleene(),
+                            "opt" => op.into_optional(),
+                            "peek" => Peek::new(op).into_op(),
+                            "expect" => Expect::new(op, None).into_op(),
+                            "not" => Not::new(op).into_op(),
+                            _ => unreachable!(),
+                        }
+                    }
+
                     "unary" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_dict().unwrap();
-                        ret.extend(self.traverse_node(children));
+                        ops.extend(self.traverse_node(children).into_ops(self, true));
 
                         match parts[2] {
-                            "not" => Some(Op::Not),
+                            "not" => Op::Not,
                             _ => {
                                 unimplemented!("op_unary_{}", parts[2]);
                             }
@@ -1007,34 +1137,44 @@ impl Compiler {
                     }
                     "accept" | "return" => {
                         let children = node.borrow_by_key("children");
-                        ret.extend(self.traverse_node(&children.get_dict().unwrap()));
+                        ops.extend(
+                            self.traverse_node(&children.get_dict().unwrap())
+                                .into_ops(self, false),
+                        );
 
-                        Some(Op::LoadAccept)
+                        Op::LoadAccept
                     }
                     "if" | "ifelse" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
 
-                        ret.extend(self.traverse(&children[0].borrow()));
-                        let then = Op::from_vec(self.traverse(&children[1].borrow()));
+                        ops.extend(self.traverse(&children[0].borrow()).into_ops(self, false));
+                        let then =
+                            Op::from_vec(self.traverse(&children[1].borrow()).into_ops(self, true));
                         let eelse = if children.len() == 3 {
-                            Some(Op::from_vec(self.traverse(&children[2].borrow())))
+                            Some(Op::from_vec(
+                                self.traverse(&children[2].borrow()).into_ops(self, true),
+                            ))
                         } else {
                             None
                         };
 
-                        Some(Op::If(Box::new((then, eelse))))
+                        Op::If(Box::new((then, eelse)))
                     }
 
                     _ => {
                         unimplemented!("{} missing", op);
                     }
-                }
+                };
+                ops.push(op);
+
+                TraversalResult::Ops(ops)
             }
 
             // rvalue ---------------------------------------------------------
             "rvalue" => {
                 let children = node.borrow_by_key("children").to_list();
+                let mut ops = Vec::new();
 
                 for item in children.iter() {
                     let item = item.borrow();
@@ -1049,14 +1189,14 @@ impl Compiler {
 
                             match capture {
                                 "capture" => {
-                                    ret.extend(self.traverse(&children));
-                                    ret.push(Op::LoadCapture)
+                                    ops.extend(self.traverse(&children).into_ops(self, false));
+                                    ops.push(Op::LoadCapture)
                                 }
 
                                 "capture_index" => {
                                     let children = children.get_dict().unwrap();
                                     let index = self.traverse_node_value(children);
-                                    ret.push(Op::LoadFastCapture(index.borrow().to_addr()));
+                                    ops.push(Op::LoadFastCapture(index.to_addr()));
                                 }
 
                                 "capture_alias" => {
@@ -1070,58 +1210,74 @@ impl Compiler {
                         }
 
                         "identifier" => {
-                            let name = item.borrow_by_key("value");
-                            let name = name.get_string().unwrap();
+                            let name = item.borrow_by_key("value").to_string();
 
-                            ret.extend(self.gen_load(name, self.traverse_node_offset(node)));
+                            // In case there is a use of a known constant,
+                            // directly return its value as TraversalResult.
+                            if children.len() == 1 {
+                                if let Some(value) = self.get_constant(&name) {
+                                    return TraversalResult::Value(value);
+                                }
+                            }
+
+                            ops.extend(if children.len() == 1 {
+                                Usage::LoadOrCall {
+                                    name,
+                                    offset: self.traverse_node_offset(item),
+                                }
+                                .resolve_or_dispose(self)
+                            } else {
+                                Usage::Load {
+                                    name,
+                                    offset: self.traverse_node_offset(item),
+                                }
+                                .resolve_or_dispose(self)
+                            });
                         }
 
-                        _ => ret.extend(self.traverse_node(item)),
+                        _ => ops.extend(self.traverse_node(item).into_ops(self, false)),
                     }
                 }
 
-                None
+                TraversalResult::Ops(ops)
             }
 
             // sequence ------------------------------------------------------
             "sequence" => {
                 let children = node.borrow_by_key("children");
-                let items = self.traverse(&children);
-                //todo: Handle aliases...
+                let children = children.to_list();
 
-                if items.len() > 0 {
-                    Some(Sequence::new(
-                        items.into_iter().map(|item| (item, None)).collect(),
-                    ))
+                let mut ops = Vec::new();
+
+                for node in children {
+                    ops.extend(self.traverse(&node.borrow()).into_ops(self, true))
+                }
+
+                if ops.len() > 0 {
+                    TraversalResult::Ops(vec![Sequence::new(
+                        ops.into_iter().map(|item| (item, None)).collect(),
+                    )])
                 } else {
-                    None
+                    TraversalResult::Empty
                 }
             }
 
             // value ---------------------------------------------------------
-            val if val.starts_with("value_") => {
-                let value = self.traverse_node_value(node);
-                Some(Op::LoadStatic(self.define_static(value)))
+            value if value.starts_with("value_") => {
+                TraversalResult::Value(self.traverse_node_value(node).into_refvalue())
             }
 
             // ---------------------------------------------------------------
             _ => {
                 // When there are children, try to traverse recursively
                 if let Some(children) = node.get("children") {
-                    ret.extend(self.traverse(&children.borrow()));
-                    None
+                    self.traverse(&children.borrow())
                 }
                 // Otherwise, report unhandled node!
                 else {
                     unreachable!("No handling for {:?}", node);
                 }
             }
-        };
-
-        if let Some(op) = op {
-            ret.push(op);
         }
-
-        ret
     }
 }

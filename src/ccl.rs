@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 type CclRange = std::ops::RangeInclusive<char>;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Ccl {
     ranges: Vec<CclRange>,
 }
@@ -185,6 +185,24 @@ impl std::fmt::Debug for Ccl {
         }
 
         Ok(())
+    }
+}
+
+impl PartialOrd for Ccl {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.ranges.len() == other.ranges.len() {
+            for (mine, other) in self.ranges.iter().zip(other.ranges.iter()) {
+                if other.end() > mine.end() || other.start() > mine.start() {
+                    return Some(std::cmp::Ordering::Less);
+                } else if other.end() < mine.end() {
+                    return Some(std::cmp::Ordering::Greater);
+                }
+            }
+
+            Some(std::cmp::Ordering::Equal)
+        } else {
+            None
+        }
     }
 }
 

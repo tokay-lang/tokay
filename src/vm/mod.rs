@@ -1,4 +1,3 @@
-use crate::reader::Reader;
 use crate::value::RefValue;
 
 mod op;
@@ -8,8 +7,6 @@ mod op_not;
 mod op_peek;
 mod op_repeat;
 mod op_sequence;
-mod tok_chars;
-mod tok_match;
 mod parselet;
 mod program;
 mod vm;
@@ -21,23 +18,9 @@ pub use op_not::*;
 pub use op_peek::*;
 pub use op_repeat::*;
 pub use op_sequence::*;
-pub use tok_chars::*;
-pub use tok_match::*;
 pub use parselet::*;
 pub use program::*;
 pub use vm::*;
-
-pub trait Token: std::fmt::Debug + std::fmt::Display {
-    fn read(&self, reader: &mut Reader) -> Result<Accept, Reject>;
-
-    /** Convert token into boxed dyn Token Op */
-    fn into_op(self) -> Op
-    where
-        Self: Sized + 'static,
-    {
-        Op::Token(Box::new(self))
-    }
-}
 
 pub trait Runable: std::fmt::Debug + std::fmt::Display {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;

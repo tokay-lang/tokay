@@ -1,6 +1,6 @@
 use std::io;
 
-use ::tokay::compiler::Compiler;
+use ::tokay::compiler::{Compiler, Parser};
 use ::tokay::error::Error;
 use ::tokay::reader::Reader;
 use ::tokay::repl::repl;
@@ -176,33 +176,31 @@ fn test_token() {
 
     // Match with positive modifier
     assert_eq!(
-        compile_and_run("'a' pos ''b''", "abbb", false),
+        compile_and_run("'a' ''b''+", "abbb", false),
         Ok(Some(value![["b", "b", "b"]]))
     );
 
     // Match with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("kle ''a'' pos ''b''", "aabbb", false),
+        compile_and_run("''a''* ''b''+", "aabbb", false),
         Ok(Some(value![[["a", "a"], ["b", "b", "b"]]]))
     );
 
     // Touch with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("kle 'a' pos ''b''", "bbb", false),
+        compile_and_run("'a'* ''b''+", "bbb", false),
         Ok(Some(value![["b", "b", "b"]]))
     );
 
-    /*
     assert_eq!(
-        compile_and_run("opt 'a' pos ''b''", "aabbb", false),
-        Ok(None)
+        compile_and_run("[a-z]", "abc", false),
+        Ok(Some(value![["a", "b", "c"]]))
     );
 
     assert_eq!(
-        compile_and_run("not 'Hello' 'World' accept; reject", "HelloWorld", false),
-        Ok(None)
+        compile_and_run("[a-z]+", "abc def ghi", false),
+        Ok(Some(value![["abc", "def", "ghi"]]))
     );
-    */
 
     // todo: more token tests, please!
 }
@@ -331,9 +329,61 @@ fn test_begin_end() {
 
 fn main() {
     println!("Tokay v{}", VERSION);
+
+    /*
+    println!("{:?}",
+        compile_and_run(
+            "
+            A : {
+                [a-zA-Z]+   $1
+                Integer     $1 * 2
+            }
+
+            A",
+            "73.2 Integer6        Benno",
+            false
+        )
+    );
+    */
+
     repl();
 
-    //println!("{:?}", compile_and_run("A:@{'lol'}\nA", "lol", true,));
+    /*
+    Tests for the parser
+
+    let parser = Parser::new();
+    for expr in &[
+        "A : [a-c]\nA+\n",
+        "A : [a-c]+\nA+\n",
+        "B : 'Hello'\nB+\n",
+        "B : 'Hello'+\nB+\n",
+    ] {
+        println!("-------------------------------------\n{}", expr);
+        let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(expr))));
+
+        match ast {
+            Ok(ast) => Parser::print(&ast),
+            Err(err) => println!("{}", err),
+        }
+    }
+    */
+
+    //println!("{:?}", compile_and_run("[loA-Z]+ print", "lol", true));
+
+    /*
+    println!("{:?}",
+        compile_and_run(
+            "
+            begin { x = 0 1337 }
+            end 1338
+
+            P: @{ 'lol' x = x + 1 x }
+            P",
+            "lolalolaalolol",
+            false
+        )
+    );
+    */
 
     /*
     let ast = compile_and_run(

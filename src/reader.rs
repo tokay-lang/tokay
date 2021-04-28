@@ -20,7 +20,7 @@ pub struct Reader {
 impl Reader {
     /// Creates a new reader on buffer read.
     pub fn new(reader: Box<dyn BufRead>) -> Self {
-        Self {
+        let mut ret = Self {
             reader,
             buffer: Vec::new(),
             offset: Offset {
@@ -29,7 +29,10 @@ impl Reader {
                 col: 1,
             },
             eof: false,
-        }
+        };
+
+        ret.peek(); // Peek one character to find out if we're immediately EOF
+        ret
     }
 
     /// Internal function for reading a line.

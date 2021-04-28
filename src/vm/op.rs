@@ -13,22 +13,19 @@ VM code.
 #[derive(Debug)]
 pub enum Op {
     Nop,
-    Usage(usize), // (yet) unresolved usage
 
-    // Parsing constructs
-    Empty, // The empty word
-
-    Token(Box<dyn Token>), // Token item
-    Runable(Box<dyn Runable>),   // Runable item
+    Usage(usize),              // (yet) unresolved usage
+    Offset(Box<Offset>),       // Source offset position for debugging
+    Runable(Box<dyn Runable>), // Runable item
 
     // Call
-    TryCall,
-    Call,
-    CallArg(usize),
-    CallArgNamed(usize),
-    CallStatic(usize),
-    CallStaticArg(Box<(usize, usize)>),
-    CallStaticArgNamed(Box<(usize, usize)>),
+    TryCall,             // Load and eventually call stack element without parameters
+    Call,                // Call stack element without parameters
+    CallArg(usize),      //Call stack element with sequential parameters
+    CallArgNamed(usize), // Call stack element with sequential and named parameters
+    CallStatic(usize),   // Call static element without parameters
+    CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
+    CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Interrupts
     Skip,
@@ -69,9 +66,6 @@ pub enum Op {
 
     // Flow
     If(Box<(Op, Option<Op>)>),
-
-    // Debug
-    Offset(Box<Offset>),
 }
 
 impl Op {
@@ -112,21 +106,22 @@ impl Op {
 
 impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        //println!("RUN {:?}", self);
+        //println!("{:?} @ {:?}", self, context.runtime.stack);
 
         match self {
             Op::Nop => Ok(Accept::Next),
-
             Op::Usage(_) => panic!(
                 "{:?} can't be run; Trying to run an unresolved program?",
                 self
             ),
+            Op::Offset(offset) => {
+                context.source_offset = Some(**offset);
+                Ok(Accept::Skip)
+            }
 
-            Op::Empty => Ok(Accept::Push(Capture::Empty)),
-
-            Op::Token(token) => token.read(&mut context.runtime.reader),
             Op::Runable(runable) => runable.run(context),
 
+            // Calls
             Op::TryCall => {
                 let value = context.pop();
                 if value.borrow().is_callable(0, 0) {
@@ -144,6 +139,7 @@ impl Runable for Op {
 
             Op::CallArg(args) => {
                 let target = context.pop();
+
                 let target = target.borrow();
                 target.call(context, *args, None)
                 //println!("CallArg returns {:?}", ret);
@@ -182,6 +178,7 @@ impl Runable for Op {
                 //println!("CallStaticArg returns {:?}",
             }
 
+            // Execution
             Op::Skip => Err(Reject::Skip),
 
             Op::LoadAccept => {
@@ -205,6 +202,7 @@ impl Runable for Op {
                 10,
             ))),
 
+            // Values
             Op::PushTrue => Ok(Accept::Push(Capture::Value(
                 Value::True.into_refvalue(),
                 10,
@@ -304,6 +302,7 @@ impl Runable for Op {
                 )))
             }
 
+            // Operations
             Op::Add | Op::Sub | Op::Div | Op::Mul => {
                 let b = context.pop();
                 let a = context.pop();
@@ -380,11 +379,6 @@ impl Runable for Op {
                     Ok(Accept::Next)
                 }
             }
-
-            Op::Offset(offset) => {
-                context.source_offset = Some(**offset);
-                Ok(Accept::Skip)
-            }
         }
     }
 
@@ -397,11 +391,6 @@ impl Runable for Op {
         consumes: &mut bool,
     ) {
         match self {
-            Op::Token(_) => {
-                *nullable = false;
-                *consumes = true;
-            }
-
             Op::Runable(runable) => {
                 runable.finalize(usages, statics, leftrec, nullable, consumes);
             }
@@ -409,34 +398,40 @@ impl Runable for Op {
             Op::Usage(_) => self.replace_usage(usages),
 
             Op::CallStatic(addr) => {
-                // Is left-recursion detection generally wanted?
-                if let Some(leftrec) = leftrec {
-                    // Is this static a parselet?
-                    if let Value::Parselet(parselet) = &*statics[*addr].borrow() {
-                        // Can the parselet be borrowed mutably?
-                        // If not, it already is borrowed and we have a left-recursion here!
-                        if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                            let mut call_leftrec = parselet.leftrec;
-                            let mut call_nullable = parselet.nullable;
-                            let mut call_consumes = parselet.consumes;
+                match &*statics[*addr].borrow() {
+                    Value::Parselet(parselet) => {
+                        // Is left-recursion detection generally wanted?
+                        if let Some(leftrec) = leftrec {
+                            // Can the parselet be borrowed mutably?
+                            // If not, it already is borrowed and we have a left-recursion here!
+                            if let Ok(mut parselet) = parselet.try_borrow_mut() {
+                                let mut call_leftrec = parselet.leftrec;
+                                let mut call_nullable = parselet.nullable;
+                                let mut call_consumes = parselet.consumes;
 
-                            parselet.body.finalize(
-                                usages,
-                                statics,
-                                Some(&mut call_leftrec),
-                                &mut call_nullable,
-                                &mut call_consumes,
-                            );
+                                parselet.body.finalize(
+                                    usages,
+                                    statics,
+                                    Some(&mut call_leftrec),
+                                    &mut call_nullable,
+                                    &mut call_consumes,
+                                );
 
-                            parselet.leftrec = call_leftrec;
-                            parselet.nullable = call_nullable;
-                            parselet.consumes = call_consumes;
+                                parselet.leftrec = call_leftrec;
+                                parselet.nullable = call_nullable;
+                                parselet.consumes = call_consumes;
 
-                            *nullable = parselet.nullable;
-                            *consumes = parselet.consumes;
-                        } else {
-                            *leftrec = true;
+                                *nullable = parselet.nullable;
+                                *consumes = parselet.consumes;
+                            } else {
+                                *leftrec = true;
+                            }
                         }
+                    }
+
+                    object => {
+                        *consumes = object.is_consuming();
+                        *nullable = object.is_nullable();
                     }
                 }
             }
@@ -465,7 +460,6 @@ impl Runable for Op {
 impl std::fmt::Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Token(s) => write!(f, "{}", s),
             Op::Runable(p) => write!(f, "{}", p),
             op => write!(f, "Op {:?}", op),
         }

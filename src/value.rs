@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin;
+use crate::error::Error;
+use crate::token::Token;
 use crate::vm::{Accept, Context, Parselet, Reject};
 
 pub trait BorrowByKey {
@@ -85,12 +87,13 @@ pub enum Value {
     Float(f64),   // float
     Addr(usize),  // usize
 
-    // Extended
+    // Objects
     String(String),  // string
     List(Box<List>), // list
     Dict(Box<Dict>), // dict
 
-    // Objects
+    // Callables
+    Token(Box<Token>),               // Token
     Parselet(Rc<RefCell<Parselet>>), // Parselet
     Builtin(usize),                  // Builtin
 }
@@ -422,17 +425,29 @@ impl Value {
     pub fn is_callable(&self, _args: usize, _nargs: usize) -> bool {
         // fixme: this is under construction...
         match self {
-            Value::Parselet(_) => true, // fixme
+            Value::Token(_) => true,    // fixme
             Value::Builtin(_) => true,  // fixme
+            Value::Parselet(_) => true, // fixme
             _ => false,
+        }
+    }
+
+    // Check whether a value is nullable in meaning of a grammar view
+    pub fn is_nullable(&self) -> bool {
+        match self {
+            Value::Token(token) => token.is_nullable(),
+            Value::Builtin(_) => false, // By definition, a built-in is never nullable
+            Value::Parselet(parselet) => parselet.borrow().nullable,
+            _ => true,
         }
     }
 
     // Check whether a value is consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Value::Parselet(parselet) => parselet.borrow().consumes,
+            Value::Token(_) => true,
             Value::Builtin(addr) => builtin::is_consumable(*addr),
+            Value::Parselet(parselet) => parselet.borrow().consumes,
             _ => false,
         }
     }
@@ -445,9 +460,10 @@ impl Value {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         match self {
+            Value::Token(token) => token.read(context.runtime.reader),
             Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
-            _ => panic!("{:?} cannot be called", self),
+            _ => Error::new(None, format!("Value {} cannot be called", self.repr())).into_reject(),
         }
     }
 }

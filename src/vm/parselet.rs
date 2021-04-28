@@ -216,9 +216,10 @@ impl Parselet {
                         _ => {}
                     }
 
-                    // Skip character
+                    // Skip character and reset reader start
                     if main && state.is_none() {
                         context.runtime.reader.next();
+                        context.reader_start = context.runtime.reader.tell();
                     } else if results.len() > 0 && state.is_none() {
                         state = Some(false);
                         continue;

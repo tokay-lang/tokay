@@ -5,14 +5,17 @@ use crate::vm::*;
 /** Unresolved symbols and calls */
 #[derive(Debug)]
 pub enum Usage {
+    // Qualified symbol load
     Load {
         name: String,
         offset: Option<Offset>,
     },
-    TryCall {
+    // Either load a symbol or call it when it is callable and can be called without parameters.
+    LoadOrCall {
         name: String,
         offset: Option<Offset>,
     },
+    // Qualified symbol call
     Call {
         name: String,
         args: usize,
@@ -25,8 +28,8 @@ impl Usage {
     pub(super) fn try_resolve(&self, compiler: &mut Compiler) -> Option<Vec<Op>> {
         match self {
             Usage::Load { name, offset: _ } => {
-                if let Some(addr) = compiler.get_constant(&name) {
-                    return Some(vec![Op::LoadStatic(addr)]);
+                if let Some(value) = compiler.get_constant(&name) {
+                    return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
                 } else if let Some(addr) = compiler.get_local(&name) {
                     return Some(vec![Op::LoadFast(addr)]);
                 } else if let Some(addr) = compiler.get_global(&name) {
@@ -34,16 +37,14 @@ impl Usage {
                 }
             }
 
-            Usage::TryCall { name, offset: _ } => {
-                if let Some(addr) = compiler.get_constant(&name) {
-                    let statics = compiler.statics.borrow();
-
+            Usage::LoadOrCall { name, offset: _ } => {
+                if let Some(value) = compiler.get_constant(&name) {
                     // fixme: This should check if the static is callable
                     //        without parameters!
-                    if statics[addr].borrow().is_callable(0, 0) {
-                        return Some(vec![Op::CallStatic(addr)]);
+                    if value.borrow().is_callable(0, 0) {
+                        return Some(vec![Op::CallStatic(compiler.define_static(value))]);
                     } else {
-                        return Some(vec![Op::LoadStatic(addr)]);
+                        return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     return Some(vec![Op::LoadFast(addr), Op::TryCall]);
@@ -59,12 +60,12 @@ impl Usage {
                 offset: _,
             } => {
                 // Resolve constants
-                if let Some(addr) = compiler.get_constant(&name) {
-                    let statics = compiler.statics.borrow();
-
+                if let Some(value) = compiler.get_constant(&name) {
                     // fixme: This should check if the static is callable
                     //        without parameters!
-                    if statics[addr].borrow().is_callable(*args, *nargs) {
+                    if value.borrow().is_callable(*args, *nargs) {
+                        let addr = compiler.define_static(value);
+
                         if *args == 0 && *nargs == 0 {
                             return Some(vec![Op::CallStatic(addr)]);
                         } else if *args > 0 && *nargs == 0 {

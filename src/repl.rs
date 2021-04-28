@@ -52,7 +52,7 @@ pub fn repl() {
                         match res {
                             Ok(None) => {}
                             Ok(Some(value)) => println!("<<< {}", value.borrow().repr()),
-                            _ => println!("<<< {:?}", res),
+                            Err(error) => println!("<<< {}", error),
                         }
 
                         globals = runtime.save_stack();
@@ -71,7 +71,7 @@ pub fn repl() {
                                 Ok(Some(value)) => {
                                     println!("{}: {}", filename, value.borrow().repr())
                                 }
-                                _ => println!("{}: {:?}", filename, res),
+                                Err(error) => println!("{}: {}", filename, error),
                             }
 
                             globals = runtime.save_stack();

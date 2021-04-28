@@ -13,7 +13,6 @@ This is a recently updated brainstorming and todo scribble file.
 - Extensions by third-party crates
     - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
     - [ ] **lazy_static** for parser and compiler
-    - [ ] **regex** for regular expressions
 
 ## Syntax
 
@@ -27,6 +26,7 @@ Syntax is under careful consideration.
 - [ ] Loops with value collection using `continue` and `break`
 - [ ] Use `>>` as alternative for `begin`-keyword (under consideration...)
 - [ ] Use `<<` as alternative for `end`-keyword (under consideration...)
+- [ ] Sequence item aliasing: `a b::x c $2 $x $1
 - Token call modifiers
   - [ ] How to distinguish token symbolic constants?
   - [ ] `expect` keyword
@@ -35,8 +35,8 @@ Syntax is under careful consideration.
   - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work
   - [ ] Prefixed token modifier keywords `pos`, `kle`, `opt`, instead of `+`, `*`, `?`, e.g. `expect pos X kle X opt X`
     - The postfix-notation is more staight-forward, but its bad on symbols which aren't consumable at least and crashes with the syntax of add, mul and sequence, so `a+ 1` (`kle a 1`) != `a + 1` (`a + 1`) != `a +1` (`a +1`)
-- [ ] Definition of Chars scanable structure `[A-Za-z_]` etc...
-- [ ] Definition of Regex scanable structure `/Hel+o Wo?rld/`
+- [ ] Definition of Chars tokens `[A-Za-z_]` etc...
+- [ ] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
 - [ ] Implement ` backticks for shell commands
 
 ## Compiler
@@ -110,3 +110,14 @@ Syntax is under careful consideration.
 - [ ] Tests for peek
 - [ ] Tests for not
 - [ ] Tests for kle, pos, opt as implemented in future (see above)
+
+## Bugs
+
+- [x] `x : print` is not possible
+
+## Sprint 12. - 18.04.2021
+
+- [x] Void, Any and EOF
+- [ ] Char-Tokens
+- [ ] until-Operator?
+- [ ] *deref-Operator?

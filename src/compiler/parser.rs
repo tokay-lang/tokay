@@ -1,6 +1,7 @@
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
+use crate::token::Token;
 use crate::value::Value;
 use crate::vm::*;
 use crate::{ccl, value};
@@ -17,12 +18,8 @@ macro_rules! compile_item {
         {
             let name = stringify!($name).to_string();
             let value = Value::String($value.to_string()).into_refvalue();
-            let addr = $compiler.define_static(value);
 
-            $compiler.set_constant(
-                &name,
-                addr
-            );
+            $compiler.set_constant(&name, value);
 
             //println!("assign {} = {}", stringify!($name), stringify!($value));
             None
@@ -49,16 +46,9 @@ macro_rules! compile_item {
 
             let body = Repeat::new(body, 0, 0, true);
 
-            let parselet = $compiler.create_parselet(Vec::new(), body, true, false);
+            let parselet = $compiler.create_parselet(Vec::new(), body, true, false).into_value().into_refvalue();
 
-            let parselet = $compiler.define_static(
-                parselet.into_value().into_refvalue()
-            );
-
-            $compiler.set_constant(
-                "_",
-                parselet
-            );
+            $compiler.set_constant("_", parselet);
 
             //println!("assign _ = {}", stringify!($item));
             None
@@ -85,15 +75,10 @@ macro_rules! compile_item {
                     .collect()
             );
 
-            let parselet = $compiler.create_parselet(Vec::new(), body, false, false);
-            let parselet = $compiler.define_static(
-                parselet.into_value().into_refvalue()
-            );
+            let parselet = $compiler.create_parselet(Vec::new(), body, false, false).into_value().into_refvalue();
 
-            $compiler.set_constant(
-                &name,
-                parselet
-            );
+            $compiler.define_static(parselet.clone());
+            $compiler.set_constant(&name, parselet);
 
             //println!("assign {} = {}", stringify!($name), stringify!($item));
             None
@@ -183,12 +168,19 @@ macro_rules! compile_item {
 
     // Expect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg)))
+        Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg.to_string())))
     };
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
         Some(Op::LoadStatic($compiler.define_static(value!($value))))
+    };
+
+    // Token
+    ( $compiler:expr, (token $token:tt) ) => {
+        {
+            Some(Op::CallStatic($compiler.define_static($token.into_value().into_refvalue())))
+        }
     };
 
     // Call with parameters
@@ -222,7 +214,7 @@ macro_rules! compile_item {
             //println!("call = {}", stringify!($ident));
             let name = stringify!($ident);
 
-            let item = Usage::TryCall{
+            let item = Usage::LoadOrCall{
                 name: name.to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
@@ -235,7 +227,7 @@ macro_rules! compile_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let item = Usage::TryCall{
+            let item = Usage::LoadOrCall{
                 name: "_".to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
@@ -248,7 +240,8 @@ macro_rules! compile_item {
     // Match / Touch
     ( $compiler:expr, $literal:literal ) => {
         {
-            Some(Match::new_silent($literal))
+            let token = Token::Touch($literal.to_string()).into_value();
+            Some(Op::CallStatic($compiler.define_static(token.into_refvalue())))
         }
     };
 
@@ -302,7 +295,7 @@ This is the general place to change syntax and modify the design of the abstract
 pub struct Parser(Program);
 
 impl Parser {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self(compile!({
         // ----------------------------------------------------------------------------
 
@@ -310,7 +303,7 @@ impl Parser {
 
         (_ = {
             [" "],
-            ["#", (Chars::until('\n')), "\n"],
+            ["#", (token (Token::chars_until('\n')))],
             ["\\", "\n"]
         }),
 
@@ -323,16 +316,16 @@ impl Parser {
 
         (T_Identifier = {
             [
-                (Chars::new_silent(ccl!['A'..='Z', 'a'..='z', '_'..='_'])),
-                (opt (Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_']))),
+                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
+                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
                 (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
         (T_Consumable = {
             [
-                (Chars::new_silent(ccl!['A'..='Z', '_'..='_'])),
-                (opt (Chars::span(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_']))),
+                (token (Token::Char(ccl!['A'..='Z', '_'..='_']))),
+                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
                 (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
@@ -340,7 +333,7 @@ impl Parser {
         (T_String = {
             [
                 "\"",
-                (Chars::until('"')),     //fixme: Escape sequences (using Until built-in parselet)
+                (token (Token::chars_until('\"'))),     //fixme: Escape sequences (using Until built-in parselet)
                 "\""
             ]
         }),
@@ -348,22 +341,41 @@ impl Parser {
         (T_Match = {
             [
                 "\'",
-                (Chars::until('\'')),    //fixme: Escape sequences (using Until built-in parselet)
+                (token (Token::chars_until('\''))),    //fixme: Escape sequences (using Until built-in parselet)
                 "\'"
             ]
         }),
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(Chars::span(ccl!['0'..='9'])), (call collect[(value "value_integer")])]
+            [(token (Token::Chars(ccl!['0'..='9']))), (call collect[(value "value_integer")])]
         }),
 
         (T_Float = {
             // todo: implement as built-in Parselet
-            [(Chars::span(ccl!['0'..='9'])), ".", (opt (Chars::span(ccl!['0'..='9']))),
+            [(token (Token::Chars(ccl!['0'..='9']))), ".", (opt (token (Token::Chars(ccl!['0'..='9'])))),
                 (call collect[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(opt (Chars::span(ccl!['0'..='9']))), ".", (Chars::span(ccl!['0'..='9'])),
+            [(opt (token (Token::Chars(ccl!['0'..='9'])))), ".", (token (Token::Chars(ccl!['0'..='9']))),
                 (call collect[(value "value_float"), (Op::LoadFastCapture(0))])]
+        }),
+
+        // Character classes
+
+        (CclChar = {
+            [EOF, (call error[(value "Unclosed character-class, expecting ']'")])],
+            ["\\", (token (Token::Any))],
+            (token (Token::char_except(']')))
+        }),
+
+        (CclRange = {
+            [CclChar, "-", CclChar,
+                (call collect[(value "range"), [(Op::LoadFastCapture(1)), (Op::LoadFastCapture(3)), (Op::Add)]])],
+            [CclChar, (call collect[(value "char")])]
+        }),
+
+        (Ccl = {
+            ['^', (kle CclRange), (call collect[(value "ccl_neg")])],
+            [(kle CclRange), (call collect[(value "ccl")])]
         }),
 
         // Statics, Variables & Constants
@@ -404,17 +416,18 @@ impl Parser {
             [Inplace, _, (kle Tail), (call collect[(value "rvalue")])]
         }),
 
-        (Parameter = {
+        (CallParameter = {
             [T_Identifier, _, "=", _, Expression, (call collect[(value "param_named")])],
             [Expression, (call collect[(value "param")])]
         }),
 
-        (Parameters = {
-            (pos [Parameter, (opt [",", _])])
+        (CallParameters = {
+            (pos [CallParameter, (opt [",", _])])
         }),
 
         (Call = {
-            [T_Identifier, "(", _, (opt Parameters), ")", _, (call collect[(value "call_identifier")])]
+            [T_Identifier, "(", _, (opt CallParameters), (expect ")"), _,
+                (call collect[(value "call_identifier")])]
             //[Rvalue, "(", _, (opt Parameters), ")", _, (call collect[(value "call_rvalue")])]
         }),
 
@@ -428,20 +441,32 @@ impl Parser {
             [T_Integer, _]
         }),
 
-        (Token = {
-            ["peek", _, Token, (call collect[(value "mod_peek")])],
-            ["not", _, Token, (call collect[(value "mod_not")])],
-            ["pos", _, Token, (call collect[(value "mod_positive")])],      // fixme: not final!
-            ["kle", _, Token, (call collect[(value "mod_kleene")])],        // fixme: not final!
-            ["opt", _, Token, (call collect[(value "mod_optional")])],      // fixme: not final!
-            ["'", T_Match, "'", _, (call collect[(value "match")])],
-            [T_Match, _, (call collect[(value "touch")])],
-            [T_Consumable, _, (call collect[(value "call_or_load")])]
+        // Tokens
+
+        (TokenLiteral = {
+            ["'", T_Match, "'", (call collect[(value "value_token_match")])],
+            [T_Match, (call collect[(value "value_token_touch")])],
+            [".", (call collect[(value "value_token_any")])],
+            ['[', Ccl, ']', (call collect[(value "value_token_ccl")])]
         }),
 
-        (Value = {
-            Literal,
-            Parselet
+        (TokenCall = {
+            TokenLiteral,
+            [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
+                (call collect[(value "call_identifier")])],
+            [T_Consumable, (call collect[(value "rvalue")])]
+        }),
+
+        (Token = {
+            // Token call modifiers
+            [TokenCall, "+", _, (call collect[(value "op_mod_pos")])],
+            [TokenCall, "*", _, (call collect[(value "op_mod_kle")])],
+            [TokenCall, "?", _, (call collect[(value "op_mod_opt")])],
+            // todo: {min}, {min, max} maybe with expression?
+            [TokenCall, _],
+            ["peek", _, (expect Token, "Token"), (call collect[(value "op_mod_peek")])],
+            ["not", _, (expect Token, "Token"), (call collect[(value "op_mod_not")])],
+            ["expect", _, (expect Token, "Token"), (call collect[(value "op_mod_expect")])]
         }),
 
         // Expression & Flow
@@ -449,8 +474,8 @@ impl Parser {
         (Atomic = {
             ["(", _, Expression, (expect ")"), _],
             Literal,
-            Call,
             Token,
+            Call,
             Rvalue,
             Block,
             Parselet
@@ -533,7 +558,7 @@ impl Parser {
         // Parselet
 
         (Argument = {
-            [T_Identifier, _, (opt ["=", _, (opt Value)]), (call collect[(value "arg")])]
+            [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call collect[(value "arg")])]
         }),
 
         (Arguments = {
@@ -559,9 +584,9 @@ impl Parser {
         (Sequence = {
             ["begin", _, Statement, (call collect[(value "begin")])],
             ["end", _, Statement, (call collect[(value "end")])],
-            [T_Identifier, _, ":", _, (expect Value), (expect T_EOL), (call collect[(value "assign_constant")])],
-            //fixme: considering here to allow for `a : {}` shorthand syntax for a static parselet...
-            //       but its a little inconsistent
+
+            [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
+                (call collect[(value "assign_constant")])],
             [(pos Item), (call collect[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),
@@ -570,40 +595,6 @@ impl Parser {
             // todo: Recognize aliases
             Statement
         }),
-
-        /*
-        (TokenModifier = {
-            ["!", TokenModifier, (call collect[(value "mod_not")])],
-            ["~", TokenModifier, (call collect[(value "mod_peek")])],
-            [Token, "+", _, (call collect[(value "mod_positive")])],
-            [Token, "*", _, (call collect[(value "mod_kleene")])],
-            [Token, "?", _, (call collect[(value "mod_optional")])],
-            [
-                Token, _,
-                (Op::Peek(
-                    Op::Not(
-                        Chars::new(ccl![
-                            '='..='=',
-                            '+'..='+',
-                            '-'..='-',
-                            '*'..='*',
-                            '/'..='/'
-                            // todo: More to come?
-                        ]).into_box()
-                    ).into_box()
-                ))
-            ]
-        }),
-
-        (Token = {
-            [T_String, (call collect[(value "match")])],
-            [T_LightString, (call collect[(value "touch")])],
-            [".", _, (call collect[(value "any")])],
-            Call,
-            [T_Identifier, (call collect[(value "call_or_load")])],
-            Parselet
-        }),
-        */
 
         (Tokay = {
             Sequences

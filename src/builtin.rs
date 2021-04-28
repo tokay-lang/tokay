@@ -7,9 +7,20 @@ type Builtin = fn(&mut Context, args: Vec<RefValue>, nargs: Option<Dict>) -> Res
 
 static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
     ("Integer", 0, false, |context, _args, _nargs| {
+        let mut neg = false;
         let mut value: i64 = 0;
+
+        // Sign
+        if let Some(ch) = context.runtime.reader.peek() {
+            if ch == '-' || ch == '+' {
+                neg = ch == '-';
+                context.runtime.reader.next();
+            }
+        }
+
         let start = context.runtime.reader.tell();
 
+        // Digits
         while let Some(ch) = context.runtime.reader.peek() {
             if ch < '0' || ch > '9' {
                 break;
@@ -20,6 +31,10 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
         }
 
         if start.offset < context.runtime.reader.tell().offset {
+            if neg {
+                value = -value;
+            }
+
             Ok(Accept::Push(Capture::Value(
                 Value::Integer(value).into_refvalue(),
                 5,
@@ -32,13 +47,16 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
     ("error", 1, false, |context, args, _| {
         Error::new(
             Some(context.runtime.reader.tell()),
-            get_arg(&args, None, 0, None).unwrap().borrow().to_string(),
+            get_arg(&args, None, Some(0), None)
+                .unwrap()
+                .borrow()
+                .to_string(),
         )
         .into_reject()
     }),
-    ("collect", 1, true, |context, args, nargs| {
-        let emit = get_arg(&args, nargs.as_ref(), 0, Some("emit")).unwrap();
-        let mut value = get_arg(&args, nargs.as_ref(), 1, Some("value"));
+    ("collect", -1, true, |context, args, nargs| {
+        let emit = get_arg(&args, nargs.as_ref(), Some(0), Some("emit"));
+        let mut value = get_arg(&args, nargs.as_ref(), Some(1), Some("value"));
 
         // In case no value is set, collect them from the current context.
         if value.is_err() {
@@ -49,10 +67,12 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
 
         let mut ret = Dict::new();
 
-        ret.insert("emit".to_string(), emit.clone());
+        if let Ok(emit) = emit {
+            ret.insert("emit".to_string(), emit.clone());
+        }
 
-        // List or Dict values are classified as child nodes
         if let Ok(value) = value {
+            // List or Dict values are classified as child nodes
             if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
                 ret.insert("children".to_string(), value);
             } else {
@@ -112,7 +132,10 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
 
             print!(
                 "{}",
-                get_arg(&args, None, i, None).unwrap().borrow().to_string()
+                get_arg(&args, None, Some(i), None)
+                    .unwrap()
+                    .borrow()
+                    .to_string()
             );
         }
 
@@ -172,7 +195,7 @@ pub fn is_consumable(builtin: usize) -> bool {
 pub fn get_arg(
     args: &Vec<RefValue>,
     nargs: Option<&Dict>,
-    index: usize,
+    index: Option<usize>,
     name: Option<&'static str>,
 ) -> Result<RefValue, String> {
     // Try to retrieve argument by name
@@ -182,7 +205,13 @@ pub fn get_arg(
                 return Ok(value.clone());
             }
         }
+
+        if index.is_none() {
+            return Ok(Value::Void.into_refvalue());
+        }
     }
+
+    let index = index.unwrap();
 
     if index >= args.len() {
         Err(format!(
@@ -218,7 +247,7 @@ pub fn call(
 
     let result;
 
-    // Allow constant number of minimal parameters
+    // Require constant number of minimal parameters
     if builtin.1 >= 0
         && (args.len() < builtin.1 as usize
             && (!builtin.2
