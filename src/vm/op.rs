@@ -358,19 +358,10 @@ impl Runable for Op {
                 )))
             }
 
-            Op::Not => {
-                if context.pop().borrow().is_true() {
-                    Ok(Accept::Push(Capture::Value(
-                        Value::False.into_refvalue(),
-                        10,
-                    )))
-                } else {
-                    Ok(Accept::Push(Capture::Value(
-                        Value::True.into_refvalue(),
-                        10,
-                    )))
-                }
-            }
+            Op::Not => Ok(Accept::Push(Capture::Value(
+                (!&*context.pop().borrow()).into_refvalue(),
+                10,
+            ))),
 
             Op::Neg => Ok(Accept::Push(Capture::Value(
                 (-&*context.pop().borrow()).into_refvalue(),

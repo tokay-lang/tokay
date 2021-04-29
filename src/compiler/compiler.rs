@@ -630,6 +630,12 @@ impl Compiler {
                     }
                 }
 
+                if emit == "ccl_neg" {
+                    ccl.negate();
+                } else {
+                    assert!(emit == "ccl");
+                }
+
                 Token::Char(ccl).into_value()
             }
 
@@ -1103,13 +1109,7 @@ impl Compiler {
                             (true, TraversalResult::Value(value)) => {
                                 return TraversalResult::Value(
                                     match parts[2] {
-                                        "not" => {
-                                            if value.borrow().is_true() {
-                                                Value::False
-                                            } else {
-                                                Value::True
-                                            }
-                                        }
+                                        "not" => !&*value.borrow(),
                                         "neg" => -&*value.borrow(),
                                         _ => {
                                             unimplemented!("op_unary_{}", parts[2]);

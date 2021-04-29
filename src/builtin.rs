@@ -186,7 +186,7 @@ pub fn get(ident: &str) -> Option<usize> {
     None
 }
 
-/// Retrieve builtin by name.
+/// Check if specific builtin is consumable by identifier
 pub fn is_consumable(builtin: usize) -> bool {
     Compiler::identifier_is_consumable(BUILTINS[builtin].0)
 }

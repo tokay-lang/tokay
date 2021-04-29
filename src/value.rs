@@ -558,6 +558,22 @@ impl<'v> std::ops::Neg for &'v Value {
     }
 }
 
+impl<'v> std::ops::Not for &'v Value {
+    type Output = Value;
+
+    fn not(self) -> Value {
+        match self {
+            //Value::Integer(i) => Value::Integer(!i),  // breaks semantics
+            //Value::Addr(a) => Value::Addr(!a),
+            v => if v.is_true() {
+                Value::False
+            } else {
+                Value::True
+            },
+        }
+    }
+}
+
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())

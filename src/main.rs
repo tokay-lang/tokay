@@ -162,44 +162,64 @@ fn test_expression() {
 
 #[test]
 fn test_token() {
+    let s = "ab abbb bb 123 ABC 456 'def'";
+
     // Simple touch
     assert_eq!(
-        compile_and_run("'a' 'b'", "ab", false),
-        Ok(Some(value![["a", "b"]]))
+        compile_and_run("'a' 'b'", s, false),
+        Ok(Some(value![[["a", "b"], ["a", "b"]]]))
     );
 
     // Touch and match
     assert_eq!(
-        compile_and_run("'a' ''b''", "ab", false),
-        Ok(Some(value!["b"]))
+        compile_and_run("'a' ''b''", s, false),
+        Ok(Some(value![["b", "b"]]))
     );
 
     // Match with positive modifier
     assert_eq!(
-        compile_and_run("'a' ''b''+", "abbb", false),
-        Ok(Some(value![["b", "b", "b"]]))
+        compile_and_run("'a' ''b''+", s, false),
+        Ok(Some(value![["b", ["b", "b", "b"]]]))
     );
 
     // Match with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("''a''* ''b''+", "aabbb", false),
-        Ok(Some(value![[["a", "a"], ["b", "b", "b"]]]))
+        compile_and_run("''a''* ''b''+", s, false),
+        Ok(Some(value![[
+            ["a", "b"],
+            ["a", ["b", "b", "b"]],
+            ["b", "b"]
+        ]]))
     );
 
     // Touch with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("'a'* ''b''+", "bbb", false),
-        Ok(Some(value![["b", "b", "b"]]))
+        compile_and_run("'a'* ''b''+", s, false),
+        Ok(Some(value![["b", ["b", "b", "b"], ["b", "b"]]]))
+    );
+
+    // Character classes
+    assert_eq!(
+        compile_and_run("[a-z]", &s[..2], false),
+        Ok(Some(value![["a", "b"]]))
     );
 
     assert_eq!(
-        compile_and_run("[a-z]", "abc", false),
-        Ok(Some(value![["a", "b", "c"]]))
+        compile_and_run("[a-z]+", s, false),
+        Ok(Some(value![["ab", "abbb", "bb", "def"]]))
     );
 
     assert_eq!(
-        compile_and_run("[a-z]+", "abc def ghi", false),
-        Ok(Some(value![["abc", "def", "ghi"]]))
+        compile_and_run("[^ ']+", s, false),
+        Ok(Some(value![[
+            "ab", "abbb", "bb", "123", "ABC", "456", "def"
+        ]]))
+    );
+
+    // Built-in token
+    assert_eq!(
+        compile_and_run("Integer", s, false),
+        Ok(Some(value![[123, 456]]))
     );
 
     // todo: more token tests, please!
