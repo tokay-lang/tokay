@@ -43,18 +43,24 @@ pub enum Op {
     // Variables & Values
     LoadGlobal(usize),
     LoadFast(usize),
-    StoreGlobal(usize),
-    StoreFast(usize),
     LoadFastCapture(usize),
     LoadCapture,
+
+    StoreGlobal(usize),
+    StoreGlobalHold(usize),
+    StoreFast(usize),
+    StoreFastHold(usize),
     StoreFastCapture(usize),
+    StoreFastCaptureHold(usize),
     StoreCapture,
+    StoreCaptureHold,
     //MakeList(usize),
     MakeDict(usize),
 
     // Operations
     Drop,
     Dup,
+    Rot2,
 
     Add,
     Sub,
@@ -63,8 +69,13 @@ pub enum Op {
 
     Not,
     Neg,
-    Inc,
-    Dec,
+
+    IAdd,
+    ISub,
+    IDiv,
+    IMul,
+    IInc,
+    IDec,
 
     Equal,
     NotEqual,
@@ -247,21 +258,6 @@ impl Runable for Op {
                 10,
             ))),
 
-            Op::StoreGlobal(addr) => {
-                // todo: bounds checking?
-                let value = context.pop();
-                context.runtime.stack[*addr] = Capture::Value(value.clone(), 10);
-                Ok(Accept::Push(Capture::Value(value, 10)))
-            }
-
-            Op::StoreFast(addr) => {
-                // todo: bounds checking?
-                let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] =
-                    Capture::Value(value.clone(), 10);
-                Ok(Accept::Push(Capture::Value(value, 10)))
-            }
-
             Op::LoadFastCapture(index) => {
                 let value = context
                     .get_capture(*index)
@@ -285,6 +281,35 @@ impl Runable for Op {
                 }
             }
 
+            Op::StoreGlobal(addr) => {
+                // todo: bounds checking?
+                let value = context.pop();
+                context.runtime.stack[*addr] = Capture::Value(value, 10);
+                Ok(Accept::Next)
+            }
+
+            Op::StoreFast(addr) => {
+                // todo: bounds checking?
+                let value = context.pop();
+                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, 10);
+                Ok(Accept::Next)
+            }
+
+            Op::StoreGlobalHold(addr) => {
+                // todo: bounds checking?
+                let value = context.pop();
+                context.runtime.stack[*addr] = Capture::Value(value.clone(), 10);
+                Ok(Accept::Push(Capture::Value(value, 10)))
+            }
+
+            Op::StoreFastHold(addr) => {
+                // todo: bounds checking?
+                let value = context.pop();
+                context.runtime.stack[context.stack_start + *addr] =
+                    Capture::Value(value.clone(), 10);
+                Ok(Accept::Push(Capture::Value(value, 10)))
+            }
+
             Op::StoreFastCapture(index) => {
                 let value = context.pop();
 
@@ -292,17 +317,28 @@ impl Runable for Op {
                 Ok(Accept::Next)
             }
 
-            Op::StoreCapture => {
+            Op::StoreFastCaptureHold(index) => {
+                let value = context.pop();
+
+                context.set_capture(*index, value.clone());
+                Ok(Accept::Push(Capture::Value(value, 10)))
+            }
+
+            Op::StoreCapture | Op::StoreCaptureHold => {
                 let index = context.pop();
                 let index = index.borrow();
 
                 match *index {
                     Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
-                        Op::StoreFastCapture(index.to_addr()).run(context)
+                        if matches!(self, Op::StoreCapture) {
+                            Op::StoreFastCapture(index.to_addr()).run(context)
+                        } else {
+                            Op::StoreFastCaptureHold(index.to_addr()).run(context)
+                        }
                     }
 
                     _ => {
-                        unimplemented!("//todo")
+                        todo!()
                     }
                 }
             }
@@ -340,6 +376,14 @@ impl Runable for Op {
                     value.clone().into_refvalue(),
                     10,
                 )))
+            }
+
+            Op::Rot2 => {
+                let a = context.pop();
+                let b = context.pop();
+                context.push(a);
+                context.push(b);
+                Ok(Accept::Skip)
             }
 
             // Operations
@@ -406,15 +450,42 @@ impl Runable for Op {
                 10,
             ))),
 
-            Op::Inc => {
-                let value = context.pop();
-                context.push((&*value.borrow() + &Value::Integer(1)).into_refvalue()); // lazy_static?
+             Op::IAdd | Op::ISub | Op::IDiv | Op::IMul => {
+                let b = context.pop();
+                let a = context.peek();
+                {
+                    let mut value = a.borrow_mut();
+
+                    /*
+                    println!("{:?}", self);
+                    println!("a = {:?}", a);
+                    println!("b = {:?}", b);
+                    */
+
+                    *value = match self {
+                        Op::IAdd => (&*value + &*b.borrow()),
+                        Op::ISub => (&*value - &*b.borrow()),
+                        Op::IDiv => (&*value / &*b.borrow()),
+                        Op::IMul => (&*value * &*b.borrow()),
+                        _ => unimplemented!("Unimplemented operator"),
+                    };
+                }
+
+                Ok(Accept::Push(Capture::Value(a, 10)))
+            }
+
+            Op::IInc => {
+                let value = context.peek();
+                let mut value = value.borrow_mut();
+                *value = &*value + &Value::Integer(1); // lazy_static?
                 Ok(Accept::Skip)
             }
 
-            Op::Dec => {
-                let value = context.pop();
-                context.push((&*value.borrow() - &Value::Integer(1)).into_refvalue()); // lazy_static?
+            Op::IDec => {
+                let value = context.peek();
+                let mut value = value.borrow_mut();
+
+                *value = &*value - &Value::Integer(1); // lazy_static?
                 Ok(Accept::Skip)
             }
 

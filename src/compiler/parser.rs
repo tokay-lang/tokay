@@ -533,6 +533,13 @@ impl Parser {
             ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, StatementOrVoid, (call collect[(value "op_for")])],
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
+            // assignment
+            [Lvalue, "=", _, Expression, (call collect[(value "assign_hold")])],
+            [Lvalue, "+=", _, Expression, (call collect[(value "assign_add_hold")])],
+            [Lvalue, "-=", _, Expression, (call collect[(value "assign_sub_hold")])],
+            [Lvalue, "*=", _, Expression, (call collect[(value "assign_mul_hold")])],
+            [Lvalue, "/=", _, Expression, (call collect[(value "assign_div_hold")])],
+
             // normal comparison
             Compare
         }),
@@ -548,8 +555,14 @@ impl Parser {
             ["accept", _, Expression, (call collect[(value "op_accept")])],
             ["accept", _, (call collect[(value "op_acceptvoid")])],
             ["reject", _, (call collect[(value "op_reject")])],
+
             // todo: report, escape, repeat
-            Assign,
+            [Lvalue, "=", _, Expression, (call collect[(value "assign")])],
+            [Lvalue, "+=", _, Expression, (call collect[(value "assign_add")])],
+            [Lvalue, "-=", _, Expression, (call collect[(value "assign_sub")])],
+            [Lvalue, "*=", _, Expression, (call collect[(value "assign_mul")])],
+            [Lvalue, "/=", _, Expression, (call collect[(value "assign_div")])],
+
             Expression
         }),
 
@@ -584,7 +597,7 @@ impl Parser {
             ["end", _, Statement, (call collect[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
-                (call collect[(value "assign_constant")])],
+                (call collect[(value "constant")])],
             [(pos Item), (call collect[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),

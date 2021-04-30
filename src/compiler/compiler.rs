@@ -720,7 +720,7 @@ impl Compiler {
     }
 
     // Traverse lvalue
-    fn traverse_node_lvalue(&mut self, node: &Dict, store: bool) -> TraversalResult {
+    fn traverse_node_lvalue(&mut self, node: &Dict, store: bool, hold: bool) -> TraversalResult {
         let children = node.borrow_by_key("children").to_list();
 
         let mut ops = Vec::new();
@@ -739,13 +739,28 @@ impl Compiler {
                     match capture {
                         "capture_expr" => {
                             ops.extend(self.traverse(&children).into_ops(self, false));
-                            ops.push(Op::StoreCapture)
+                            if store && hold {
+                                ops.push(Op::StoreCaptureHold)
+                            } else if store {
+                                ops.push(Op::StoreCapture)
+                            }
+                            else {
+                                ops.push(Op::LoadCapture)
+                            }
                         }
 
                         "capture_index" => {
                             let children = children.get_dict().unwrap();
                             let index = self.traverse_node_value(children);
-                            ops.push(Op::StoreFastCapture(index.to_addr()));
+
+                            if store && hold {
+                                ops.push(Op::StoreFastCaptureHold(index.to_addr()));
+                            } else if store {
+                                ops.push(Op::StoreFastCapture(index.to_addr()));
+                            }
+                            else {
+                                ops.push(Op::LoadFastCapture(index.to_addr()));
+                            }
                         }
 
                         "capture_alias" => {
@@ -812,22 +827,31 @@ impl Compiler {
                                 3. create local variable, and store into
                             */
                             if let Some(addr) = self.get_local(name) {
-                                if store {
+                                if store && hold {
+                                    Op::StoreFastHold(addr)
+                                } else if store {
                                     Op::StoreFast(addr)
-                                } else {
+                                }
+                                else {
                                     Op::LoadFast(addr)
                                 }
                             } else if let Some(addr) = self.get_global(name) {
-                                if store {
+                                if store && hold {
+                                    Op::StoreGlobalHold(addr)
+                                } else if store {
                                     Op::StoreGlobal(addr)
-                                } else {
+                                }
+                                else {
                                     Op::LoadGlobal(addr)
                                 }
                             } else {
                                 let addr = self.new_local(name);
-                                if store {
+                                if store && hold {
+                                    Op::StoreFastHold(addr)
+                                } else if store {
                                     Op::StoreFast(addr)
-                                } else {
+                                }
+                                else {
                                     Op::LoadFast(addr)
                                 }
                             },
@@ -915,29 +939,21 @@ impl Compiler {
                     let lvalue = children.get_dict().unwrap();
 
                     ops.extend(
-                        self.traverse_node_lvalue(lvalue, false)
+                        self.traverse_node_lvalue(lvalue, false, false)
                             .into_ops(self, false),
                     );
 
                     match parts[1] {
                         "pre" => {
-                            ops.push(if parts[2] == "inc" { Op::Inc } else { Op::Dec });
-                            ops.extend(
-                                self.traverse_node_lvalue(lvalue, true)
-                                    .into_ops(self, false),
-                            );
+                            ops.push(if parts[2] == "inc" { Op::IInc } else { Op::IDec });
                         }
                         "post" => {
                             ops.extend(vec![
                                 Op::Dup,
-                                if parts[2] == "inc" { Op::Inc } else { Op::Dec }
+                                Op::Rot2,
+                                if parts[2] == "inc" { Op::IInc } else { Op::IDec },
+                                Op::Drop
                             ]);
-
-                            ops.extend(
-                                self.traverse_node_lvalue(lvalue, true)
-                                    .into_ops(self, false),
-                            );
-                            ops.push(Op::Drop);
                         }
                         _ => unreachable!(),
                     }
@@ -960,25 +976,49 @@ impl Compiler {
 
         match emit {
             // assign ---------------------------------------------------------
-            "assign" => {
+            assign if assign.starts_with("assign") => {
                 let children = node.borrow_by_key("children");
                 let children = children.get_list();
 
-                let (lvalue, rvalue) = children.unwrap().borrow_first_2();
-
-                let rvalue = rvalue.get_dict().unwrap();
+                let (lvalue, value) = children.unwrap().borrow_first_2();
                 let lvalue = lvalue.get_dict().unwrap();
+                let value = value.get_dict().unwrap();
+
+                let parts: Vec<&str> = assign.split("_").collect();
 
                 let mut ops = Vec::new();
 
-                ops.extend(self.traverse_node(rvalue).into_ops(self, false));
-                ops.extend(self.traverse_node(lvalue).into_ops(self, false));
+                if parts.len() > 1 && parts[1] != "hold" {
+                    ops.extend(
+                        self.traverse_node_lvalue(lvalue, false, false).into_ops(self, false),
+                    );
+                    ops.extend(self.traverse_node(value).into_ops(self, false));
+
+                    match parts[1] {
+                        "add" => ops.push(Op::IAdd),
+                        "sub" => ops.push(Op::ISub),
+                        "mul" => ops.push(Op::IMul),
+                        "div" => ops.push(Op::IDiv),
+                        _ => unreachable!(),
+                    }
+
+                    if *parts.last().unwrap() != "hold" {
+                        ops.push(Op::Drop);
+                    }
+                }
+                else {
+                    ops.extend(self.traverse_node(value).into_ops(self, false));
+                    ops.extend(
+                        self.traverse_node_lvalue(lvalue, true, *parts.last().unwrap() == "hold")
+                            .into_ops(self, false),
+                    );
+                }
 
                 TraversalResult::Ops(ops)
             }
 
-            // assign_constant ------------------------------------------------
-            "assign_constant" => {
+            // constant -------------------------------------------------------
+            "constant" => {
                 let children = node.borrow_by_key("children");
                 let children = children.get_list();
 
@@ -1151,9 +1191,6 @@ impl Compiler {
 
                 TraversalResult::Ops(ops)
             }
-
-            // lvalue ---------------------------------------------------------
-            "lvalue" => self.traverse_node_lvalue(node, true),
 
             // main -----------------------------------------------------------
             "main" => {

@@ -90,6 +90,13 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             .stack
             .resize(stack_start + preserve + 1, Capture::Empty);
 
+        // Initialize locals
+        for i in 0..preserve {
+            if let Capture::Empty = runtime.stack[stack_start + i] {
+                runtime.stack[stack_start + i] = Capture::Value(Value::Void.into_refvalue(), 10);
+            }
+        }
+
         Self {
             stack_start,
             capture_start: stack_start + preserve,
@@ -109,6 +116,13 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.pop().unwrap();
+        capture.as_value(self.runtime)
+    }
+
+    /// Peek top value of stack.
+    pub fn peek(&mut self) -> RefValue {
+        // todo: check for context limitations on the stack?
+        let capture = self.runtime.stack.last().unwrap();
         capture.as_value(self.runtime)
     }
 
