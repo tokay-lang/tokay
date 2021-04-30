@@ -388,7 +388,7 @@ impl Parser {
         (Capture = {
             ["$", T_Identifier, _, (call collect[(value "capture_alias")])],
             ["$", T_Integer, _, (call collect[(value "capture_index")])],
-            ["$", "(", _, Expression, ")", _, (call collect[(value "capture")])],
+            ["$", "(", _, Expression, ")", _, (call collect[(value "capture_expr")])],
             ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
         }),
 
@@ -402,13 +402,10 @@ impl Parser {
         }),
 
         (Inplace = {
-            /* todo: drafted support for inplace increment and decrement operators,
-            these are not supported by the compiler, yet. */
-
             [Lvalue, "++", (call collect[(value "inplace_post_inc")])],
             [Lvalue, "--", (call collect[(value "inplace_post_dec")])],
-            ["++", Lvalue, (call collect[(value "inplace_pre_inc")])],
-            ["--", Lvalue, (call collect[(value "inplace_pre_dec")])],
+            ["++", (expect Lvalue), (call collect[(value "inplace_pre_inc")])],
+            ["--", (expect Lvalue), (call collect[(value "inplace_pre_dec")])],
             Variable
         }),
 
@@ -497,8 +494,10 @@ impl Parser {
         }),
 
         (AddSub = {
-            [AddSub, "+", _, (expect MulDiv), (call collect[(value "op_binary_add")])],
-            [AddSub, "-", _, (expect MulDiv), (call collect[(value "op_binary_sub")])],
+            [AddSub, "+", _, MulDiv, // no expect(MulDiv) here!
+                (call collect[(value "op_binary_add")])],
+            [AddSub, "-", _, MulDiv, // no expect(MulDiv) here!
+                (call collect[(value "op_binary_sub")])],
             MulDiv
         }),
 

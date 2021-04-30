@@ -565,11 +565,13 @@ impl<'v> std::ops::Not for &'v Value {
         match self {
             //Value::Integer(i) => Value::Integer(!i),  // breaks semantics
             //Value::Addr(a) => Value::Addr(!a),
-            v => if v.is_true() {
-                Value::False
-            } else {
-                Value::True
-            },
+            v => {
+                if v.is_true() {
+                    Value::False
+                } else {
+                    Value::True
+                }
+            }
         }
     }
 }

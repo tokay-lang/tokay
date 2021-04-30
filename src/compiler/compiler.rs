@@ -42,6 +42,7 @@ impl TraversalResult {
                 } else {
                     // void, true and false can be directly pushed
                     match &*value.borrow() {
+                        Value::Integer(1) => Op::Push1,
                         Value::Void => Op::PushVoid,
                         Value::True => Op::PushTrue,
                         Value::False => Op::PushFalse,
@@ -718,6 +719,242 @@ impl Compiler {
         }
     }
 
+    // Traverse lvalue
+    fn traverse_node_lvalue(&mut self, node: &Dict, store: bool) -> TraversalResult {
+        let children = node.borrow_by_key("children").to_list();
+
+        let mut ops = Vec::new();
+
+        for (i, item) in children.iter().enumerate() {
+            let item = item.borrow();
+            let item = item.get_dict().unwrap();
+
+            let emit = item.borrow_by_key("emit");
+            let emit = emit.get_string().unwrap();
+
+            match emit {
+                capture if capture.starts_with("capture") => {
+                    let children = item.borrow_by_key("children");
+
+                    match capture {
+                        "capture_expr" => {
+                            ops.extend(self.traverse(&children).into_ops(self, false));
+                            ops.push(Op::StoreCapture)
+                        }
+
+                        "capture_index" => {
+                            let children = children.get_dict().unwrap();
+                            let index = self.traverse_node_value(children);
+                            ops.push(Op::StoreFastCapture(index.to_addr()));
+                        }
+
+                        "capture_alias" => {
+                            unimplemented!("//todo");
+                        }
+
+                        _ => {
+                            unreachable!();
+                        }
+                    }
+                }
+
+                "identifier" => {
+                    let name = item.borrow_by_key("value");
+                    let name = name.get_string().unwrap();
+
+                    // Check for not assigning to a constant (at any level)
+                    if self.get_constant(name).is_some() {
+                        self.errors.push(Error::new(
+                            self.traverse_node_offset(node),
+                            format!("Cannot assign to constant '{}'", name),
+                        ));
+
+                        break;
+                    }
+
+                    if i < children.len() - 1 {
+                        ops.extend(
+                            Usage::Load {
+                                name: name.to_string(),
+                                offset: self.traverse_node_offset(item),
+                            }
+                            .resolve_or_dispose(self),
+                        )
+                    } else {
+                        // Check if identifier is valid
+                        if let Err(mut error) = Self::identifier_is_valid(name) {
+                            if let Some(offset) = self.traverse_node_offset(node) {
+                                error.patch_offset(offset);
+                            }
+
+                            self.errors.push(error);
+                            break;
+                        }
+
+                        // Check if identifier is not defining a consumable
+                        if Self::identifier_is_consumable(name) {
+                            self.errors.push(Error::new(
+                                self.traverse_node_offset(node),
+                                format!(
+                                    "Cannot assign variable named '{}'; Use lower-case identifier.",
+                                    name
+                                ),
+                            ));
+
+                            break;
+                        }
+
+                        ops.push(
+                            /* Generates code for a symbol store, which means:
+
+                                1. look-up local variable, and store into
+                                2. look-up global variable, and store into
+                                3. create local variable, and store into
+                            */
+                            if let Some(addr) = self.get_local(name) {
+                                if store {
+                                    Op::StoreFast(addr)
+                                } else {
+                                    Op::LoadFast(addr)
+                                }
+                            } else if let Some(addr) = self.get_global(name) {
+                                if store {
+                                    Op::StoreGlobal(addr)
+                                } else {
+                                    Op::LoadGlobal(addr)
+                                }
+                            } else {
+                                let addr = self.new_local(name);
+                                if store {
+                                    Op::StoreFast(addr)
+                                } else {
+                                    Op::LoadFast(addr)
+                                }
+                            },
+                        )
+                    }
+                }
+
+                other => {
+                    unimplemented!("{:?} not implemented for lvalue", other);
+                }
+            }
+        }
+
+        TraversalResult::Ops(ops)
+    }
+
+    // Traverse rvalue
+    fn traverse_node_rvalue(&mut self, node: &Dict) -> TraversalResult {
+        let children = node.borrow_by_key("children").to_list();
+        let mut ops = Vec::new();
+
+        for item in children.iter() {
+            let item = item.borrow();
+            let item = item.get_dict().unwrap();
+
+            let emit = item.borrow_by_key("emit");
+            let emit = emit.get_string().unwrap();
+
+            let parts: Vec<&str> = emit.split("_").collect();
+
+            match parts[0] {
+                "capture" => {
+                    let children = item.borrow_by_key("children");
+
+                    match parts[1] {
+                        "expr" => {
+                            ops.extend(self.traverse(&children).into_ops(self, false));
+                            ops.push(Op::LoadCapture)
+                        }
+
+                        "index" => {
+                            let children = children.get_dict().unwrap();
+                            let index = self.traverse_node_value(children);
+                            ops.push(Op::LoadFastCapture(index.to_addr()));
+                        }
+
+                        "alias" => {
+                            todo!();
+                        }
+
+                        _ => {
+                            unreachable!();
+                        }
+                    }
+                }
+
+                "identifier" => {
+                    let name = item.borrow_by_key("value").to_string();
+
+                    // In case there is a use of a known constant,
+                    // directly return its value as TraversalResult.
+                    if children.len() == 1 {
+                        if let Some(value) = self.get_constant(&name) {
+                            return TraversalResult::Value(value);
+                        }
+                    }
+
+                    ops.extend(if children.len() == 1 {
+                        Usage::LoadOrCall {
+                            name,
+                            offset: self.traverse_node_offset(item),
+                        }
+                        .resolve_or_dispose(self)
+                    } else {
+                        Usage::Load {
+                            name,
+                            offset: self.traverse_node_offset(item),
+                        }
+                        .resolve_or_dispose(self)
+                    });
+                }
+
+                "inplace" => {
+                    let children = item.borrow_by_key("children");
+                    let lvalue = children.get_dict().unwrap();
+
+                    ops.extend(
+                        self.traverse_node_lvalue(lvalue, false)
+                            .into_ops(self, false),
+                    );
+
+                    match parts[1] {
+                        "pre" => {
+                            ops.extend(vec![
+                                Op::Push1,
+                                if parts[2] == "inc" { Op::Add } else { Op::Sub },
+                            ]);
+
+                            ops.extend(
+                                self.traverse_node_lvalue(lvalue, true)
+                                    .into_ops(self, false),
+                            );
+                        }
+                        "post" => {
+                            ops.extend(vec![
+                                Op::Dup,
+                                Op::Push1,
+                                if parts[2] == "inc" { Op::Add } else { Op::Sub },
+                            ]);
+
+                            ops.extend(
+                                self.traverse_node_lvalue(lvalue, true)
+                                    .into_ops(self, false),
+                            );
+                            ops.push(Op::Drop);
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+
+                _ => ops.extend(self.traverse_node(item).into_ops(self, false)),
+            }
+        }
+
+        TraversalResult::Ops(ops)
+    }
+
     // Main traversal function, running recursively through the AST
     fn traverse_node(&mut self, node: &Dict) -> TraversalResult {
         // Normal node processing...
@@ -921,112 +1158,7 @@ impl Compiler {
             }
 
             // lvalue ---------------------------------------------------------
-            "lvalue" => {
-                let children = node.borrow_by_key("children").to_list();
-
-                let mut ops = Vec::new();
-
-                for (i, item) in children.iter().enumerate() {
-                    let item = item.borrow();
-                    let item = item.get_dict().unwrap();
-
-                    let emit = item.borrow_by_key("emit");
-                    let emit = emit.get_string().unwrap();
-
-                    match emit {
-                        capture if capture.starts_with("capture") => {
-                            let children = item.borrow_by_key("children");
-
-                            match capture {
-                                "capture" => {
-                                    ops.extend(self.traverse(&children).into_ops(self, false));
-                                    ops.push(Op::StoreCapture)
-                                }
-
-                                "capture_index" => {
-                                    let children = children.get_dict().unwrap();
-                                    let index = self.traverse_node_value(children);
-                                    ops.push(Op::StoreFastCapture(index.to_addr()));
-                                }
-
-                                "capture_alias" => {
-                                    unimplemented!("//todo");
-                                }
-
-                                _ => {
-                                    unreachable!();
-                                }
-                            }
-                        }
-
-                        "identifier" => {
-                            let name = item.borrow_by_key("value");
-                            let name = name.get_string().unwrap();
-
-                            // Check for not assigning to a constant (at any level)
-                            if self.get_constant(name).is_some() {
-                                self.errors.push(Error::new(
-                                    self.traverse_node_offset(node),
-                                    format!("Cannot assign to constant '{}'", name),
-                                ));
-
-                                break;
-                            }
-
-                            if i < children.len() - 1 {
-                                ops.extend(
-                                    Usage::Load {
-                                        name: name.to_string(),
-                                        offset: self.traverse_node_offset(item),
-                                    }
-                                    .resolve_or_dispose(self),
-                                )
-                            } else {
-                                // Check if identifier is valid
-                                if let Err(mut error) = Self::identifier_is_valid(name) {
-                                    if let Some(offset) = self.traverse_node_offset(node) {
-                                        error.patch_offset(offset);
-                                    }
-
-                                    self.errors.push(error);
-                                    break;
-                                }
-
-                                // Check if identifier is not defining a consumable
-                                if Self::identifier_is_consumable(name) {
-                                    self.errors.push(Error::new(
-                                        self.traverse_node_offset(node),
-                                        format!("Cannot assign variable named '{}'; Use lower-case identifier.", name),
-                                    ));
-
-                                    break;
-                                }
-
-                                ops.push(
-                                    /* Generates code for a symbol store, which means:
-
-                                        1. look-up local variable, and store into
-                                        2. look-up global variable, and store into
-                                        3. create local variable, and store into
-                                    */
-                                    if let Some(addr) = self.get_local(name) {
-                                        Op::StoreFast(addr)
-                                    } else if let Some(addr) = self.get_global(name) {
-                                        Op::StoreGlobal(addr)
-                                    } else {
-                                        Op::StoreFast(self.new_local(name))
-                                    },
-                                )
-                            }
-                        }
-                        other => {
-                            unimplemented!("{:?} not implemented for lvalue", other);
-                        }
-                    }
-                }
-
-                TraversalResult::Ops(ops)
-            }
+            "lvalue" => self.traverse_node_lvalue(node, true),
 
             // main -----------------------------------------------------------
             "main" => {
@@ -1251,75 +1383,7 @@ impl Compiler {
             }
 
             // rvalue ---------------------------------------------------------
-            "rvalue" => {
-                let children = node.borrow_by_key("children").to_list();
-                let mut ops = Vec::new();
-
-                for item in children.iter() {
-                    let item = item.borrow();
-                    let item = item.get_dict().unwrap();
-
-                    let emit = item.borrow_by_key("emit");
-                    let emit = emit.get_string().unwrap();
-
-                    match emit {
-                        capture if capture.starts_with("capture") => {
-                            let children = item.borrow_by_key("children");
-
-                            match capture {
-                                "capture" => {
-                                    ops.extend(self.traverse(&children).into_ops(self, false));
-                                    ops.push(Op::LoadCapture)
-                                }
-
-                                "capture_index" => {
-                                    let children = children.get_dict().unwrap();
-                                    let index = self.traverse_node_value(children);
-                                    ops.push(Op::LoadFastCapture(index.to_addr()));
-                                }
-
-                                "capture_alias" => {
-                                    todo!();
-                                }
-
-                                _ => {
-                                    unreachable!();
-                                }
-                            }
-                        }
-
-                        "identifier" => {
-                            let name = item.borrow_by_key("value").to_string();
-
-                            // In case there is a use of a known constant,
-                            // directly return its value as TraversalResult.
-                            if children.len() == 1 {
-                                if let Some(value) = self.get_constant(&name) {
-                                    return TraversalResult::Value(value);
-                                }
-                            }
-
-                            ops.extend(if children.len() == 1 {
-                                Usage::LoadOrCall {
-                                    name,
-                                    offset: self.traverse_node_offset(item),
-                                }
-                                .resolve_or_dispose(self)
-                            } else {
-                                Usage::Load {
-                                    name,
-                                    offset: self.traverse_node_offset(item),
-                                }
-                                .resolve_or_dispose(self)
-                            });
-                        }
-
-                        _ => ops.extend(self.traverse_node(item).into_ops(self, false)),
-                    }
-                }
-
-                TraversalResult::Ops(ops)
-            }
+            "rvalue" => self.traverse_node_rvalue(node),
 
             // sequence ------------------------------------------------------
             "sequence" => {

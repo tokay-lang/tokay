@@ -34,6 +34,7 @@ pub enum Op {
 
     // Constants
     LoadStatic(usize),
+    Push1,
     PushTrue,
     PushFalse,
     PushVoid,
@@ -51,6 +52,9 @@ pub enum Op {
     MakeDict(usize),
 
     // Operations
+    Drop,
+    Dup,
+
     Add,
     Sub,
     Div,
@@ -205,6 +209,10 @@ impl Runable for Op {
             ))),
 
             // Values
+            Op::Push1 => Ok(Accept::Push(Capture::Value(
+                Value::Integer(1).into_refvalue(),
+                10,
+            ))),
             Op::PushTrue => Ok(Accept::Push(Capture::Value(
                 Value::True.into_refvalue(),
                 10,
@@ -230,17 +238,17 @@ impl Runable for Op {
 
             Op::StoreGlobal(addr) => {
                 // todo: bounds checking?
-                context.runtime.stack[*addr] = Capture::Value(context.pop(), 10);
-
-                Ok(Accept::Next)
+                let value = context.pop();
+                context.runtime.stack[*addr] = Capture::Value(value.clone(), 10);
+                Ok(Accept::Push(Capture::Value(value, 10)))
             }
 
             Op::StoreFast(addr) => {
                 // todo: bounds checking?
+                let value = context.pop();
                 context.runtime.stack[context.stack_start + *addr] =
-                    Capture::Value(context.pop(), 10);
-
-                Ok(Accept::Next)
+                    Capture::Value(value.clone(), 10);
+                Ok(Accept::Push(Capture::Value(value, 10)))
             }
 
             Op::LoadFastCapture(index) => {
@@ -301,6 +309,25 @@ impl Runable for Op {
 
                 Ok(Accept::Push(Capture::from_value(
                     Value::Dict(Box::new(dict)).into_refvalue(),
+                )))
+            }
+
+            Op::Drop => {
+                context.pop();
+                Ok(Accept::Skip)
+            }
+
+            Op::Dup => {
+                let value = context
+                    .runtime
+                    .stack
+                    .last()
+                    .unwrap()
+                    .as_value(&context.runtime);
+                let value = value.borrow();
+                Ok(Accept::Push(Capture::Value(
+                    value.clone().into_refvalue(),
+                    10,
                 )))
             }
 

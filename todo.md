@@ -34,7 +34,7 @@ Syntax is under careful consideration.
 - [x] Definition of Chars tokens `[A-Za-z_]` etc...
 - [ ] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
 - [ ] Implement `...` backticks for shell command values
-  - [ ] Operators `>>` and `<<` for shell command read/write
+  - [ ] Operators `>>` and `<<` for shell command read/write?
 - [ ] until-Operator?
 - [ ] *deref-Operator?
 
@@ -80,3 +80,4 @@ Syntax is under careful consideration.
 ## Bugs
 
 - [x] `x : print` is not possible
+- [ ] builtins::collect() doesn't recognize correct total offset when main program is e.g. just `Integer collect`.
