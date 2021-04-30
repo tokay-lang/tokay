@@ -11,7 +11,7 @@ pub enum Usage {
         offset: Option<Offset>,
     },
     // Either load a symbol or call it when it is callable and can be called without parameters.
-    LoadOrCall {
+    CallOrCopy {
         name: String,
         offset: Option<Offset>,
     },
@@ -37,7 +37,7 @@ impl Usage {
                 }
             }
 
-            Usage::LoadOrCall { name, offset: _ } => {
+            Usage::CallOrCopy { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
                     // fixme: This should check if the static is callable
                     //        without parameters!
@@ -47,9 +47,9 @@ impl Usage {
                         return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr), Op::TryCall]);
+                    return Some(vec![Op::LoadFast(addr), Op::CallOrCopy]);
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr), Op::TryCall]);
+                    return Some(vec![Op::LoadGlobal(addr), Op::CallOrCopy]);
                 }
             }
 

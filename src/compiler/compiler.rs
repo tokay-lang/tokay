@@ -178,7 +178,7 @@ impl Compiler {
                     Ok(usage) => usage,
                     Err(usage) => {
                         let error = match usage {
-                            Usage::Load { name, offset } | Usage::LoadOrCall { name, offset } => {
+                            Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => {
                                 Error::new(offset, format!("Use of unresolved symbol '{}'", name))
                             }
 
@@ -743,8 +743,7 @@ impl Compiler {
                                 ops.push(Op::StoreCaptureHold)
                             } else if store {
                                 ops.push(Op::StoreCapture)
-                            }
-                            else {
+                            } else {
                                 ops.push(Op::LoadCapture)
                             }
                         }
@@ -757,8 +756,7 @@ impl Compiler {
                                 ops.push(Op::StoreFastCaptureHold(index.to_addr()));
                             } else if store {
                                 ops.push(Op::StoreFastCapture(index.to_addr()));
-                            }
-                            else {
+                            } else {
                                 ops.push(Op::LoadFastCapture(index.to_addr()));
                             }
                         }
@@ -831,8 +829,7 @@ impl Compiler {
                                     Op::StoreFastHold(addr)
                                 } else if store {
                                     Op::StoreFast(addr)
-                                }
-                                else {
+                                } else {
                                     Op::LoadFast(addr)
                                 }
                             } else if let Some(addr) = self.get_global(name) {
@@ -840,8 +837,7 @@ impl Compiler {
                                     Op::StoreGlobalHold(addr)
                                 } else if store {
                                     Op::StoreGlobal(addr)
-                                }
-                                else {
+                                } else {
                                     Op::LoadGlobal(addr)
                                 }
                             } else {
@@ -850,8 +846,7 @@ impl Compiler {
                                     Op::StoreFastHold(addr)
                                 } else if store {
                                     Op::StoreFast(addr)
-                                }
-                                else {
+                                } else {
                                     Op::LoadFast(addr)
                                 }
                             },
@@ -920,7 +915,7 @@ impl Compiler {
                     }
 
                     ops.extend(if children.len() == 1 {
-                        Usage::LoadOrCall {
+                        Usage::CallOrCopy {
                             name,
                             offset: self.traverse_node_offset(item),
                         }
@@ -945,14 +940,22 @@ impl Compiler {
 
                     match parts[1] {
                         "pre" => {
-                            ops.push(if parts[2] == "inc" { Op::IInc } else { Op::IDec });
+                            ops.push(if parts[2] == "inc" {
+                                Op::IInc
+                            } else {
+                                Op::IDec
+                            });
                         }
                         "post" => {
                             ops.extend(vec![
                                 Op::Dup,
                                 Op::Rot2,
-                                if parts[2] == "inc" { Op::IInc } else { Op::IDec },
-                                Op::Drop
+                                if parts[2] == "inc" {
+                                    Op::IInc
+                                } else {
+                                    Op::IDec
+                                },
+                                Op::Drop,
                             ]);
                         }
                         _ => unreachable!(),
@@ -990,7 +993,8 @@ impl Compiler {
 
                 if parts.len() > 1 && parts[1] != "hold" {
                     ops.extend(
-                        self.traverse_node_lvalue(lvalue, false, false).into_ops(self, false),
+                        self.traverse_node_lvalue(lvalue, false, false)
+                            .into_ops(self, false),
                     );
                     ops.extend(self.traverse_node(value).into_ops(self, false));
 
@@ -1005,8 +1009,7 @@ impl Compiler {
                     if *parts.last().unwrap() != "hold" {
                         ops.push(Op::Drop);
                     }
-                }
-                else {
+                } else {
                     ops.extend(self.traverse_node(value).into_ops(self, false));
                     ops.extend(
                         self.traverse_node_lvalue(lvalue, true, *parts.last().unwrap() == "hold")

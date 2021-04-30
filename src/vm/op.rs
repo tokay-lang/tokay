@@ -19,7 +19,7 @@ pub enum Op {
     Runable(Box<dyn Runable>), // Runable item
 
     // Call
-    TryCall,             // Load and eventually call stack element without parameters
+    CallOrCopy,          // Load and eventually call stack element without parameters
     Call,                // Call stack element without parameters
     CallArg(usize),      //Call stack element with sequential parameters
     CallArgNamed(usize), // Call stack element with sequential and named parameters
@@ -126,7 +126,14 @@ impl Op {
 
 impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        //println!("{:?} @ {:?}", self, context.runtime.stack);
+        /*
+        if context.runtime.debug {
+            println!("--- {:?} ---", self);
+            for i in 0..context.runtime.stack.len() {
+                println!("  {}: {:?}", i, context.runtime.stack[i]);
+            }
+        }
+        */
 
         match self {
             Op::Nop => Ok(Accept::Next),
@@ -142,12 +149,16 @@ impl Runable for Op {
             Op::Runable(runable) => runable.run(context),
 
             // Calls
-            Op::TryCall => {
+            Op::CallOrCopy => {
                 let value = context.pop();
-                if value.borrow().is_callable(0, 0) {
-                    value.borrow().call(context, 0, None)
+                let value = value.borrow();
+                if value.is_callable(0, 0) {
+                    value.call(context, 0, None)
                 } else {
-                    Ok(Accept::Push(Capture::Value(value.clone(), 10)))
+                    Ok(Accept::Push(Capture::Value(
+                        value.clone().into_refvalue(),
+                        10,
+                    )))
                 }
             }
 
@@ -450,42 +461,48 @@ impl Runable for Op {
                 10,
             ))),
 
-             Op::IAdd | Op::ISub | Op::IDiv | Op::IMul => {
+            Op::IAdd | Op::ISub | Op::IDiv | Op::IMul => {
                 let b = context.pop();
-                let a = context.peek();
-                {
-                    let mut value = a.borrow_mut();
+                let value = context.pop();
+                let mut value = value.borrow_mut();
 
-                    /*
-                    println!("{:?}", self);
-                    println!("a = {:?}", a);
-                    println!("b = {:?}", b);
-                    */
+                /*
+                println!("{:?}", self);
+                println!("a = {:?}", a);
+                println!("b = {:?}", b);
+                */
 
-                    *value = match self {
-                        Op::IAdd => (&*value + &*b.borrow()),
-                        Op::ISub => (&*value - &*b.borrow()),
-                        Op::IDiv => (&*value / &*b.borrow()),
-                        Op::IMul => (&*value * &*b.borrow()),
-                        _ => unimplemented!("Unimplemented operator"),
-                    };
-                }
+                *value = match self {
+                    Op::IAdd => (&*value + &*b.borrow()),
+                    Op::ISub => (&*value - &*b.borrow()),
+                    Op::IDiv => (&*value / &*b.borrow()),
+                    Op::IMul => (&*value * &*b.borrow()),
+                    _ => unimplemented!("Unimplemented operator"),
+                };
 
-                Ok(Accept::Push(Capture::Value(a, 10)))
+                Ok(Accept::Push(Capture::Value(
+                    value.clone().into_refvalue(),
+                    10,
+                )))
             }
 
             Op::IInc => {
-                let value = context.peek();
+                let value = context.pop();
                 let mut value = value.borrow_mut();
+
                 *value = &*value + &Value::Integer(1); // lazy_static?
+                context.push(value.clone().into_refvalue());
+
                 Ok(Accept::Skip)
             }
 
             Op::IDec => {
-                let value = context.peek();
+                let value = context.pop();
                 let mut value = value.borrow_mut();
 
                 *value = &*value - &Value::Integer(1); // lazy_static?
+                context.push(value.clone().into_refvalue());
+
                 Ok(Accept::Skip)
             }
 

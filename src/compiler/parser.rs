@@ -214,7 +214,7 @@ macro_rules! compile_item {
             //println!("call = {}", stringify!($ident));
             let name = stringify!($ident);
 
-            let item = Usage::LoadOrCall{
+            let item = Usage::CallOrCopy{
                 name: name.to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
@@ -227,7 +227,7 @@ macro_rules! compile_item {
     ( $compiler:expr, _ ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            let item = Usage::LoadOrCall{
+            let item = Usage::CallOrCopy{
                 name: "_".to_string(),
                 offset: None
             }.resolve_or_dispose(&mut $compiler);

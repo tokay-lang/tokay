@@ -161,6 +161,25 @@ fn test_expression() {
 }
 
 #[test]
+fn test_variables() {
+    assert_eq!(
+        compile_and_run(
+            "
+            a = 1 \
+            a \
+            a++ \
+            ++a \
+            a++ a++ \
+            a+++++a
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[1, 1, 3, 3, 4, 12]]))
+    );
+}
+
+#[test]
 fn test_token() {
     let s = "ab abbb bb 123 ABC 456 'def'";
 
@@ -349,7 +368,6 @@ fn test_begin_end() {
 
 fn main() {
     println!("Tokay v{}", VERSION);
-
     repl();
 
     /*
