@@ -34,6 +34,7 @@ pub enum Op {
 
     // Constants
     LoadStatic(usize),
+    Push0,
     Push1,
     PushTrue,
     PushFalse,
@@ -62,6 +63,8 @@ pub enum Op {
 
     Not,
     Neg,
+    Inc,
+    Dec,
 
     Equal,
     NotEqual,
@@ -209,18 +212,26 @@ impl Runable for Op {
             ))),
 
             // Values
-            Op::Push1 => Ok(Accept::Push(Capture::Value(
-                Value::Integer(1).into_refvalue(),
+            Op::Push0 => Ok(Accept::Push(Capture::Value(
+                Value::Integer(0).into_refvalue(), // lazy_static?
                 10,
             ))),
+
+            Op::Push1 => Ok(Accept::Push(Capture::Value(
+                Value::Integer(1).into_refvalue(), // lazy_static?
+                10,
+            ))),
+
             Op::PushTrue => Ok(Accept::Push(Capture::Value(
                 Value::True.into_refvalue(),
                 10,
             ))),
+
             Op::PushFalse => Ok(Accept::Push(Capture::Value(
                 Value::False.into_refvalue(),
                 10,
             ))),
+
             Op::PushVoid => Ok(Accept::Push(Capture::Value(
                 Value::Void.into_refvalue(),
                 10,
@@ -394,6 +405,18 @@ impl Runable for Op {
                 (-&*context.pop().borrow()).into_refvalue(),
                 10,
             ))),
+
+            Op::Inc => {
+                let value = context.pop();
+                context.push((&*value.borrow() + &Value::Integer(1)).into_refvalue()); // lazy_static?
+                Ok(Accept::Skip)
+            }
+
+            Op::Dec => {
+                let value = context.pop();
+                context.push((&*value.borrow() - &Value::Integer(1)).into_refvalue()); // lazy_static?
+                Ok(Accept::Skip)
+            }
 
             Op::If(then_else) => {
                 if context.pop().borrow().is_true() {

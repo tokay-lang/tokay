@@ -921,11 +921,7 @@ impl Compiler {
 
                     match parts[1] {
                         "pre" => {
-                            ops.extend(vec![
-                                Op::Push1,
-                                if parts[2] == "inc" { Op::Add } else { Op::Sub },
-                            ]);
-
+                            ops.push(if parts[2] == "inc" { Op::Inc } else { Op::Dec });
                             ops.extend(
                                 self.traverse_node_lvalue(lvalue, true)
                                     .into_ops(self, false),
@@ -934,8 +930,7 @@ impl Compiler {
                         "post" => {
                             ops.extend(vec![
                                 Op::Dup,
-                                Op::Push1,
-                                if parts[2] == "inc" { Op::Add } else { Op::Sub },
+                                if parts[2] == "inc" { Op::Inc } else { Op::Dec }
                             ]);
 
                             ops.extend(

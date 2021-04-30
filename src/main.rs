@@ -350,6 +350,8 @@ fn test_begin_end() {
 fn main() {
     println!("Tokay v{}", VERSION);
 
+    repl();
+
     /*
     println!("{:?}",
         compile_and_run(
@@ -365,8 +367,6 @@ fn main() {
         )
     );
     */
-
-    repl();
 
     /*
     Tests for the parser
