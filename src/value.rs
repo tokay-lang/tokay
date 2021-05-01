@@ -216,7 +216,7 @@ impl Value {
             Self::True => true,
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
-            Self::String(s) => s.len() != 0,
+            Self::String(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
             Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,

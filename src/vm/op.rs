@@ -36,9 +36,10 @@ pub enum Op {
     LoadStatic(usize),
     Push0,
     Push1,
+    PushVoid,
+    PushNull,
     PushTrue,
     PushFalse,
-    PushVoid,
 
     // Variables & Values
     LoadGlobal(usize),
@@ -244,6 +245,16 @@ impl Runable for Op {
                 10,
             ))),
 
+            Op::PushVoid => Ok(Accept::Push(Capture::Value(
+                Value::Void.into_refvalue(),
+                10,
+            ))),
+
+            Op::PushNull => Ok(Accept::Push(Capture::Value(
+                Value::Null.into_refvalue(),
+                10,
+            ))),
+
             Op::PushTrue => Ok(Accept::Push(Capture::Value(
                 Value::True.into_refvalue(),
                 10,
@@ -251,11 +262,6 @@ impl Runable for Op {
 
             Op::PushFalse => Ok(Accept::Push(Capture::Value(
                 Value::False.into_refvalue(),
-                10,
-            ))),
-
-            Op::PushVoid => Ok(Accept::Push(Capture::Value(
-                Value::Void.into_refvalue(),
                 10,
             ))),
 

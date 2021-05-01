@@ -33,17 +33,21 @@ impl TraversalResult {
         match self {
             TraversalResult::Empty => Vec::new(),
             TraversalResult::Value(value) => {
-                vec![if call && value.borrow().is_callable(0, 0) {
-                    if let Value::Token(_) = &*value.borrow() {
+                let inner = value.borrow();
+
+                vec![if call && inner.is_callable(0, 0) {
+                    if let Value::Token(_) = &*inner {
                         compiler.scopes[0].consumes = true;
                     }
 
-                    Op::CallStatic(compiler.define_static(value))
+                    Op::CallStatic(compiler.define_static(value.clone()))
                 } else {
                     // void, true and false can be directly pushed
-                    match &*value.borrow() {
+                    match &*inner {
+                        Value::Integer(0) => Op::Push0,
                         Value::Integer(1) => Op::Push1,
                         Value::Void => Op::PushVoid,
+                        Value::Null => Op::PushNull,
                         Value::True => Op::PushTrue,
                         Value::False => Op::PushFalse,
                         _ => Op::LoadStatic(compiler.define_static(value.clone())),
