@@ -1407,18 +1407,32 @@ impl Compiler {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
 
-                        ops.extend(self.traverse(&children[0].borrow()).into_ops(self, false));
-                        let then =
-                            Op::from_vec(self.traverse(&children[1].borrow()).into_ops(self, true));
+                        let condition = self.traverse(&children[0].borrow());
+                        let then = self.traverse(&children[1].borrow());
                         let eelse = if children.len() == 3 {
-                            Some(Op::from_vec(
-                                self.traverse(&children[2].borrow()).into_ops(self, true),
-                            ))
+                            Some(self.traverse(&children[2].borrow()))
                         } else {
                             None
                         };
 
-                        Op::If(Box::new((then, eelse)))
+                        // Compile time evaluation; When the if fails, it doesn't need
+                        // to be compiled into the program.
+                        if let Ok(value) = condition.get_evaluable_value() {
+                            if value.borrow().is_true() {
+                                return then;
+                            }
+                            else if let Some(eelse) = eelse {
+                                return eelse;
+                            }
+
+                            return TraversalResult::Empty;
+                        }
+
+                        ops.extend(condition.into_ops(self, false));
+                        Op::If(Box::new((
+                            Op::from_vec(then.into_ops(self, true)),
+                            eelse.and_then(|eelse| Some(Op::from_vec(eelse.into_ops(self, true))))
+                        )))
                     }
 
                     _ => {
