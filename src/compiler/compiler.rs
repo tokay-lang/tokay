@@ -57,6 +57,22 @@ impl TraversalResult {
             TraversalResult::Ops(ops) => ops,
         }
     }
+
+    /** Returns a value to operate with or evaluate during compile-time.
+
+    The function will only return Ok(RefValue) when static_expression_evaluation-feature
+    is enabled, the TraversalResult contains a value and this value is NOT a callable! */
+    fn get_evaluable_value(&self) -> Result<RefValue, ()> {
+        if cfg!(feature = "static_expression_evaluation") {
+            if let TraversalResult::Value(value) = self {
+                if !value.borrow().is_callable(0, 0) {
+                    return Ok(value.clone());
+                }
+            }
+        }
+
+        Err(())
+    }
 }
 
 /** Compiler symbolic scope.
@@ -1235,36 +1251,35 @@ impl Compiler {
                         let left = self.traverse_node(&left.get_dict().unwrap());
                         let right = self.traverse_node(&right.get_dict().unwrap());
 
-                        match (cfg!(feature = "static_expression_evaluation"), left, right) {
-                            // When both results are values, calculate in-place
-                            (true, TraversalResult::Value(left), TraversalResult::Value(right)) => {
-                                return TraversalResult::Value(
-                                    match parts[2] {
-                                        "add" => &*left.borrow() + &*right.borrow(),
-                                        "sub" => &*left.borrow() - &*right.borrow(),
-                                        "mul" => &*left.borrow() * &*right.borrow(),
-                                        "div" => &*left.borrow() / &*right.borrow(),
-                                        _ => {
-                                            unimplemented!("op_binary_{}", parts[2]);
-                                        }
-                                    }
-                                    .into_refvalue(),
-                                )
-                            }
-                            // Otherwise, generate operational code
-                            (_, left, right) => {
-                                ops.extend(left.into_ops(self, true));
-                                ops.extend(right.into_ops(self, true));
-
+                        // When both results are values, calculate in-place
+                        if let (Ok(left), Ok(right)) =
+                            (left.get_evaluable_value(), right.get_evaluable_value())
+                        {
+                            return TraversalResult::Value(
                                 match parts[2] {
-                                    "add" => Op::Add,
-                                    "sub" => Op::Sub,
-                                    "mul" => Op::Mul,
-                                    "div" => Op::Div,
+                                    "add" => &*left.borrow() + &*right.borrow(),
+                                    "sub" => &*left.borrow() - &*right.borrow(),
+                                    "mul" => &*left.borrow() * &*right.borrow(),
+                                    "div" => &*left.borrow() / &*right.borrow(),
                                     _ => {
                                         unimplemented!("op_binary_{}", parts[2]);
                                     }
                                 }
+                                .into_refvalue(),
+                            );
+                        }
+
+                        // Otherwise, generate operational code
+                        ops.extend(left.into_ops(self, true));
+                        ops.extend(right.into_ops(self, true));
+
+                        match parts[2] {
+                            "add" => Op::Add,
+                            "sub" => Op::Sub,
+                            "mul" => Op::Mul,
+                            "div" => Op::Div,
+                            _ => {
+                                unimplemented!("op_binary_{}", parts[2]);
                             }
                         }
                     }
@@ -1273,32 +1288,27 @@ impl Compiler {
                         let children = node.borrow_by_key("children");
                         let children = children.get_dict().unwrap();
 
-                        match (
-                            cfg!(feature = "static_expression_evaluation"),
-                            self.traverse_node(children),
-                        ) {
-                            (true, TraversalResult::Value(value)) => {
-                                return TraversalResult::Value(
-                                    match parts[2] {
-                                        "not" => !&*value.borrow(),
-                                        "neg" => -&*value.borrow(),
-                                        _ => {
-                                            unimplemented!("op_unary_{}", parts[2]);
-                                        }
-                                    }
-                                    .into_refvalue(),
-                                )
-                            }
-                            (_, res) => {
-                                ops.extend(res.into_ops(self, true));
-
+                        let res = self.traverse_node(children);
+                        if let Ok(value) = res.get_evaluable_value() {
+                            return TraversalResult::Value(
                                 match parts[2] {
-                                    "not" => Op::Not,
-                                    "neg" => Op::Neg,
+                                    "not" => !&*value.borrow(),
+                                    "neg" => -&*value.borrow(),
                                     _ => {
                                         unimplemented!("op_unary_{}", parts[2]);
                                     }
                                 }
+                                .into_refvalue(),
+                            );
+                        }
+
+                        ops.extend(res.into_ops(self, true));
+
+                        match parts[2] {
+                            "not" => Op::Not,
+                            "neg" => Op::Neg,
+                            _ => {
+                                unimplemented!("op_unary_{}", parts[2]);
                             }
                         }
                     }
@@ -1312,43 +1322,42 @@ impl Compiler {
                         let left = self.traverse_node(&left.get_dict().unwrap());
                         let right = self.traverse_node(&right.get_dict().unwrap());
 
-                        match (cfg!(feature = "static_expression_evaluation"), left, right) {
-                            // When both results are values, calculate in-place
-                            (true, TraversalResult::Value(left), TraversalResult::Value(right)) => {
-                                return TraversalResult::Value(
-                                    if match parts[2] {
-                                        "equal" => &*left.borrow() == &*right.borrow(),
-                                        "unequal" => &*left.borrow() != &*right.borrow(),
-                                        "lowerequal" => &*left.borrow() <= &*right.borrow(),
-                                        "greaterequal" => &*left.borrow() >= &*right.borrow(),
-                                        "lower" => &*left.borrow() < &*right.borrow(),
-                                        "greater" => &*left.borrow() > &*right.borrow(),
-                                        _ => {
-                                            unimplemented!("op_compare_{}", parts[2]);
-                                        }
-                                    } {
-                                        Value::True.into_refvalue()
-                                    } else {
-                                        Value::False.into_refvalue()
-                                    },
-                                )
-                            }
-                            // Otherwise, generate operational code
-                            (_, left, right) => {
-                                ops.extend(left.into_ops(self, false));
-                                ops.extend(right.into_ops(self, false));
-
-                                match parts[2] {
-                                    "equal" => Op::Equal,
-                                    "unequal" => Op::NotEqual,
-                                    "lowerequal" => Op::LowerEqual,
-                                    "greaterequal" => Op::GreaterEqual,
-                                    "lower" => Op::Lower,
-                                    "greater" => Op::Greater,
+                        // When both results are values, compare in-place
+                        if let (Ok(left), Ok(right)) =
+                            (left.get_evaluable_value(), right.get_evaluable_value())
+                        {
+                            return TraversalResult::Value(
+                                if match parts[2] {
+                                    "equal" => &*left.borrow() == &*right.borrow(),
+                                    "unequal" => &*left.borrow() != &*right.borrow(),
+                                    "lowerequal" => &*left.borrow() <= &*right.borrow(),
+                                    "greaterequal" => &*left.borrow() >= &*right.borrow(),
+                                    "lower" => &*left.borrow() < &*right.borrow(),
+                                    "greater" => &*left.borrow() > &*right.borrow(),
                                     _ => {
                                         unimplemented!("op_compare_{}", parts[2]);
                                     }
-                                }
+                                } {
+                                    Value::True.into_refvalue()
+                                } else {
+                                    Value::False.into_refvalue()
+                                },
+                            );
+                        }
+
+                        // Otherwise, generate operational code
+                        ops.extend(left.into_ops(self, false));
+                        ops.extend(right.into_ops(self, false));
+
+                        match parts[2] {
+                            "equal" => Op::Equal,
+                            "unequal" => Op::NotEqual,
+                            "lowerequal" => Op::LowerEqual,
+                            "greaterequal" => Op::GreaterEqual,
+                            "lower" => Op::Lower,
+                            "greater" => Op::Greater,
+                            _ => {
+                                unimplemented!("op_compare_{}", parts[2]);
                             }
                         }
                     }
