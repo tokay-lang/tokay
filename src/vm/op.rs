@@ -21,7 +21,7 @@ pub enum Op {
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
     Call,                // Call stack element without parameters
-    CallArg(usize),      //Call stack element with sequential parameters
+    CallArg(usize),      // Call stack element with sequential parameters
     CallArgNamed(usize), // Call stack element with sequential and named parameters
     CallStatic(usize),   // Call static element without parameters
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
@@ -33,13 +33,13 @@ pub enum Op {
     Reject,
 
     // Constants
-    LoadStatic(usize),
-    Push0,
-    Push1,
-    PushVoid,
-    PushNull,
-    PushTrue,
-    PushFalse,
+    LoadStatic(usize), // Load static from statics
+    Push0,             // Push Integer(0)
+    Push1,             // Push Integer(01
+    PushVoid,          // Push Void
+    PushNull,          // Push Null
+    PushTrue,          // Push True
+    PushFalse,         // Push False
 
     // Variables & Values
     LoadGlobal(usize),
@@ -55,35 +55,39 @@ pub enum Op {
     StoreFastCaptureHold(usize),
     StoreCapture,
     StoreCaptureHold,
+
+    MakeAlias, // Make key-value-Capture from last two stack items
     //MakeList(usize),
-    MakeDict(usize),
+    MakeDict(usize),       // Make a Dict from specified amount of key-value-pairs
+    MakeListOrDict(usize), // Either make a List or Dict from specified amount of Captures
 
     // Operations
-    Drop,
-    Dup,
-    Rot2,
+    Drop, // drop TOS
+    Dup,  // duplicate TOS
+    Rot2, // rotate TOS by 2
 
-    Add,
-    Sub,
-    Div,
-    Mul,
+    Add, // binary add
+    Sub, // binary sub
+    Mul, // binary mul
+    Div, // binary div
 
-    Not,
-    Neg,
+    Not, // unary not (! operator)
+    Neg, // unary negation (-x operator)
 
-    IAdd,
-    ISub,
-    IDiv,
-    IMul,
-    IInc,
-    IDec,
+    IAdd, // Inline add (+= operator)
+    ISub, // Inline sub (-= operator)
+    IMul, // Inline mul (*= operator)
+    IDiv, // Inline div (/= operator)
 
-    Equal,
-    NotEqual,
-    LowerEqual,
-    GreaterEqual,
-    Lower,
-    Greater,
+    IInc, // Inline increment (++x and x++ operators)
+    IDec, // Inline decrement (--x and x-- operators)
+
+    Equal,        // Compare for equality (== operator)
+    NotEqual,     // Compare for unequality (!= operator)
+    LowerEqual,   // Compare for lower-equality (<= operator)
+    GreaterEqual, // Compare for greater-equality (>= operator)
+    Lower,        // Compare for lowerness (< operator)
+    Greater,      // Compare for greaterness (> operator)
 
     // Flow
     If(Box<(Op, Option<Op>)>),
@@ -94,7 +98,7 @@ impl Op {
         match ops.len() {
             0 => Op::Nop,
             1 => ops.into_iter().next().unwrap(),
-            _ => Sequence::new(ops.into_iter().map(|item| (item, None)).collect()),
+            _ => Sequence::new(ops),
         }
     }
 
@@ -113,23 +117,13 @@ impl Op {
     pub fn into_optional(self) -> Self {
         Repeat::optional(self)
     }
-
-    /*
-        Utility function to replace an Op during tranformation
-        either by another Op or by a sequence.
-    */
-    pub(super) fn replace_usage(&mut self, usages: &mut Vec<Vec<Op>>) {
-        if let Op::Usage(usage) = self {
-            *self = Self::from_vec(usages[*usage].drain(..).collect())
-        }
-    }
 }
 
 impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         /*
         if context.runtime.debug {
-            println!("--- {:?} ---", self);
+            println!("--- {:?} @ {} ---", self, context.runtime.reader.tell().offset);
             for i in 0..context.runtime.stack.len() {
                 println!("  {}: {:?}", i, context.runtime.stack[i]);
             }
@@ -287,14 +281,24 @@ impl Runable for Op {
                 let index = context.pop();
                 let index = index.borrow();
 
-                match *index {
+                match &*index {
                     Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
-                        Op::LoadFastCapture(index.to_addr()).run(context)
+                        let value = context
+                            .get_capture(index.to_addr())
+                            .unwrap_or(Value::Void.into_refvalue());
+
+                        Ok(Accept::Push(Capture::Value(value, 10)))
                     }
 
-                    _ => {
-                        unimplemented!("//todo")
+                    Value::String(alias) => {
+                        let value = context
+                            .get_capture_by_name(alias)
+                            .unwrap_or(Value::Void.into_refvalue());
+
+                        Ok(Accept::Push(Capture::Value(value, 10)))
                     }
+
+                    _ => Ok(Accept::Next),
                 }
             }
 
@@ -345,7 +349,7 @@ impl Runable for Op {
                 let index = context.pop();
                 let index = index.borrow();
 
-                match *index {
+                match &*index {
                     Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
                         if matches!(self, Op::StoreCapture) {
                             Op::StoreFastCapture(index.to_addr()).run(context)
@@ -354,10 +358,30 @@ impl Runable for Op {
                         }
                     }
 
-                    _ => {
-                        todo!()
+                    Value::String(alias) => {
+                        let value = context.pop();
+                        context.set_capture_by_name(alias, value.clone());
+
+                        if matches!(self, Op::StoreCapture) {
+                            Ok(Accept::Next)
+                        } else {
+                            Ok(Accept::Push(Capture::Value(value, 10)))
+                        }
                     }
+
+                    _ => Ok(Accept::Next),
                 }
+            }
+
+            Op::MakeAlias => {
+                let value = context.pop();
+                let alias = context.pop();
+                let alias = alias.borrow();
+
+                Ok(Accept::Push(Capture::Named(
+                    Box::new(Capture::Value(value, 10)),
+                    alias.to_string(),
+                )))
             }
 
             Op::MakeDict(count) => {
@@ -374,6 +398,10 @@ impl Runable for Op {
                 Ok(Accept::Push(Capture::from_value(
                     Value::Dict(Box::new(dict)).into_refvalue(),
                 )))
+            }
+
+            Op::MakeListOrDict(count) => {
+                todo!();
             }
 
             Op::Drop => {
@@ -404,7 +432,7 @@ impl Runable for Op {
             }
 
             // Operations
-            Op::Add | Op::Sub | Op::Div | Op::Mul => {
+            Op::Add | Op::Sub | Op::Mul | Op::Div => {
                 let b = context.pop();
                 let a = context.pop();
 
@@ -417,8 +445,8 @@ impl Runable for Op {
                 let c = match self {
                     Op::Add => (&*a.borrow() + &*b.borrow()).into_refvalue(),
                     Op::Sub => (&*a.borrow() - &*b.borrow()).into_refvalue(),
-                    Op::Div => (&*a.borrow() / &*b.borrow()).into_refvalue(),
                     Op::Mul => (&*a.borrow() * &*b.borrow()).into_refvalue(),
+                    Op::Div => (&*a.borrow() / &*b.borrow()).into_refvalue(),
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
@@ -467,7 +495,7 @@ impl Runable for Op {
                 10,
             ))),
 
-            Op::IAdd | Op::ISub | Op::IDiv | Op::IMul => {
+            Op::IAdd | Op::ISub | Op::IMul | Op::IDiv => {
                 let b = context.pop();
                 let value = context.pop();
                 let mut value = value.borrow_mut();
@@ -481,8 +509,8 @@ impl Runable for Op {
                 *value = match self {
                     Op::IAdd => (&*value + &*b.borrow()),
                     Op::ISub => (&*value - &*b.borrow()),
-                    Op::IDiv => (&*value / &*b.borrow()),
                     Op::IMul => (&*value * &*b.borrow()),
+                    Op::IDiv => (&*value / &*b.borrow()),
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
@@ -524,77 +552,92 @@ impl Runable for Op {
         }
     }
 
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+        match self {
+            Op::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
+            Op::Runable(runable) => runable.resolve(usages),
+            Op::If(then_else) => {
+                then_else.0.resolve(usages);
+                then_else.1.as_mut().map(|eelse| eelse.resolve(usages));
+            }
+            _ => {}
+        }
+    }
+
     fn finalize(
         &mut self,
-        usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    ) {
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
         match self {
-            Op::Runable(runable) => {
-                runable.finalize(usages, statics, leftrec, nullable, consumes);
-            }
-
-            Op::Usage(_) => self.replace_usage(usages),
-
-            Op::CallStatic(addr) => {
-                match &*statics[*addr].borrow() {
+            Op::Runable(runable) => runable.finalize(statics, stack),
+            Op::CallStatic(target) => {
+                match &*statics[*target].borrow() {
                     Value::Parselet(parselet) => {
-                        // Is left-recursion detection generally wanted?
-                        if let Some(leftrec) = leftrec {
-                            // Can the parselet be borrowed mutably?
-                            // If not, it already is borrowed and we have a left-recursion here!
+                        if stack.len() > 0 {
                             if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                let mut call_leftrec = parselet.leftrec;
-                                let mut call_nullable = parselet.nullable;
-                                let mut call_consumes = parselet.consumes;
+                                if !parselet.consumes {
+                                    return None;
+                                }
 
-                                parselet.body.finalize(
-                                    usages,
-                                    statics,
-                                    Some(&mut call_leftrec),
-                                    &mut call_nullable,
-                                    &mut call_consumes,
-                                );
+                                stack.push((*target, parselet.nullable));
+                                let ret = parselet.body.finalize(statics, stack);
+                                stack.pop();
 
-                                parselet.leftrec = call_leftrec;
-                                parselet.nullable = call_nullable;
-                                parselet.consumes = call_consumes;
+                                // --- Incomplete solution for the problem described in test/testindirectleftrec ---
+                                // If left-recursion detected and called parselet is already
+                                // left-recursive, thread currently analyzed parselet as
+                                // not left-recursive here!
+                                /*
+                                if ret.0 && parselet.leftrec {
+                                    ret.0 = false;
+                                }
+                                */
 
-                                *nullable = parselet.nullable;
-                                *consumes = parselet.consumes;
+                                ret
                             } else {
-                                *leftrec = true;
+                                for i in 0..stack.len() {
+                                    if *target == stack[i].0 {
+                                        return Some((i == 0, stack[i].1));
+                                    }
+                                }
+
+                                panic!("Can't find entry for {}", *target)
                             }
+                        } else {
+                            None
                         }
                     }
 
                     object => {
-                        *consumes = object.is_consuming();
-                        *nullable = object.is_nullable();
+                        if object.is_consuming() {
+                            Some((false, object.is_nullable()))
+                        } else {
+                            None
+                        }
                     }
                 }
             }
 
             Op::If(then_else) => {
-                let mut if_leftrec = false;
-
-                then_else
-                    .0
-                    .finalize(usages, statics, Some(&mut if_leftrec), nullable, consumes);
+                let then = then_else.0.finalize(statics, stack);
 
                 if let Some(eelse) = &mut then_else.1 {
-                    eelse.finalize(usages, statics, Some(&mut if_leftrec), nullable, consumes);
-                }
-
-                if let Some(leftrec) = leftrec {
-                    *leftrec = if_leftrec;
+                    if let Some((else_leftrec, else_nullable)) = eelse.finalize(statics, stack) {
+                        if let Some((then_leftrec, then_nullable)) = then {
+                            Some((then_leftrec || else_leftrec, then_nullable || else_nullable))
+                        } else {
+                            Some((else_leftrec, else_nullable))
+                        }
+                    } else {
+                        then
+                    }
+                } else {
+                    then
                 }
             }
 
-            _ => {}
+            _ => None,
         }
     }
 }

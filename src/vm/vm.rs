@@ -21,6 +21,22 @@ impl Capture {
         Capture::Value(value, 10)
     }
 
+    // Degrades a capture to a severity to a capture with zero severity.
+    // This is done when a capture is read.
+    pub fn degrade(&mut self) {
+        match self {
+            Capture::Range(range, severity) if *severity <= 5 => {
+                *self = Capture::Range(range.clone(), 0)
+            }
+            Capture::Value(value, severity) if *severity <= 5 => {
+                *self = Capture::Value(value.clone(), 0)
+            }
+            Capture::Named(capture, _) => (*capture).degrade(),
+            _ => {}
+        }
+    }
+
+    // Turns a capture into a stand-alone value.
     pub fn as_value(&self, runtime: &Runtime) -> RefValue {
         match self {
             Capture::Empty => Value::Void.into_refvalue(),
@@ -60,19 +76,20 @@ pub enum Reject {
 
 // --- Context -----------------------------------------------------------------
 
-pub struct Context<'runtime, 'program, 'reader> {
-    pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>,
-    pub(crate) stack_start: usize, // Stack start (including locals and parameters)
-    pub(crate) capture_start: usize, // Stack capturing start
-    pub(crate) reader_start: Offset, // Current reader offset
+pub struct Context<'runtime, 'program, 'reader, 'parselet> {
+    pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
+    pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
+    pub(crate) stack_start: usize,            // Stack start (including locals and parameters)
+    pub(crate) capture_start: usize,          // Stack capturing start
+    pub(crate) reader_start: Offset,          // Current reader offset
     pub(super) source_offset: Option<Offset>, // Tokay source offset
-    hold: usize,                   // Defines number of stack items to hold on context drop
+    hold: usize, // Defines number of stack items to hold on context drop
 }
 
-impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
+impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
     pub fn new(
         runtime: &'runtime mut Runtime<'program, 'reader>,
-        preserve: usize,
+        parselet: &'parselet Parselet,
         take: usize,
         hold: usize,
     ) -> Self {
@@ -88,10 +105,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         runtime
             .stack
-            .resize(stack_start + preserve + 1, Capture::Empty);
+            .resize(stack_start + parselet.locals + 1, Capture::Empty);
 
         // Initialize locals
-        for i in 0..preserve {
+        for i in 0..parselet.locals {
             if let Capture::Empty = runtime.stack[stack_start + i] {
                 runtime.stack[stack_start + i] = Capture::Value(Value::Void.into_refvalue(), 10);
             }
@@ -99,9 +116,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
         Self {
             stack_start,
-            capture_start: stack_start + preserve,
+            capture_start: stack_start + parselet.locals,
             reader_start: runtime.reader.tell(),
             runtime,
+            parselet,
             source_offset: None,
             hold,
         }
@@ -127,7 +145,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 
     /** Return a capture by index as RefValue. */
-    pub fn get_capture(&self, pos: usize) -> Option<RefValue> {
+    pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         if self.capture_start + pos >= self.runtime.stack.len() {
             return None;
         }
@@ -148,6 +166,12 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 .into_refvalue(),
             )
         } else {
+            self.runtime.stack[self.capture_start + pos].degrade();
+            println!(
+                "get {} => {:?}",
+                pos,
+                &self.runtime.stack[self.capture_start + pos]
+            );
             Some(self.runtime.stack[self.capture_start + pos].as_value(&self.runtime))
         }
     }
@@ -174,7 +198,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
             return;
         }
 
-        self.runtime.stack[pos] = Capture::Value(value, 5)
+        self.runtime.stack[pos] = Capture::Value(value, 10)
     }
 
     /** Set a capture to a RefValue by name. */
@@ -183,7 +207,7 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
         for capture in self.runtime.stack[self.capture_start..].iter_mut() {
             if let Capture::Named(capture, alias) = capture {
                 if alias == name {
-                    *capture = Box::new(Capture::Value(value, 5));
+                    *capture = Box::new(Capture::Value(value, 10));
                     break;
                 }
             }
@@ -230,7 +254,11 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 .collect()
         };
 
-        //println!("captures = {:?}", captures);
+        if self.runtime.debug {
+            println!("--- Collect ---");
+            println!("single = {}, min_severity = {}", single, min_severity);
+            println!("captures = {:?}", captures);
+        }
 
         if captures.len() == 0 {
             None
@@ -273,8 +301,10 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
                 };
             }
 
-            //println!("list = {:?}", list);
-            //println!("dict = {:?}", dict);
+            if self.runtime.debug {
+                println!("list = {:?}", list);
+                println!("dict = {:?}", dict);
+            }
 
             if dict.len() == 0 {
                 if list.len() > 1 {
@@ -288,13 +318,12 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
 
                 None
             } else {
+                /*
+                // Store list-items additionally when there is a dict? Hmm...
                 for (i, item) in list.into_iter().enumerate() {
                     dict.insert(i.to_string(), item);
                 }
-
-                if dict.len() == 1 {
-                    return Some(Capture::Value(dict.values().next().unwrap().clone(), 5));
-                }
+                */
 
                 Some(Capture::Value(
                     Value::Dict(Box::new(dict)).into_refvalue(),
@@ -305,7 +334,9 @@ impl<'runtime, 'program, 'reader> Context<'runtime, 'program, 'reader> {
     }
 }
 
-impl<'runtime, 'program, 'reader> Drop for Context<'runtime, 'program, 'reader> {
+impl<'runtime, 'program, 'reader, 'parselet> Drop
+    for Context<'runtime, 'program, 'reader, 'parselet>
+{
     fn drop(&mut self) {
         self.runtime.stack.truncate(self.stack_start + self.hold);
     }

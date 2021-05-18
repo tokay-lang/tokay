@@ -5,290 +5,10 @@ use crate::token::Token;
 use crate::value::Value;
 use crate::vm::*;
 use crate::{ccl, value};
-
-/*
-    This is a minimalistic Tokay compiler implemented with Rust macros to
-    bootstrap the self-hosted Tokay parser defined below.
-*/
-
-macro_rules! compile_item {
-
-    // Assign a value
-    ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
-        {
-            let name = stringify!($name).to_string();
-            let value = Value::String($value.to_string()).into_refvalue();
-
-            $compiler.set_constant(&name, value);
-
-            //println!("assign {} = {}", stringify!($name), stringify!($value));
-            None
-        }
-    };
-
-    // Assign whitespace
-    ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
-        {
-            $compiler.push_scope(true);
-
-            let items = vec![
-                $(
-                    compile_item!($compiler, $item)
-                ),*
-            ];
-
-            let body = Block::new(
-                items.into_iter()
-                    .filter(|item| item.is_some())
-                    .map(|item| item.unwrap())
-                    .collect()
-            );
-
-            let body = Repeat::new(body, 0, 0, true);
-
-            let parselet = $compiler.create_parselet(Vec::new(), body, true, false).into_value().into_refvalue();
-
-            $compiler.set_constant("_", parselet);
-
-            //println!("assign _ = {}", stringify!($item));
-            None
-        }
-    };
-
-    // Assign parselet
-    ( $compiler:expr, ( $name:ident = { $( $item:tt ),* } ) ) => {
-        {
-            let name = stringify!($name).to_string();
-
-            $compiler.push_scope(true);
-
-            let items = vec![
-                $(
-                    compile_item!($compiler, $item)
-                ),*
-            ];
-
-            let body = Block::new(
-                items.into_iter()
-                    .filter(|item| item.is_some())
-                    .map(|item| item.unwrap())
-                    .collect()
-            );
-
-            let parselet = $compiler.create_parselet(Vec::new(), body, false, false).into_value().into_refvalue();
-
-            $compiler.define_static(parselet.clone());
-            $compiler.set_constant(&name, parselet);
-
-            //println!("assign {} = {}", stringify!($name), stringify!($item));
-            None
-        }
-    };
-
-    // Sequence
-    ( $compiler:expr, [ $( $item:tt ),* ] ) => {
-        {
-            //println!("sequence");
-            let items = vec![
-                $(
-                    compile_item!($compiler, $item)
-                ),*
-            ];
-
-            Some(
-                Sequence::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| (item.unwrap(), None))
-                        .collect()
-                )
-            )
-        }
-    };
-
-    // Block
-    ( $compiler:expr, { $( $item:tt ),* } ) => {
-        {
-            /*
-            $(
-                println!("{:?}", stringify!($item));
-            )*
-            */
-
-            let items = vec![
-                $(
-                    compile_item!($compiler, $item)
-                ),*
-            ];
-
-            Some(
-                Block::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
-            )
-        }
-    };
-
-    // Kleene
-    ( $compiler:expr, (kle $item:tt) ) => {
-        Some(compile_item!($compiler, $item).unwrap().into_kleene())
-    };
-
-    // Positive
-    ( $compiler:expr, (pos $item:tt) ) => {
-        Some(compile_item!($compiler, $item).unwrap().into_positive())
-    };
-
-    // Optional
-    ( $compiler:expr, (opt $item:tt) ) => {
-        Some(compile_item!($compiler, $item).unwrap().into_optional())
-    };
-
-    // Not
-    ( $compiler:expr, (not $item:tt) ) => {
-        Some(Not::new(compile_item!($compiler, $item).unwrap()))
-    };
-
-    // Peek
-    ( $compiler:expr, (peek $item:tt) ) => {
-        Some(Peek::new(compile_item!($compiler, $item).unwrap()))
-    };
-
-    // Expect
-    ( $compiler:expr, (expect $item:tt) ) => {
-        {
-            let mut msg = "Expecting ".to_string();
-            msg.push_str(stringify!($item));
-            Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some(msg)))
-        }
-    };
-
-    // Expect with literal
-    ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(Expect::new(compile_item!($compiler, $item).unwrap(), Some($msg.to_string())))
-    };
-
-    // Value
-    ( $compiler:expr, (value $value:tt) ) => {
-        Some(Op::LoadStatic($compiler.define_static(value!($value))))
-    };
-
-    // Token
-    ( $compiler:expr, (token $token:tt) ) => {
-        {
-            Some(Op::CallStatic($compiler.define_static($token.into_value().into_refvalue())))
-        }
-    };
-
-    // Call with parameters
-    ( $compiler:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
-        {
-            let mut items = vec![
-                $(
-                    compile_item!($compiler, $param).unwrap()
-                ),*
-            ];
-
-            let name = stringify!($ident).to_string();
-
-            let item = Usage::Call{
-                name,
-                args: items.len(),
-                nargs: 0,
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            items.extend(item);
-
-            //println!("call = {} {:?}", stringify!($ident), items);
-            Some(Op::from_vec(items))
-        }
-    };
-
-    // Call without parameters
-    ( $compiler:expr, $ident:ident ) => {
-        {
-            //println!("call = {}", stringify!($ident));
-            let name = stringify!($ident);
-
-            let item = Usage::CallOrCopy{
-                name: name.to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            Some(Op::from_vec(item))
-        }
-    };
-
-    // Whitespace
-    ( $compiler:expr, _ ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            let item = Usage::CallOrCopy{
-                name: "_".to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            assert!(item.len() == 1); // Can only process statics here!
-            Some(item.into_iter().next().unwrap())
-        }
-    };
-
-    // Match / Touch
-    ( $compiler:expr, $literal:literal ) => {
-        {
-            let token = Token::Touch($literal.to_string()).into_value();
-            Some(Op::CallStatic($compiler.define_static(token.into_refvalue())))
-        }
-    };
-
-    // Fallback
-    ( $compiler:expr, $expr:tt ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            Some($expr)
-        }
-    };
-}
-
-macro_rules! compile {
-    ( $( $items:tt ),* ) => {
-        {
-            let mut compiler = Compiler::new();
-            let main = compile_item!(compiler, $( $items ),*);
-
-            if let Some(main) = main {
-                let parselet = compiler.create_parselet(
-                    Vec::new(),
-                    main,
-                    false,
-                    true
-                ).into_value().into_refvalue();
-                compiler.define_static(parselet);
-            }
-
-            match compiler.to_program() {
-                Ok(program) => {
-                    //println!("{:#?}", program);
-                    program
-                },
-                Err(errors) => {
-                    for error in errors {
-                        println!("{}", error);
-                    }
-
-                    panic!("Errors in compile!");
-                }
-            }
-        }
-    }
-}
+use crate::{tokay_embed, tokay_embed_item};
 
 /**
-Implements a Tokay parser in Tokay itself, using the compiler macros from above.
+Implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
 This is the general place to change syntax and modify the design of the abstract syntax tree.
 */
 
@@ -296,7 +16,7 @@ pub struct Parser(Program);
 
 impl Parser {
     pub fn new() -> Self {
-        Self(compile!({
+        Self(tokay_embed!({
         // ----------------------------------------------------------------------------
 
         // Whitespace & EOL
@@ -382,7 +102,7 @@ impl Parser {
 
         (Tail = {
             [".", _, T_Identifier, _, (call collect[(value "attribute")])],
-            ["[", _, Expression, "]", _, (call collect[(value "index")])]
+            ["[", _, Expression, "]", (call collect[(value "index")])]
         }),
 
         (Capture = {
@@ -398,7 +118,7 @@ impl Parser {
         }),
 
         (Lvalue = {
-            [Variable, _, (kle Tail), (call collect[(value "lvalue")])]
+            [Variable, (kle Tail), _, (call collect[(value "lvalue")])]
         }),
 
         (Inplace = {
@@ -410,7 +130,7 @@ impl Parser {
         }),
 
         (Rvalue = {
-            [Inplace, _, (kle Tail), (call collect[(value "rvalue")])]
+            [Inplace, (kle Tail), _, (call collect[(value "rvalue")])]
         }),
 
         (CallParameter = {
@@ -468,8 +188,18 @@ impl Parser {
 
         // Expression & Flow
 
+        (CollectionItem = {
+            [T_Identifier, _, "=>", _, Expression, (call collect[(value "alias")])],
+            [Expression, "=>", _, Expression, (call collect[(value "alias")])],
+            Expression
+        }),
+
         (Atomic = {
-            ["(", _, Expression, (expect ")"), _],
+            ["(", _, Expression, ")", _], // no expect ")" here!
+            ["(", _, (pos [Expression, (opt [",", _])]), ")", _, // no expect ")" here!
+                (call collect[(value "list")])],
+            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"), _,
+                (call collect[(value "collection")])],
             Literal,
             Token,
             Call,
@@ -494,9 +224,9 @@ impl Parser {
         }),
 
         (AddSub = {
-            [AddSub, "+", _, MulDiv, // no expect(MulDiv) here!
+            [AddSub, "+", _, MulDiv, // no expect(MulDiv) here because of pre-increment fallback
                 (call collect[(value "op_binary_add")])],
-            [AddSub, "-", _, MulDiv, // no expect(MulDiv) here!
+            [AddSub, "-", _, MulDiv, // no expect(MulDiv) here because of pre-decrement fallback
                 (call collect[(value "op_binary_sub")])],
             MulDiv
         }),
@@ -582,33 +312,36 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, Sequences, _, (expect "}"), _, (call collect[(value "block")])],
+            ["{", _, (pos Instruction), _, (expect "}"), _, (call collect[(value "block")])],
             ["{", _, (expect "}"), _, (Op::PushVoid), (call collect[(value "block")])]
         }),
 
         // Sequences
 
-        (Sequences = {
-            (pos Sequence)
+        (SequenceItem = {
+            [T_Identifier, _, "=>", _, Expression, (call collect[(value "alias")])],
+            [Expression, _, "=>", _, Expression, (call collect[(value "alias")])],
+            Statement
         }),
 
         (Sequence = {
+            [(pos SequenceItem), (call collect[(value "sequence")])]
+        }),
+
+        // Instructions
+
+        (Instruction = {
             ["begin", _, Statement, (call collect[(value "begin")])],
             ["end", _, Statement, (call collect[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
                 (call collect[(value "constant")])],
-            [(pos Item), (call collect[(value "sequence")])],
+            Sequence,
             [T_EOL, (Op::Skip)]
         }),
 
-        (Item = {
-            // todo: Recognize aliases
-            Statement
-        }),
-
         (Tokay = {
-            Sequences
+            (pos Instruction)
         }),
 
         [_, Tokay, (call collect[(value "main")])]

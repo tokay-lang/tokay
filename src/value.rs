@@ -298,7 +298,7 @@ impl Value {
                 ret
             }
             Self::List(l) => {
-                let mut ret = "[".to_string();
+                let mut ret = "(".to_string();
                 for item in l.iter() {
                     if ret.len() > 1 {
                         ret.push_str(", ");
@@ -306,21 +306,42 @@ impl Value {
 
                     ret.push_str(&item.borrow().repr());
                 }
-                ret.push(']');
+
+                if l.len() == 1 {
+                    ret.push_str(", ");
+                }
+
+                ret.push(')');
                 ret
             }
             Self::Dict(d) => {
-                let mut ret = "[".to_string();
+                let mut ret = "(".to_string();
                 for (key, value) in d.iter() {
                     if ret.len() > 1 {
                         ret.push_str(", ");
                     }
 
-                    ret.push_str(key);
-                    ret.push_str(" = ");
+                    // todo: Put this into a utility function...
+                    if !key.chars().all(|ch| ch.is_alphabetic()) {
+                        ret.push('"');
+                        for ch in key.chars() {
+                            match ch {
+                                '\n' => ret.push_str("\\n"),
+                                '\r' => ret.push_str("\\r"),
+                                '\t' => ret.push_str("\\t"),
+                                '"' => ret.push_str("\\\""),
+                                _ => ret.push(ch),
+                            }
+                        }
+                        ret.push('"');
+                    } else {
+                        ret.push_str(key);
+                    }
+
+                    ret.push_str(" => ");
                     ret.push_str(&value.borrow().repr());
                 }
-                ret.push(']');
+                ret.push(')');
                 ret
             }
             Self::Parselet(p) => format!("<parselet {:?}>", p),

@@ -1,3 +1,12 @@
+use crate::compiler::Compiler;
+use crate::error::Error;
+use crate::reader::Reader;
+use crate::value::*;
+
+/** Turns "a string\ncontaining\tsimple escape sequences" into
+"a string
+containing  simple escape sequences"
+*/
 pub fn unescape(s: String) -> String {
     let mut chars = s.into_bytes();
     let mut len = chars.len();
@@ -26,4 +35,22 @@ pub fn unescape(s: String) -> String {
 
     chars.truncate(len);
     String::from_utf8(chars).unwrap()
+}
+
+/** Compiles and runs a source with an input.
+
+Used mostly in tests and for quick testing purposes. */
+pub fn compile_and_run(
+    src: &'static str,
+    input: &'static str,
+    debug: bool,
+) -> Result<Option<RefValue>, Error> {
+    let mut compiler = Compiler::new();
+    compiler.debug = debug;
+
+    if let Some(program) = compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src)))) {
+        program.run_from_str(input)
+    } else {
+        Err(Error::new(None, "Error during compilations".to_string()))
+    }
 }

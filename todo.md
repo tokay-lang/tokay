@@ -11,20 +11,25 @@ This is a recently updated brainstorming and todo scribble file.
 
 - [x] Row & column number recording in Reader/Range by working with an Offset data structure rather than usize to allow further tracking, e.g. of row + col numbers
 - Extensions by third-party crates
-    - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
-    - [ ] **lazy_static** for parser and compiler
+  - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
+  - [ ] **lazy_static** for parser and compiler
+  - [ ] **log** crate and related logger
+- [ ] Grammar view
+  - [ ] Perform left-recursion detection on begin and end also?
+  - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
 
 ## Syntax
 
 Syntax is under careful consideration.
 
+- [x] Implementation of Lists `(a, b, c)` and Dicts `(a => b, c => d)`
 - [ ] Missing expressional constructs
   - [ ] Assignment operations `+=`, `-=`, `*=`, `/=`
   - [ ] `&&` and `||`
   - [ ] `&` and `|`
   - [ ] `^`
 - [ ] Loops with value collection using `continue` and `break`
-- [ ] Sequence item aliasing: `a b::x c $2 $x $1
+- [x] Sequence item aliasing: `a x => b c $2 $x $1
 - Token call modifiers
   - [ ] How to distinguish token symbolic constants?
   - [ ] `expect` keyword
@@ -44,11 +49,11 @@ Syntax is under careful consideration.
 - [x] Re-use statics when accessed multiple times
 - [ ] Missing traversals for
   - [x] Comparison operators
-  - [ ] In-place increment and decrement
+  - [x] In-place increment and decrement `a++`, `++a`
   - [ ] while-loops
   - [ ] for-loops
   - [ ] break and continue
-  - [ ] Assignment operations `+=`, `-=`, `*=`, `/=`
+  - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
 
 ## REPL
 
@@ -59,7 +64,9 @@ Syntax is under careful consideration.
 ## Semantics
 
 - [x] Use capitalized identifiers for consumable constants
+- [ ] Undefined variables incremented or decremented (`i++`, `++i`, `i--`, `--i`) as well as variables assigned by `+=`, `-=`, `*=`, `/=` should enforce initialize the undefined variable to 0, so for a simple counting, an explicit setting to 0 is not required.
 - [ ] Capture::Named alias inferring
+- [ ] Capture::Named should recognize severity?
 - [ ] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
 - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
 

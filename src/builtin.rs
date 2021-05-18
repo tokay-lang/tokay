@@ -44,6 +44,79 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             Err(Reject::Next)
         }
     }),
+    ("Name", 0, false, |context, _args, _nargs| {
+        let mut count: usize = 0;
+
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphanumeric() {
+                break;
+            }
+
+            context.runtime.reader.next();
+            count += 1;
+        }
+
+        if count > 0 {
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_last(count),
+                5,
+            )))
+        } else {
+            Err(Reject::Next)
+        }
+    }),
+    ("Cname", 0, false, |context, _args, _nargs| {
+        if let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphabetic() && ch != '_' {
+                return Err(Reject::Next);
+            }
+
+            context.runtime.reader.next();
+        } else {
+            return Err(Reject::Next);
+        }
+
+        let mut count: usize = 1;
+
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphanumeric() && ch != '_' {
+                break;
+            }
+
+            context.runtime.reader.next();
+            count += 1;
+        }
+
+        if count > 0 {
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_last(count),
+                5,
+            )))
+        } else {
+            Err(Reject::Next)
+        }
+    }),
+    ("Whitespace", 0, false, |context, _args, _nargs| {
+        let mut count: usize = 0;
+
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_whitespace() {
+                break;
+            }
+
+            context.runtime.reader.next();
+            count += 1;
+        }
+
+        if count > 0 {
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_last(count),
+                5,
+            )))
+        } else {
+            Err(Reject::Next)
+        }
+    }),
     ("error", 1, false, |context, args, _| {
         Error::new(
             Some(context.runtime.reader.tell()),

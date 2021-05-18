@@ -28,17 +28,16 @@ impl Runable for Peek {
         ret
     }
 
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+        self.body.resolve(usages);
+    }
+
     fn finalize(
         &mut self,
-        usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    ) {
-        self.body.replace_usage(usages);
-        self.body
-            .finalize(usages, statics, leftrec, nullable, consumes);
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        self.body.finalize(statics, stack)
     }
 }
 

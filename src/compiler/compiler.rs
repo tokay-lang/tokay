@@ -155,7 +155,7 @@ impl Compiler {
         };
 
         if self.debug {
-            println!("{:#?}", program);
+            program.dump();
         }
 
         Some(program)
@@ -169,7 +169,7 @@ impl Compiler {
     }
 
     /** Converts the compiled information into a Program. */
-    pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
+    pub(crate) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
         let mut errors: Vec<Error> = self.errors.drain(..).collect();
 
         // Close all scopes except main
@@ -190,7 +190,7 @@ impl Compiler {
             self.statics.borrow_mut().drain(..).collect()
         };
 
-        let mut usages = self
+        let usages = self
             .usages
             .drain(..)
             .map(|usage| {
@@ -219,62 +219,7 @@ impl Compiler {
             })
             .collect();
 
-        /*
-        Finalize the program according to a grammar's point of view;
-
-        Detect both left-recursive and nullable (=no input consuming)
-        structures inside the parselet static call chains, and insert
-        resolved usages.
-        */
-        let mut changes = true;
-        //let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..statics.len() {
-                if let Value::Parselet(parselet) = &*statics[i].borrow() {
-                    let mut parselet = parselet.borrow_mut();
-                    let mut leftrec = parselet.leftrec;
-                    let mut nullable = parselet.nullable;
-                    let mut consumes = parselet.consumes;
-
-                    parselet.body.finalize(
-                        &mut usages,
-                        &statics,
-                        Some(&mut leftrec),
-                        &mut nullable,
-                        &mut consumes,
-                    );
-
-                    if !parselet.leftrec && leftrec {
-                        parselet.leftrec = true;
-                        changes = true;
-                    }
-
-                    if parselet.nullable && !nullable {
-                        parselet.nullable = nullable;
-                        changes = true;
-                    }
-
-                    if !parselet.consumes && consumes {
-                        parselet.consumes = true;
-                        changes = true;
-                    }
-
-                    /*
-                    println!(
-                        "--- {} --- leftrec: {} nullable: {} consumes: {}",
-                        i, leftrec, nullable, consumes
-                    );
-                    */
-                }
-            }
-
-            //loops += 1;
-        }
-
-        //println!("finalization finished after {} loops", loops);
+        Parselet::finalize(usages, &statics);
 
         // Stop when any unresolved usages occured;
         // We do this here so that eventual undefined symbols are replaced by Op::Nop,
@@ -349,8 +294,10 @@ impl Compiler {
     // Pops scope and creates a parselet from it
     pub(crate) fn create_parselet(
         &mut self,
+        name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: Op,
+        consumes: Option<bool>,
         silent: bool,
         main: bool,
     ) -> Parselet {
@@ -361,12 +308,13 @@ impl Compiler {
             );
 
             Parselet::new(
+                name,
                 sig,
                 self.scopes[0]
                     .variables
                     .as_ref()
                     .map_or(0, |vars| vars.len()),
-                self.scopes[0].consumes,
+                consumes.unwrap_or(self.scopes[0].consumes),
                 silent,
                 Op::from_vec(self.scopes[0].begin.drain(..).collect()),
                 Op::from_vec(self.scopes[0].end.drain(..).collect()),
@@ -377,9 +325,10 @@ impl Compiler {
                 let scope = self.pop_scope();
                 if scope.variables.is_some() {
                     break Parselet::new(
+                        name,
                         sig,
                         scope.variables.map_or(0, |vars| vars.len()),
-                        scope.consumes,
+                        consumes.unwrap_or(scope.consumes),
                         silent,
                         Op::from_vec(scope.begin),
                         Op::from_vec(scope.end),
@@ -559,25 +508,6 @@ impl Compiler {
         let emit = node.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
-        // A value can always point to an already define constant
-        /*
-        if emit == "identifier" {
-            let ident = node.borrow_by_key("value");
-            let ident = ident.get_string().unwrap();
-
-            if let Some(addr) = self.get_constant(ident) {
-                return self.statics.borrow()[addr].clone();
-            }
-
-            self.errors.push(
-                Error::new(self.traverse_node_offset(node),
-                format!("'{}' is not known as a constant", ident))
-            );
-
-            return Value::Void.into_refvalue();
-        }
-        */
-
         // Generate a value from the given code
         match emit {
             // Literals
@@ -696,7 +626,8 @@ impl Compiler {
                         assert!(children.len() <= 2);
                         let default = if children.len() == 2 {
                             let default = children.borrow_by_idx(1);
-                            let value = self.traverse_node_static(default.get_dict().unwrap());
+                            let value =
+                                self.traverse_node_static(None, default.get_dict().unwrap());
                             Some(self.define_static(value))
                         } else {
                             None
@@ -713,14 +644,15 @@ impl Compiler {
                 // Body
                 let body = self.traverse_node(&body.get_dict().unwrap());
                 let body = Op::from_vec(body.into_ops(self, true));
-                self.create_parselet(sig, body, false, false).into_value()
+                self.create_parselet(None, sig, body, None, false, false)
+                    .into_value()
             }
             _ => unimplemented!("unhandled value node {}", emit),
         }
     }
 
     // Traverse a static value
-    fn traverse_node_static(&mut self, node: &Dict) -> RefValue {
+    fn traverse_node_static(&mut self, name: Option<String>, node: &Dict) -> RefValue {
         self.push_scope(true);
 
         match self.traverse_node(node) {
@@ -730,10 +662,18 @@ impl Compiler {
             }
             TraversalResult::Value(value) => {
                 self.pop_scope();
+
+                if name.is_some() {
+                    if let Value::Parselet(parselet) = &*value.borrow() {
+                        let mut parselet = parselet.borrow_mut();
+                        parselet.name = name;
+                    }
+                }
+
                 value
             }
             TraversalResult::Ops(ops) => self
-                .create_parselet(Vec::new(), Op::from_vec(ops), false, false)
+                .create_parselet(name, Vec::new(), Op::from_vec(ops), None, false, false)
                 .into_value()
                 .into_refvalue(),
         }
@@ -902,7 +842,7 @@ impl Compiler {
                     let children = item.borrow_by_key("children");
 
                     match parts[1] {
-                        "expr" => {
+                        "expr" | "alias" => {
                             ops.extend(self.traverse(&children).into_ops(self, false));
                             ops.push(Op::LoadCapture)
                         }
@@ -911,10 +851,6 @@ impl Compiler {
                             let children = children.get_dict().unwrap();
                             let index = self.traverse_node_value(children);
                             ops.push(Op::LoadFastCapture(index.to_addr()));
-                        }
-
-                        "alias" => {
-                            todo!();
                         }
 
                         _ => {
@@ -998,6 +934,23 @@ impl Compiler {
         //println!("emit = {:?}", emit);
 
         match emit {
+            "alias" => {
+                let children = node.borrow_by_key("children");
+                let children = children.get_list().unwrap();
+                assert_eq!(children.len(), 2);
+
+                let (left, right) = children.borrow_first_2();
+
+                let left = self.traverse_node(&left.get_dict().unwrap());
+                let right = self.traverse_node(&right.get_dict().unwrap());
+
+                let mut ops = left.into_ops(self, true);
+                ops.extend(right.into_ops(self, true));
+                ops.push(Op::MakeAlias);
+
+                TraversalResult::Ops(ops)
+            }
+
             // assign ---------------------------------------------------------
             assign if assign.starts_with("assign") => {
                 let children = node.borrow_by_key("children");
@@ -1062,11 +1015,9 @@ impl Compiler {
 
                 // Distinguish between pure values or an expression
                 let node = value.get_dict().unwrap();
-                let emit = node["emit"].borrow();
-                let emit = emit.get_string().unwrap();
 
                 // fixme: Restricted to pure values currently.
-                let value = self.traverse_node_static(node);
+                let value = self.traverse_node_static(Some(ident.to_string()), node);
 
                 if value.borrow().is_consuming() {
                     if !Self::identifier_is_consumable(ident) {
@@ -1215,18 +1166,27 @@ impl Compiler {
                 TraversalResult::Ops(ops)
             }
 
+            // identifier -----------------------------------------------------
+            "identifier" => {
+                // An identifier is fallback-interpreted as a string
+                let value = node.borrow_by_key("value").to_string();
+                TraversalResult::Value(Value::String(value).into_refvalue())
+            }
+
             // main -----------------------------------------------------------
             "main" => {
                 let children = node.borrow_by_key("children");
 
                 let body = self.traverse(&children).into_ops(self, true);
                 let main = self.create_parselet(
+                    Some("__main__".to_string()),
                     Vec::new(),
                     if body.len() > 0 {
                         Block::new(body)
                     } else {
                         Op::Nop
                     },
+                    None,
                     false,
                     true,
                 );
@@ -1420,8 +1380,7 @@ impl Compiler {
                         if let Ok(value) = condition.get_evaluable_value() {
                             if value.borrow().is_true() {
                                 return then;
-                            }
-                            else if let Some(eelse) = eelse {
+                            } else if let Some(eelse) = eelse {
                                 return eelse;
                             }
 
@@ -1431,7 +1390,7 @@ impl Compiler {
                         ops.extend(condition.into_ops(self, false));
                         Op::If(Box::new((
                             Op::from_vec(then.into_ops(self, true)),
-                            eelse.and_then(|eelse| Some(Op::from_vec(eelse.into_ops(self, true))))
+                            eelse.and_then(|eelse| Some(Op::from_vec(eelse.into_ops(self, true)))),
                         )))
                     }
 
@@ -1448,7 +1407,7 @@ impl Compiler {
             "rvalue" => self.traverse_node_rvalue(node),
 
             // sequence ------------------------------------------------------
-            "sequence" => {
+            "sequence" | "collection" => {
                 let children = node.borrow_by_key("children");
                 let children = children.to_list();
 
@@ -1459,9 +1418,7 @@ impl Compiler {
                 }
 
                 if ops.len() > 0 {
-                    TraversalResult::Ops(vec![Sequence::new(
-                        ops.into_iter().map(|item| (item, None)).collect(),
-                    )])
+                    TraversalResult::Ops(vec![Sequence::new(ops)])
                 } else {
                     TraversalResult::Empty
                 }

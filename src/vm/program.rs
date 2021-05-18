@@ -30,6 +30,12 @@ impl Program {
         Self { statics, main }
     }
 
+    pub fn dump(&self) {
+        for i in 0..self.statics.len() {
+            println!("{} => {:#?}", i, self.statics[i]);
+        }
+    }
+
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = &self.main {
             let main = main.borrow();

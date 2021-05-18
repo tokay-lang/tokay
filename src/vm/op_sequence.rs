@@ -13,11 +13,11 @@ processed, including data changes, which is a wanted behavior.
 pub struct Sequence {
     leftrec: bool,
     nullable: bool,
-    items: Vec<(Op, Option<String>)>,
+    items: Vec<Op>,
 }
 
 impl Sequence {
-    pub fn new(items: Vec<(Op, Option<String>)>) -> Op {
+    pub fn new(items: Vec<Op>) -> Op {
         Self {
             leftrec: false,
             nullable: true,
@@ -39,7 +39,7 @@ impl Runable for Sequence {
         let reader_start = context.runtime.reader.tell();
 
         // Iterate over sequence
-        for (item, alias) in &self.items {
+        for item in &self.items {
             match item.run(context) {
                 Err(Reject::Skip) => return Err(Reject::Skip),
                 Err(reject) => {
@@ -48,29 +48,11 @@ impl Runable for Sequence {
                     return Err(reject);
                 }
 
-                Ok(Accept::Next) => {
-                    if let Some(alias) = alias {
-                        context
-                            .runtime
-                            .stack
-                            .push(Capture::Named(Box::new(Capture::Empty), alias.clone()))
-                    } else {
-                        context.runtime.stack.push(Capture::Empty)
-                    }
-                }
+                Ok(Accept::Next) => context.runtime.stack.push(Capture::Empty),
 
                 Ok(Accept::Skip) => continue,
 
-                Ok(Accept::Push(capture)) => {
-                    if let Some(alias) = alias {
-                        context
-                            .runtime
-                            .stack
-                            .push(Capture::Named(Box::new(capture), alias.clone()))
-                    } else {
-                        context.runtime.stack.push(capture)
-                    }
-                }
+                Ok(Accept::Push(capture)) => context.runtime.stack.push(capture),
 
                 other => return other,
             }
@@ -87,25 +69,17 @@ impl Runable for Sequence {
         }
     }
 
-    fn finalize(
-        &mut self,
-        usages: &mut Vec<Vec<Op>>,
-        statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    ) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
         /*
-            Sequences are *the* special case for the transform
-            facility. When a transform replaces one Op by
-            multiple Ops, and this happens inside of a sequence,
-            then the entire sequence must be extended in-place.
+            Sequences are *the* special case for symbol resolving.
+            When a resolve replaces one Op by multiple Ops, and this
+            happens inside of a sequence, then the entire sequence
+            must be extended in-place.
 
             So `a B c D e` may become `a x c y z e`.
 
-            This could probably be made more fantastic with a
-            real VM concept, but I'm just happy with this
-            right now.
+            This could probably be made more fantastic with ac real
+            VM concept, but I'm just happy with this right now.
         */
         let mut end = self.items.len();
         let mut i = 0;
@@ -113,17 +87,10 @@ impl Runable for Sequence {
         while i < end {
             let item = self.items.get_mut(i).unwrap();
 
-            if let Op::Usage(usage) = item.0 {
+            if let Op::Usage(usage) = *item {
                 let n = usages[usage].len();
 
-                let old = self
-                    .items
-                    .splice(i..i + 1, usages[usage].drain(..).map(|item| (item, None)));
-
-                // Re-assign alias-value of the lastly spliced item, if any.
-                if let Some(alias) = old.into_iter().last().unwrap().1 {
-                    self.items.get_mut(i + n - 1).unwrap().1 = Some(alias);
-                }
+                self.items.splice(i..i + 1, usages[usage].drain(..));
 
                 i += n;
                 end = self.items.len();
@@ -132,35 +99,48 @@ impl Runable for Sequence {
             }
         }
 
-        // Finalize through children
-        for (item, _) in self.items.iter_mut() {
-            // While sequence is nullable, try to find left-recursions
-            if self.nullable {
-                item.finalize(
-                    usages,
-                    statics,
-                    Some(&mut self.leftrec),
-                    &mut self.nullable,
-                    consumes,
-                );
+        for item in self.items.iter_mut() {
+            item.resolve(usages);
+        }
+    }
+
+    fn finalize(
+        &mut self,
+        statics: &Vec<RefValue>,
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        let mut leftrec = false;
+        let mut nullable = true;
+        let mut consumes = false;
+
+        for item in self.items.iter_mut() {
+            if !nullable {
+                break;
             }
-            // Otherwise, continue finalization and resolve usages only
-            else {
-                item.finalize(usages, statics, None, &mut true, consumes);
+
+            if let Some((item_leftrec, item_nullable)) = item.finalize(statics, stack) {
+                leftrec |= item_leftrec;
+                nullable = item_nullable;
+                consumes = true;
             }
         }
 
-        if let Some(leftrec) = leftrec {
-            *leftrec = self.leftrec;
+        if stack.len() == 1 {
+            self.leftrec = leftrec;
+            self.nullable = nullable;
         }
 
-        *nullable = self.nullable;
+        if consumes {
+            Some((leftrec, nullable))
+        } else {
+            None
+        }
     }
 }
 
 impl std::fmt::Display for Sequence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (item, _) in &self.items {
+        for item in &self.items {
             write!(f, "{} ", item)?;
         }
 

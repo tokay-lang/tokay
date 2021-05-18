@@ -64,6 +64,8 @@ impl Runable for Repeat {
         let mut count: usize = 0;
 
         loop {
+            let loop_start = context.runtime.reader.tell();
+
             match self.body.run(context) {
                 Err(Reject::Next) => break,
 
@@ -86,7 +88,7 @@ impl Runable for Repeat {
 
             count += 1;
 
-            if self.max > 0 && count == self.max {
+            if (self.max > 0 && count == self.max) || loop_start == context.runtime.reader.tell() {
                 break;
             }
         }
@@ -113,20 +115,23 @@ impl Runable for Repeat {
         }
     }
 
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+        self.body.resolve(usages);
+    }
+
     fn finalize(
         &mut self,
-        usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    ) {
-        self.body.replace_usage(usages);
-        self.body
-            .finalize(usages, statics, leftrec, nullable, consumes);
-
-        if self.min == 0 {
-            *nullable = true;
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        if let Some((leftrec, nullable)) = self.body.finalize(statics, stack) {
+            if self.min == 0 {
+                Some((leftrec, true))
+            } else {
+                Some((leftrec, nullable))
+            }
+        } else {
+            None
         }
     }
 }

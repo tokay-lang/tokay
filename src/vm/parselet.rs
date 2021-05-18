@@ -21,8 +21,9 @@ pub struct Parselet {
                               This can both be set on creation and additionally is determined
                               during finalization. */
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
+    pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    locals: usize,           // Number of local variables present
+    pub(crate) locals: usize, // Number of local variables present
     begin: Op,               // Begin-operations
     end: Op,                 // End-operations
     pub(crate) body: Op,     // Operations
@@ -31,6 +32,7 @@ pub struct Parselet {
 impl Parselet {
     /// Creates a new parselet.
     pub fn new(
+        name: Option<String>,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
         consumes: bool,
@@ -45,6 +47,7 @@ impl Parselet {
         );
 
         Self {
+            name,
             leftrec: false,
             nullable: true,
             consumes,
@@ -62,6 +65,239 @@ impl Parselet {
         Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+        self.begin.resolve(usages);
+        self.end.resolve(usages);
+        self.body.resolve(usages);
+    }
+
+    /**
+    Finalize the program by resolving any unresolved usages and
+    according to a grammar's point of view;
+    This closure algorithm runs until no more changes on any
+    parselet configuration occurs.
+
+    The algorithm detects correct flagging fore nullable and
+    left-recursive for any consuming parselet.
+
+    It requires all parselets consuming input to be known before
+    the finalization phase. Normally, this is already known due
+    to Tokays identifier classification.
+
+    Maybe there will be a better method for this detection in
+    future.
+    */
+    pub(crate) fn finalize(mut usages: Vec<Vec<Op>>, statics: &Vec<RefValue>) -> usize {
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..statics.len() {
+                if let Value::Parselet(parselet) = &*statics[i].borrow() {
+                    let mut parselet = parselet.borrow_mut();
+
+                    if loops == 0 {
+                        parselet.resolve(&mut usages);
+                    }
+
+                    if !parselet.consumes {
+                        continue;
+                    }
+
+                    let mut stack = vec![(i, parselet.nullable)];
+                    if let Some((leftrec, nullable)) = parselet.body.finalize(statics, &mut stack) {
+                        if parselet.leftrec != leftrec {
+                            parselet.leftrec = leftrec;
+                            changes = true;
+                        }
+
+                        if parselet.nullable != nullable {
+                            parselet.nullable = nullable;
+                            changes = true;
+                        }
+
+                        if !parselet.consumes {
+                            parselet.consumes = true;
+                            changes = true;
+                        }
+                    }
+                }
+            }
+
+            loops += 1;
+        }
+
+        /*
+        for i in 0..statics.len() {
+            if let Value::Parselet(parselet) = &*statics[i].borrow() {
+                let parselet = parselet.borrow();
+                println!(
+                    "{} consumes={} leftrec={} nullable={}",
+                    parselet.name.as_deref().unwrap_or("(unnamed)"),
+                    parselet.consumes,
+                    parselet.leftrec,
+                    parselet.nullable
+                );
+            }
+        }
+
+        println!("Finalization finished after {} loops", loops);
+        */
+
+        loops
+    }
+
+    fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
+        // Initialize parselet execution loop
+        let mut results = Vec::new();
+        let mut state = if let Op::Nop = self.begin {
+            None
+        } else {
+            Some(true)
+        };
+
+        let result = loop {
+            let reader_start = context.runtime.reader.tell();
+            let mut result = match state {
+                // begin
+                Some(true) => self.begin.run(context),
+
+                // end
+                Some(false) => self.end.run(context),
+
+                // default
+                None => self.body.run(context),
+            };
+
+            /*
+                In case this is the main parselet, try matching main as much
+                as possible. This is only the case when input is consumed.
+            */
+            if main {
+                //println!("main result(1) = {:?}", result);
+                result = match result {
+                    Ok(Accept::Next) => Ok(Accept::Repeat(None)),
+
+                    Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
+
+                    Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
+                        Capture::Range(range, _) => Some(
+                            Value::String(context.runtime.reader.extract(&range)).into_refvalue(),
+                        ),
+                        Capture::Value(value, _) => Some(value),
+                        _ => None,
+                    })),
+                    result => result,
+                };
+                //println!("main result(2) = {:?}", result);
+            }
+
+            // Evaluate result of parselet loop.
+            match result {
+                Ok(accept) => {
+                    match accept {
+                        Accept::Skip => break Some(Ok(Accept::Next)),
+
+                        Accept::Return(value) => {
+                            if let Some(value) = value {
+                                if !self.silent {
+                                    break Some(Ok(Accept::Push(Capture::Value(value, 5))));
+                                } else {
+                                    break Some(Ok(Accept::Push(Capture::Empty)));
+                                }
+                            } else {
+                                break Some(Ok(Accept::Push(Capture::Empty)));
+                            }
+                        }
+
+                        Accept::Repeat(value) => {
+                            if let Some(value) = value {
+                                results.push(value);
+                            }
+                        }
+
+                        Accept::Push(_) if self.silent => {
+                            break Some(Ok(Accept::Push(Capture::Empty)))
+                        }
+
+                        accept => {
+                            if results.len() > 0 {
+                                break None;
+                            }
+
+                            break Some(Ok(accept));
+                        }
+                    }
+
+                    if main {
+                        // In case no input was consumed in main loop, skip character
+                        if state.is_none()
+                            && context.runtime.reader.capture_from(&reader_start).len() == 0
+                        {
+                            context.runtime.reader.next();
+                        }
+
+                        // Clear input buffer
+                        context.runtime.reader.commit();
+
+                        // Clear memo table
+                        context.runtime.memo.clear();
+                    }
+                }
+
+                Err(reject) => {
+                    match reject {
+                        Reject::Skip => break Some(Ok(Accept::Next)),
+                        Reject::Error(mut err) => {
+                            // Patch source position on error, when no position already set
+                            if let Some(source_offset) = context.source_offset {
+                                err.patch_offset(source_offset);
+                            }
+
+                            break Some(Err(Reject::Error(err)));
+                        }
+                        Reject::Main if !main => break Some(Err(Reject::Main)),
+                        _ => {}
+                    }
+
+                    // Skip character and reset reader start
+                    if main && state.is_none() {
+                        context.runtime.reader.next();
+                        context.reader_start = context.runtime.reader.tell();
+                    } else if results.len() > 0 && state.is_none() {
+                        state = Some(false);
+                        continue;
+                    } else if state.is_none() {
+                        break Some(Err(reject));
+                    }
+                }
+            }
+
+            if let Some(false) = state {
+                break None;
+            } else if context.runtime.reader.eof() {
+                state = Some(false);
+            } else {
+                state = None;
+            }
+        };
+
+        result.unwrap_or_else(|| {
+            if results.len() > 1 {
+                Ok(Accept::Push(Capture::Value(
+                    Value::List(Box::new(results)).into_refvalue(),
+                    5,
+                )))
+            } else if results.len() == 1 {
+                Ok(Accept::Push(Capture::Value(results.pop().unwrap(), 5)))
+            } else {
+                Ok(Accept::Next)
+            }
+        })
+    }
+
     /** Run parselet on a given runtime.
 
     The main-parameter defines if the parselet behaves like a main loop or
@@ -73,9 +309,23 @@ impl Parselet {
         mut nargs: Option<Dict>,
         main: bool,
     ) -> Result<Accept, Reject> {
+        // Check for a previously memoized result in memo table
+        let id = self as *const Parselet as usize;
+
+        if !main && self.consumes {
+            // Get unique parselet id from memory address
+            let reader_start = runtime.reader.tell();
+
+            if let Some((reader_end, result)) = runtime.memo.get(&(reader_start.offset, id)) {
+                runtime.reader.reset(*reader_end);
+                return result.clone();
+            }
+        }
+
+        // If not, start a new context.
         let mut context = Context::new(
             runtime,
-            self.locals,
+            self,
             args,
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
         );
@@ -105,149 +355,85 @@ impl Parselet {
 
         //println!("remaining {:?}", nargs);
 
-        // Initialize parselet execution loop
-        let mut results = Vec::new();
-        let mut state = if let Op::Nop = self.begin {
-            None
-        } else {
-            Some(true)
-        };
+        // Check for an existing memo-entry, and return it in case of a match
+        if !main && self.consumes {
+            if self.leftrec {
+                /*
+                println!(
+                    "--- {} @ {} ---",
+                    self.name.as_deref().unwrap_or("(unnamed)"),
+                    context.reader_start.offset
+                );
+                */
 
-        loop {
-            let reader_start = context.runtime.reader.tell();
+                // Left-recursive parselets are called in a loop until no more input
+                // is consumed.
+                let mut reader_end = context.reader_start;
+                let mut result = Err(Reject::Next);
 
-            let mut res = match state {
-                // begin
-                Some(true) => self.begin.run(&mut context),
+                // Insert a fake memo entry to avoid endless recursion
+                context.runtime.memo.insert(
+                    (context.reader_start.offset, id),
+                    (reader_end, result.clone()),
+                );
 
-                // end
-                Some(false) => self.end.run(&mut context),
+                loop {
+                    let loop_result = self._run(&mut context, main);
 
-                // default
-                None => self.body.run(&mut context),
-            };
-
-            /*
-                In case this is the main parselet, try matching main as much
-                as possible. This is only be the case when input is consumed.
-            */
-            if main {
-                //println!("main res(1) = {:?}", res);
-                res = match res {
-                    Ok(Accept::Next) => Ok(Accept::Repeat(None)),
-
-                    Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
-
-                    Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
-                        Capture::Range(range, _) => Some(
-                            Value::String(context.runtime.reader.extract(&range)).into_refvalue(),
-                        ),
-                        Capture::Value(value, _) => Some(value),
-                        _ => None,
-                    })),
-                    res => res,
-                };
-                //println!("main res(2) = {:?}", res);
-            }
-
-            // Evaluate result of parselet loop.
-            match res {
-                Ok(accept) => {
-                    match accept {
-                        Accept::Skip => return Ok(Accept::Next),
-
-                        Accept::Return(value) => {
-                            if let Some(value) = value {
-                                if !self.silent {
-                                    return Ok(Accept::Push(Capture::Value(value, 5)));
-                                } else {
-                                    return Ok(Accept::Push(Capture::Empty));
-                                }
-                            } else {
-                                return Ok(Accept::Push(Capture::Empty));
-                            }
+                    match loop_result {
+                        // Hard reject
+                        Err(Reject::Main) | Err(Reject::Error(_)) => {
+                            result = loop_result;
+                            break;
                         }
 
-                        Accept::Repeat(value) => {
-                            if let Some(value) = value {
-                                results.push(value);
-                            }
-                        }
+                        // Soft reject
+                        Err(_) => break,
 
-                        Accept::Push(_) if self.silent => return Ok(Accept::Push(Capture::Empty)),
-
-                        accept => {
-                            if results.len() > 0 {
-                                break;
-                            }
-
-                            return Ok(accept);
-                        }
-                    }
-
-                    if main {
-                        // In case no input was consumed in main loop, skip character
-                        if state.is_none()
-                            && context.runtime.reader.capture_from(&reader_start).len() == 0
-                        {
-                            context.runtime.reader.next();
-                        }
-
-                        // Clear input buffer
-                        context.runtime.reader.commit();
-
-                        // Clear memo table
-                        context.runtime.memo.clear();
-                    }
-                }
-
-                Err(reject) => {
-                    match reject {
-                        Reject::Skip => return Ok(Accept::Next),
-                        Reject::Error(mut err) => {
-                            // Patch source position on error, when no position already set
-                            if let Some(source_offset) = context.source_offset {
-                                err.patch_offset(source_offset);
-                            }
-
-                            return Err(Reject::Error(err));
-                        }
-                        Reject::Main if !main => return Err(Reject::Main),
                         _ => {}
                     }
 
-                    // Skip character and reset reader start
-                    if main && state.is_none() {
-                        context.runtime.reader.next();
-                        context.reader_start = context.runtime.reader.tell();
-                    } else if results.len() > 0 && state.is_none() {
-                        state = Some(false);
-                        continue;
-                    } else if state.is_none() {
-                        return Err(reject);
+                    let loop_end = context.runtime.reader.tell();
+
+                    // Stop when no more input was consumed
+                    if loop_end.offset <= reader_end.offset {
+                        break;
                     }
+
+                    result = loop_result;
+                    reader_end = loop_end;
+
+                    // Save intermediate result in memo table
+                    context.runtime.memo.insert(
+                        (context.reader_start.offset, id),
+                        (reader_end, result.clone()),
+                    );
+
+                    // Reset reader & stack
+                    context.runtime.reader.reset(context.reader_start);
+                    context.runtime.stack.truncate(context.stack_start);
+                    context
+                        .runtime
+                        .stack
+                        .resize(context.capture_start + 1, Capture::Empty);
                 }
-            }
 
-            if let Some(false) = state {
-                break;
-            } else if context.runtime.reader.eof() {
-                state = Some(false);
-            } else {
-                state = None;
+                context.runtime.reader.reset(reader_end);
+
+                return result;
             }
         }
 
-        if results.len() > 1 {
-            Ok(Accept::Push(Capture::Value(
-                Value::List(Box::new(results)).into_refvalue(),
-                5,
-            )))
-        } else if results.len() == 1 {
-            Ok(Accept::Push(Capture::Value(results.pop().unwrap(), 5)))
-        } else {
-            Ok(Accept::Next)
+        let result = self._run(&mut context, main);
+
+        if !main && self.consumes {
+            context.runtime.memo.insert(
+                (context.reader_start.offset, id),
+                (context.runtime.reader.tell(), result.clone()),
+            );
         }
+
+        result
     }
 }
 

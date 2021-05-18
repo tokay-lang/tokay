@@ -46,6 +46,7 @@ pub fn repl() {
                     if std::env::args().len() == 1 {
                         let mut reader = Reader::new(Box::new(io::Cursor::new("")));
                         let mut runtime = Runtime::new(&program, &mut reader);
+                        runtime.debug = compiler.debug;
                         runtime.load_stack(globals);
 
                         let res = program.run(&mut runtime);
@@ -62,6 +63,7 @@ pub fn repl() {
 
                             let mut reader = Reader::new(Box::new(BufReader::new(file)));
                             let mut runtime = Runtime::new(&program, &mut reader);
+                            runtime.debug = compiler.debug;
                             runtime.load_stack(globals);
 
                             let res = program.run(&mut runtime);

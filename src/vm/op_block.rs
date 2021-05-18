@@ -13,193 +13,77 @@ the generated parse tree automatically until no more input can be consumed.
 
 #[derive(Debug)]
 pub struct Block {
-    leftrec: bool,
-    all_leftrec: bool,
-    items: Vec<(Op, bool)>,
+    items: Vec<Op>,
 }
 
 impl Block {
     pub fn new(items: Vec<Op>) -> Op {
-        Self {
-            items: items.into_iter().map(|item| (item, false)).collect(),
-            all_leftrec: false,
-            leftrec: false,
-        }
-        .into_op()
+        Self { items: items }.into_op()
     }
 }
 
 impl Runable for Block {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        // Internal Block run function
-        fn run(block: &Block, context: &mut Context, leftrec: bool) -> Result<Accept, Reject> {
-            let mut res = Ok(Accept::Next);
-            let reader_start = context.runtime.reader.tell();
+        let mut result = Ok(Accept::Next);
+        let reader_start = context.runtime.reader.tell();
 
-            for (item, item_leftrec) in &block.items {
-                // Skip over branches which don't match leftrec configuration
-                if *item_leftrec != leftrec {
-                    continue;
-                }
+        for alt in self.items.iter() {
+            result = alt.run(context);
 
-                res = item.run(context);
-
-                // Generally break on anything which is not Next.
-                if !matches!(&res, Ok(Accept::Next) | Err(Reject::Next)) {
-                    // Push only accepts when input was consumed, otherwise the
-                    // push value is just discarded, except for the last item
-                    // being executed.
-                    if let Ok(Accept::Push(_)) = res {
-                        // No consuming, no breaking!
-                        if context.runtime.reader.capture_from(&reader_start).len() == 0 {
-                            continue;
-                        }
+            // Generally break on anything which is not Next.
+            if !matches!(&result, Ok(Accept::Next) | Err(Reject::Next)) {
+                // Push only accepts when input was consumed, otherwise the
+                // push value is just discarded, except for the last item
+                // being executed.
+                if let Ok(Accept::Push(_)) = result {
+                    // No consuming, no breaking!
+                    if reader_start == context.runtime.reader.tell() {
+                        continue;
                     }
-
-                    break;
                 }
-            }
 
-            res
+                break;
+            }
         }
 
-        // Create a unique block id from the Block's address
-        let id = self as *const Block as usize;
+        result
+    }
 
-        // Check for an existing memo-entry, and return it in case of a match
-        if let Some((reader_end, result)) =
-            context.runtime.memo.get(&(context.reader_start.offset, id))
-        {
-            context.runtime.reader.reset(*reader_end);
-            return result.clone();
-        }
-
-        if self.leftrec {
-            //println!("Leftrec {:?}", self);
-
-            // Left-recursive blocks are called in a loop until no more input
-            // is consumed.
-
-            let mut reader_end = context.reader_start;
-            let mut result = if self.all_leftrec {
-                Ok(Accept::Next)
-            } else {
-                Err(Reject::Next)
-            };
-
-            // Insert a fake memo entry to avoid endless recursion
-
-            /* info: removing this fake entry does not affect program run!
-            This is because of the leftrec parameter to internal run(),
-            which only accepts non-left-recursive calls on the first run.
-            As an additional fuse, this fake memo entry should anyway be kept.
-            */
-            context.runtime.memo.insert(
-                (context.reader_start.offset, id),
-                (reader_end, result.clone()),
-            );
-
-            let mut loops = 0;
-
-            loop {
-                let res = run(self, context, self.all_leftrec || loops > 0);
-
-                match res {
-                    // Hard reject
-                    Err(Reject::Main) | Err(Reject::Error(_)) => return res,
-
-                    // Soft reject
-                    Err(_) => {
-                        if loops == 0 {
-                            return res;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    _ => {}
-                }
-
-                let pos = context.runtime.reader.tell();
-
-                // Stop also when no more input was consumed
-                if pos.offset <= reader_end.offset {
-                    break;
-                }
-
-                result = res;
-
-                // Save intermediate result in memo table
-                reader_end = pos;
-                context.runtime.memo.insert(
-                    (context.reader_start.offset, id),
-                    (reader_end, result.clone()),
-                );
-
-                // Reset reader & stack
-                context.runtime.reader.reset(context.reader_start);
-                context.runtime.stack.truncate(context.stack_start);
-                context
-                    .runtime
-                    .stack
-                    .resize(context.capture_start + 1, Capture::Empty);
-
-                loops += 1;
-            }
-
-            context.runtime.reader.reset(reader_end);
-            result
-        } else {
-            // Non-left-recursive block can be called directly.
-            run(self, context, false)
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+        for alt in self.items.iter_mut() {
+            alt.resolve(usages);
         }
     }
 
     fn finalize(
         &mut self,
-        usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    ) {
-        *nullable = false;
-        self.all_leftrec = true;
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        let mut any_leftrec = false;
+        let mut any_nullable = false;
+        let mut consumes = false;
 
-        for (item, item_leftrec) in self.items.iter_mut() {
-            item.replace_usage(usages);
+        for alt in self.items.iter_mut() {
+            if let Some((leftrec, nullable)) = alt.finalize(statics, stack) {
+                any_leftrec |= leftrec;
+                any_nullable |= nullable;
 
-            *item_leftrec = false;
-            let mut item_nullable = true;
-
-            item.finalize(
-                usages,
-                statics,
-                Some(item_leftrec),
-                &mut item_nullable,
-                consumes,
-            );
-
-            if item_nullable {
-                *nullable = true;
-            }
-
-            if *item_leftrec {
-                self.leftrec = true;
-            } else {
-                self.all_leftrec = false;
+                consumes = true;
             }
         }
 
-        if let Some(leftrec) = leftrec {
-            *leftrec = self.leftrec;
+        if consumes {
+            Some((any_leftrec, any_nullable))
+        } else {
+            None
         }
     }
 }
 
 impl std::fmt::Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (item, _) in &self.items {
+        for item in &self.items {
             write!(f, "{}\n", item)?;
         }
 

@@ -11,11 +11,11 @@ This is how Tokay greets the world
 print("Hello World")
 ```
 
-Tokay can also first match the world, and then greets it... or any other planet?
+Tokay can also first match the world, and then greet to it... or any other planet?
 
 ```tokay
-'World' print("Hello World")
-'Mars' print("Hello Mars")
+'World' print("Hello Earth")
+planet => Name print("Hello " + $planet)
 ```
 
 Tokay is designed as a programming language for ad-hoc parsers with build-in abstract-syntax tree synthesis. This example directly implements a left-recursive parser for simple mathematical expressions. It slightly looks like a BNF-grammar, but this is exactly what Tokay is meant to be. //Integer// is a built-in matching arbitrary integer numbers from a stream and pushing them as 64-bit signed integer values.

@@ -23,19 +23,20 @@ pub use program::*;
 pub use vm::*;
 
 pub trait Runable: std::fmt::Debug + std::fmt::Display {
+    // Run that runable...
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;
 
-    /** Finalize resolved usages and implement grammar view flags;
+    /** Resolve any unresolved Usages. */
+    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>);
+
+    /** Finalize program regarding grammar view flags;
     This function is called from top of each parselet to detect
-    both left-recursive and nullable (=no input consuming) structures. */
+    both left-recursive and nullable behaviors. */
     fn finalize(
         &mut self,
-        usages: &mut Vec<Vec<Op>>,
         statics: &Vec<RefValue>,
-        leftrec: Option<&mut bool>,
-        nullable: &mut bool,
-        consumes: &mut bool,
-    );
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)>;
 
     /** Convert parser object into boxed dyn Parser Op */
     fn into_op(self) -> Op
