@@ -50,8 +50,8 @@ Syntax is under careful consideration.
 - [ ] Missing traversals for
   - [x] Comparison operators
   - [x] In-place increment and decrement `a++`, `++a`
-  - [ ] while-loops
   - [ ] for-loops
+  - [ ] while-loops
   - [ ] break and continue
   - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
 
@@ -83,6 +83,10 @@ Syntax is under careful consideration.
 - [ ] Tests for expect
 - [ ] Tests for peek
 - [ ] Tests for not
+- [ ] Lists
+- [ ] Dicts
+- [ ] Sequences with aliases
+- [ ] Sequences with aliases and normal items
 
 ## Bugs
 

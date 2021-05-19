@@ -197,7 +197,7 @@ impl Parser {
         (Atomic = {
             ["(", _, Expression, ")", _], // no expect ")" here!
             ["(", _, (pos [Expression, (opt [",", _])]), ")", _, // no expect ")" here!
-                (call collect[(value "list")])],
+                (call collect[(value "collection")])],
             ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"), _,
                 (call collect[(value "collection")])],
             Literal,
@@ -260,7 +260,7 @@ impl Parser {
 
             // for
             ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call collect[(value "op_for_in")])],
-            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, StatementOrVoid, (call collect[(value "op_for")])],
+            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _, StatementOrVoid, (call collect[(value "op_for")])],
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // assignment
@@ -331,8 +331,10 @@ impl Parser {
         // Instructions
 
         (Instruction = {
-            ["begin", _, Statement, (call collect[(value "begin")])],
-            ["end", _, Statement, (call collect[(value "end")])],
+            ["begin", _, Block, (call collect[(value "begin")])],
+            ["begin", _, Statement, (expect T_EOL), (call collect[(value "begin")])],
+            ["end", _, Block, (call collect[(value "end")])],
+            ["end", _, Statement, (expect T_EOL), (call collect[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
                 (call collect[(value "constant")])],

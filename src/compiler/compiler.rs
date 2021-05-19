@@ -1041,6 +1041,10 @@ impl Compiler {
 
                 //println!("{} : {:?}", ident, value);
                 self.set_constant(ident, value);
+
+                // Try to resolve usage of newly introduced constant in current scope
+                self.resolve_scope();
+
                 TraversalResult::Empty
             }
 

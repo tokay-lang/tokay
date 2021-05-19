@@ -167,11 +167,6 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             )
         } else {
             self.runtime.stack[self.capture_start + pos].degrade();
-            println!(
-                "get {} => {:?}",
-                pos,
-                &self.runtime.stack[self.capture_start + pos]
-            );
             Some(self.runtime.stack[self.capture_start + pos].as_value(&self.runtime))
         }
     }
