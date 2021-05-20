@@ -1,6 +1,7 @@
 use std::cell::RefCell;
+use std::fs::File;
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{self, BufReader, Read};
 use std::rc::Rc;
 
 use super::*;
@@ -57,7 +58,6 @@ impl Program {
     pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Error> {
         let mut reader = Reader::new(Box::new(BufReader::new(read)));
         let mut runtime = Runtime::new(&self, &mut reader);
-        runtime.debug = true;
 
         let ret = self.run(&mut runtime);
 
@@ -71,5 +71,18 @@ impl Program {
 
     pub fn run_from_str(&self, s: &'static str) -> Result<Option<RefValue>, Error> {
         self.run_from_reader(std::io::Cursor::new(s))
+    }
+
+    pub fn run_from_file(&self, filename: &str) -> Result<Option<RefValue>, Error> {
+        if filename == "-" {
+            self.run_from_reader(BufReader::new(io::stdin()))
+        } else if let Ok(file) = File::open(filename) {
+            self.run_from_reader(BufReader::new(file))
+        } else {
+            Err(Error::new(
+                None,
+                format!("File '{}' cannot be read", filename),
+            ))
+        }
     }
 }

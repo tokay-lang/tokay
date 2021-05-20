@@ -1,6 +1,7 @@
 [package]
 name = "tokay"
 version = "0.3.0"
+description = "Tokay, a programming language dedicated to parsing and text-processing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 edition = "2018"
 
@@ -11,3 +12,4 @@ default = ["static_expression_evaluation"]
 static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
 
 [dependencies]
+clap = { version = "2", features = ["yaml"] }
