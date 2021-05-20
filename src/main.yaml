@@ -1,4 +1,15 @@
-name: tokay
+name: Tokay
+template: |
+    {bin} {version}
+    Copyright (C) 2021 by {author}
+
+    {about}
+
+    {all-args}
+
+    When no arguments are specified, {bin} turns into an interactive REPL.
+    Visit https://tokay.dev for help and further information.
+    {bin} is free software released under the MIT license.
 args:
     - file:
         help: Use program specified in file
@@ -16,3 +27,6 @@ args:
         short: d
         multiple: true
         help: Sets the debug level
+    - license:
+        short: l
+        help: Show license agreement and exit

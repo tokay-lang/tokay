@@ -1,25 +1,35 @@
 use ::tokay::compiler::Compiler;
 use ::tokay::reader::Reader;
 use ::tokay::repl::repl;
-use ::tokay::vm::Runtime;
 
 #[macro_use]
 extern crate clap;
 use clap::App;
 
 use std::fs::File;
-use std::io::{self, BufReader, Write};
+use std::io::BufReader;
+
+fn print_version() {
+    println!("Tokay {}", env!("CARGO_PKG_VERSION"));
+}
 
 fn main() {
     let yaml = load_yaml!("main.yaml");
     let opts = App::from(yaml)
+        .bin_name(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
         .author(crate_authors!("\n"))
         .get_matches();
     //println!("opts = {:?}", opts);
 
-    let debug = opts.occurrences_of("v");
+    let debug = opts.occurrences_of("debug"); // todo: Not used yet.
+
+    if opts.is_present("license") {
+        print_version();
+        println!("{}", include_str!("../LICENSE"));
+        std::process::exit(0);
+    }
 
     // Try getting program from argument or file
     let mut program = None;
@@ -47,41 +57,29 @@ fn main() {
 
         if let Some(program) = compiler.compile(program) {
             if let Some(files) = files {
-                for file in &files {
-                    match program.run_from_file(file) {
-                        Ok(value) => {
-                            if let Some(value) = value {
-                                if files.len() > 1 {
-                                    println!("{}: {}", file, value.borrow());
-                                } else {
-                                    println!("{}", value.borrow())
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            if files.len() > 1 {
-                                println!("{}: {}", file, error);
-                            } else {
-                                println!("{}", error);
-                            }
-                        }
+                for filename in &files {
+                    let ret = program.run_from_file(filename);
+
+                    if files.len() > 1 {
+                        print!("{}: ", filename);
+                    }
+
+                    match ret {
+                        Ok(None) => print!("\n"),
+                        Ok(Some(value)) => println!("{}", value.borrow()),
+                        Err(error) => println!("{}", error),
                     }
                 }
             } else {
                 match program.run_from_str("") {
-                    Ok(value) => {
-                        if let Some(value) = value {
-                            println!("{}", value.borrow())
-                        }
-                    }
-                    Err(error) => {
-                        println!("{}", error);
-                    }
+                    Ok(None) => {}
+                    Ok(Some(value)) => println!("{}", value.borrow()),
+                    Err(error) => println!("{}", error),
                 }
             }
         }
     } else {
-        println!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-        repl();
+        print_version();
+        repl(files);
     }
 }

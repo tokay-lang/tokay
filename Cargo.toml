@@ -1,11 +1,12 @@
 [package]
 name = "tokay"
 version = "0.3.0"
-description = "Tokay, a programming language dedicated to parsing and text-processing."
+description = "Tokay is a programming language dedicated to parsing and text-processing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
+homepage = "https://tokay.dev/"
+repository = "https://github.com/phorward/tokay/"
+license = "MIT"
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = ["static_expression_evaluation"]
