@@ -139,6 +139,25 @@ fn test_expression() {
             true, true, false, false, true, true, false, false, true, false, false, true
         ])))
     );
+
+    // Logical AND and OR
+    assert_eq!(
+        compile_and_run(
+            "\
+            true && true \
+            true && false \
+            true || false \
+            false || true \
+            \
+            false || true && true \
+            false || false && true \
+            false && false
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!([true, false, true, true, true, false, false])))
+    );
 }
 
 #[test]

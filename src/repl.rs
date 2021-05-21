@@ -74,7 +74,11 @@ pub fn repl(files: Option<Vec<&str>>) {
                             }
 
                             match ret {
-                                Ok(None) => print!("\n"),
+                                Ok(None) => {
+                                    if files.len() > 1 {
+                                        print!("\n")
+                                    }
+                                }
                                 Ok(Some(value)) => println!("{}", value.borrow()),
                                 Err(error) => println!("{}", error),
                             }

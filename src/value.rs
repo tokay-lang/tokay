@@ -471,7 +471,7 @@ impl Value {
         match self {
             Value::Token(_) => true,
             Value::Builtin(addr) => builtin::is_consumable(*addr),
-            Value::Parselet(parselet) => parselet.borrow().consumes,
+            Value::Parselet(parselet) => parselet.borrow().consuming,
             _ => false,
         }
     }

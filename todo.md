@@ -23,23 +23,23 @@ This is a recently updated brainstorming and todo scribble file.
 Syntax is under careful consideration.
 
 - [x] Implementation of Lists `(a, b, c)` and Dicts `(a => b, c => d)`
+  - [ ] instead of `=>`, consider to use `>>` and `<<` syntax to allow for key-value or value-key notation; This might be useful, e.g. when in sequences `Integer << i` rather than `i >> Integer`, but `a -> b` in a dict...
 - [ ] Missing expressional constructs
-  - [ ] Assignment operations `+=`, `-=`, `*=`, `/=`
-  - [ ] `&&` and `||`
+  - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
+  - [x] `&&` and `||`
   - [ ] `&` and `|`
-  - [ ] `^`
+  - [ ] `^` (pow)
 - [ ] Loops with value collection using `continue` and `break`
 - [x] Sequence item aliasing: `a x => b c $2 $x $1
 - Token call modifiers
-  - [ ] How to distinguish token symbolic constants?
-  - [ ] `expect` keyword
-  - [ ] `not` keyword
-  - [ ] `peek` keyword
-  - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work
+  - [x] `expect` keyword
+  - [x] `not` keyword
+  - [x] `peek` keyword
+  - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work (syntax is ugly)
 - [x] Definition of Chars tokens `[A-Za-z_]` etc...
-- [ ] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
-- [ ] Implement `...` backticks for shell command values
-  - [ ] Operators `>>` and `<<` for shell command read/write?
+- [!] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
+- [ ] Implement `ls -ltra` backticks (`) for shell command values
+  - [ ] Operators `|>` and `<|` for shell command read/write?
 - [ ] until-Operator?
 - [ ] *deref-Operator?
 - [ ] Parselets should allow for *args and **nargs catchall

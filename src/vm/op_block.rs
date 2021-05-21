@@ -6,9 +6,6 @@ use crate::value::RefValue;
 A block parser defines either an alternation of sequences or a grouped sequence
 of VM instructions. The compiler has to guarantee for correct usage of the block
 parser.
-
-Block parsers support static program constructs being left-recursive, and extend
-the generated parse tree automatically until no more input can be consumed.
 */
 
 #[derive(Debug)]

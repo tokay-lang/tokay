@@ -89,6 +89,9 @@ pub enum Op {
     Lower,        // Compare for lowerness (< operator)
     Greater,      // Compare for greaterness (> operator)
 
+    LogicalAnd, // Logical and (&& operator)
+    LogicalOr,  // Logical or (|| operator)
+
     // Flow
     If(Box<(Op, Option<Op>)>),
 }
@@ -458,7 +461,9 @@ impl Runable for Op {
             | Op::LowerEqual
             | Op::GreaterEqual
             | Op::Lower
-            | Op::Greater => {
+            | Op::Greater
+            | Op::LogicalAnd
+            | Op::LogicalOr => {
                 let b = context.pop();
                 let a = context.pop();
 
@@ -475,6 +480,8 @@ impl Runable for Op {
                     Op::GreaterEqual => &*a.borrow() >= &*b.borrow(),
                     Op::Lower => &*a.borrow() < &*b.borrow(),
                     Op::Greater => &*a.borrow() > &*b.borrow(),
+                    Op::LogicalAnd => a.borrow().is_true() && b.borrow().is_true(),
+                    Op::LogicalOr => a.borrow().is_true() || b.borrow().is_true(),
 
                     _ => unimplemented!("Unimplemented operator"),
                 };
@@ -576,7 +583,7 @@ impl Runable for Op {
                     Value::Parselet(parselet) => {
                         if stack.len() > 0 {
                             if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                if !parselet.consumes {
+                                if !parselet.consuming {
                                     return None;
                                 }
 

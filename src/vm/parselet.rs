@@ -10,15 +10,19 @@ use crate::value::{Dict, Value};
 A parselet is like a function in ordinary programming languages, with the
 exception that it can either be a snippet of parsing instructions combined with
 semantic code, or just an ordinary function consisting of code and returning
-values. In general, the destinction if a parselet is a just a function or "more"
-can only be made by looking at the parselets instruction set.
+values. The destinction if a parselet represents just a function or a parselet is
+done by the consuming-flag, which is determined by use of static tokens, parselets
+and consuming builtins.
+
+Parselets support static program constructs being left-recursive, and extend
+the generated parse tree automatically until no more input can be consumed.
 */
 
 #[derive(Debug)]
 pub struct Parselet {
     pub(crate) leftrec: bool, // Indicator if parselet is left-recursive. Determined on finalization.
     pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
-    pub(crate) consumes: bool, /* Indicator if parselet is consuming input.
+    pub(crate) consuming: bool, /* Indicator if parselet is consuming input.
                               This can both be set on creation and additionally is determined
                               during finalization. */
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
@@ -36,7 +40,7 @@ impl Parselet {
         name: Option<String>,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
-        consumes: bool,
+        consuming: bool,
         silent: bool,
         begin: Op,
         end: Op,
@@ -51,7 +55,7 @@ impl Parselet {
             name,
             leftrec: false,
             nullable: true,
-            consumes,
+            consuming,
             silent,
             signature,
             locals,
@@ -103,7 +107,7 @@ impl Parselet {
                         parselet.resolve(&mut usages);
                     }
 
-                    if !parselet.consumes {
+                    if !parselet.consuming {
                         continue;
                     }
 
@@ -119,8 +123,8 @@ impl Parselet {
                             changes = true;
                         }
 
-                        if !parselet.consumes {
-                            parselet.consumes = true;
+                        if !parselet.consuming {
+                            parselet.consuming = true;
                             changes = true;
                         }
                     }
@@ -135,9 +139,9 @@ impl Parselet {
             if let Value::Parselet(parselet) = &*statics[i].borrow() {
                 let parselet = parselet.borrow();
                 println!(
-                    "{} consumes={} leftrec={} nullable={}",
+                    "{} consuming={} leftrec={} nullable={}",
                     parselet.name.as_deref().unwrap_or("(unnamed)"),
-                    parselet.consumes,
+                    parselet.consuming,
                     parselet.leftrec,
                     parselet.nullable
                 );
@@ -321,7 +325,7 @@ impl Parselet {
         // Check for a previously memoized result in memo table
         let id = self as *const Parselet as usize;
 
-        if !main && self.consumes {
+        if !main && self.consuming {
             // Get unique parselet id from memory address
             let reader_start = runtime.reader.tell();
 
@@ -403,7 +407,7 @@ impl Parselet {
         //println!("remaining {:?}", nargs);
 
         // Check for an existing memo-entry, and return it in case of a match
-        if !main && self.consumes {
+        if !main && self.consuming {
             if self.leftrec {
                 /*
                 println!(
@@ -473,7 +477,7 @@ impl Parselet {
 
         let result = self._run(&mut context, main);
 
-        if !main && self.consumes {
+        if !main && self.consuming {
             context.runtime.memo.insert(
                 (context.reader_start.offset, id),
                 (context.runtime.reader.tell(), result.clone()),

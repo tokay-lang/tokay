@@ -37,7 +37,7 @@ impl TraversalResult {
 
                 vec![if call && inner.is_callable(false) {
                     if let Value::Token(_) = &*inner {
-                        compiler.scopes[0].consumes = true;
+                        compiler.scopes[0].consuming = true;
                     }
 
                     Op::CallStatic(compiler.define_static(value.clone()))
@@ -86,7 +86,7 @@ pub(crate) struct Scope {
     begin: Vec<Op>,     // Begin operations; Can only be set for parselet-scopes
     end: Vec<Op>,       // End operations; Can only be set for parselet-scopes
     usage_start: usize, // Begin of usages to resolve until when scope is closed
-    consumes: bool, // Determines whether the scope consumes input for early consumable detection
+    consuming: bool, // Determines whether the scope is consuming input for early consumable detection
 }
 
 /** Tokay compiler instance, with related objects. */
@@ -248,7 +248,7 @@ impl Compiler {
                 begin: Vec::new(),
                 end: Vec::new(),
                 usage_start: self.usages.len(),
-                consumes: false,
+                consuming: false,
             },
         );
     }
@@ -286,8 +286,8 @@ impl Compiler {
         let scope = self.scopes.remove(0);
 
         // Inherit consumable attribute to upper scope when this is not a variable-holding scope
-        if scope.consumes && self.scopes.len() > 0 && self.scopes[0].variables.is_none() {
-            self.scopes[0].consumes = true;
+        if scope.consuming && self.scopes.len() > 0 && self.scopes[0].variables.is_none() {
+            self.scopes[0].consuming = true;
         }
 
         scope
@@ -299,7 +299,7 @@ impl Compiler {
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: Op,
-        consumes: Option<bool>,
+        consuming: Option<bool>,
         silent: bool,
         main: bool,
     ) -> Parselet {
@@ -316,7 +316,7 @@ impl Compiler {
                     .variables
                     .as_ref()
                     .map_or(0, |vars| vars.len()),
-                consumes.unwrap_or(self.scopes[0].consumes),
+                consuming.unwrap_or(self.scopes[0].consuming),
                 silent,
                 Op::from_vec(self.scopes[0].begin.drain(..).collect()),
                 Op::from_vec(self.scopes[0].end.drain(..).collect()),
@@ -330,7 +330,7 @@ impl Compiler {
                         name,
                         sig,
                         scope.variables.map_or(0, |vars| vars.len()),
-                        consumes.unwrap_or(scope.consumes),
+                        consuming.unwrap_or(scope.consuming),
                         silent,
                         Op::from_vec(scope.begin),
                         Op::from_vec(scope.end),
@@ -1168,7 +1168,7 @@ impl Compiler {
                         let ident = ident.get_dict().unwrap().borrow_by_key("value");
 
                         if Self::identifier_is_consumable(ident.get_string().unwrap()) {
-                            self.scopes[0].consumes = true;
+                            self.scopes[0].consuming = true;
                         }
 
                         Usage::Call {
@@ -1298,7 +1298,7 @@ impl Compiler {
                         }
                     }
 
-                    "compare" => {
+                    "compare" | "logical" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
                         assert_eq!(children.len(), 2);
@@ -1319,6 +1319,8 @@ impl Compiler {
                                     "greaterequal" => &*left.borrow() >= &*right.borrow(),
                                     "lower" => &*left.borrow() < &*right.borrow(),
                                     "greater" => &*left.borrow() > &*right.borrow(),
+                                    "and" => left.borrow().is_true() && right.borrow().is_true(),
+                                    "or" => left.borrow().is_true() || right.borrow().is_true(),
                                     _ => {
                                         unimplemented!("op_compare_{}", parts[2]);
                                     }
@@ -1341,6 +1343,8 @@ impl Compiler {
                             "greaterequal" => Op::GreaterEqual,
                             "lower" => Op::Lower,
                             "greater" => Op::Greater,
+                            "and" => Op::LogicalAnd,
+                            "or" => Op::LogicalOr,
                             _ => {
                                 unimplemented!("op_compare_{}", parts[2]);
                             }

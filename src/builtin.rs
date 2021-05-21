@@ -363,6 +363,6 @@ pub fn call(
 pub fn is_callable(builtin: usize, with_arguments: bool) -> bool {
     let builtin = &BUILTINS[builtin];
 
-    (!with_arguments && builtin.1 == 0 && !builtin.2)
+    (!with_arguments && builtin.1 < 0 || (builtin.1 == 0 && !builtin.2))
         || with_arguments && (builtin.1 != 0 || builtin.2)
 }

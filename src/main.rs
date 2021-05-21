@@ -65,7 +65,11 @@ fn main() {
                     }
 
                     match ret {
-                        Ok(None) => print!("\n"),
+                        Ok(None) => {
+                            if files.len() > 0 {
+                                print!("\n")
+                            }
+                        }
                         Ok(Some(value)) => println!("{}", value.borrow()),
                         Err(error) => println!("{}", error),
                     }

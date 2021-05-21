@@ -241,7 +241,16 @@ impl Parser {
             AddSub
         }),
 
-        // todo: && and ||
+        (LogicalAnd = {
+            [LogicalAnd, "&&", _, (expect Compare), (call collect[(value "op_logical_and")])],
+            Compare
+        }),
+
+        (LogicalOr = {
+            [LogicalOr, "||", _, (expect LogicalAnd), (call collect[(value "op_logical_or")])],
+            LogicalAnd
+        }),
+
 
         (Assign = {
             [Lvalue, "=", _, Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
@@ -270,8 +279,8 @@ impl Parser {
             [Lvalue, "*=", _, Expression, (call collect[(value "assign_mul_hold")])],
             [Lvalue, "/=", _, Expression, (call collect[(value "assign_div_hold")])],
 
-            // normal comparison
-            Compare
+            // normal expression starting with LogicalOr
+            LogicalOr
         }),
 
         (StatementOrVoid = {
