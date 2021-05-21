@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
+use crate::error::Error;
 use crate::value::{Dict, Value};
 
 /** Parselet is the conceptual building block of a Tokay program.
@@ -147,6 +148,14 @@ impl Parselet {
         */
 
         loops
+    }
+
+    // Checks if parselet is callable with or without arguments
+    pub(crate) fn is_callable(&self, with_arguments: bool) -> bool {
+        // Either without arguments and signature is empty or all arguments have default values
+        (!with_arguments && (self.signature.len() == 0 || self.signature.iter().all(|arg| arg.1.is_some())))
+        // or with arguments and signature exists
+            || (with_arguments && self.signature.len() > 0)
     }
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
@@ -330,27 +339,65 @@ impl Parselet {
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
         );
 
-        if !main {
-            // Set remaining parameters to their defaults.
-            for (i, arg) in (&self.signature[args..]).iter().enumerate() {
-                let var = &mut context.runtime.stack[context.stack_start + args + i];
-                if matches!(var, Capture::Empty) {
-                    // Try to fill argument by named arguments dict
-                    if let Some(ref mut nargs) = nargs {
-                        if let Some(value) = nargs.remove(&arg.0) {
-                            *var = Capture::from_value(value.clone());
-                            continue;
-                        }
-                    }
+        if main {
+            assert!(self.signature.len() == 0)
+        }
 
-                    if let Some(addr) = arg.1 {
-                        *var = Capture::from_value(context.runtime.program.statics[addr].clone());
-                        //println!("{} receives default {:?}", arg.0, var);
+        // Check for provided argument count bounds first
+        // todo: Not executed when *args-catchall is implemented
+        if args > self.signature.len() {
+            return Error::new(
+                None,
+                format!(
+                    "Too many parameters, {} possible, {} provided",
+                    self.signature.len(),
+                    args
+                ),
+            )
+            .into_reject();
+        }
+
+        // Set remaining parameters to their defaults
+        for (i, arg) in (&self.signature[args..]).iter().enumerate() {
+            let var = &mut context.runtime.stack[context.stack_start + args + i];
+            //println!("{} {:?} {:?}", i, arg, var);
+            if matches!(var, Capture::Empty) {
+                // Try to fill argument by named arguments dict
+                if let Some(ref mut nargs) = nargs {
+                    if let Some(value) = nargs.remove(&arg.0) {
+                        *var = Capture::from_value(value.clone());
+                        continue;
                     }
                 }
+
+                if let Some(addr) = arg.1 {
+                    *var = Capture::from_value(context.runtime.program.statics[addr].clone());
+                    //println!("{} receives default {:?}", arg.0, var);
+                    continue;
+                }
+
+                return Error::new(None, format!("Parameter '{}' required", arg.0)).into_reject();
             }
-        } else {
-            assert!(self.signature.len() == 0)
+        }
+
+        // Check for remaining nargs
+        // todo: Not executed when **nargs-catchall is implemented
+        if let Some(nargs) = nargs {
+            if let Some(narg) = nargs.iter().next() {
+                return Error::new(
+                    None,
+                    format!("Parameter '{}' provided to call but not used", narg.0),
+                )
+                .into_reject();
+            }
+        }
+
+        // Initialize locals
+        for i in 0..self.locals {
+            if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
+                context.runtime.stack[context.stack_start + i] =
+                    Capture::Value(Value::Void.into_refvalue(), 10);
+            }
         }
 
         //println!("remaining {:?}", nargs);

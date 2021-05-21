@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::Error;
 use crate::reader::Offset;
 use crate::vm::*;
 
@@ -22,10 +23,12 @@ pub enum Usage {
         nargs: usize,
         offset: Option<Offset>,
     },
+    // Error during resolve
+    Error(Error),
 }
 
 impl Usage {
-    pub(super) fn try_resolve(&self, compiler: &mut Compiler) -> Option<Vec<Op>> {
+    pub(super) fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<Op>> {
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
@@ -39,9 +42,7 @@ impl Usage {
 
             Usage::CallOrCopy { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    // fixme: This should check if the static is callable
-                    //        without parameters!
-                    if value.borrow().is_callable(0, 0) {
+                    if value.borrow().is_callable(false) {
                         return Some(vec![Op::CallStatic(compiler.define_static(value))]);
                     } else {
                         return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
@@ -57,13 +58,11 @@ impl Usage {
                 name,
                 args,
                 nargs,
-                offset: _,
+                offset,
             } => {
                 // Resolve constants
                 if let Some(value) = compiler.get_constant(&name) {
-                    // fixme: This should check if the static is callable
-                    //        without parameters!
-                    if value.borrow().is_callable(*args, *nargs) {
+                    if value.borrow().is_callable(*args > 0 || *nargs > 0) {
                         let addr = compiler.define_static(value);
 
                         if *args == 0 && *nargs == 0 {
@@ -76,6 +75,11 @@ impl Usage {
                             Op::MakeDict(*nargs),
                             Op::CallStaticArgNamed(Box::new((addr, *args))),
                         ]);
+                    } else {
+                        *self = Usage::Error(Error::new(
+                            *offset,
+                            format!("Call to '{}' doesn't accept any arguments", name),
+                        ));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if *args == 0 && *nargs == 0 {
@@ -103,14 +107,15 @@ impl Usage {
                     ]);
                 }
             }
+
+            Usage::Error(_) => {}
         }
 
         None
     }
 
-    pub fn resolve_or_dispose(self, compiler: &mut Compiler) -> Vec<Op> {
+    pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> Vec<Op> {
         if let Some(res) = self.try_resolve(compiler) {
-            //println!("Resolved {:?} into {:?}", self, res);
             res
         } else {
             compiler.usages.push(Err(self));

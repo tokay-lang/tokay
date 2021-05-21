@@ -446,13 +446,12 @@ impl Value {
         }
     }
 
-    // Check whether a value is callable
-    pub fn is_callable(&self, _args: usize, _nargs: usize) -> bool {
-        // fixme: this is under construction...
+    // Check whether a value is callable, and if its callable with or without arguments.
+    pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
-            Value::Token(_) => true,    // fixme
-            Value::Builtin(_) => true,  // fixme
-            Value::Parselet(_) => true, // fixme
+            Value::Token(_) => !with_arguments,
+            Value::Builtin(builtin) => builtin::is_callable(*builtin, with_arguments),
+            Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
             _ => false,
         }
     }
@@ -485,7 +484,10 @@ impl Value {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         match self {
-            Value::Token(token) => token.read(context.runtime.reader),
+            Value::Token(token) => {
+                assert!(args == 0 && nargs.is_none());
+                token.read(context.runtime.reader)
+            }
             Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
             _ => Error::new(None, format!("Value {} cannot be called", self.repr())).into_reject(),

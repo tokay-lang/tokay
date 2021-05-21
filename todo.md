@@ -42,6 +42,7 @@ Syntax is under careful consideration.
   - [ ] Operators `>>` and `<<` for shell command read/write?
 - [ ] until-Operator?
 - [ ] *deref-Operator?
+- [ ] Parselets should allow for *args and **nargs catchall
 
 ## Compiler
 

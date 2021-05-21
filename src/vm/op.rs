@@ -147,7 +147,7 @@ impl Runable for Op {
             Op::CallOrCopy => {
                 let value = context.pop();
                 let value = value.borrow();
-                if value.is_callable(0, 0) {
+                if value.is_callable(false) {
                     value.call(context, 0, None)
                 } else {
                     Ok(Accept::Push(Capture::Value(

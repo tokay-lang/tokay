@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::BufReader;
 
 use super::*;
@@ -35,7 +35,7 @@ impl TraversalResult {
             TraversalResult::Value(value) => {
                 let inner = value.borrow();
 
-                vec![if call && inner.is_callable(0, 0) {
+                vec![if call && inner.is_callable(false) {
                     if let Value::Token(_) = &*inner {
                         compiler.scopes[0].consumes = true;
                     }
@@ -65,7 +65,7 @@ impl TraversalResult {
     fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
             if let TraversalResult::Value(value) = self {
-                if !value.borrow().is_callable(0, 0) {
+                if !value.borrow().is_callable(false) {
                     return Ok(value.clone());
                 }
             }
@@ -210,6 +210,8 @@ impl Compiler {
                             } => {
                                 Error::new(offset, format!("Call to unresolved symbol '{}'", name))
                             }
+
+                            Usage::Error(error) => error,
                         };
 
                         errors.push(error);
@@ -260,7 +262,7 @@ impl Compiler {
         // Afterwards, resolve and insert them again
         for usage in usages.into_iter() {
             match usage {
-                Err(usage) => {
+                Err(mut usage) => {
                     if let Some(res) = usage.try_resolve(self) {
                         self.usages.push(Ok(res))
                     } else {
@@ -605,6 +607,7 @@ impl Compiler {
 
                 // Create signature
                 let mut sig: Vec<(String, Option<usize>)> = Vec::new();
+                let mut sig_names = HashSet::new();
 
                 if let Some(args) = args {
                     for node in args.to_list() {
@@ -616,11 +619,29 @@ impl Compiler {
                         let ident = children.borrow_by_idx(0);
                         let ident = ident.get_dict().unwrap().borrow_by_key("value").to_string();
 
-                        // fixme....
-                        assert!(
-                            ident.chars().nth(0).unwrap().is_lowercase(),
-                            "Only lower-case parameter names are allowed currently"
-                        );
+                        // Check for correct identifier semantics
+                        if !ident.chars().nth(0).unwrap().is_lowercase() {
+                            self.errors.push(
+                                Error::new(
+                                    self.traverse_node_offset(node),
+                                    format!("Variable identifier '{}' invalid; Use identifier starting in lower-case, e.g. '{}{}'",
+                                    ident, &ident[0..1].to_lowercase(), &ident[1..])
+                                )
+                            );
+                        }
+
+                        // check if identifier was not provided twice
+                        if sig_names.contains(&ident) {
+                            self.errors.push(Error::new(
+                                self.traverse_node_offset(node),
+                                format!("Identifier '{}' already given in signature before", ident),
+                            ));
+
+                            continue;
+                        } else {
+                            sig_names.insert(ident.clone());
+                        }
+
                         self.new_local(&ident);
 
                         assert!(children.len() <= 2);
@@ -634,7 +655,6 @@ impl Compiler {
                         };
 
                         sig.push((ident.clone(), default));
-
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                 }
@@ -644,6 +664,7 @@ impl Compiler {
                 // Body
                 let body = self.traverse_node(&body.get_dict().unwrap());
                 let body = Op::from_vec(body.into_ops(self, true));
+
                 self.create_parselet(None, sig, body, None, false, false)
                     .into_value()
             }
@@ -769,8 +790,8 @@ impl Compiler {
                             self.errors.push(Error::new(
                                 self.traverse_node_offset(node),
                                 format!(
-                                    "Cannot assign variable named '{}'; Use lower-case identifier.",
-                                    name
+                                    "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                                    name, name.to_lowercase()
                                 ),
                             ));
 
@@ -1024,17 +1045,17 @@ impl Compiler {
                         self.errors.push(Error::new(
                             self.traverse_node_offset(node),
                             format!(
-                                "Cannot assign constant '{}' as consumable. Use upper-case identfier.",
-                                ident
-                            ),
+                                "Cannot assign constant '{}' as consumable. Use identifier starting in upper-case, e.g. '{}{}'",
+                                ident, &ident[0..1].to_uppercase(), &ident[1..]
+                            )
                         ));
                     }
                 } else if Self::identifier_is_consumable(ident) {
                     self.errors.push(Error::new(
                         self.traverse_node_offset(node),
                         format!(
-                            "Cannot assign to constant '{}'. Use lower-case identifier.",
-                            ident
+                            "Cannot assign to constant '{}'. Use identifier starting in lower-case, e.g. '{}{}'",
+                            ident, &ident[0..1].to_lowercase(), &ident[1..]
                         ),
                     ));
                 }

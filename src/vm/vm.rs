@@ -107,13 +107,6 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             .stack
             .resize(stack_start + parselet.locals + 1, Capture::Empty);
 
-        // Initialize locals
-        for i in 0..parselet.locals {
-            if let Capture::Empty = runtime.stack[stack_start + i] {
-                runtime.stack[stack_start + i] = Capture::Value(Value::Void.into_refvalue(), 10);
-            }
-        }
-
         Self {
             stack_start,
             capture_start: stack_start + parselet.locals,
