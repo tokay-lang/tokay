@@ -29,7 +29,10 @@ pub enum Op {
 
     // Interrupts
     Skip,
+    Accept,
     LoadAccept,
+    Repeat,
+    LoadRepeat,
     Reject,
 
     // Constants
@@ -209,29 +212,23 @@ impl Runable for Op {
 
             // Execution
             Op::Skip => Err(Reject::Skip),
-
+            Op::Accept => Ok(Accept::Return(None)),
             Op::LoadAccept => {
                 let value = context.pop();
                 Ok(Accept::Return(Some(value.clone())))
             }
-
-            /*
-            Op::Accept(value) => {
-                Ok(Accept::Return(value.clone()))
-            },
-
-            Op::Repeat(value) => {
-                Ok(Accept::Repeat(value.clone()))
-            },
-            */
+            Op::Repeat => Ok(Accept::Repeat(None)),
+            Op::LoadRepeat => {
+                let value = context.pop();
+                Ok(Accept::Repeat(Some(value.clone())))
+            }
             Op::Reject => Err(Reject::Return),
 
+            // Values
             Op::LoadStatic(addr) => Ok(Accept::Push(Capture::Value(
                 context.runtime.program.statics[*addr].clone(),
                 10,
             ))),
-
-            // Values
             Op::Push0 => Ok(Accept::Push(Capture::Value(
                 Value::Integer(0).into_refvalue(), // lazy_static?
                 10,

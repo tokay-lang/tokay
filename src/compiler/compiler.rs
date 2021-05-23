@@ -1226,6 +1226,30 @@ impl Compiler {
                 let mut ops = Vec::new();
 
                 let op = match parts[1] {
+                    "accept" | "repeat" => {
+                        let children = node.borrow_by_key("children");
+
+                        match self.traverse_node(&children.get_dict().unwrap()) {
+                            TraversalResult::Value(value)
+                                if matches!(&*value.borrow(), Value::Void) =>
+                            {
+                                if parts[1] == "repeat" {
+                                    Op::Repeat
+                                } else {
+                                    Op::Accept
+                                }
+                            }
+                            result => {
+                                ops.extend(result.into_ops(self, false));
+                                if parts[1] == "repeat" {
+                                    Op::LoadRepeat
+                                } else {
+                                    Op::LoadAccept
+                                }
+                            }
+                        }
+                    }
+
                     "binary" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();
@@ -1383,15 +1407,6 @@ impl Compiler {
                         }
                     }
 
-                    "accept" | "return" => {
-                        let children = node.borrow_by_key("children");
-                        ops.extend(
-                            self.traverse_node(&children.get_dict().unwrap())
-                                .into_ops(self, false),
-                        );
-
-                        Op::LoadAccept
-                    }
                     "if" | "ifelse" => {
                         let children = node.borrow_by_key("children");
                         let children = children.get_list().unwrap();

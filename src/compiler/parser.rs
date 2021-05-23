@@ -257,6 +257,11 @@ impl Parser {
             // todo: add operators "+="", "-="", "*="", "/=" here as well
         }),
 
+        (ExpressionOrVoid = {
+            Expression,
+            (call collect[(value "value_void")])
+        }),
+
         (Expression = {
             // if
             ["if", _, Expression, Statement, "else", _, Statement, (call collect[(value "op_ifelse")])],
@@ -289,10 +294,9 @@ impl Parser {
         }),
 
         (Statement = {
-            ["return", _, Expression, (call collect[(value "op_return")])],
-            ["return", _, (call collect[(value "op_returnvoid")])],
-            ["accept", _, Expression, (call collect[(value "op_accept")])],
-            ["accept", _, (call collect[(value "op_acceptvoid")])],
+            ["accept", _, ExpressionOrVoid, (call collect[(value "op_accept")])],
+            ["return", _, ExpressionOrVoid, (call collect[(value "op_accept")])],
+            ["repeat", _, ExpressionOrVoid, (call collect[(value "op_repeat")])],
             ["reject", _, (call collect[(value "op_reject")])],
 
             // todo: report, escape, repeat

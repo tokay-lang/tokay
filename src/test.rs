@@ -293,6 +293,16 @@ fn test_parselet_leftrec() {
 }
 
 #[test]
+fn test_parselet_loop() {
+    assert_eq!(
+        compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
+        Ok(Some(value!(["a", "a", "a", "a"])))
+    );
+
+    // todo: More examples here please!
+}
+
+#[test]
 fn test_readme_examples() {
     assert_eq!(
         compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
