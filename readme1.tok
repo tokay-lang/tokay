@@ -1,19 +1,19 @@
 Factor : @{
-    Integer             collect("int")
+    Integer             ast("int")
     '(' Expr ')'
 }
 
 Term : @{
-    Term '*' Factor     collect("mul")
-    Term '/' Factor     collect("div")
+    Term '*' Factor     ast("mul")
+    Term '/' Factor     ast("div")
     Factor
 }
 
 Expr : @{
-    Expr '+' Term       collect("add")
-    Expr '-' Term       collect("sub")
+    Expr '+' Term       ast("add")
+    Expr '-' Term       ast("sub")
     Term
 }
 
 
-Expr
+ast => Expr             ast_print($ast)

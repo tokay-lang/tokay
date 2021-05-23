@@ -40,7 +40,7 @@ impl Parser {
             [
                 (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
-                (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
+                (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
@@ -48,7 +48,7 @@ impl Parser {
             [
                 (token (Token::Char(ccl!['A'..='Z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
-                (call collect[(value "identifier"), (Op::LoadFastCapture(0))])
+                (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
@@ -70,15 +70,15 @@ impl Parser {
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0'..='9']))), (call collect[(value "value_integer")])]
+            [(token (Token::Chars(ccl!['0'..='9']))), (call ast[(value "value_integer")])]
         }),
 
         (T_Float = {
             // todo: implement as built-in Parselet
             [(token (Token::Chars(ccl!['0'..='9']))), ".", (opt (token (Token::Chars(ccl!['0'..='9'])))),
-                (call collect[(value "value_float"), (Op::LoadFastCapture(0))])],
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
             [(opt (token (Token::Chars(ccl!['0'..='9'])))), ".", (token (Token::Chars(ccl!['0'..='9']))),
-                (call collect[(value "value_float"), (Op::LoadFastCapture(0))])]
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 
         // Character classes
@@ -91,26 +91,26 @@ impl Parser {
 
         (CclRange = {
             [CclChar, "-", CclChar,
-                (call collect[(value "range"), [(Op::LoadFastCapture(1)), (Op::LoadFastCapture(3)), (Op::Add)]])],
-            [CclChar, (call collect[(value "char")])]
+                (call ast[(value "range"), [(Op::LoadFastCapture(1)), (Op::LoadFastCapture(3)), (Op::Add)]])],
+            [CclChar, (call ast[(value "char")])]
         }),
 
         (Ccl = {
-            ['^', (kle CclRange), (call collect[(value "ccl_neg")])],
-            [(kle CclRange), (call collect[(value "ccl")])]
+            ['^', (kle CclRange), (call ast[(value "ccl_neg")])],
+            [(kle CclRange), (call ast[(value "ccl")])]
         }),
 
         // Statics, Variables & Constants
 
         (Tail = {
-            [".", _, T_Identifier, _, (call collect[(value "attribute")])],
-            ["[", _, Expression, "]", (call collect[(value "index")])]
+            [".", _, T_Identifier, _, (call ast[(value "attribute")])],
+            ["[", _, Expression, "]", (call ast[(value "index")])]
         }),
 
         (Capture = {
-            ["$", T_Identifier, _, (call collect[(value "capture_alias")])],
-            ["$", T_Integer, _, (call collect[(value "capture_index")])],
-            ["$", "(", _, Expression, ")", _, (call collect[(value "capture_expr")])],
+            ["$", T_Identifier, _, (call ast[(value "capture_alias")])],
+            ["$", T_Integer, _, (call ast[(value "capture_index")])],
+            ["$", "(", _, Expression, ")", _, (call ast[(value "capture_expr")])],
             ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
         }),
 
@@ -120,24 +120,24 @@ impl Parser {
         }),
 
         (Lvalue = {
-            [Variable, (kle Tail), _, (call collect[(value "lvalue")])]
+            [Variable, (kle Tail), _, (call ast[(value "lvalue")])]
         }),
 
         (Inplace = {
-            [Lvalue, "++", (call collect[(value "inplace_post_inc")])],
-            [Lvalue, "--", (call collect[(value "inplace_post_dec")])],
-            ["++", (expect Lvalue), (call collect[(value "inplace_pre_inc")])],
-            ["--", (expect Lvalue), (call collect[(value "inplace_pre_dec")])],
+            [Lvalue, "++", (call ast[(value "inplace_post_inc")])],
+            [Lvalue, "--", (call ast[(value "inplace_post_dec")])],
+            ["++", (expect Lvalue), (call ast[(value "inplace_pre_inc")])],
+            ["--", (expect Lvalue), (call ast[(value "inplace_pre_dec")])],
             Variable
         }),
 
         (Rvalue = {
-            [Inplace, (kle Tail), _, (call collect[(value "rvalue")])]
+            [Inplace, (kle Tail), _, (call ast[(value "rvalue")])]
         }),
 
         (CallParameter = {
-            [T_Identifier, _, "=", _, Expression, (call collect[(value "param_named")])],
-            [Expression, (call collect[(value "param")])]
+            [T_Identifier, _, "=", _, Expression, (call ast[(value "param_named")])],
+            [Expression, (call ast[(value "param")])]
         }),
 
         (CallParameters = {
@@ -146,16 +146,16 @@ impl Parser {
 
         (Call = {
             [T_Identifier, "(", _, (opt CallParameters), (expect ")"), _,
-                (call collect[(value "call_identifier")])]
-            //[Rvalue, "(", _, (opt Parameters), ")", _, (call collect[(value "call_rvalue")])]
+                (call ast[(value "call_identifier")])]
+            //[Rvalue, "(", _, (opt Parameters), ")", _, (call ast[(value "call_rvalue")])]
         }),
 
         (Literal = {
-            ["true", _, (call collect[(value "value_true")])],
-            ["false", _, (call collect[(value "value_false")])],
-            ["void", _, (call collect[(value "value_void")])],
-            ["null", _, (call collect[(value "value_null")])],
-            [T_String, _, (call collect[(value "value_string")])],
+            ["true", _, (call ast[(value "value_true")])],
+            ["false", _, (call ast[(value "value_false")])],
+            ["void", _, (call ast[(value "value_void")])],
+            ["null", _, (call ast[(value "value_null")])],
+            [T_String, _, (call ast[(value "value_string")])],
             [T_Float, _],
             [T_Integer, _]
         }),
@@ -163,45 +163,45 @@ impl Parser {
         // Tokens
 
         (TokenLiteral = {
-            ["'", T_Match, "'", (call collect[(value "value_token_match")])],
-            [T_Match, (call collect[(value "value_token_touch")])],
-            [".", (call collect[(value "value_token_any")])],
-            ['[', Ccl, ']', (call collect[(value "value_token_ccl")])]
+            ["'", T_Match, "'", (call ast[(value "value_token_match")])],
+            [T_Match, (call ast[(value "value_token_touch")])],
+            [".", (call ast[(value "value_token_any")])],
+            ['[', Ccl, ']', (call ast[(value "value_token_ccl")])]
         }),
 
         (TokenCall = {
             TokenLiteral,
             [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
-                (call collect[(value "call_identifier")])],
-            [T_Consumable, (call collect[(value "rvalue")])]
+                (call ast[(value "call_identifier")])],
+            [T_Consumable, (call ast[(value "rvalue")])]
         }),
 
         (Token = {
             // Token call modifiers
-            [TokenCall, "+", _, (call collect[(value "op_mod_pos")])],
-            [TokenCall, "*", _, (call collect[(value "op_mod_kle")])],
-            [TokenCall, "?", _, (call collect[(value "op_mod_opt")])],
+            [TokenCall, "+", _, (call ast[(value "op_mod_pos")])],
+            [TokenCall, "*", _, (call ast[(value "op_mod_kle")])],
+            [TokenCall, "?", _, (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
             [TokenCall, _],
-            ["peek", _, (expect Token, "Token"), (call collect[(value "op_mod_peek")])],
-            ["not", _, (expect Token, "Token"), (call collect[(value "op_mod_not")])],
-            ["expect", _, (expect Token, "Token"), (call collect[(value "op_mod_expect")])]
+            ["peek", _, (expect Token, "Token"), (call ast[(value "op_mod_peek")])],
+            ["not", _, (expect Token, "Token"), (call ast[(value "op_mod_not")])],
+            ["expect", _, (expect Token, "Token"), (call ast[(value "op_mod_expect")])]
         }),
 
         // Expression & Flow
 
         (CollectionItem = {
-            [T_Identifier, _, "=>", _, Expression, (call collect[(value "alias")])],
-            [Expression, "=>", _, Expression, (call collect[(value "alias")])],
+            [T_Identifier, _, "=>", _, Expression, (call ast[(value "alias")])],
+            [Expression, "=>", _, Expression, (call ast[(value "alias")])],
             Expression
         }),
 
         (Atomic = {
             ["(", _, Expression, ")", _], // no expect ")" here!
             ["(", _, (pos [Expression, (opt [",", _])]), ")", _, // no expect ")" here!
-                (call collect[(value "collection")])],
+                (call ast[(value "collection")])],
             ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"), _,
-                (call collect[(value "collection")])],
+                (call ast[(value "collection")])],
             Literal,
             Token,
             Call,
@@ -211,80 +211,77 @@ impl Parser {
         }),
 
         (Unary = {
-            ["-", _, Unary, (call collect[(value "op_unary_neg")])],
-            ["!", _, Unary, (call collect[(value "op_unary_not")])],
+            ["-", _, Unary, (call ast[(value "op_unary_neg")])],
+            ["!", _, Unary, (call ast[(value "op_unary_not")])],
             Atomic
         }),
 
         // todo: & and |
 
         (MulDiv = {
-            [MulDiv, "*", _, (expect Unary), (call collect[(value "op_binary_mul")])],
-            [MulDiv, "/", _, (expect Unary), (call collect[(value "op_binary_div")])],
+            [MulDiv, "*", _, (expect Unary), (call ast[(value "op_binary_mul")])],
+            [MulDiv, "/", _, (expect Unary), (call ast[(value "op_binary_div")])],
             // todo: ^ (pow)
             Unary
         }),
 
         (AddSub = {
             [AddSub, "+", _, MulDiv, // no expect(MulDiv) here because of pre-increment fallback
-                (call collect[(value "op_binary_add")])],
+                (call ast[(value "op_binary_add")])],
             [AddSub, "-", _, MulDiv, // no expect(MulDiv) here because of pre-decrement fallback
-                (call collect[(value "op_binary_sub")])],
+                (call ast[(value "op_binary_sub")])],
             MulDiv
         }),
 
         (Compare = {
-            [Compare, "==", _, (expect AddSub), (call collect[(value "op_compare_equal")])],
-            [Compare, "!=", _, (expect AddSub), (call collect[(value "op_compare_unequal")])],
-            [Compare, "<=", _, (expect AddSub), (call collect[(value "op_compare_lowerequal")])],
-            [Compare, ">=", _, (expect AddSub), (call collect[(value "op_compare_greaterequal")])],
-            [Compare, "<", _, (expect AddSub), (call collect[(value "op_compare_lower")])],
-            [Compare, ">", _, (expect AddSub), (call collect[(value "op_compare_greater")])],
+            [Compare, "==", _, (expect AddSub), (call ast[(value "op_compare_equal")])],
+            [Compare, "!=", _, (expect AddSub), (call ast[(value "op_compare_unequal")])],
+            [Compare, "<=", _, (expect AddSub), (call ast[(value "op_compare_lowerequal")])],
+            [Compare, ">=", _, (expect AddSub), (call ast[(value "op_compare_greaterequal")])],
+            [Compare, "<", _, (expect AddSub), (call ast[(value "op_compare_lower")])],
+            [Compare, ">", _, (expect AddSub), (call ast[(value "op_compare_greater")])],
             AddSub
         }),
 
         (LogicalAnd = {
-            [LogicalAnd, "&&", _, (expect Compare), (call collect[(value "op_logical_and")])],
+            [LogicalAnd, "&&", _, (expect Compare), (call ast[(value "op_logical_and")])],
             Compare
         }),
 
         (LogicalOr = {
-            [LogicalOr, "||", _, (expect LogicalAnd), (call collect[(value "op_logical_or")])],
+            [LogicalOr, "||", _, (expect LogicalAnd), (call ast[(value "op_logical_or")])],
             LogicalAnd
         }),
 
 
         (Assign = {
-            [Lvalue, "=", _, Expression, (call collect[(value "assign")])] // fixme: a = b = c is possible here...
+            [Lvalue, "=", _, Expression, (call ast[(value "assign")])] // fixme: a = b = c is possible here...
             // todo: add operators "+="", "-="", "*="", "/=" here as well
         }),
 
         (ExpressionOrVoid = {
             Expression,
-            (call collect[(value "value_void")])
+            (call ast[(value "value_void")])
         }),
 
         (Expression = {
             // if
-            ["if", _, Expression, Statement, "else", _, Statement, (call collect[(value "op_ifelse")])],
-            ["if", _, Expression, Statement, (call collect[(value "op_if")])],
+            ["if", _, Expression, Statement, "else", _, Statement, (call ast[(value "op_ifelse")])],
+            ["if", _, Expression, Statement, (call ast[(value "op_if")])],
             ["if", _, (call error[(value "'if': Expecting condition and statement")])],
 
-            // while
-            ["while", _, Expression, (kle T_EOL), Statement, (call collect[(value "op_while")])],
-            ["while", _, (call error[(value "'while': Expecting end-condition and statement")])],
-
             // for
-            ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call collect[(value "op_for_in")])],
-            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _, StatementOrVoid, (call collect[(value "op_for")])],
+            ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call ast[(value "op_for_in")])],
+            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _,
+                StatementOrVoid, (call ast[(value "op_for")])],
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // assignment
-            [Lvalue, "=", _, Expression, (call collect[(value "assign_hold")])],
-            [Lvalue, "+=", _, Expression, (call collect[(value "assign_add_hold")])],
-            [Lvalue, "-=", _, Expression, (call collect[(value "assign_sub_hold")])],
-            [Lvalue, "*=", _, Expression, (call collect[(value "assign_mul_hold")])],
-            [Lvalue, "/=", _, Expression, (call collect[(value "assign_div_hold")])],
+            [Lvalue, "=", _, Expression, (call ast[(value "assign_hold")])],
+            [Lvalue, "+=", _, Expression, (call ast[(value "assign_add_hold")])],
+            [Lvalue, "-=", _, Expression, (call ast[(value "assign_sub_hold")])],
+            [Lvalue, "*=", _, Expression, (call ast[(value "assign_mul_hold")])],
+            [Lvalue, "/=", _, Expression, (call ast[(value "assign_div_hold")])],
 
             // normal expression starting with LogicalOr
             LogicalOr
@@ -292,21 +289,21 @@ impl Parser {
 
         (StatementOrVoid = {
             Statement,
-            (call collect[(value "value_void")])
+            (call ast[(value "value_void")])
         }),
 
         (Statement = {
-            ["accept", _, ExpressionOrVoid, (call collect[(value "op_accept")])],
-            ["return", _, ExpressionOrVoid, (call collect[(value "op_accept")])],
-            ["repeat", _, ExpressionOrVoid, (call collect[(value "op_repeat")])],
-            ["reject", _, (call collect[(value "op_reject")])],
+            ["accept", _, ExpressionOrVoid, (call ast[(value "op_accept")])],
+            ["return", _, ExpressionOrVoid, (call ast[(value "op_accept")])],
+            ["repeat", _, ExpressionOrVoid, (call ast[(value "op_repeat")])],
+            ["reject", _, (call ast[(value "op_reject")])],
 
             // todo: report, escape, repeat
-            [Lvalue, "=", _, Expression, (call collect[(value "assign")])],
-            [Lvalue, "+=", _, Expression, (call collect[(value "assign_add")])],
-            [Lvalue, "-=", _, Expression, (call collect[(value "assign_sub")])],
-            [Lvalue, "*=", _, Expression, (call collect[(value "assign_mul")])],
-            [Lvalue, "/=", _, Expression, (call collect[(value "assign_div")])],
+            [Lvalue, "=", _, Expression, (call ast[(value "assign")])],
+            [Lvalue, "+=", _, Expression, (call ast[(value "assign_add")])],
+            [Lvalue, "-=", _, Expression, (call ast[(value "assign_sub")])],
+            [Lvalue, "*=", _, Expression, (call ast[(value "assign_mul")])],
+            [Lvalue, "/=", _, Expression, (call ast[(value "assign_div")])],
 
             Expression
         }),
@@ -314,7 +311,7 @@ impl Parser {
         // Parselet
 
         (Argument = {
-            [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call collect[(value "arg")])]
+            [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call ast[(value "arg")])]
         }),
 
         (Arguments = {
@@ -322,37 +319,37 @@ impl Parser {
         }),
 
         (Parselet = {
-            ["@", _, (opt Arguments), Block, (call collect[(value "value_parselet")])],
-            ["@", _, (opt Arguments), Token, (call collect[(value "value_parselet")])]
+            ["@", _, (opt Arguments), Block, (call ast[(value "value_parselet")])],
+            ["@", _, (opt Arguments), Token, (call ast[(value "value_parselet")])]
         }),
 
         (Block = {
-            ["{", _, (pos Instruction), _, (expect "}"), _, (call collect[(value "block")])],
-            ["{", _, (expect "}"), _, (Op::PushVoid), (call collect[(value "block")])]
+            ["{", _, (pos Instruction), _, (expect "}"), _, (call ast[(value "block")])],
+            ["{", _, (expect "}"), _, (Op::PushVoid), (call ast[(value "block")])]
         }),
 
         // Sequences
 
         (SequenceItem = {
-            [T_Identifier, _, "=>", _, Expression, (call collect[(value "alias")])],
-            [Expression, _, "=>", _, Expression, (call collect[(value "alias")])],
+            [T_Identifier, _, "=>", _, Expression, (call ast[(value "alias")])],
+            [Expression, _, "=>", _, Expression, (call ast[(value "alias")])],
             Statement
         }),
 
         (Sequence = {
-            [(pos SequenceItem), (call collect[(value "sequence")])]
+            [(pos SequenceItem), (call ast[(value "sequence")])]
         }),
 
         // Instructions
 
         (Instruction = {
-            ["begin", _, Block, (call collect[(value "begin")])],
-            ["begin", _, Statement, (expect T_EOL), (call collect[(value "begin")])],
-            ["end", _, Block, (call collect[(value "end")])],
-            ["end", _, Statement, (expect T_EOL), (call collect[(value "end")])],
+            ["begin", _, Block, (call ast[(value "begin")])],
+            ["begin", _, Statement, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", _, Block, (call ast[(value "end")])],
+            ["end", _, Statement, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
-                (call collect[(value "constant")])],
+                (call ast[(value "constant")])],
             Sequence,
             [T_EOL, (Op::Skip)]
         }),
@@ -363,7 +360,7 @@ impl Parser {
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
-        [_, Tokay, (call collect[(value "main")])]
+        [_, Tokay, (call ast[(value "main")])]
 
         // ----------------------------------------------------------------------------
                     }))
@@ -397,18 +394,19 @@ impl Parser {
 
                     let row = d.get("row").and_then(|row| Some(row.borrow().to_addr()));
                     let col = d.get("col").and_then(|col| Some(col.borrow().to_addr()));
-                    let end_row = d
-                        .get("end_row")
+                    let stop_row = d
+                        .get("stop_row")
                         .and_then(|row| Some(row.borrow().to_addr()));
-                    let end_col = d
-                        .get("end_col")
+                    let stop_col = d
+                        .get("stop_col")
                         .and_then(|col| Some(col.borrow().to_addr()));
 
                     let value = d.get("value");
                     let children = d.get("children");
 
-                    if let (Some(row), Some(col), Some(end_row), Some(end_col)) =
-                        (row, col, end_row, end_col)
+                    /*
+                    if let (Some(row), Some(col), Some(stop_row), Some(stop_col)) =
+                        (row, col, stop_row, stop_col)
                     {
                         print!(
                             "{:indent$}{} [{}:{} - {}:{}]",
@@ -416,11 +414,13 @@ impl Parser {
                             emit,
                             row,
                             col,
-                            end_row,
-                            end_col,
+                            stop_row,
+                            stop_col,
                             indent = indent
                         );
-                    } else if let (Some(row), Some(col)) = (row, col) {
+                    } else
+                    */
+                    if let (Some(row), Some(col)) = (row, col) {
                         print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
                     } else {
                         print!("{:indent$}{}", "", emit, indent = indent);
@@ -442,7 +442,7 @@ impl Parser {
                     }
                 }
 
-                other => unimplemented!("{:?} is not implemented", other),
+                other => print!("{}", other.repr())
             }
         }
 

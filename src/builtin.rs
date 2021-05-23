@@ -1,4 +1,4 @@
-use crate::compiler::Compiler;
+use crate::compiler::{Compiler, Parser};
 use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
@@ -6,6 +6,73 @@ use crate::vm::*;
 type Builtin = fn(&mut Context, args: Vec<RefValue>, nargs: Option<Dict>) -> Result<Accept, Reject>;
 
 static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
+    ("ast", -1, true, |context, args, nargs| {
+        let emit = get_arg(&args, nargs.as_ref(), Some(0), Some("emit"));
+        let mut value = get_arg(&args, nargs.as_ref(), Some(1), Some("value"));
+
+        // In case no value is set, collect them from the current context.
+        if value.is_err() {
+            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                value = Ok(capture.as_value(context.runtime));
+            }
+        }
+
+        let mut ret = Dict::new();
+
+        if let Ok(emit) = emit {
+            ret.insert("emit".to_string(), emit.clone());
+        }
+
+        if let Ok(value) = value {
+            // List or Dict values are classified as child nodes
+            if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                ret.insert("children".to_string(), value);
+            } else {
+                ret.insert("value".to_string(), value);
+            }
+        }
+
+        // Store positions of reader start
+        ret.insert(
+            "offset".to_string(),
+            Value::Addr(context.reader_start.offset).into_refvalue(),
+        );
+        ret.insert(
+            "row".to_string(),
+            Value::Addr(context.reader_start.row as usize).into_refvalue(),
+        );
+        ret.insert(
+            "col".to_string(),
+            Value::Addr(context.reader_start.col as usize).into_refvalue(),
+        );
+
+        /*
+        // Store positions of reader stop
+        let current = context.runtime.reader.tell();
+
+        ret.insert(
+            "stop_offset".to_string(),
+            Value::Addr(current.offset).into_refvalue(),
+        );
+        ret.insert(
+            "stop_row".to_string(),
+            Value::Addr(current.row as usize).into_refvalue(),
+        );
+        ret.insert(
+            "stop_col".to_string(),
+            Value::Addr(current.col as usize).into_refvalue(),
+        );
+        */
+
+        Ok(Accept::Return(Some(
+            Value::Dict(Box::new(ret)).into_refvalue(),
+        )))
+    }),
+    ("ast_print", 1, true, |_, args, nargs| {
+        let ast = get_arg(&args, nargs.as_ref(), Some(0), Some("ast"));
+        Parser::print(&ast.unwrap().borrow());
+        Ok(Accept::Next)
+    }),
     ("Integer", 0, false, |context, _args, _nargs| {
         let mut neg = false;
         let mut value: i64 = 0;
@@ -144,66 +211,6 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
         }
 
         Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
-    }),
-    ("collect", -1, true, |context, args, nargs| {
-        let emit = get_arg(&args, nargs.as_ref(), Some(0), Some("emit"));
-        let mut value = get_arg(&args, nargs.as_ref(), Some(1), Some("value"));
-
-        // In case no value is set, collect them from the current context.
-        if value.is_err() {
-            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
-                value = Ok(capture.as_value(context.runtime));
-            }
-        }
-
-        let mut ret = Dict::new();
-
-        if let Ok(emit) = emit {
-            ret.insert("emit".to_string(), emit.clone());
-        }
-
-        if let Ok(value) = value {
-            // List or Dict values are classified as child nodes
-            if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
-                ret.insert("children".to_string(), value);
-            } else {
-                ret.insert("value".to_string(), value);
-            }
-        }
-
-        ret.insert(
-            "offset".to_string(),
-            Value::Addr(context.reader_start.offset).into_refvalue(),
-        );
-        ret.insert(
-            "row".to_string(),
-            Value::Addr(context.reader_start.row as usize).into_refvalue(),
-        );
-        ret.insert(
-            "col".to_string(),
-            Value::Addr(context.reader_start.col as usize).into_refvalue(),
-        );
-
-        /*
-        let current = context.runtime.reader.tell();
-
-        ret.insert(
-            "end_offset".to_string(),
-            Value::Addr(current.offset).into_refvalue(),
-        );
-        ret.insert(
-            "end_row".to_string(),
-            Value::Addr(current.row as usize).into_refvalue(),
-        );
-        ret.insert(
-            "end_col".to_string(),
-            Value::Addr(current.col as usize).into_refvalue(),
-        );
-        */
-
-        Ok(Accept::Return(Some(
-            Value::Dict(Box::new(ret)).into_refvalue(),
-        )))
     }),
     ("print", -1, false, |context, args, _| {
         if args.len() == 0 {
