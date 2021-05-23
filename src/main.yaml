@@ -11,18 +11,21 @@ template: |
     Visit https://tokay.dev for help and further information.
     {bin} is free software released under the MIT license.
 args:
-    - file:
-        help: Use program specified in file
-        short: f
-        long: file
-        takes_value: true
     - program:
-        help: Program specified as argument
+        help: |
+            Program, either read from file or directly from argument.
         index: 1
     - input:
-        help: Input files to let the program work on
+        help: |
+            Input file or string for the program to operate on.
+            If no input file with the given parameter is found,
+            the parameter itself will be taken directly as input.
         last: true
         multiple: true
+    - files:
+        help: Accept only files as parameters, no string fallbacks.
+        short: f
+        long: files
     - debug:
         short: d
         multiple: true

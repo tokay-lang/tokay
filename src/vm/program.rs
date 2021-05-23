@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::fs::File;
-use std::io::{self, BufReader, Read};
+use std::io::{self, BufReader};
 use std::rc::Rc;
 
 use super::*;
@@ -54,22 +54,28 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader<R: 'static + Read>(&self, read: R) -> Result<Option<RefValue>, Error> {
-        let mut reader = Reader::new(Box::new(BufReader::new(read)));
+    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
         let mut runtime = Runtime::new(&self, &mut reader);
-
         self.run(&mut runtime)
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
-        self.run_from_reader(std::io::Cursor::new(src))
+        self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
+            src,
+        )))))
+    }
+
+    pub fn run_from_string(&self, src: String) -> Result<Option<RefValue>, Error> {
+        self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
+            src,
+        )))))
     }
 
     pub fn run_from_file(&self, filename: &str) -> Result<Option<RefValue>, Error> {
         if filename == "-" {
-            self.run_from_reader(BufReader::new(io::stdin()))
+            self.run_from_reader(Reader::new(Box::new(BufReader::new(io::stdin()))))
         } else if let Ok(file) = File::open(filename) {
-            self.run_from_reader(BufReader::new(file))
+            self.run_from_reader(Reader::new(Box::new(BufReader::new(file))))
         } else {
             Err(Error::new(
                 None,

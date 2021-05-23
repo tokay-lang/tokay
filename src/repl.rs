@@ -1,5 +1,6 @@
+use std::cell::RefCell;
 use std::fs::File;
-use std::io::{self, BufReader, Write};
+use std::io::{self, BufReader, Seek, Write};
 
 use crate::compiler::Compiler;
 use crate::error::Error;
@@ -7,8 +8,29 @@ use crate::reader::Reader;
 use crate::value::RefValue;
 use crate::vm::Runtime;
 
+// Helper enum to allow for different input types
+pub enum Stream {
+    String(String),
+    File(File),
+    Stdin,
+}
+
+impl Stream {
+    pub fn get_reader(&mut self) -> Reader {
+        match self {
+            Stream::String(string) => Reader::new(Box::new(io::Cursor::new(string.clone()))),
+            Stream::File(file) => {
+                let mut file = file.try_clone().expect("File cannot be cloned?");
+                file.seek(std::io::SeekFrom::Start(0));
+                Reader::new(Box::new(BufReader::new(file)))
+            }
+            Stream::Stdin => Reader::new(Box::new(BufReader::new(io::stdin()))),
+        }
+    }
+}
+
 // A first simple REPL for Tokay
-pub fn repl(files: Option<Vec<&str>>) {
+pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
     let mut globals: Vec<RefValue> = Vec::new();
 
     let mut compiler = Compiler::new();
@@ -44,58 +66,26 @@ pub fn repl(files: Option<Vec<&str>>) {
                 if let Some(program) =
                     compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
                 {
-                    if let Some(files) = &files {
-                        for filename in files {
-                            let mut reader;
-
-                            if *filename == "-" {
-                                reader = Reader::new(Box::new(BufReader::new(io::stdin())));
-                            } else if let Ok(file) = File::open(filename) {
-                                reader = Reader::new(Box::new(BufReader::new(file)));
-                            } else {
-                                println!(
-                                    "{}",
-                                    Error::new(
-                                        None,
-                                        format!("Unable to read from filename '{}'", filename),
-                                    )
-                                );
-                                continue;
-                            }
-
-                            let mut runtime = Runtime::new(&program, &mut reader);
-                            runtime.debug = compiler.debug;
-                            runtime.load_stack(globals);
-
-                            let ret = program.run(&mut runtime);
-
-                            if files.len() > 1 {
-                                print!("{}: ", filename);
-                            }
-
-                            match ret {
-                                Ok(None) => {
-                                    if files.len() > 1 {
-                                        print!("\n")
-                                    }
-                                }
-                                Ok(Some(value)) => println!("{}", value.borrow()),
-                                Err(error) => println!("{}", error),
-                            }
-
-                            globals = runtime.save_stack();
-                        }
-                    } else {
-                        let mut reader = Reader::new(Box::new(io::Cursor::new("")));
+                    for (name, stream) in &streams {
+                        let mut reader = stream.borrow_mut().get_reader();
                         let mut runtime = Runtime::new(&program, &mut reader);
                         runtime.debug = compiler.debug;
                         runtime.load_stack(globals);
 
-                        let res = program.run(&mut runtime);
-                        match res {
-                            Ok(None) => {}
-                            Ok(Some(value)) => println!("<<< {}", value.borrow().repr()),
-                            Err(error) => println!("<<< {}", error),
+                        let ret = program.run(&mut runtime);
+
+                        if streams.len() > 1 {
+                            print!("{}: ", name);
+                        }
+
+                        match ret {
+                            Ok(None) => {
+                                if streams.len() > 1 {
+                                    print!("\n")
+                                }
+                            }
+                            Ok(Some(value)) => println!("{}", value.borrow()),
+                            Err(error) => println!("{}", error),
                         }
 
                         globals = runtime.save_stack();
