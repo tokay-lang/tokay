@@ -1,11 +1,15 @@
 name: Tokay
 template: |
     {bin} {version}
-    Copyright (C) 2021 by {author}
+    © 2021 by {author}
 
     {about}
 
     {all-args}
+
+    Program and input arguments are either loaded from a file if a file with
+    specified name exists, otherwise they are used directly as input. Use '-f'
+    to disable this behavior. Specify '-' to use stdin as input file.
 
     When no arguments are specified, {bin} turns into an interactive REPL.
     Visit https://tokay.dev for help and further information.
@@ -13,13 +17,12 @@ template: |
 args:
     - program:
         help: |
-            Program, either read from file or directly from argument.
+            Program to compile and run.
         index: 1
     - input:
         help: |
-            Input file or string for the program to operate on.
-            If no input file with the given parameter is found,
-            the parameter itself will be taken directly as input.
+            Input for program to operate on.
+            If no program is specified, the REPL works on this input.
         last: true
         multiple: true
     - files:

@@ -21,7 +21,8 @@ impl Stream {
             Stream::String(string) => Reader::new(Box::new(io::Cursor::new(string.clone()))),
             Stream::File(file) => {
                 let mut file = file.try_clone().expect("File cannot be cloned?");
-                file.seek(std::io::SeekFrom::Start(0));
+                file.seek(std::io::SeekFrom::Start(0))
+                    .expect("Unable to seek to file's starting position");
                 Reader::new(Box::new(BufReader::new(file)))
             }
             Stream::Stdin => Reader::new(Box::new(BufReader::new(io::stdin()))),

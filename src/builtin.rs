@@ -117,15 +117,33 @@ static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
             Err(Reject::Next)
         }
     }),
-    ("error", 1, false, |context, args, _| {
-        Error::new(
-            Some(context.runtime.reader.tell()),
-            get_arg(&args, None, Some(0), None)
-                .unwrap()
-                .borrow()
-                .to_string(),
-        )
-        .into_reject()
+    ("error", -1, true, |context, args, nargs| {
+        let msg = get_arg(&args, nargs.as_ref(), Some(0), Some("msg"));
+        let collect = get_arg(&args, nargs.as_ref(), Some(1), Some("collect"));
+
+        // Examine msg
+        if let Err(msg) = msg {
+            // Parameter error while wanting to show an error!
+            return Error::new(None, msg).into_reject();
+        }
+
+        let mut msg = msg.unwrap().borrow().to_string();
+
+        // Examine collect
+        if collect.map_or(false, |value| value.borrow().is_true()) {
+            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                let value = capture.as_value(context.runtime);
+                let value = value.borrow();
+
+                if let Value::String(s) = &*value {
+                    msg.push_str(&format!(": '{}'", s))
+                } else {
+                    msg.push_str(&format!(": {}", value.repr()))
+                }
+            }
+        }
+
+        Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
     }),
     ("collect", -1, true, |context, args, nargs| {
         let emit = get_arg(&args, nargs.as_ref(), Some(0), Some("emit"));

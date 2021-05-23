@@ -29,7 +29,9 @@ impl Parser {
 
         (T_EOL = {
             ["\n", _, (Op::Skip)],
-            [";", _, (Op::Skip)]
+            [";", _, (Op::Skip)],
+            [(token (Token::EOF)), (Op::Skip)],
+            [(peek "}"), (Op::Skip)]
         }),
 
         // Prime Tokens (might probably be replaced by something native, pluggable one)
@@ -356,7 +358,9 @@ impl Parser {
         }),
 
         (Tokay = {
-            (pos Instruction)
+            (pos Instruction),
+            [(token (Token::Any)),
+                (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
         [_, Tokay, (call collect[(value "main")])]
