@@ -450,7 +450,7 @@ impl Value {
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
             Value::Token(_) => !with_arguments,
-            Value::Builtin(builtin) => builtin::is_callable(*builtin, with_arguments),
+            Value::Builtin(builtin) => true,
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
             _ => false,
         }

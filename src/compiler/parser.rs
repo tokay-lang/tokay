@@ -442,7 +442,7 @@ impl Parser {
                     }
                 }
 
-                other => print!("{}", other.repr())
+                other => print!("{}", other.repr()),
             }
         }
 

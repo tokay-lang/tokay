@@ -3,280 +3,277 @@ use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
 
-type Builtin = fn(&mut Context, args: Vec<RefValue>, nargs: Option<Dict>) -> Result<Accept, Reject>;
+struct Builtin {
+    name: &'static str,
+    required: i8,
+    signature: &'static str,
+    func: fn(&mut Context, args: Vec<Option<RefValue>>) -> Result<Accept, Reject>,
+}
 
-static BUILTINS: &[(&'static str, i8, bool, Builtin)] = &[
-    ("ast", -1, true, |context, args, nargs| {
-        let emit = get_arg(&args, nargs.as_ref(), Some(0), Some("emit"));
-        let mut value = get_arg(&args, nargs.as_ref(), Some(1), Some("value"));
+static BUILTINS: &[Builtin] = &[
+    Builtin {
+        name: "ast",
+        required: 1,
+        signature: "emit value",
+        func: |context, mut args| {
+            let emit = args.remove(0).unwrap();
 
-        // In case no value is set, collect them from the current context.
-        if value.is_err() {
-            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
-                value = Ok(capture.as_value(context.runtime));
+            let mut ret = Dict::new();
+            ret.insert("emit".to_string(), emit);
+
+            let value = args.remove(0).or_else(|| {
+                // In case no value is set, collect them from the current context.
+                if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                    Some(capture.as_value(context.runtime))
+                } else {
+                    None
+                }
+            });
+
+            if let Some(value) = value {
+                // List or Dict values are classified as child nodes
+                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                    ret.insert("children".to_string(), value);
+                } else {
+                    ret.insert("value".to_string(), value);
+                }
             }
-        }
 
-        let mut ret = Dict::new();
+            // Store positions of reader start
+            ret.insert(
+                "offset".to_string(),
+                Value::Addr(context.reader_start.offset).into_refvalue(),
+            );
+            ret.insert(
+                "row".to_string(),
+                Value::Addr(context.reader_start.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "col".to_string(),
+                Value::Addr(context.reader_start.col as usize).into_refvalue(),
+            );
 
-        if let Ok(emit) = emit {
-            ret.insert("emit".to_string(), emit.clone());
-        }
+            /*
+            // Store positions of reader stop
+            let current = context.runtime.reader.tell();
 
-        if let Ok(value) = value {
-            // List or Dict values are classified as child nodes
-            if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
-                ret.insert("children".to_string(), value);
-            } else {
-                ret.insert("value".to_string(), value);
+            ret.insert(
+                "stop_offset".to_string(),
+                Value::Addr(current.offset).into_refvalue(),
+            );
+            ret.insert(
+                "stop_row".to_string(),
+                Value::Addr(current.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "stop_col".to_string(),
+                Value::Addr(current.col as usize).into_refvalue(),
+            );
+            */
+
+            Ok(Accept::Return(Some(
+                Value::Dict(Box::new(ret)).into_refvalue(),
+            )))
+        },
+    },
+    Builtin {
+        name: "ast_print",
+        required: 1,
+        signature: "ast",
+        func: |_, mut args| {
+            Parser::print(&args.remove(0).unwrap().borrow());
+            Ok(Accept::Next)
+        },
+    },
+    Builtin {
+        name: "Integer",
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            let mut neg = false;
+            let mut value: i64 = 0;
+
+            // Sign
+            if let Some(ch) = context.runtime.reader.peek() {
+                if ch == '-' || ch == '+' {
+                    neg = ch == '-';
+                    context.runtime.reader.next();
+                }
             }
-        }
 
-        // Store positions of reader start
-        ret.insert(
-            "offset".to_string(),
-            Value::Addr(context.reader_start.offset).into_refvalue(),
-        );
-        ret.insert(
-            "row".to_string(),
-            Value::Addr(context.reader_start.row as usize).into_refvalue(),
-        );
-        ret.insert(
-            "col".to_string(),
-            Value::Addr(context.reader_start.col as usize).into_refvalue(),
-        );
+            let start = context.runtime.reader.tell();
 
-        /*
-        // Store positions of reader stop
-        let current = context.runtime.reader.tell();
+            // Digits
+            while let Some(ch) = context.runtime.reader.peek() {
+                if ch < '0' || ch > '9' {
+                    break;
+                }
 
-        ret.insert(
-            "stop_offset".to_string(),
-            Value::Addr(current.offset).into_refvalue(),
-        );
-        ret.insert(
-            "stop_row".to_string(),
-            Value::Addr(current.row as usize).into_refvalue(),
-        );
-        ret.insert(
-            "stop_col".to_string(),
-            Value::Addr(current.col as usize).into_refvalue(),
-        );
-        */
-
-        Ok(Accept::Return(Some(
-            Value::Dict(Box::new(ret)).into_refvalue(),
-        )))
-    }),
-    ("ast_print", 1, true, |_, args, nargs| {
-        let ast = get_arg(&args, nargs.as_ref(), Some(0), Some("ast"));
-        Parser::print(&ast.unwrap().borrow());
-        Ok(Accept::Next)
-    }),
-    ("Integer", 0, false, |context, _args, _nargs| {
-        let mut neg = false;
-        let mut value: i64 = 0;
-
-        // Sign
-        if let Some(ch) = context.runtime.reader.peek() {
-            if ch == '-' || ch == '+' {
-                neg = ch == '-';
+                value = value * 10 + ch.to_digit(10).unwrap() as i64;
                 context.runtime.reader.next();
             }
-        }
 
-        let start = context.runtime.reader.tell();
+            if start.offset < context.runtime.reader.tell().offset {
+                if neg {
+                    value = -value;
+                }
 
-        // Digits
-        while let Some(ch) = context.runtime.reader.peek() {
-            if ch < '0' || ch > '9' {
-                break;
+                Ok(Accept::Push(Capture::Value(
+                    Value::Integer(value).into_refvalue(),
+                    5,
+                )))
+            } else {
+                context.runtime.reader.reset(start);
+                Err(Reject::Next)
+            }
+        },
+    },
+    Builtin {
+        name: "Name",
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            let mut count: usize = 0;
+
+            while let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphanumeric() {
+                    break;
+                }
+
+                context.runtime.reader.next();
+                count += 1;
             }
 
-            value = value * 10 + ch.to_digit(10).unwrap() as i64;
-            context.runtime.reader.next();
-        }
-
-        if start.offset < context.runtime.reader.tell().offset {
-            if neg {
-                value = -value;
+            if count > 0 {
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_last(count),
+                    5,
+                )))
+            } else {
+                Err(Reject::Next)
             }
+        },
+    },
+    Builtin {
+        name: "Cname",
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            if let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphabetic() && ch != '_' {
+                    return Err(Reject::Next);
+                }
 
-            Ok(Accept::Push(Capture::Value(
-                Value::Integer(value).into_refvalue(),
-                5,
-            )))
-        } else {
-            context.runtime.reader.reset(start);
-            Err(Reject::Next)
-        }
-    }),
-    ("Name", 0, false, |context, _args, _nargs| {
-        let mut count: usize = 0;
-
-        while let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphanumeric() {
-                break;
-            }
-
-            context.runtime.reader.next();
-            count += 1;
-        }
-
-        if count > 0 {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_last(count),
-                5,
-            )))
-        } else {
-            Err(Reject::Next)
-        }
-    }),
-    ("Cname", 0, false, |context, _args, _nargs| {
-        if let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphabetic() && ch != '_' {
+                context.runtime.reader.next();
+            } else {
                 return Err(Reject::Next);
             }
 
-            context.runtime.reader.next();
-        } else {
-            return Err(Reject::Next);
-        }
+            let mut count: usize = 1;
 
-        let mut count: usize = 1;
-
-        while let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphanumeric() && ch != '_' {
-                break;
-            }
-
-            context.runtime.reader.next();
-            count += 1;
-        }
-
-        if count > 0 {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_last(count),
-                5,
-            )))
-        } else {
-            Err(Reject::Next)
-        }
-    }),
-    ("Whitespace", 0, false, |context, _args, _nargs| {
-        let mut count: usize = 0;
-
-        while let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_whitespace() {
-                break;
-            }
-
-            context.runtime.reader.next();
-            count += 1;
-        }
-
-        if count > 0 {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_last(count),
-                5,
-            )))
-        } else {
-            Err(Reject::Next)
-        }
-    }),
-    ("error", -1, true, |context, args, nargs| {
-        let msg = get_arg(&args, nargs.as_ref(), Some(0), Some("msg"));
-        let collect = get_arg(&args, nargs.as_ref(), Some(1), Some("collect"));
-
-        // Examine msg
-        if let Err(msg) = msg {
-            // Parameter error while wanting to show an error!
-            return Error::new(None, msg).into_reject();
-        }
-
-        let mut msg = msg.unwrap().borrow().to_string();
-
-        // Examine collect
-        if collect.map_or(false, |value| value.borrow().is_true()) {
-            if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
-                let value = capture.as_value(context.runtime);
-                let value = value.borrow();
-
-                if let Value::String(s) = &*value {
-                    msg.push_str(&format!(": '{}'", s))
-                } else {
-                    msg.push_str(&format!(": {}", value.repr()))
+            while let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphanumeric() && ch != '_' {
+                    break;
                 }
-            }
-        }
 
-        Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
-    }),
-    ("print", -1, false, |context, args, _| {
-        if args.len() == 0 {
-            if let Some(capture) = context.get_capture(0) {
-                println!("{}", capture.borrow());
+                context.runtime.reader.next();
+                count += 1;
+            }
+
+            if count > 0 {
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_last(count),
+                    5,
+                )))
             } else {
-                print!("\n");
+                Err(Reject::Next)
+            }
+        },
+    },
+    Builtin {
+        name: "Whitespace",
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            let mut count: usize = 0;
+
+            while let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_whitespace() {
+                    break;
+                }
+
+                context.runtime.reader.next();
+                count += 1;
             }
 
-            return Ok(Accept::Next);
-        }
-
-        for i in 0..args.len() {
-            if i > 0 {
-                print!(" ");
+            if count > 0 {
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_last(count),
+                    5,
+                )))
+            } else {
+                Err(Reject::Next)
             }
+        },
+    },
+    Builtin {
+        name: "error",
+        required: 1,
+        signature: "msg collect",
+        func: |context, mut args| {
+            let msg = args.remove(0).unwrap();
+            let collect = args
+                .remove(0)
+                .map_or(false, |value| value.borrow().is_true());
 
-            print!(
-                "{}",
-                get_arg(&args, None, Some(i), None)
-                    .unwrap()
-                    .borrow()
-                    .to_string()
-            );
-        }
+            let mut msg = msg.borrow().to_string();
 
-        print!("\n");
-        Ok(Accept::Next)
-    }), /*
-        ("flatten", |context| {
-            let mut max = 0;
-            let mut flatten = List::new();
+            if collect {
+                if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                    let value = capture.as_value(context.runtime);
+                    let value = value.borrow();
 
-            for capture in context.drain_captures() {
-                match capture {
-                    Capture::Named(_, _) => {}
-                    Capture::Range(_, severity) | Capture::Value(_, severity) if severity >= max => {
-                        if severity > max {
-                            max = severity;
-                            flatten.clear();
-                        }
+                    if let Value::String(s) = &*value {
+                        msg.push_str(&format!(": '{}'", s))
+                    } else {
+                        msg.push_str(&format!(": {}", value.repr()))
                     }
-                    _ => continue,
-                }
-
-                let value = capture.as_value(context.runtime);
-                let peek = value.borrow();
-
-                if let Value::List(list) = &*peek {
-                    flatten.extend(list.iter().cloned());
-                } else {
-                    flatten.push(value.clone());
                 }
             }
 
-            Ok(Accept::Return(Some(
-                Value::List(Box::new(flatten)).into_refvalue(),
-            )))
-        }),
-        */
+            Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
+        },
+    },
+    Builtin {
+        name: "print",
+        required: -1,
+        signature: "",
+        func: |context, args| {
+            //println!("args = {:?}", args);
+            if args.len() == 0 {
+                if let Some(capture) = context.get_capture(0) {
+                    print!("{}", capture.borrow());
+                }
+            } else {
+                for i in 0..args.len() {
+                    if i > 0 {
+                        print!(" ");
+                    }
+
+                    print!("{}", args[i].as_ref().unwrap().borrow().to_string());
+                }
+            }
+
+            print!("\n");
+            Ok(Accept::Next)
+        },
+    },
 ];
 
 /// Retrieve builtin by name.
 pub fn get(ident: &str) -> Option<usize> {
     for i in 0..BUILTINS.len() {
-        if BUILTINS[i].0 == ident {
+        if BUILTINS[i].name == ident {
             return Some(i);
         }
     }
@@ -286,41 +283,7 @@ pub fn get(ident: &str) -> Option<usize> {
 
 /// Check if specific builtin is consumable by identifier
 pub fn is_consumable(builtin: usize) -> bool {
-    Compiler::identifier_is_consumable(BUILTINS[builtin].0)
-}
-
-/// Examine arguments from constant call.
-pub fn get_arg(
-    args: &Vec<RefValue>,
-    nargs: Option<&Dict>,
-    index: Option<usize>,
-    name: Option<&'static str>,
-) -> Result<RefValue, String> {
-    // Try to retrieve argument by name
-    if let Some(name) = name {
-        if let Some(nargs) = nargs {
-            if let Some(value) = nargs.get(name) {
-                return Ok(value.clone());
-            }
-        }
-
-        if index.is_none() {
-            return Ok(Value::Void.into_refvalue());
-        }
-    }
-
-    let index = index.unwrap();
-
-    if index >= args.len() {
-        Err(format!(
-            "Function requires to access parameter {}, but only {} parameters where given",
-            index,
-            args.len()
-        ))
-    } else {
-        //println!("args = {} index = {}, peek = {}", args, index, args - index - 1);
-        Ok(args[index].clone())
-    }
+    Compiler::identifier_is_consumable(BUILTINS[builtin].name)
 }
 
 // Call builtin from the VM.
@@ -328,7 +291,7 @@ pub fn call(
     builtin: usize,
     context: &mut Context,
     args: usize,
-    nargs: Option<Dict>,
+    mut nargs: Option<Dict>,
 ) -> Result<Accept, Reject> {
     let builtin = &BUILTINS[builtin];
 
@@ -338,56 +301,84 @@ pub fn call(
         .stack
         .drain(context.runtime.stack.len() - args..)
         .collect();
-    let args: Vec<RefValue> = args
+    let mut args: Vec<Option<RefValue>> = args
         .into_iter()
-        .map(|item| item.as_value(context.runtime))
+        .map(|item| Some(item.as_value(context.runtime)))
         .collect();
 
-    let result;
+    // Match arguments to signature's names
+    let mut count = 0;
 
-    // Require constant number of minimal parameters
-    if builtin.1 >= 0
-        && (args.len() < builtin.1 as usize
-            && (!builtin.2
-                || builtin.2 && {
-                    if let Some(nargs) = nargs.as_ref() {
-                        nargs.len()
-                    } else {
-                        0
-                    }
-                } < builtin.1 as usize))
-    {
-        result = Error::new(
-            None,
-            format!(
-                "'{}' requires for at least {} arguments",
-                builtin.0, builtin.1
-            ),
-        )
-        .into_reject();
-    } else if builtin.1 == 0 && args.len() > 0 {
-        result = Error::new(
-            None,
-            format!("'{}' does not accept any sequencial arguments", builtin.0),
-        )
-        .into_reject();
-    } else if nargs.is_some() && !builtin.2 {
-        result = Error::new(
-            None,
-            format!("'{}' does not accept any named arguments", builtin.0),
-        )
-        .into_reject();
-    } else {
-        result = (builtin.3)(context, args, nargs);
+    for name in builtin.signature.split(" ") {
+        //println!("{:?}", name);
+        if name.len() == 0 {
+            continue
+        }
+
+        if count < args.len() {
+            count += 1;
+            continue;
+        }
+
+        let mut found_in_nargs = false;
+
+        if let Some(nargs) = &mut nargs {
+            if let Some(value) = nargs.remove(name) {
+                args.push(Some(value));
+                found_in_nargs = true;
+            }
+        }
+
+        if !found_in_nargs {
+            // Report required parameter which is also not found in nargs
+            if builtin.required > 0 && count < builtin.required as usize {
+                return Error::new(
+                    None,
+                    format!("{}() requires parameter '{}'", builtin.name, name),
+                )
+                .into_reject();
+            }
+
+            args.push(None);
+        }
+
+        count += 1;
     }
 
-    result
-}
+    //println!("args = {}, count = {}", args.len(), count);
 
-// Checks if builtin is callable with or without arguments
-pub fn is_callable(builtin: usize, with_arguments: bool) -> bool {
-    let builtin = &BUILTINS[builtin];
+    // Check for correct argument alignment
+    if builtin.required >= 0 && args.len() > count {
+        if count == 0 {
+            return Error::new(
+                None,
+                format!("{}() does not accept any arguments", builtin.name),
+            )
+            .into_reject();
+        } else {
+            return Error::new(
+                None,
+                format!("{}() does accept {} arguments only", builtin.name, count),
+            )
+            .into_reject();
+        }
+    }
 
-    (!with_arguments && builtin.1 < 0 || (builtin.1 == 0 && !builtin.2))
-        || with_arguments && (builtin.1 != 0 || builtin.2)
+    // Check for remaining nargs not consumed
+    if let Some(nargs) = nargs {
+        if nargs.len() > 0 {
+            return Error::new(
+                None,
+                format!(
+                    "{}() called with unknown named argument '{}'",
+                    builtin.name,
+                    nargs.keys().nth(0).unwrap()
+                ),
+            )
+            .into_reject();
+        }
+    }
+
+    //println!("{} {:?}", builtin.name, args);
+    (builtin.func)(context, args)
 }
