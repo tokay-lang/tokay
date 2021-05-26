@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::{self, BufReader, Seek, Write};
 
 use crate::compiler::Compiler;
-use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::RefValue;
 use crate::vm::Runtime;
@@ -36,7 +35,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
 
     let mut compiler = Compiler::new();
     compiler.interactive = true;
-    //compiler.debug = true;
+    compiler.debug = true;
 
     loop {
         print!(">>> ");

@@ -51,9 +51,8 @@ Syntax is under careful consideration.
 - [ ] Missing traversals for
   - [x] Comparison operators
   - [x] In-place increment and decrement `a++`, `++a`
-  - [ ] for-loops
-  - [ ] while-loops
-  - [ ] break and continue
+  - [ ] `loop` as the unified loop keyword for `while` and `for`
+    - [ ] `break` and `continue`
   - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
 
 ## REPL

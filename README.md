@@ -18,13 +18,20 @@ Tokay can also first match the world, and then greet to it... or any other plane
 planet => Name print("Hello " + $planet)
 ```
 
-Tokay is designed as a programming language for ad-hoc parsers with build-in abstract-syntax tree synthesis. This example directly implements a left-recursive parser for simple mathematical expressions. It slightly looks like a BNF-grammar, but this is exactly what Tokay is meant to be. //Integer// is a built-in matching arbitrary integer numbers from a stream and pushing them as 64-bit signed integer values.
+Tokay is designed as a programming language for writing ad-hoc parsers with build-in abstract-syntax tree synthesis. The next example directly implements a left-recursive parser for simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`.
 
 ```tokay
+# Factor is a consumable parselet either matching an Integer or another
+# expression enclosed by brackets.
 Factor : @{
-    Integer
+    Integer             # Integer is a builtin matching 64-bit
+                        # signed integer values from a stream
     '(' Expr ')'
 }
+
+# The next two parselets define sequences and their interpretation.
+# Calculated values in sequences take highest precedence, therefore
+# the calculate values become the result of each sequence.
 
 Term : @{
     Term '*' Factor     $1 * $3
@@ -38,11 +45,12 @@ Expr : @{
     Term
 }
 
-
+# This is the main level, where an expression can occur.
+# Any other input - by default - is ignored and skipped.
 Expr
 ```
 
-This program implements a functional, recursive attempt to calculate faculties. It doesn't use any parsing features.
+The next program implements a functional, recursive attempt to calculate the faculty of a vlaue. It doesn't use any parsing features, and represents a standard function in other programming languages.
 
 ```
 faculty : @x {

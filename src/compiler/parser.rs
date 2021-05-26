@@ -102,9 +102,9 @@ impl Parser {
 
         // Statics, Variables & Constants
 
-        (Tail = {
-            [".", _, T_Identifier, _, (call ast[(value "attribute")])],
-            ["[", _, Expression, "]", (call ast[(value "index")])]
+        (Subscript = {
+            [".", T_Identifier, _, (call ast[(value "attribute")])],
+            ["[", _, Expression, "]", _, (call ast[(value "index")])]
         }),
 
         (Capture = {
@@ -120,19 +120,15 @@ impl Parser {
         }),
 
         (Lvalue = {
-            [Variable, (kle Tail), _, (call ast[(value "lvalue")])]
+            [Variable, (kle Subscript), _, (call ast[(value "lvalue")])]
         }),
 
-        (Inplace = {
+        (Rvalue = {
             [Lvalue, "++", (call ast[(value "inplace_post_inc")])],
             [Lvalue, "--", (call ast[(value "inplace_post_dec")])],
             ["++", (expect Lvalue), (call ast[(value "inplace_pre_inc")])],
             ["--", (expect Lvalue), (call ast[(value "inplace_pre_dec")])],
-            Variable
-        }),
-
-        (Rvalue = {
-            [Inplace, (kle Tail), _, (call ast[(value "rvalue")])]
+            [Variable, (call ast[(value "rvalue")])]
         }),
 
         (CallParameter = {
@@ -146,8 +142,9 @@ impl Parser {
 
         (Call = {
             [T_Identifier, "(", _, (opt CallParameters), (expect ")"), _,
-                (call ast[(value "call_identifier")])]
-            //[Rvalue, "(", _, (opt Parameters), ")", _, (call ast[(value "call_rvalue")])]
+                (call ast[(value "call_identifier")])],
+            [Rvalue, "(", _, (opt CallParameters), ")", _,
+                (call ast[(value "call_rvalue")])]
         }),
 
         (Literal = {
@@ -197,10 +194,10 @@ impl Parser {
         }),
 
         (Atomic = {
-            ["(", _, Expression, ")", _], // no expect ")" here!
-            ["(", _, (pos [Expression, (opt [",", _])]), ")", _, // no expect ")" here!
+            ["(", _, Expression, ")"], // no expect ")" here!
+            ["(", _, (pos [Expression, (opt [",", _])]), ")", // no expect ")" here!
                 (call ast[(value "collection")])],
-            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"), _,
+            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"),
                 (call ast[(value "collection")])],
             Literal,
             Token,
@@ -210,10 +207,14 @@ impl Parser {
             Parselet
         }),
 
+        (Primary = {
+            [Atomic, (kle Subscript), _]
+        }),
+
         (Unary = {
             ["-", _, Unary, (call ast[(value "op_unary_neg")])],
             ["!", _, Unary, (call ast[(value "op_unary_not")])],
-            Atomic
+            Primary
         }),
 
         // todo: & and |
@@ -404,12 +405,11 @@ impl Parser {
                     let value = d.get("value");
                     let children = d.get("children");
 
-                    /*
                     if let (Some(row), Some(col), Some(stop_row), Some(stop_col)) =
                         (row, col, stop_row, stop_col)
                     {
                         print!(
-                            "{:indent$}{} [{}:{} - {}:{}]",
+                            "{:indent$}{} [start {}:{}, end {}:{}]",
                             "",
                             emit,
                             row,
@@ -418,9 +418,7 @@ impl Parser {
                             stop_col,
                             indent = indent
                         );
-                    } else
-                    */
-                    if let (Some(row), Some(col)) = (row, col) {
+                    } else if let (Some(row), Some(col)) = (row, col) {
                         print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
                     } else {
                         print!("{:indent$}{}", "", emit, indent = indent);
