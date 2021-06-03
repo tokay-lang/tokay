@@ -20,6 +20,7 @@ This enum is used to allow either for a value or ops created during the AST trav
 enum TraversalResult {
     Empty,
     Value(RefValue),
+    Identifier(String, Option<Offset>),
     Ops(Vec<Op>),
 }
 
@@ -53,6 +54,21 @@ impl TraversalResult {
                         _ => Op::LoadStatic(compiler.define_static(value.clone())),
                     }
                 }]
+            }
+            TraversalResult::Identifier(name, offset) => {
+                // In case there is a use of a known constant,
+                // directly return its value as TraversalResult.
+                if let Some(value) = compiler.get_constant(&name) {
+                    TraversalResult::Value(value).into_ops(compiler, call)
+                } else {
+                    let usage = if call {
+                        Usage::CallOrCopy { name, offset }
+                    } else {
+                        Usage::Load { name, offset }
+                    };
+
+                    usage.resolve_or_dispose(compiler)
+                }
             }
             TraversalResult::Ops(ops) => ops,
         }
@@ -467,10 +483,8 @@ impl Compiler {
             for item in list.iter() {
                 match self.traverse(&item.borrow()) {
                     TraversalResult::Empty => {}
-                    TraversalResult::Value(_) => {
-                        panic!("Cannot handle value return here!")
-                    }
                     TraversalResult::Ops(oplist) => ops.extend(oplist),
+                    _ => unreachable!("{:#?} cannot be handled", list),
                 }
             }
 
@@ -697,6 +711,7 @@ impl Compiler {
                 .create_parselet(name, Vec::new(), Op::from_vec(ops), None, false, false)
                 .into_value()
                 .into_refvalue(),
+            _ => unreachable!(),
         }
     }
 
@@ -844,108 +859,6 @@ impl Compiler {
         TraversalResult::Ops(ops)
     }
 
-    // Traverse rvalue
-    fn traverse_node_rvalue(&mut self, node: &Dict) -> TraversalResult {
-        let children = node.borrow_by_key("children").to_list();
-        let mut ops = Vec::new();
-
-        for item in children.iter() {
-            let item = item.borrow();
-            let item = item.get_dict().unwrap();
-
-            let emit = item.borrow_by_key("emit");
-            let emit = emit.get_string().unwrap();
-
-            let parts: Vec<&str> = emit.split("_").collect();
-
-            match parts[0] {
-                "capture" => {
-                    let children = item.borrow_by_key("children");
-
-                    match parts[1] {
-                        "expr" | "alias" => {
-                            ops.extend(self.traverse(&children).into_ops(self, false));
-                            ops.push(Op::LoadCapture)
-                        }
-
-                        "index" => {
-                            let children = children.get_dict().unwrap();
-                            let index = self.traverse_node_value(children);
-                            ops.push(Op::LoadFastCapture(index.to_addr()));
-                        }
-
-                        _ => {
-                            unreachable!();
-                        }
-                    }
-                }
-
-                "identifier" => {
-                    let name = item.borrow_by_key("value").to_string();
-
-                    // In case there is a use of a known constant,
-                    // directly return its value as TraversalResult.
-                    if children.len() == 1 {
-                        if let Some(value) = self.get_constant(&name) {
-                            return TraversalResult::Value(value);
-                        }
-                    }
-
-                    ops.extend(if children.len() == 1 {
-                        Usage::CallOrCopy {
-                            name,
-                            offset: self.traverse_node_offset(item),
-                        }
-                        .resolve_or_dispose(self)
-                    } else {
-                        Usage::Load {
-                            name,
-                            offset: self.traverse_node_offset(item),
-                        }
-                        .resolve_or_dispose(self)
-                    });
-                }
-
-                "inplace" => {
-                    let children = item.borrow_by_key("children");
-                    let lvalue = children.get_dict().unwrap();
-
-                    ops.extend(
-                        self.traverse_node_lvalue(lvalue, false, false)
-                            .into_ops(self, false),
-                    );
-
-                    match parts[1] {
-                        "pre" => {
-                            ops.push(if parts[2] == "inc" {
-                                Op::IInc
-                            } else {
-                                Op::IDec
-                            });
-                        }
-                        "post" => {
-                            ops.extend(vec![
-                                Op::Dup,
-                                Op::Rot2,
-                                if parts[2] == "inc" {
-                                    Op::IInc
-                                } else {
-                                    Op::IDec
-                                },
-                                Op::Drop,
-                            ]);
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-
-                _ => ops.extend(self.traverse_node(item).into_ops(self, false)),
-            }
-        }
-
-        TraversalResult::Ops(ops)
-    }
-
     // Main traversal function, running recursively through the AST
     fn traverse_node(&mut self, node: &Dict) -> TraversalResult {
         // Normal node processing...
@@ -1014,61 +927,15 @@ impl Compiler {
                 TraversalResult::Ops(ops)
             }
 
-            // constant -------------------------------------------------------
-            "constant" => {
-                let children = node.borrow_by_key("children");
-                let children = children.get_list();
+            // attribute ------------------------------------------------------
+            "attribute" => {
+                unimplemented!();
 
-                let (ident, value) = children.unwrap().borrow_first_2();
+                //let mut ops = self.traverse(&node.borrow_by_key("children")).into_ops(self, true);
+                //ops.push(Op::LoadAttr);
 
-                let ident = ident.get_dict().unwrap();
-                let ident = ident.borrow_by_key("value");
-                let ident = ident.get_string().unwrap();
-
-                if let Err(mut error) = Self::identifier_is_valid(ident) {
-                    if let Some(offset) = self.traverse_node_offset(node) {
-                        error.patch_offset(offset);
-                    }
-
-                    self.errors.push(error);
-                    return TraversalResult::Empty;
-                }
-
-                // Distinguish between pure values or an expression
-                let node = value.get_dict().unwrap();
-
-                // fixme: Restricted to pure values currently.
-                let value = self.traverse_node_static(Some(ident.to_string()), node);
-
-                if value.borrow().is_consuming() {
-                    if !Self::identifier_is_consumable(ident) {
-                        self.errors.push(Error::new(
-                            self.traverse_node_offset(node),
-                            format!(
-                                "Cannot assign constant '{}' as consumable. Use identifier starting in upper-case, e.g. '{}{}'",
-                                ident, &ident[0..1].to_uppercase(), &ident[1..]
-                            )
-                        ));
-                    }
-                } else if Self::identifier_is_consumable(ident) {
-                    self.errors.push(Error::new(
-                        self.traverse_node_offset(node),
-                        format!(
-                            "Cannot assign to constant '{}'. Use identifier starting in lower-case, e.g. '{}{}'",
-                            ident, &ident[0..1].to_lowercase(), &ident[1..]
-                        ),
-                    ));
-                }
-
-                //println!("{} : {:?}", ident, value);
-                self.set_constant(ident, value);
-
-                // Try to resolve usage of newly introduced constant in current scope
-                self.resolve_scope();
-
-                TraversalResult::Empty
+                //TraversalResult::Ops(ops)
             }
-
             // begin ----------------------------------------------------------
             "begin" | "end" => {
                 if self.scopes[0].variables.is_none() {
@@ -1078,14 +945,14 @@ impl Compiler {
                     ))
                 }
 
-                if let Some(children) = node.get("children") {
-                    let ops = self.traverse(&children.borrow()).into_ops(self, true);
+                let ops = self
+                    .traverse(&node.borrow_by_key("children"))
+                    .into_ops(self, true);
 
-                    if emit == "begin" {
-                        self.scopes[0].begin.extend(ops);
-                    } else {
-                        self.scopes[0].end.extend(ops);
-                    }
+                if emit == "begin" {
+                    self.scopes[0].begin.extend(ops);
+                } else {
+                    self.scopes[0].end.extend(ops);
                 }
 
                 TraversalResult::Empty
@@ -1102,7 +969,7 @@ impl Compiler {
             }
 
             // call -----------------------------------------------------------
-            call if call.starts_with("call_") => {
+            "call" => {
                 let children = node.borrow_by_key("children");
                 let children = children.to_list();
 
@@ -1162,40 +1029,173 @@ impl Compiler {
                     }
                 }
 
-                let usage = match call {
-                    "call_identifier" => {
-                        let ident = children[0].borrow();
-                        let ident = ident.get_dict().unwrap().borrow_by_key("value");
+                // When calling with nargs, create a nargs dict first
+                if nargs > 0 {
+                    ops.push(Op::MakeDict(nargs));
+                }
 
-                        if Self::identifier_is_consumable(ident.get_string().unwrap()) {
-                            self.scopes[0].consuming = true;
-                        }
+                // Push call position here
+                if let Some(offset) = self.traverse_node_offset(node) {
+                    ops.push(Op::Offset(Box::new(offset)));
+                }
 
+                // Perform static call or resolved rvalue call
+                let callee = self.traverse(&children[0].borrow());
+
+                if let TraversalResult::Identifier(ident, offset) = callee {
+                    if Self::identifier_is_consumable(&ident) {
+                        self.scopes[0].consuming = true;
+                    }
+
+                    ops.extend(
                         Usage::Call {
                             name: ident.to_string(),
                             args,
                             nargs,
-                            offset: self.traverse_node_offset(node),
+                            offset,
                         }
+                        .resolve_or_dispose(self),
+                    )
+                } else {
+                    ops.extend(callee.into_ops(self, false));
+
+                    if args == 0 && nargs == 0 {
+                        ops.push(Op::Call);
+                    } else if args > 0 && nargs == 0 {
+                        ops.push(Op::CallArg(args));
+                    } else {
+                        ops.push(Op::CallArgNamed(args))
                     }
-
-                    _ => unimplemented!("{:?} is unhandled", call),
-                };
-
-                if let Some(offset) = self.traverse_node_offset(node) {
-                    ops.push(Op::Offset(Box::new(offset))); // Push call position here
                 }
-
-                ops.extend(usage.resolve_or_dispose(self)); // Push usage or resolved call
 
                 TraversalResult::Ops(ops)
             }
 
+            // capture --------------------------------------------------------
+            "capture_alias" | "capture_expr" => {
+                let children = node.borrow_by_key("children");
+
+                let mut ops = self.traverse(&children).into_ops(self, false);
+                ops.push(Op::LoadCapture);
+                TraversalResult::Ops(ops)
+            }
+
+            "capture_index" => {
+                let children = node.borrow_by_key("children");
+
+                let children = children.get_dict().unwrap();
+                let index = self.traverse_node_value(children);
+                TraversalResult::Ops(vec![Op::LoadFastCapture(index.to_addr())])
+            }
+
+            // constant -------------------------------------------------------
+            "constant" => {
+                let children = node.borrow_by_key("children");
+                let children = children.get_list();
+
+                let (ident, value) = children.unwrap().borrow_first_2();
+
+                let ident = ident.get_dict().unwrap();
+                let ident = ident.borrow_by_key("value");
+                let ident = ident.get_string().unwrap();
+
+                if let Err(mut error) = Self::identifier_is_valid(ident) {
+                    if let Some(offset) = self.traverse_node_offset(node) {
+                        error.patch_offset(offset);
+                    }
+
+                    self.errors.push(error);
+                    return TraversalResult::Empty;
+                }
+
+                // Distinguish between pure values or an expression
+                let node = value.get_dict().unwrap();
+
+                // fixme: Restricted to pure values currently.
+                let value = self.traverse_node_static(Some(ident.to_string()), node);
+
+                if value.borrow().is_consuming() {
+                    if !Self::identifier_is_consumable(ident) {
+                        self.errors.push(Error::new(
+                            self.traverse_node_offset(node),
+                            format!(
+                                "Cannot assign constant '{}' as consumable. Use identifier starting in upper-case, e.g. '{}{}'",
+                                ident, &ident[0..1].to_uppercase(), &ident[1..]
+                            )
+                        ));
+                    }
+                } else if Self::identifier_is_consumable(ident) {
+                    self.errors.push(Error::new(
+                        self.traverse_node_offset(node),
+                        format!(
+                            "Cannot assign to constant '{}'. Use identifier starting in lower-case, e.g. '{}{}'",
+                            ident, &ident[0..1].to_lowercase(), &ident[1..]
+                        ),
+                    ));
+                }
+
+                //println!("{} : {:?}", ident, value);
+                self.set_constant(ident, value);
+
+                // Try to resolve usage of newly introduced constant in current scope
+                self.resolve_scope();
+
+                TraversalResult::Empty
+            }
+
             // identifier -----------------------------------------------------
             "identifier" => {
-                // An identifier is fallback-interpreted as a string
-                let value = node.borrow_by_key("value").to_string();
-                TraversalResult::Value(Value::String(value).into_refvalue())
+                let name = node.borrow_by_key("value").to_string();
+                TraversalResult::Identifier(name, self.traverse_node_offset(node))
+            }
+
+            // index ----------------------------------------------------------
+            "index" => {
+                let mut ops = self
+                    .traverse(&node.borrow_by_key("children"))
+                    .into_ops(self, true);
+                ops.push(Op::LoadIndex); // todo: in case value is an integer, use LoadFastIndex
+                TraversalResult::Ops(ops)
+            }
+
+            // inplace --------------------------------------------------------
+            inplace if inplace.starts_with("inplace_") => {
+                let children = node.borrow_by_key("children");
+                let lvalue = children.get_dict().unwrap();
+
+                let mut ops = Vec::new();
+
+                ops.extend(
+                    self.traverse_node_lvalue(lvalue, false, false)
+                        .into_ops(self, false),
+                );
+
+                let parts: Vec<&str> = inplace.split("_").collect();
+
+                match parts[1] {
+                    "pre" => {
+                        ops.push(if parts[2] == "inc" {
+                            Op::IInc
+                        } else {
+                            Op::IDec
+                        });
+                    }
+                    "post" => {
+                        ops.extend(vec![
+                            Op::Dup,
+                            Op::Rot2,
+                            if parts[2] == "inc" {
+                                Op::IInc
+                            } else {
+                                Op::IDec
+                            },
+                            Op::Drop,
+                        ]);
+                    }
+                    _ => unreachable!(),
+                }
+
+                TraversalResult::Ops(ops)
             }
 
             // main -----------------------------------------------------------
@@ -1381,14 +1381,25 @@ impl Compiler {
 
                         let res = self.traverse_node(children);
 
-                        // Absolute special case: [a-z]+ becomes Token::Chars()
-                        if parts[2] == "pos" {
-                            if let TraversalResult::Value(value) = &res {
-                                if let Value::Token(token) = &*value.borrow() {
-                                    if let Token::Char(ccl) = *token.clone() {
-                                        return TraversalResult::Value(
-                                            Token::Chars(ccl).into_value().into_refvalue(),
-                                        );
+                        // Special operations for Token::Char
+                        if let TraversalResult::Value(value) = &res {
+                            if let Value::Token(token) = &*value.borrow() {
+                                if let Token::Char(mut ccl) = *token.clone() {
+                                    match parts[2] {
+                                        // mod_pos on Token::Char becomes Token::Chars
+                                        "pos" => {
+                                            return TraversalResult::Value(
+                                                Token::Chars(ccl).into_value().into_refvalue(),
+                                            )
+                                        }
+                                        // mod_not on Token::Char becomes negated Token::Char
+                                        "not" => {
+                                            ccl.negate();
+                                            return TraversalResult::Value(
+                                                Token::Char(ccl).into_value().into_refvalue(),
+                                            );
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -1448,21 +1459,38 @@ impl Compiler {
             }
 
             // rvalue ---------------------------------------------------------
-            "rvalue" => self.traverse_node_rvalue(node),
+            "rvalue" => {
+                let children = node.borrow_by_key("children");
+                let children = children.to_list();
 
-            // sequence ------------------------------------------------------
+                let mut ops = Vec::new();
+
+                for (i, node) in children.iter().enumerate() {
+                    ops.extend(self.traverse(&node.borrow()).into_ops(self, false));
+                }
+
+                assert!(ops.len() > 0);
+                TraversalResult::Ops(ops)
+            }
+
+            // sequence  ------------------------------------------------------
             "sequence" | "collection" => {
                 let children = node.borrow_by_key("children");
                 let children = children.to_list();
 
                 let mut ops = Vec::new();
 
-                for node in children {
+                for node in &children {
                     ops.extend(self.traverse(&node.borrow()).into_ops(self, true))
                 }
 
                 if ops.len() > 0 {
-                    TraversalResult::Ops(vec![Sequence::new(ops)])
+                    if emit == "collection" {
+                        ops.push(Op::MakeCollection(children.len()));
+                        TraversalResult::Ops(ops)
+                    } else {
+                        TraversalResult::Ops(vec![Sequence::new(ops)])
+                    }
                 } else {
                     TraversalResult::Empty
                 }

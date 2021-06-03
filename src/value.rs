@@ -446,6 +446,29 @@ impl Value {
         }
     }
 
+    // Get index
+    pub fn get_index(&self, index: &Value) -> Result<RefValue, String> {
+        match self {
+            Self::List(l) => {
+                let index = index.to_addr();
+                if let Some(value) = l.get(index) {
+                    Ok(value.clone())
+                } else {
+                    Err(format!("Index {} out of bounds", index))
+                }
+            }
+            Self::Dict(d) => {
+                let index = index.to_string();
+                if let Some(value) = d.get(&index) {
+                    Ok(value.clone())
+                } else {
+                    Err(format!("Key '{}' not found", index))
+                }
+            }
+            _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
+        }
+    }
+
     // Check whether a value is callable, and if its callable with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {

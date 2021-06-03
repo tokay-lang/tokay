@@ -343,57 +343,60 @@ impl Parselet {
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
         );
 
-        if main {
-            assert!(self.signature.len() == 0)
-        }
-
-        // Check for provided argument count bounds first
-        // todo: Not executed when *args-catchall is implemented
-        if args > self.signature.len() {
-            return Error::new(
-                None,
-                format!(
-                    "Too many parameters, {} possible, {} provided",
-                    self.signature.len(),
-                    args
-                ),
-            )
-            .into_reject();
-        }
-
-        // Set remaining parameters to their defaults
-        for (i, arg) in (&self.signature[args..]).iter().enumerate() {
-            let var = &mut context.runtime.stack[context.stack_start + args + i];
-            //println!("{} {:?} {:?}", i, arg, var);
-            if matches!(var, Capture::Empty) {
-                // Try to fill argument by named arguments dict
-                if let Some(ref mut nargs) = nargs {
-                    if let Some(value) = nargs.remove(&arg.0) {
-                        *var = Capture::from_value(value.clone());
-                        continue;
-                    }
-                }
-
-                if let Some(addr) = arg.1 {
-                    *var = Capture::from_value(context.runtime.program.statics[addr].clone());
-                    //println!("{} receives default {:?}", arg.0, var);
-                    continue;
-                }
-
-                return Error::new(None, format!("Parameter '{}' required", arg.0)).into_reject();
-            }
-        }
-
-        // Check for remaining nargs
-        // todo: Not executed when **nargs-catchall is implemented
-        if let Some(nargs) = nargs {
-            if let Some(narg) = nargs.iter().next() {
+        if !main {
+            // Check for provided argument count bounds first
+            // todo: Not executed when *args-catchall is implemented
+            if args > self.signature.len() {
                 return Error::new(
                     None,
-                    format!("Parameter '{}' provided to call but not used", narg.0),
+                    format!(
+                        "Too many parameters, {} possible, {} provided",
+                        self.signature.len(),
+                        args
+                    ),
                 )
                 .into_reject();
             }
+
+            // Set remaining parameters to their defaults
+            for (i, arg) in (&self.signature[args..]).iter().enumerate() {
+                let var = &mut context.runtime.stack[context.stack_start + args + i];
+                //println!("{} {:?} {:?}", i, arg, var);
+                if matches!(var, Capture::Empty) {
+                    // Try to fill argument by named arguments dict
+                    if let Some(ref mut nargs) = nargs {
+                        if let Some(value) = nargs.remove(&arg.0) {
+                            *var = Capture::from_value(value.clone());
+                            continue;
+                        }
+                    }
+
+                    if let Some(addr) = arg.1 {
+                        *var = Capture::from_value(context.runtime.program.statics[addr].clone());
+                        //println!("{} receives default {:?}", arg.0, var);
+                        continue;
+                    }
+
+                    return Error::new(None, format!("Parameter '{}' required", arg.0))
+                        .into_reject();
+                }
+            }
+
+            // Check for remaining nargs
+            // todo: Not executed when **nargs-catchall is implemented
+            if let Some(nargs) = nargs {
+                if let Some(narg) = nargs.iter().next() {
+                    return Error::new(
+                        None,
+                        format!("Parameter '{}' provided to call but not used", narg.0),
+                    )
+                    .into_reject();
+                }
+            }
+        } else
+        /* main */
+        {
+            assert!(self.signature.len() == 0)
         }
 
         // Initialize locals

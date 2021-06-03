@@ -34,6 +34,10 @@ impl Parser {
             [(peek "}"), (Op::Skip)]
         }),
 
+        (T_NoIdentifier = {
+            (not (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))))
+        }),
+
         // Prime Tokens (might probably be replaced by something native, pluggable one)
 
         (T_Identifier = {
@@ -41,6 +45,14 @@ impl Parser {
                 (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
+            ]
+        }),
+
+        (T_StringIdentifier = {
+            [
+                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
+                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
+                (call ast[(value "value_string"), (Op::LoadFastCapture(0))])
             ]
         }),
 
@@ -123,12 +135,12 @@ impl Parser {
             [Variable, (kle Subscript), _, (call ast[(value "lvalue")])]
         }),
 
-        (Rvalue = {
+        (Load = {
             [Lvalue, "++", (call ast[(value "inplace_post_inc")])],
             [Lvalue, "--", (call ast[(value "inplace_post_dec")])],
             ["++", (expect Lvalue), (call ast[(value "inplace_pre_inc")])],
             ["--", (expect Lvalue), (call ast[(value "inplace_pre_dec")])],
-            [Variable, (call ast[(value "rvalue")])]
+            Variable
         }),
 
         (CallParameter = {
@@ -140,21 +152,16 @@ impl Parser {
             (pos [CallParameter, (opt [",", _])])
         }),
 
-        (Call = {
-            [T_Identifier, "(", _, (opt CallParameters), (expect ")"), _,
-                (call ast[(value "call_identifier")])],
-            [Rvalue, "(", _, (opt CallParameters), ")", _,
-                (call ast[(value "call_rvalue")])]
-        }),
-
         (Literal = {
-            ["true", _, (call ast[(value "value_true")])],
-            ["false", _, (call ast[(value "value_false")])],
-            ["void", _, (call ast[(value "value_void")])],
-            ["null", _, (call ast[(value "value_null")])],
-            [T_String, _, (call ast[(value "value_string")])],
-            [T_Float, _],
-            [T_Integer, _]
+            /* below calls to (peek T_NoIdentifier) avoid to wrongly interpret
+                e.g. "truex" as "true" and "x" */
+            ["true", (peek T_NoIdentifier), (call ast[(value "value_true")])],
+            ["false", (peek T_NoIdentifier), (call ast[(value "value_false")])],
+            ["void", (peek T_NoIdentifier), (call ast[(value "value_void")])],
+            ["null", (peek T_NoIdentifier), (call ast[(value "value_null")])],
+            [T_String, (call ast[(value "value_string")])],
+            T_Float,
+            T_Integer
         }),
 
         // Tokens
@@ -169,52 +176,58 @@ impl Parser {
         (TokenCall = {
             TokenLiteral,
             [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
-                (call ast[(value "call_identifier")])],
-            [T_Consumable, (call ast[(value "rvalue")])]
+                (call ast[(value "call")])],
+            [T_Consumable, (call ast[(value "call")])]
         }),
 
         (Token = {
             // Token call modifiers
-            [TokenCall, "+", _, (call ast[(value "op_mod_pos")])],
-            [TokenCall, "*", _, (call ast[(value "op_mod_kle")])],
-            [TokenCall, "?", _, (call ast[(value "op_mod_opt")])],
+            [TokenCall, "+", (call ast[(value "op_mod_pos")])],
+            [TokenCall, "*", (call ast[(value "op_mod_kle")])],
+            [TokenCall, "?", (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
-            [TokenCall, _],
-            ["peek", _, (expect Token, "Token"), (call ast[(value "op_mod_peek")])],
-            ["not", _, (expect Token, "Token"), (call ast[(value "op_mod_not")])],
-            ["expect", _, (expect Token, "Token"), (call ast[(value "op_mod_expect")])]
+            TokenCall,
+            ["peek", _, (expect Token), (call ast[(value "op_mod_peek")])],
+            ["not", _, (expect Token), (call ast[(value "op_mod_not")])],
+            ["expect", _, (expect Token), (call ast[(value "op_mod_expect")])]
         }),
 
         // Expression & Flow
 
         (CollectionItem = {
-            [T_Identifier, _, "=>", _, Expression, (call ast[(value "alias")])],
+            [T_StringIdentifier, _, "=>", _, Expression, (call ast[(value "alias")])],
             [Expression, "=>", _, Expression, (call ast[(value "alias")])],
             Expression
         }),
 
-        (Atomic = {
-            ["(", _, Expression, ")"], // no expect ")" here!
+        (Collection = {
             ["(", _, (pos [Expression, (opt [",", _])]), ")", // no expect ")" here!
                 (call ast[(value "collection")])],
             ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"),
-                (call ast[(value "collection")])],
+                (call ast[(value "collection")])]
+        }),
+
+        (Atomic = {
+            ["(", _, Expression, ")"], // no expect ")" here!
+            Collection,
             Literal,
             Token,
-            Call,
-            Rvalue,
+            Load,
             Block,
             Parselet
         }),
 
-        (Primary = {
-            [Atomic, (kle Subscript), _]
+        (Rvalue = {
+            [Rvalue, "(", _, (opt CallParameters), (expect ")"), _,
+                (call ast[(value "call")])],
+            [Atomic, (pos Subscript), (call ast[(value "rvalue")])],
+            Atomic
         }),
 
         (Unary = {
             ["-", _, Unary, (call ast[(value "op_unary_neg")])],
             ["!", _, Unary, (call ast[(value "op_unary_not")])],
-            Primary
+            [Rvalue, _]
         }),
 
         // todo: & and |
@@ -325,8 +338,8 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, (pos Instruction), _, (expect "}"), _, (call ast[(value "block")])],
-            ["{", _, (expect "}"), _, (Op::PushVoid), (call ast[(value "block")])]
+            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])],
+            ["{", _, (expect "}"), (Op::PushVoid), (call ast[(value "block")])]
         }),
 
         // Sequences
@@ -344,9 +357,9 @@ impl Parser {
         // Instructions
 
         (Instruction = {
-            ["begin", _, Block, (call ast[(value "begin")])],
+            ["begin", _, Block, _, (call ast[(value "begin")])],
             ["begin", _, Statement, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", _, Block, (call ast[(value "end")])],
+            ["end", _, Block, _, (call ast[(value "end")])],
             ["end", _, Statement, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),

@@ -225,6 +225,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         copy: bool,
         single: bool,
         min_severity: u8,
+        severity: u8,
     ) -> Option<Capture> {
         // Eiter copy or drain captures from stack
         let mut captures: Vec<Capture> = if copy {
@@ -295,13 +296,13 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             }
 
             if dict.len() == 0 {
-                if list.len() > 1 {
+                if list.len() > 1 || (list.len() > 0 && !single) {
                     return Some(Capture::Value(
                         Value::List(Box::new(list)).into_refvalue(),
-                        5,
+                        severity,
                     ));
                 } else if list.len() == 1 {
-                    return Some(Capture::Value(list[0].clone(), 5));
+                    return Some(Capture::Value(list[0].clone(), severity));
                 }
 
                 None
@@ -315,7 +316,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
                 Some(Capture::Value(
                     Value::Dict(Box::new(dict)).into_refvalue(),
-                    5,
+                    severity,
                 ))
             }
         }

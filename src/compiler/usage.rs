@@ -11,7 +11,7 @@ pub enum Usage {
         name: String,
         offset: Option<Offset>,
     },
-    // Either load a symbol or call it when it is callable and can be called without parameters.
+    // Either load a symbol or call it when it is callable without parameters.
     CallOrCopy {
         name: String,
         offset: Option<Offset>,
@@ -71,10 +71,7 @@ impl Usage {
                             return Some(vec![Op::CallStaticArg(Box::new((addr, *args)))]);
                         }
 
-                        return Some(vec![
-                            Op::MakeDict(*nargs),
-                            Op::CallStaticArgNamed(Box::new((addr, *args))),
-                        ]);
+                        return Some(vec![Op::CallStaticArgNamed(Box::new((addr, *args)))]);
                     } else {
                         *self = Usage::Error(Error::new(
                             *offset,
@@ -88,11 +85,7 @@ impl Usage {
                         return Some(vec![Op::LoadFast(addr), Op::CallArg(*args)]);
                     }
 
-                    return Some(vec![
-                        Op::MakeDict(*nargs),
-                        Op::LoadFast(addr),
-                        Op::CallArgNamed(*args),
-                    ]);
+                    return Some(vec![Op::LoadFast(addr), Op::CallArgNamed(*args)]);
                 } else if let Some(addr) = compiler.get_global(&name) {
                     if *args == 0 && *nargs == 0 {
                         return Some(vec![Op::LoadGlobal(addr), Op::Call]);
@@ -100,11 +93,7 @@ impl Usage {
                         return Some(vec![Op::LoadGlobal(addr), Op::CallArg(*args)]);
                     }
 
-                    return Some(vec![
-                        Op::MakeDict(*nargs),
-                        Op::LoadGlobal(addr),
-                        Op::CallArgNamed(*args),
-                    ]);
+                    return Some(vec![Op::LoadGlobal(addr), Op::CallArgNamed(*args)]);
                 }
             }
 

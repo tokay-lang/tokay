@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::Error;
 use crate::reader::Offset;
 use crate::value::{Dict, RefValue, Value};
 
@@ -49,7 +50,9 @@ pub enum Op {
     LoadFast(usize),
     LoadFastCapture(usize),
     LoadCapture,
-
+    //LoadAttr,
+    LoadIndex,
+    //LoadFastAttr(usize),
     StoreGlobal(usize),
     StoreGlobalHold(usize),
     StoreFast(usize),
@@ -59,10 +62,9 @@ pub enum Op {
     StoreCapture,
     StoreCaptureHold,
 
-    MakeAlias, // Make key-value-Capture from last two stack items
-    //MakeList(usize),
+    MakeAlias,             // Make key-value-Capture from last two stack items
     MakeDict(usize),       // Make a Dict from specified amount of key-value-pairs
-    MakeListOrDict(usize), // Either make a List or Dict from specified amount of Captures
+    MakeCollection(usize), // Either make a List or Dict from specified amount of Captures
 
     // Operations
     Drop, // drop TOS
@@ -302,6 +304,18 @@ impl Runable for Op {
                 }
             }
 
+            Op::LoadIndex => {
+                let attr = context.pop();
+                let attr = attr.borrow();
+                let value = context.pop();
+                let value = value.borrow();
+
+                match value.get_index(&attr) {
+                    Ok(value) => Ok(Accept::Push(Capture::Value(value, 10))),
+                    Err(msg) => Error::new(None, msg).into_reject(),
+                }
+            }
+
             Op::StoreGlobal(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
@@ -400,8 +414,14 @@ impl Runable for Op {
                 )))
             }
 
-            Op::MakeListOrDict(count) => {
-                todo!();
+            Op::MakeCollection(count) => {
+                if let Some(capture) =
+                    context.collect(context.runtime.stack.len() - count, false, false, 0, 10)
+                {
+                    Ok(Accept::Push(capture))
+                } else {
+                    Ok(Accept::Next)
+                }
             }
 
             Op::Drop => {

@@ -126,7 +126,7 @@ static BUILTINS: &[Builtin] = &[
 
             let value = args.remove(0).or_else(|| {
                 // In case no value is set, collect them from the current context.
-                if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                if let Some(capture) = context.collect(context.capture_start, false, true, 0, 5) {
                     Some(capture.as_value(context.runtime))
                 } else {
                     None
@@ -330,7 +330,7 @@ static BUILTINS: &[Builtin] = &[
             let mut msg = msg.borrow().to_string();
 
             if collect {
-                if let Some(capture) = context.collect(context.capture_start, false, false, 0) {
+                if let Some(capture) = context.collect(context.capture_start, false, false, 0, 0) {
                     let value = capture.as_value(context.runtime);
                     let value = value.borrow();
 

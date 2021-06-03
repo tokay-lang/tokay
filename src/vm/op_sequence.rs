@@ -62,7 +62,7 @@ impl Runable for Sequence {
             When no explicit Return is performed, first try to collect any
             non-silent captures.
         */
-        if let Some(capture) = context.collect(capture_start, false, true, 0) {
+        if let Some(capture) = context.collect(capture_start, false, true, 0, 5) {
             Ok(Accept::Push(capture))
         } else {
             Ok(Accept::Next)
