@@ -1,0 +1,2 @@
+'Earth'         "Hello World"
+planet => Name  "Hello " + $planet

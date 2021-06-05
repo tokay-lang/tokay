@@ -93,7 +93,7 @@ fn main() {
 
                 match ret {
                     Ok(None) => {
-                        if streams.len() > 0 {
+                        if streams.len() > 1 {
                             print!("\n")
                         }
                     }

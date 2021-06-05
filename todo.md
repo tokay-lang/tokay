@@ -70,7 +70,7 @@ Syntax is under careful consideration.
 - [x] Use capitalized identifiers for consumable constants
 - [ ] Undefined variables incremented or decremented (`i++`, `++i`, `i--`, `--i`) as well as variables assigned by `+=`, `-=`, `*=`, `/=` should enforce initialize the undefined variable to 0, so for a simple counting, an explicit setting to 0 is not required.
 - [ ] Capture::Named alias inferring
-- [ ] Capture::Named should recognize severity?
+- [x] Capture::Named should recognize severity
 - [ ] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
 - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
 

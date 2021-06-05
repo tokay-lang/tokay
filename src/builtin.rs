@@ -366,7 +366,7 @@ static BUILTINS: &[Builtin] = &[
             }
 
             print!("\n");
-            Ok(Accept::Next)
+            Ok(Accept::Push(Capture::Value(Value::Void.into_refvalue(), 10)))
         },
     },
 ];

@@ -295,6 +295,9 @@ impl Parselet {
             } else {
                 state = None;
             }
+
+            // Reset capture stack for loop repeat ($0 must be kept alive)
+            context.runtime.stack.truncate(context.capture_start + 1);
         };
 
         result.unwrap_or_else(|| {

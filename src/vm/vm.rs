@@ -8,12 +8,15 @@ use crate::value::{Dict, List, RefValue, Value};
 
 // --- Capture -----------------------------------------------------------------
 
+// todo: The Capture enum isn't very well implemented so far.
+// This version works OK, but should be refactored in future.
+
 #[derive(Debug, Clone)]
 pub enum Capture {
     Empty,                       // Empty capture
     Range(Range, u8),            // Captured range from the input & severity
     Value(RefValue, u8),         // Captured value & severity
-    Named(Box<Capture>, String), // Named
+    Named(Box<Capture>, String), // Named capture wraps a capture with a string
 }
 
 impl Capture {
@@ -48,6 +51,21 @@ impl Capture {
             Capture::Value(value, _) => value.clone(),
 
             Capture::Named(capture, _) => capture.as_value(runtime),
+        }
+    }
+
+    // Turns a capture into a stand-alone value if it matches a specific severity
+    pub fn as_value_with_severity(&self, runtime: &Runtime, min_severity: u8) -> Option<RefValue> {
+        match self {
+            Capture::Range(range, severity) if *severity >= min_severity => {
+                Some(Value::String(runtime.reader.extract(range)).into_refvalue())
+            }
+
+            Capture::Value(value, severity) if *severity >= min_severity => Some(value.clone()),
+
+            Capture::Named(capture, _) => capture.as_value_with_severity(runtime, min_severity),
+
+            _ => None,
         }
     }
 }
@@ -165,12 +183,13 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     /** Return a capture by name as RefValue. */
-    pub fn get_capture_by_name(&self, name: &str) -> Option<RefValue> {
-        // fixme: Should be examined in reversed order
-        for capture in self.runtime.stack[self.capture_start..].iter() {
-            if let Capture::Named(capture, alias) = &capture {
+    pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
+        let tos = self.runtime.stack.len();
+
+        for i in (0..tos - self.capture_start).rev() {
+            if let Capture::Named(_, alias) = &self.runtime.stack[self.capture_start + i] {
                 if alias == name {
-                    return Some(capture.as_value(&self.runtime));
+                    return self.get_capture(i);
                 }
             }
         }
@@ -265,6 +284,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         if severity > max {
                             max = severity;
                             list.clear();
+                            dict.clear();
                         }
 
                         list.push(
@@ -276,14 +296,19 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         if severity > max {
                             max = severity;
                             list.clear();
+                            dict.clear();
                         }
 
-                        list.push(value);
+                        if !value.borrow().is_void() {
+                            list.push(value);
+                        }
                     }
 
                     Capture::Named(capture, alias) => {
                         // Named capture becomes dict key
-                        dict.insert(alias, capture.as_value(self.runtime));
+                        if let Some(value) = capture.as_value_with_severity(self.runtime, max) {
+                            dict.insert(alias, value);
+                        }
                     }
 
                     _ => continue,

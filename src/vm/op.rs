@@ -393,7 +393,7 @@ impl Runable for Op {
                 let alias = alias.borrow();
 
                 Ok(Accept::Push(Capture::Named(
-                    Box::new(Capture::Value(value, 10)),
+                    Box::new(Capture::Value(value, 5)),
                     alias.to_string(),
                 )))
             }

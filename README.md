@@ -14,8 +14,8 @@ print("Hello World")
 Tokay can also first match the world, and then greet to it... or any other planet?
 
 ```tokay
-'World' print("Hello Earth")
-planet => Name print("Hello " + $planet)
+'Earth'         print("Hello World")       # When matching earth, greet the world
+planet => Name  print("Hello " + $planet)  # Match any other planet otherwise
 ```
 
 Tokay is designed as a programming language for writing ad-hoc parsers with build-in abstract-syntax tree synthesis. The next example directly implements a left-recursive parser for simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`.

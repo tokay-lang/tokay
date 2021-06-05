@@ -345,7 +345,16 @@ fn test_parselet_loop() {
 #[test]
 fn test_readme_examples() {
     assert_eq!(
-        compile_and_run(include_str!("../readme.tok"), "1+2*3+4", false),
+        compile_and_run(
+            include_str!("../planets.tok"),
+            "Mercury Venus Earth Mars",
+            false
+        ),
+        Ok(Some(value!(["Hello Mercury", "Hello Venus", "Hello World", "Hello Mars"])))
+    );
+
+    assert_eq!(
+        compile_and_run(include_str!("../expressions.tok"), "1+2*3+4", false),
         Ok(Some(value!(11)))
     );
 
