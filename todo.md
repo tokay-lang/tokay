@@ -17,47 +17,51 @@ This is a recently updated brainstorming and todo scribble file.
 - [ ] Grammar view
   - [ ] Perform left-recursion detection on begin and end also?
   - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
+- [ ] Locked objects (this is required to disallow modification of Dict and List constants)
+- [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
 
 ## Syntax
 
 Syntax is under careful consideration.
 
 - [x] Implementation of Lists `(a, b, c)` and Dicts `(a => b, c => d)`
-  - [ ] instead of `=>`, consider to use `>>` and `<<` syntax to allow for key-value or value-key notation; This might be useful, e.g. when in sequences `Integer << i` rather than `i >> Integer`, but `a -> b` in a dict...
 - [ ] Missing expressional constructs
   - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
   - [x] `&&` and `||`
   - [ ] `&` and `|`
   - [ ] `^` (pow)
-- [ ] Loops with value collection using `continue` and `break`
 - [x] Sequence item aliasing: `a x => b c $2 $x $1
-- Token call modifiers
-  - [x] `expect` keyword
-  - [x] `not` keyword
-  - [x] `peek` keyword
-  - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work (syntax is ugly)
 - [x] Definition of Chars tokens `[A-Za-z_]` etc...
 - [!] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
 - [ ] Implement `ls -ltra` backticks (`) for shell command values
   - [ ] Operators `|>` and `<|` for shell command read/write?
-- [ ] until-Operator?
 - [ ] *deref-Operator?
 - [ ] Parselets should allow for *args and **nargs catchall
+- [ ] Use generic `loop` keyword for loops (instead of `for`, `while` or `do...while`)
+  - [ ] `loop i in iter`
+  - [ ] `loop i = 0; i < 10; print(i++)`
+  - [ ] `loop i = 0; ; print(i++) if i > 100 break`
+  - [ ] `loop {}`
+  - [ ] Loops with value collection using `continue` and `break`
+- [ ] Token operators as generics
+  - [ ] `until`-Operator (not available yet, but might be `Until<P, Escape=Void>`)
+  - [ ] `not`-Operator (`Not<P>`)
+  - [ ] `peek`-Operator (`Peek<P>`)
+  - [ ] Generic `Repeat<P, min=1, max=0>` instead of `{min, max}` syntax considered below
+  - (Old topic) Token call modifiers
+    - [x] `expect` keyword
+    - [x] `not` keyword
+    - [x] `peek` keyword
+    - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work (syntax is ugly)
 
 ## Compiler
 
-- [x] Don't require to re-initialize builtins every time a new compile is done.
-- [x] Re-use statics when accessed multiple times
 - [ ] Missing traversals for
-  - [x] Comparison operators
-  - [x] In-place increment and decrement `a++`, `++a`
   - [ ] `loop` as the unified loop keyword for `while` and `for`
     - [ ] `break` and `continue`
-  - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
 
 ## REPL
 
-- [x] REPL should hold global variables and statics context during execution
 - [ ] REPL creates a new main parselet for every prompt executed; Old mains stay until program end.
 - [ ] Main scope stays consumable even when the next prompt inserted unconsumable input
 

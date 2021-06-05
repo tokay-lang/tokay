@@ -1,3 +1,4 @@
+pub(crate) mod ast;
 mod compiler;
 mod macros;
 mod parser;

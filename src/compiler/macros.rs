@@ -62,7 +62,7 @@ macro_rules! tokay_embed_item {
         {
             let name = stringify!($name).to_string();
 
-            if !Compiler::identifier_is_consumable(&name) {
+            if !ast::identifier_is_consumable(&name) {
                 panic!("Parselet identifier must begin with an upper-case letter or underscore!");
             }
 

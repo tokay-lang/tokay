@@ -1,4 +1,4 @@
-use crate::compiler::{Compiler, Parser};
+use crate::compiler;
 use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
@@ -14,7 +14,7 @@ pub struct Builtin {
 impl Builtin {
     /// Check if specific builtin is consumable by identifier
     pub fn is_consumable(&self) -> bool {
-        Compiler::identifier_is_consumable(self.name)
+        compiler::ast::identifier_is_consumable(self.name)
     }
 
     // Call builtin from the VM.
@@ -182,7 +182,7 @@ static BUILTINS: &[Builtin] = &[
         required: 1,
         signature: "ast",
         func: |_, mut args| {
-            Parser::print(&args.remove(0).unwrap().borrow());
+            compiler::ast::print(&args.remove(0).unwrap().borrow());
             Ok(Accept::Next)
         },
     },
