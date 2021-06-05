@@ -469,11 +469,11 @@ impl Value {
         }
     }
 
-    // Check whether a value is callable, and if its callable with or without arguments.
+    // Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
             Value::Token(_) => !with_arguments,
-            Value::Builtin(builtin) => true,
+            Value::Builtin(_) => true,
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
             _ => false,
         }
@@ -513,7 +513,7 @@ impl Value {
             }
             Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
-            _ => Error::new(None, format!("Value {} cannot be called", self.repr())).into_reject(),
+            _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
         }
     }
 }

@@ -180,6 +180,46 @@ fn test_variables() {
 }
 
 #[test]
+fn test_collections() {
+    // Lists
+    assert_eq!(
+        compile_and_run(
+            "
+            (1 2 3) \
+            (1, 2, 3) \
+            (42, \"Hello\", 23.5, true, false)
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            [1, 2, 3],
+            [1, 2, 3],
+            [42, "Hello", 23.5, true, false]
+        ])))
+    );
+
+    // Dicts
+    assert_eq!(
+        compile_and_run(
+            "
+            x = 10
+            (a => 1 b => 2 c => 3) \
+            (a => 1, b => 2, c => 3) \
+            (a => 42, x * 2 => \"Hello\", c => 23.5)
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!([
+            ["a" => 1, "b" => 2, "c" => 3],
+            ["a" => 1, "b" => 2, "c" => 3],
+            ["a" => 42, "20" => "Hello", "c" => 23.5]
+        ])))
+    );
+}
+
+#[test]
 fn test_token() {
     let s = "ab abbb bb 123 ABC 456 'def'";
 

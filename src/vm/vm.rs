@@ -307,12 +307,22 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
                 None
             } else {
-                /*
-                // Store list-items additionally when there is a dict? Hmm...
-                for (i, item) in list.into_iter().enumerate() {
-                    dict.insert(i.to_string(), item);
+                // Store list-items additionally when there is a dict?
+                // This is currently under further consideration and not finished.
+                let mut idx = 0;
+                for item in list.into_iter() {
+                    loop {
+                        let key = format!("#{}", idx);
+                        if let None = dict.get(&key) {
+                            dict.insert(key, item);
+                            break;
+                        }
+
+                        idx += 1;
+                    }
+
+                    idx += 1;
                 }
-                */
 
                 Some(Capture::Value(
                     Value::Dict(Box::new(dict)).into_refvalue(),

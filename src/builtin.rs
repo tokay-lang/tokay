@@ -330,7 +330,7 @@ static BUILTINS: &[Builtin] = &[
             let mut msg = msg.borrow().to_string();
 
             if collect {
-                if let Some(capture) = context.collect(context.capture_start, false, false, 0, 0) {
+                if let Some(capture) = context.collect(context.capture_start, false, true, 0, 0) {
                     let value = capture.as_value(context.runtime);
                     let value = value.borrow();
 

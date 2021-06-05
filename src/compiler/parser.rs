@@ -48,19 +48,19 @@ impl Parser {
             ]
         }),
 
-        (T_StringIdentifier = {
-            [
-                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
-                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
-                (call ast[(value "value_string"), (Op::LoadFastCapture(0))])
-            ]
-        }),
-
         (T_Consumable = {
             [
                 (token (Token::Char(ccl!['A'..='Z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
+            ]
+        }),
+
+        (T_Alias = {  // T_Alias is an identifier treated as string value
+            [
+                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
+                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
+                (call ast[(value "value_string"), (Op::LoadFastCapture(0))])
             ]
         }),
 
@@ -120,7 +120,7 @@ impl Parser {
         }),
 
         (Capture = {
-            ["$", T_Identifier, _, (call ast[(value "capture_alias")])],
+            ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
             ["$", "(", _, Expression, ")", _, (call ast[(value "capture_expr")])],
             ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
@@ -144,7 +144,7 @@ impl Parser {
         }),
 
         (CallParameter = {
-            [T_Identifier, _, "=", _, Expression, (call ast[(value "param_named")])],
+            [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "param_named")])],
             [Expression, (call ast[(value "param")])]
         }),
 
@@ -195,8 +195,8 @@ impl Parser {
         // Expression & Flow
 
         (CollectionItem = {
-            [T_StringIdentifier, _, "=>", _, Expression, (call ast[(value "alias")])],
-            [Expression, "=>", _, Expression, (call ast[(value "alias")])],
+            [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
+            [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
             Expression
         }),
 
@@ -267,12 +267,6 @@ impl Parser {
             LogicalAnd
         }),
 
-
-        (Assign = {
-            [Lvalue, "=", _, Expression, (call ast[(value "assign")])] // fixme: a = b = c is possible here...
-            // todo: add operators "+="", "-="", "*="", "/=" here as well
-        }),
-
         (ExpressionOrVoid = {
             Expression,
             (call ast[(value "value_void")])
@@ -291,11 +285,11 @@ impl Parser {
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // assignment
-            [Lvalue, "=", _, Expression, (call ast[(value "assign_hold")])],
-            [Lvalue, "+=", _, Expression, (call ast[(value "assign_add_hold")])],
-            [Lvalue, "-=", _, Expression, (call ast[(value "assign_sub_hold")])],
-            [Lvalue, "*=", _, Expression, (call ast[(value "assign_mul_hold")])],
-            [Lvalue, "/=", _, Expression, (call ast[(value "assign_div_hold")])],
+            [Lvalue, "=", (not ">"), _, (expect Expression), (call ast[(value "assign_hold")])],
+            [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add_hold")])],
+            [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub_hold")])],
+            [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul_hold")])],
+            [Lvalue, "/=", _, (expect Expression), (call ast[(value "assign_div_hold")])],
 
             // normal expression starting with LogicalOr
             LogicalOr
@@ -311,13 +305,13 @@ impl Parser {
             ["return", _, ExpressionOrVoid, (call ast[(value "op_accept")])],
             ["repeat", _, ExpressionOrVoid, (call ast[(value "op_repeat")])],
             ["reject", _, (call ast[(value "op_reject")])],
-
             // todo: report, escape, repeat
-            [Lvalue, "=", _, Expression, (call ast[(value "assign")])],
-            [Lvalue, "+=", _, Expression, (call ast[(value "assign_add")])],
-            [Lvalue, "-=", _, Expression, (call ast[(value "assign_sub")])],
-            [Lvalue, "*=", _, Expression, (call ast[(value "assign_mul")])],
-            [Lvalue, "/=", _, Expression, (call ast[(value "assign_div")])],
+
+            [Lvalue, "=", (not ">"), _, (expect Expression), (call ast[(value "assign")])],
+            [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
+            [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],
+            [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul")])],
+            [Lvalue, "/=", _, (expect Expression), (call ast[(value "assign_div")])],
 
             Expression
         }),
@@ -345,16 +339,10 @@ impl Parser {
         // Sequences
 
         (SequenceItem = {
-            [T_Identifier, _, "=>", _, Expression, (call ast[(value "alias")])],
-            [Expression, _, "=>", _, Expression, (call ast[(value "alias")])],
+            [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
+            [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
             Statement
         }),
-
-        (Sequence = {
-            [(pos SequenceItem), (call ast[(value "sequence")])]
-        }),
-
-        // Instructions
 
         (Instruction = {
             ["begin", _, Block, _, (call ast[(value "begin")])],
@@ -364,7 +352,7 @@ impl Parser {
 
             [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
                 (call ast[(value "constant")])],
-            Sequence,
+            [(pos SequenceItem), (call ast[(value "sequence")])],
             [T_EOL, (Op::Skip)]
         }),
 

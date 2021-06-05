@@ -1465,7 +1465,7 @@ impl Compiler {
 
                 let mut ops = Vec::new();
 
-                for (i, node) in children.iter().enumerate() {
+                for node in children.iter() {
                     ops.extend(self.traverse(&node.borrow()).into_ops(self, false));
                 }
 
