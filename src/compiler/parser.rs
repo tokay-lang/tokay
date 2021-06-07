@@ -285,7 +285,8 @@ impl Parser {
             ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // assignment
-            [Lvalue, "=", (not ">"), _, (expect Expression), (call ast[(value "assign_hold")])],
+            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
+                _, (expect Expression), (call ast[(value "assign_hold")])],
             [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add_hold")])],
             [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub_hold")])],
             [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul_hold")])],
@@ -307,7 +308,8 @@ impl Parser {
             ["reject", _, (call ast[(value "op_reject")])],
             // todo: report, escape, repeat
 
-            [Lvalue, "=", (not ">"), _, (expect Expression), (call ast[(value "assign")])],
+            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
+                _, (expect Expression), (call ast[(value "assign")])],
             [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
             [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],
             [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul")])],
@@ -332,8 +334,8 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])],
-            ["{", _, (expect "}"), (Op::PushVoid), (call ast[(value "block")])]
+            ["{", _, (pos Instruction), _, (expect "}"), _, (opt T_EOL), (call ast[(value "block")])],
+            ["{", _, (expect "}"), _, (opt T_EOL), (Op::PushVoid), (call ast[(value "block")])]
         }),
 
         // Sequences

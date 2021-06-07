@@ -92,8 +92,13 @@ fn test_expression() {
     assert_eq!(
         compile_and_run(
             "\
+            x = 42 \
             42 == 42 \
+            x == 42 \
+            x == x \
             42 != 42 \
+            x != 42 \
+            x != x \
             42 != 23 \
             42 == 23 \
             1.3 != 3.7 \
@@ -109,7 +114,7 @@ fn test_expression() {
             false
         ),
         Ok(Some(value!([
-            true, false, true, false, true, false, true, false, true, false, true, false
+            true, true, true, false, false, false, true, false, true, false, true, false, true, false, true, false
         ])))
     );
 
