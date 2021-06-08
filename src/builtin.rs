@@ -32,7 +32,7 @@ impl Builtin {
             .collect();
         let mut args: Vec<Option<RefValue>> = args
             .into_iter()
-            .map(|item| Some(item.as_value(context.runtime)))
+            .map(|item| Some(item.get_value()))  // fixme!!!
             .collect();
 
         // Match arguments to signature's names
@@ -126,11 +126,7 @@ static BUILTINS: &[Builtin] = &[
 
             let value = args.remove(0).or_else(|| {
                 // In case no value is set, collect them from the current context.
-                if let Some(capture) = context.collect(context.capture_start, false, true, 0, 5) {
-                    Some(capture.as_value(context.runtime))
-                } else {
-                    None
-                }
+                context.collect(context.capture_start, false, true, 0)
             });
 
             if let Some(value) = value {
@@ -221,6 +217,7 @@ static BUILTINS: &[Builtin] = &[
 
                 Ok(Accept::Push(Capture::Value(
                     Value::Integer(value).into_refvalue(),
+                    None,
                     5,
                 )))
             } else {
@@ -248,6 +245,7 @@ static BUILTINS: &[Builtin] = &[
             if count > 0 {
                 Ok(Accept::Push(Capture::Range(
                     context.runtime.reader.capture_last(count),
+                    None,
                     5,
                 )))
             } else {
@@ -284,6 +282,7 @@ static BUILTINS: &[Builtin] = &[
             if count > 0 {
                 Ok(Accept::Push(Capture::Range(
                     context.runtime.reader.capture_last(count),
+                    None,
                     5,
                 )))
             } else {
@@ -310,6 +309,7 @@ static BUILTINS: &[Builtin] = &[
             if count > 0 {
                 Ok(Accept::Push(Capture::Range(
                     context.runtime.reader.capture_last(count),
+                    None,
                     5,
                 )))
             } else {
@@ -330,8 +330,7 @@ static BUILTINS: &[Builtin] = &[
             let mut msg = msg.borrow().to_string();
 
             if collect {
-                if let Some(capture) = context.collect(context.capture_start, false, true, 0, 0) {
-                    let value = capture.as_value(context.runtime);
+                if let Some(value) = context.collect(context.capture_start, false, true, 0) {
                     let value = value.borrow();
 
                     if let Value::String(s) = &*value {
@@ -366,7 +365,7 @@ static BUILTINS: &[Builtin] = &[
             }
 
             print!("\n");
-            Ok(Accept::Push(Capture::Value(Value::Void.into_refvalue(), 10)))
+            Ok(Accept::Push(Capture::Value(Value::Void.into_refvalue(), None, 10)))
         },
     },
 ];

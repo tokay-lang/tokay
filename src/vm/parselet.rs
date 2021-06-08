@@ -196,10 +196,10 @@ impl Parselet {
                     Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
 
                     Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
-                        Capture::Range(range, _) => Some(
+                        Capture::Range(range, ..) => Some(
                             Value::String(context.runtime.reader.extract(&range)).into_refvalue(),
                         ),
-                        Capture::Value(value, _) => Some(value),
+                        Capture::Value(value, ..) => Some(value),
                         _ => None,
                     })),
                     result => result,
@@ -216,7 +216,7 @@ impl Parselet {
                         Accept::Return(value) => {
                             if let Some(value) = value {
                                 if !self.silent {
-                                    break Some(Ok(Accept::Push(Capture::Value(value, 5))));
+                                    break Some(Ok(Accept::Push(Capture::Value(value, None, 5))));
                                 } else {
                                     break Some(Ok(Accept::Push(Capture::Empty)));
                                 }
@@ -304,10 +304,11 @@ impl Parselet {
             if results.len() > 1 {
                 Ok(Accept::Push(Capture::Value(
                     Value::List(Box::new(results)).into_refvalue(),
+                    None,
                     5,
                 )))
             } else if results.len() == 1 {
-                Ok(Accept::Push(Capture::Value(results.pop().unwrap(), 5)))
+                Ok(Accept::Push(Capture::Value(results.pop().unwrap(), None, 5)))
             } else {
                 Ok(Accept::Next)
             }
@@ -369,13 +370,14 @@ impl Parselet {
                     // Try to fill argument by named arguments dict
                     if let Some(ref mut nargs) = nargs {
                         if let Some(value) = nargs.remove(&arg.0) {
-                            *var = Capture::from_value(value.clone());
+                            *var = Capture::Value(value.clone(), None, 0);
                             continue;
                         }
                     }
 
                     if let Some(addr) = arg.1 {
-                        *var = Capture::from_value(context.runtime.program.statics[addr].clone());
+                        // fixme: This might leak the immutablestatic value to something mutable...
+                        *var = Capture::Value(context.runtime.program.statics[addr].clone(), None, 0);
                         //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }
@@ -406,7 +408,7 @@ impl Parselet {
         for i in 0..self.locals {
             if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
                 context.runtime.stack[context.stack_start + i] =
-                    Capture::Value(Value::Void.into_refvalue(), 10);
+                    Capture::Value(Value::Void.into_refvalue(), None, 0);
             }
         }
 

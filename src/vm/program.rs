@@ -42,7 +42,7 @@ impl Program {
             let res = main.run(runtime, runtime.stack.len(), None, true);
 
             let res = match res {
-                Ok(Accept::Push(capture)) => Ok(Some(capture.as_value(runtime))),
+                Ok(Accept::Push(capture)) => Ok(Some(capture.get_value())),
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),

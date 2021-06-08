@@ -154,14 +154,10 @@ impl Runable for Op {
             // Calls
             Op::CallOrCopy => {
                 let value = context.pop();
-                let value = value.borrow();
-                if value.is_callable(false) {
-                    value.call(context, 0, None)
+                if value.borrow().is_callable(false) {
+                    value.borrow().call(context, 0, None)
                 } else {
-                    Ok(Accept::Push(Capture::Value(
-                        value.clone().into_refvalue(),
-                        10,
-                    )))
+                    context.push(value)
                 }
             }
 
@@ -227,56 +223,22 @@ impl Runable for Op {
             Op::Reject => Err(Reject::Return),
 
             // Values
-            Op::LoadStatic(addr) => Ok(Accept::Push(Capture::Value(
-                context.runtime.program.statics[*addr].clone(),
-                10,
-            ))),
-            Op::Push0 => Ok(Accept::Push(Capture::Value(
-                Value::Integer(0).into_refvalue(), // lazy_static?
-                10,
-            ))),
+            Op::LoadStatic(addr) => context.push(context.runtime.program.statics[*addr].clone()),
+            Op::Push0 => context.push(Value::Integer(0).into_refvalue()),
+            Op::Push1 => context.push(Value::Integer(1).into_refvalue()),
+            Op::PushVoid => context.push(Value::Void.into_refvalue()),
+            Op::PushNull => context.push(Value::Null.into_refvalue()),
+            Op::PushTrue => context.push(Value::True.into_refvalue()),
+            Op::PushFalse => context.push(Value::False.into_refvalue()),
 
-            Op::Push1 => Ok(Accept::Push(Capture::Value(
-                Value::Integer(1).into_refvalue(), // lazy_static?
-                10,
-            ))),
-
-            Op::PushVoid => Ok(Accept::Push(Capture::Value(
-                Value::Void.into_refvalue(),
-                10,
-            ))),
-
-            Op::PushNull => Ok(Accept::Push(Capture::Value(
-                Value::Null.into_refvalue(),
-                10,
-            ))),
-
-            Op::PushTrue => Ok(Accept::Push(Capture::Value(
-                Value::True.into_refvalue(),
-                10,
-            ))),
-
-            Op::PushFalse => Ok(Accept::Push(Capture::Value(
-                Value::False.into_refvalue(),
-                10,
-            ))),
-
-            Op::LoadGlobal(addr) => Ok(Accept::Push(Capture::Value(
-                context.runtime.stack[*addr].as_value(&context.runtime),
-                10,
-            ))),
-
-            Op::LoadFast(addr) => Ok(Accept::Push(Capture::Value(
-                context.runtime.stack[context.stack_start + *addr].as_value(&context.runtime),
-                10,
-            ))),
+            Op::LoadGlobal(addr) => context.push(context.runtime.stack[*addr].get_value()),
+            Op::LoadFast(addr) => context.push(context.runtime.stack[context.stack_start + *addr].get_value()),
 
             Op::LoadFastCapture(index) => {
                 let value = context
-                    .get_capture(*index)
-                    .unwrap_or(Value::Void.into_refvalue());
-
-                Ok(Accept::Push(Capture::Value(value, 10)))
+                .get_capture(*index)
+                .unwrap_or(Value::Void.into_refvalue());
+                context.push(value)
             }
 
             Op::LoadCapture => {
@@ -288,16 +250,14 @@ impl Runable for Op {
                         let value = context
                             .get_capture(index.to_addr())
                             .unwrap_or(Value::Void.into_refvalue());
-
-                        Ok(Accept::Push(Capture::Value(value, 10)))
+                        context.push(value)
                     }
 
                     Value::String(alias) => {
                         let value = context
                             .get_capture_by_name(alias)
                             .unwrap_or(Value::Void.into_refvalue());
-
-                        Ok(Accept::Push(Capture::Value(value, 10)))
+                        context.push(value)
                     }
 
                     _ => Ok(Accept::Next),
@@ -311,7 +271,7 @@ impl Runable for Op {
                 let value = value.borrow();
 
                 match value.get_index(&attr) {
-                    Ok(value) => Ok(Accept::Push(Capture::Value(value, 10))),
+                    Ok(value) => context.push(value),
                     Err(msg) => Error::new(None, msg).into_reject(),
                 }
             }
@@ -319,30 +279,29 @@ impl Runable for Op {
             Op::StoreGlobal(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[*addr] = Capture::Value(value, 10);
+                context.runtime.stack[*addr] = Capture::Value(value, None, 0);
                 Ok(Accept::Next)
             }
 
             Op::StoreFast(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, 10);
+                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, None, 0);
                 Ok(Accept::Next)
             }
 
             Op::StoreGlobalHold(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[*addr] = Capture::Value(value.clone(), 10);
-                Ok(Accept::Push(Capture::Value(value, 10)))
+                context.runtime.stack[*addr] = Capture::Value(value.clone(), None, 0);
+                context.push(value)
             }
 
             Op::StoreFastHold(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] =
-                    Capture::Value(value.clone(), 10);
-                Ok(Accept::Push(Capture::Value(value, 10)))
+                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value.clone(), None, 0);
+                context.push(value)
             }
 
             Op::StoreFastCapture(index) => {
@@ -356,7 +315,7 @@ impl Runable for Op {
                 let value = context.pop();
 
                 context.set_capture(*index, value.clone());
-                Ok(Accept::Push(Capture::Value(value, 10)))
+                context.push(value)
             }
 
             Op::StoreCapture | Op::StoreCaptureHold => {
@@ -379,7 +338,7 @@ impl Runable for Op {
                         if matches!(self, Op::StoreCapture) {
                             Ok(Accept::Next)
                         } else {
-                            Ok(Accept::Push(Capture::Value(value, 10)))
+                            context.push(value)
                         }
                     }
 
@@ -388,14 +347,20 @@ impl Runable for Op {
             }
 
             Op::MakeAlias => {
-                let value = context.pop();
-                let alias = context.pop();
-                let alias = alias.borrow();
+                let name = context.pop();
+                let name = name.borrow();
 
-                Ok(Accept::Push(Capture::Named(
-                    Box::new(Capture::Value(value, 5)),
-                    alias.to_string(),
-                )))
+                match context.runtime.stack.last_mut().unwrap() {
+                    Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
+                        *alias = Some(name.to_string());
+                    }
+
+                    empty => {
+                        *empty = Capture::Value(Value::Void.into_refvalue(), Some(name.to_string()), 0);
+                    }
+                }
+
+                Ok(Accept::Skip)
             }
 
             Op::MakeDict(count) => {
@@ -409,16 +374,13 @@ impl Runable for Op {
                     dict.insert(key.to_string(), value);
                 }
 
-                Ok(Accept::Push(Capture::from_value(
-                    Value::Dict(Box::new(dict)).into_refvalue(),
-                )))
+                context.push(Value::Dict(Box::new(dict)).into_refvalue())
             }
 
             Op::MakeCollection(count) => {
-                if let Some(capture) =
-                    context.collect(context.runtime.stack.len() - count, false, false, 0, 10)
+                if let Some(value) = context.collect(context.runtime.stack.len() - count, false, false, 0)
                 {
-                    Ok(Accept::Push(capture))
+                    context.push(value)
                 } else {
                     Ok(Accept::Next)
                 }
@@ -430,25 +392,16 @@ impl Runable for Op {
             }
 
             Op::Dup => {
-                let value = context
-                    .runtime
-                    .stack
-                    .last()
-                    .unwrap()
-                    .as_value(&context.runtime);
+                let value = context.peek();
                 let value = value.borrow();
-                Ok(Accept::Push(Capture::Value(
-                    value.clone().into_refvalue(),
-                    10,
-                )))
+                context.push(value.clone().into_refvalue())
             }
 
             Op::Rot2 => {
                 let a = context.pop();
                 let b = context.pop();
-                context.push(a);
-                context.push(b);
-                Ok(Accept::Skip)
+                context.push(a)?;
+                context.push(b)
             }
 
             // Operations
@@ -470,7 +423,7 @@ impl Runable for Op {
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
-                Ok(Accept::Push(Capture::Value(c, 10)))
+                context.push(c)
             }
 
             Op::Equal
@@ -503,22 +456,17 @@ impl Runable for Op {
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
-                Ok(Accept::Push(Capture::Value(
-                    (if c { Value::True } else { Value::False }).into_refvalue(),
-                    10,
-                )))
+                context.push((if c { Value::True } else { Value::False }).into_refvalue())
             }
 
-            Op::Not => Ok(Accept::Push(Capture::Value(
-                (!&*context.pop().borrow()).into_refvalue(),
-                10,
-            ))),
-
-            Op::Neg => Ok(Accept::Push(Capture::Value(
-                (-&*context.pop().borrow()).into_refvalue(),
-                10,
-            ))),
-
+            Op::Not => {
+                let value = (!&*context.pop().borrow()).into_refvalue();
+                context.push(value)
+            }
+            Op::Neg => {
+                let value = (-&*context.pop().borrow()).into_refvalue();
+                context.push(value)
+            }
             Op::IAdd | Op::ISub | Op::IMul | Op::IDiv => {
                 let b = context.pop();
                 let value = context.pop();
@@ -538,10 +486,7 @@ impl Runable for Op {
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
-                Ok(Accept::Push(Capture::Value(
-                    value.clone().into_refvalue(),
-                    10,
-                )))
+                context.push(value.clone().into_refvalue())
             }
 
             Op::IInc => {
@@ -549,9 +494,7 @@ impl Runable for Op {
                 let mut value = value.borrow_mut();
 
                 *value = &*value + &Value::Integer(1); // lazy_static?
-                context.push(value.clone().into_refvalue());
-
-                Ok(Accept::Skip)
+                context.push(value.clone().into_refvalue())
             }
 
             Op::IDec => {
@@ -559,9 +502,7 @@ impl Runable for Op {
                 let mut value = value.borrow_mut();
 
                 *value = &*value - &Value::Integer(1); // lazy_static?
-                context.push(value.clone().into_refvalue());
-
-                Ok(Accept::Skip)
+                context.push(value.clone().into_refvalue())
             }
 
             Op::If(then_else) => {

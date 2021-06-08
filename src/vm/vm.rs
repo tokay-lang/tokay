@@ -8,64 +8,57 @@ use crate::value::{Dict, List, RefValue, Value};
 
 // --- Capture -----------------------------------------------------------------
 
-// todo: The Capture enum isn't very well implemented so far.
-// This version works OK, but should be refactored in future.
-
 #[derive(Debug, Clone)]
 pub enum Capture {
     Empty,                       // Empty capture
-    Range(Range, u8),            // Captured range from the input & severity
-    Value(RefValue, u8),         // Captured value & severity
-    Named(Box<Capture>, String), // Named capture wraps a capture with a string
+    Range(Range, Option<String>, u8), // Captured range
+    Value(RefValue, Option<String>, u8), // Captured value
 }
 
 impl Capture {
-    pub fn from_value(value: RefValue) -> Self {
-        Capture::Value(value, 10)
+    fn from_value(&mut self, from: RefValue) {
+        match self {
+            Capture::Empty => {
+                *self = Capture::Value(from, None, 5)
+            }
+            Capture::Range(_, alias, _) => {
+                *self = Capture::Value(from, alias.clone(), 5)
+            }
+            Capture::Value(value, ..) => {
+                *value = from;
+            }
+        }
+    }
+
+    // Turns a capture into a value.
+    fn into_value(&mut self, reader: &Reader) -> RefValue {
+        match self {
+            Capture::Empty => Value::Void.into_refvalue(),
+            Capture::Range(range, alias, severity) => {
+                let value = Value::String(reader.extract(range)).into_refvalue();
+                *self = Capture::Value(value.clone(), alias.clone(), *severity);
+                value
+            }
+            Capture::Value(value, ..) => value.clone()
+        }
+    }
+
+    pub fn get_value(&self) -> RefValue {
+        match self {
+            Capture::Empty => Value::Void.into_refvalue(),
+            Capture::Range(..) => panic!("Cannot retrieve value of Capture::Range, use .into_value() first!"),
+            Capture::Value(value, ..) => value.clone(),
+        }
     }
 
     // Degrades a capture to a severity to a capture with zero severity.
     // This is done when a capture is read.
     pub fn degrade(&mut self) {
         match self {
-            Capture::Range(range, severity) if *severity <= 5 => {
-                *self = Capture::Range(range.clone(), 0)
+            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) if *severity <= 5 => {
+                *severity = 0;
             }
-            Capture::Value(value, severity) if *severity <= 5 => {
-                *self = Capture::Value(value.clone(), 0)
-            }
-            Capture::Named(capture, _) => (*capture).degrade(),
             _ => {}
-        }
-    }
-
-    // Turns a capture into a stand-alone value.
-    pub fn as_value(&self, runtime: &Runtime) -> RefValue {
-        match self {
-            Capture::Empty => Value::Void.into_refvalue(),
-
-            Capture::Range(range, _) => {
-                Value::String(runtime.reader.extract(range)).into_refvalue()
-            }
-
-            Capture::Value(value, _) => value.clone(),
-
-            Capture::Named(capture, _) => capture.as_value(runtime),
-        }
-    }
-
-    // Turns a capture into a stand-alone value if it matches a specific severity
-    pub fn as_value_with_severity(&self, runtime: &Runtime, min_severity: u8) -> Option<RefValue> {
-        match self {
-            Capture::Range(range, severity) if *severity >= min_severity => {
-                Some(Value::String(runtime.reader.extract(range)).into_refvalue())
-            }
-
-            Capture::Value(value, severity) if *severity >= min_severity => Some(value.clone()),
-
-            Capture::Named(capture, _) => capture.as_value_with_severity(runtime, min_severity),
-
-            _ => None,
         }
     }
 }
@@ -137,22 +130,23 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     // Push value onto the stack
-    pub fn push(&mut self, value: RefValue) {
-        self.runtime.stack.push(Capture::Value(value, 10))
+    pub fn push(&mut self, value: RefValue) -> Result<Accept, Reject> {
+        self.runtime.stack.push(Capture::Value(value, None, 10));
+        Ok(Accept::Skip)
     }
 
     /// Pop value off the stack.
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let capture = self.runtime.stack.pop().unwrap();
-        capture.as_value(self.runtime)
+        let mut capture = self.runtime.stack.pop().unwrap();
+        capture.into_value(self.runtime.reader)
     }
 
     /// Peek top value of stack.
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let capture = self.runtime.stack.last().unwrap();
-        capture.as_value(self.runtime)
+        let capture = self.runtime.stack.last_mut().unwrap();
+        capture.into_value(self.runtime.reader)
     }
 
     /** Return a capture by index as RefValue. */
@@ -163,7 +157,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if pos == 0 {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value, _) = &self.runtime.stack[self.capture_start] {
+            if let Capture::Value(value, ..) = &self.runtime.stack[self.capture_start] {
                 return Some(value.clone());
             }
 
@@ -178,7 +172,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             )
         } else {
             self.runtime.stack[self.capture_start + pos].degrade();
-            Some(self.runtime.stack[self.capture_start + pos].as_value(&self.runtime))
+            Some(self.runtime.stack[self.capture_start + pos].into_value(&self.runtime.reader))
         }
     }
 
@@ -187,10 +181,16 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         let tos = self.runtime.stack.len();
 
         for i in (0..tos - self.capture_start).rev() {
-            if let Capture::Named(_, alias) = &self.runtime.stack[self.capture_start + i] {
-                if alias == name {
-                    return self.get_capture(i);
+            let capture = &mut self.runtime.stack[self.capture_start + i];
+
+            match capture {
+                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
+                    if alias.as_ref().unwrap() == name {
+                        capture.degrade();
+                        return Some(capture.into_value(self.runtime.reader));
+                    }
                 }
+                _ => {}
             }
         }
 
@@ -205,31 +205,26 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             return;
         }
 
-        self.runtime.stack[pos] = Capture::Value(value, 10)
+        self.runtime.stack[pos].from_value(value);
     }
 
     /** Set a capture to a RefValue by name. */
     pub fn set_capture_by_name(&mut self, name: &str, value: RefValue) {
-        // fixme: Should be examined in reversed order
-        for capture in self.runtime.stack[self.capture_start..].iter_mut() {
-            if let Capture::Named(capture, alias) = capture {
-                if alias == name {
-                    *capture = Box::new(Capture::Value(value, 10));
-                    break;
-                }
+        let tos = self.runtime.stack.len();
+
+        for i in (0..tos - self.capture_start).rev() {
+            let capture = &mut self.runtime.stack[self.capture_start + i];
+
+            match capture {
+                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
+                    if alias.as_ref().unwrap() == name {
+                        capture.from_value(value);
+                        break;
+                    }
+                },
+                _ => {}
             }
         }
-    }
-
-    /** Get slice of all captures from current context */
-    pub fn get_captures(&self) -> &[Capture] {
-        &self.runtime.stack[self.capture_start..]
-    }
-
-    //temporary...
-    /** Drain all captures from current context */
-    pub fn drain_captures(&mut self) -> Vec<Capture> {
-        self.runtime.stack.drain(self.capture_start..).collect()
     }
 
     /** Helper function to collect captures from a capture_start and turn
@@ -243,11 +238,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         capture_start: usize,
         copy: bool,
         single: bool,
-        min_severity: u8,
         severity: u8,
-    ) -> Option<Capture> {
+    ) -> Option<RefValue> {
         // Eiter copy or drain captures from stack
-        let mut captures: Vec<Capture> = if copy {
+        let captures: Vec<Capture> = if copy {
             Vec::from_iter(
                 self.runtime.stack[capture_start..]
                     .iter()
@@ -264,96 +258,93 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if self.runtime.debug {
             println!("--- Collect ---");
-            println!("single = {}, min_severity = {}", single, min_severity);
+            println!("single = {}, severity = {}", single, severity);
             println!("captures = {:?}", captures);
         }
 
+        // No captures, then just stop!
         if captures.len() == 0 {
-            None
-        } else if single && captures.len() == 1 && !matches!(captures[0], Capture::Named(_, _)) {
-            Some(captures.pop().unwrap())
-        } else {
-            let mut list = List::new();
-            let mut dict = Dict::new();
-            let mut max = min_severity;
+            return None;
+        }
 
-            // Collect any significant captures and values
-            for capture in captures.into_iter() {
-                match capture {
-                    Capture::Range(range, severity) if severity >= max => {
-                        if severity > max {
-                            max = severity;
-                            list.clear();
-                            dict.clear();
-                        }
+        let mut list = List::new();
+        let mut dict = Dict::new();
+        let mut max = severity;
 
-                        list.push(
-                            Value::String(self.runtime.reader.extract(&range)).into_refvalue(),
-                        );
+        // Collect any significant captures and values
+        for capture in captures.into_iter() {
+            match capture {
+                Capture::Range(range, alias, severity) if severity >= max => {
+                    if severity > max {
+                        max = severity;
+                        list.clear();
+                        dict.clear();
                     }
 
-                    Capture::Value(value, severity) if severity >= max => {
-                        if severity > max {
-                            max = severity;
-                            list.clear();
-                            dict.clear();
-                        }
+                    let value = Value::String(self.runtime.reader.extract(&range)).into_refvalue();
 
-                        if !value.borrow().is_void() {
+                    if let Some(alias) = alias {
+                        dict.insert(alias, value);
+                    }
+                    else {
+                        list.push(value);
+                    }
+                }
+
+                Capture::Value(value, alias, severity) if severity >= max => {
+                    if severity > max {
+                        max = severity;
+                        list.clear();
+                        dict.clear();
+                    }
+
+                    if !value.borrow().is_void() {
+                        if let Some(alias) = alias {
+                            dict.insert(alias, value);
+                        }
+                        else {
                             list.push(value);
                         }
                     }
-
-                    Capture::Named(capture, alias) => {
-                        // Named capture becomes dict key
-                        if let Some(value) = capture.as_value_with_severity(self.runtime, max) {
-                            dict.insert(alias, value);
-                        }
-                    }
-
-                    _ => continue,
-                };
-            }
-
-            if self.runtime.debug {
-                println!("list = {:?}", list);
-                println!("dict = {:?}", dict);
-            }
-
-            if dict.len() == 0 {
-                if list.len() > 1 || (list.len() > 0 && !single) {
-                    return Some(Capture::Value(
-                        Value::List(Box::new(list)).into_refvalue(),
-                        severity,
-                    ));
-                } else if list.len() == 1 {
-                    return Some(Capture::Value(list[0].clone(), severity));
                 }
 
-                None
-            } else {
-                // Store list-items additionally when there is a dict?
-                // This is currently under further consideration and not finished.
-                let mut idx = 0;
-                for item in list.into_iter() {
-                    loop {
-                        let key = format!("#{}", idx);
-                        if let None = dict.get(&key) {
-                            dict.insert(key, item);
-                            break;
-                        }
+                _ => {}
+            };
+        }
 
-                        idx += 1;
+        if self.runtime.debug {
+            println!("list = {:?}", list);
+            println!("dict = {:?}", dict);
+        }
+
+        if dict.len() == 0 {
+            if list.len() > 1 || (list.len() > 0 && !single) {
+                Some(Value::List(Box::new(list)).into_refvalue())
+            } else if list.len() == 1 {
+                Some(list.pop().unwrap())
+            }
+            else {
+                None
+            }
+        } else {
+            // Store list-items additionally when there is a dict?
+            // This is currently under further consideration and not finished.
+            let mut idx = 0;
+            for item in list.into_iter() {
+                loop {
+                    let key = format!("#{}", idx);
+                    if let None = dict.get(&key) {
+                        dict.insert(key, item);
+                        break;
                     }
 
                     idx += 1;
                 }
 
-                Some(Capture::Value(
-                    Value::Dict(Box::new(dict)).into_refvalue(),
-                    severity,
-                ))
+                idx += 1;
             }
+
+            Some(Value::Dict(Box::new(dict)).into_refvalue())
         }
     }
 }
@@ -390,7 +381,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
 
     pub fn load_stack(&mut self, stack: Vec<RefValue>) {
         for item in stack {
-            self.stack.push(Capture::Value(item, 10));
+            self.stack.push(Capture::Value(item, None, 0));
         }
     }
 
@@ -399,7 +390,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
         let stack: Vec<Capture> = self.stack.drain(..).collect();
 
         for item in stack {
-            ret.push(item.as_value(&self));
+            ret.push(item.get_value());
         }
 
         ret

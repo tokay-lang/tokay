@@ -99,13 +99,13 @@ impl Runable for Repeat {
             Err(Reject::Next)
         } else {
             // Push collected captures, if any
-            if let Some(capture) = context.collect(capture_start, false, true, 1, 5) {
-                Ok(Accept::Push(capture))
+            if let Some(value) = context.collect(capture_start, false, true, 1) {
+                Ok(Accept::Push(Capture::Value(value, None, 5)))
             } else {
                 // Otherwiese, push a capture of consumed range
                 let range = context.runtime.reader.capture_from(&reader_start);
                 if range.len() > 0 {
-                    Ok(Accept::Push(Capture::Range(range, 0)))
+                    Ok(Accept::Push(Capture::Range(range, None, 0)))
                 }
                 // Else, just accept next
                 else {
