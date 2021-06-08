@@ -127,9 +127,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         }
     }
 
-    // Returns a capture push with a value
+    // Immediatelly push a value onto the stack, returns Ok(Accept::Skip)
     pub fn push(&mut self, value: RefValue) -> Result<Accept, Reject> {
-        Ok(Accept::Push(Capture::Value(value, None, 10)))
+        self.runtime.stack.push(Capture::Value(value, None, 10));
+        Ok(Accept::Skip)
     }
 
     /// Pop value off the stack.

@@ -408,7 +408,7 @@ impl Runable for Op {
                 let a = context.pop();
                 let b = context.pop();
 
-                context.runtime.stack.push(Capture::Value(a, None, 10));
+                context.push(a)?;
                 context.push(b)
             }
 
