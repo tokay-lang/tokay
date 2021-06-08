@@ -98,18 +98,19 @@ impl Runable for Repeat {
             context.runtime.reader.reset(reader_start);
             Err(Reject::Next)
         } else {
-            // Push collected captures, if any
-            if let Some(value) = context.collect(capture_start, false, true, 1) {
-                Ok(Accept::Push(Capture::Value(value, None, 5)))
-            } else {
-                // Otherwiese, push a capture of consumed range
-                let range = context.runtime.reader.capture_from(&reader_start);
-                if range.len() > 0 {
-                    Ok(Accept::Push(Capture::Range(range, None, 0)))
-                }
-                // Else, just accept next
-                else {
-                    Ok(Accept::Next)
+            match context.collect(capture_start, false, true, true, 1) {
+                Err(capture) => Ok(Accept::Push(capture)),
+                Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                Ok(None) => {
+                    // Push a capture of consumed range with no severity
+                    let range = context.runtime.reader.capture_from(&reader_start);
+                    if range.len() > 0 {
+                        Ok(Accept::Push(Capture::Range(range, None, 0)))
+                    }
+                    // Else, just accept next
+                    else {
+                        Ok(Accept::Next)
+                    }
                 }
             }
         }

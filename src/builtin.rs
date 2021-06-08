@@ -25,15 +25,10 @@ impl Builtin {
         mut nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         // First, collect all arguments and turn them into RefValues
-        let args: Vec<Capture> = context
-            .runtime
-            .stack
-            .drain(context.runtime.stack.len() - args..)
-            .collect();
-        let mut args: Vec<Option<RefValue>> = args
-            .into_iter()
-            .map(|item| Some(item.get_value()))  // fixme!!!
-            .collect();
+        let args = context.drain(args);
+
+        // Turn args into a mutable Vec<Option<RefValue>> initialized with all Some...
+        let mut args: Vec<Option<RefValue>> = args.into_iter().map(|item| Some(item)).collect();
 
         // Match arguments to signature's names
         let mut count = 0;
@@ -126,7 +121,9 @@ static BUILTINS: &[Builtin] = &[
 
             let value = args.remove(0).or_else(|| {
                 // In case no value is set, collect them from the current context.
-                context.collect(context.capture_start, false, true, 0)
+                context
+                    .collect(context.capture_start, false, true, false, 0)
+                    .unwrap_or(None)
             });
 
             if let Some(value) = value {
@@ -330,7 +327,9 @@ static BUILTINS: &[Builtin] = &[
             let mut msg = msg.borrow().to_string();
 
             if collect {
-                if let Some(value) = context.collect(context.capture_start, false, true, 0) {
+                if let Ok(Some(value)) =
+                    context.collect(context.capture_start, false, true, false, 0)
+                {
                     let value = value.borrow();
 
                     if let Value::String(s) = &*value {
@@ -365,7 +364,11 @@ static BUILTINS: &[Builtin] = &[
             }
 
             print!("\n");
-            Ok(Accept::Push(Capture::Value(Value::Void.into_refvalue(), None, 10)))
+            Ok(Accept::Push(Capture::Value(
+                Value::Void.into_refvalue(),
+                None,
+                10,
+            )))
         },
     },
 ];

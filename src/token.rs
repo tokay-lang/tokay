@@ -38,7 +38,11 @@ impl Token {
             Token::Void => Ok(Accept::Push(Capture::Empty)),
             Token::Any => {
                 if let Some(_) = reader.next() {
-                    return Ok(Accept::Push(Capture::Range(reader.capture_last(1), None, 5)));
+                    return Ok(Accept::Push(Capture::Range(
+                        reader.capture_last(1),
+                        None,
+                        5,
+                    )));
                 }
 
                 Err(Reject::Next)
@@ -54,7 +58,11 @@ impl Token {
                 if let Some(ch) = reader.peek() {
                     if ccl.test(&(ch..=ch)) {
                         reader.next();
-                        return Ok(Accept::Push(Capture::Range(reader.capture_last(1), None, 5)));
+                        return Ok(Accept::Push(Capture::Range(
+                            reader.capture_last(1),
+                            None,
+                            5,
+                        )));
                     }
                 }
 

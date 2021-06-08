@@ -114,7 +114,8 @@ fn test_expression() {
             false
         ),
         Ok(Some(value!([
-            true, true, true, false, false, false, true, false, true, false, true, false, true, false, true, false
+            true, true, true, false, false, false, true, false, true, false, true, false, true,
+            false, true, false
         ])))
     );
 
@@ -355,7 +356,30 @@ fn test_readme_examples() {
             "Mercury Venus Earth Mars",
             false
         ),
-        Ok(Some(value!(["Hello Mercury", "Hello Venus", "Hello World", "Hello Mars"])))
+        Ok(Some(value!([
+            "Hello Mercury",
+            "Hello Venus",
+            "Hello World",
+            "Hello Mars"
+        ])))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            include_str!("../planets2.tok"),
+            "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune",
+            false
+        ),
+        Ok(Some(value!([
+            "Mercury",
+            "Venus (neighbour)",
+            "Home",
+            "Mars (neighbour)",
+            "Jupiter",
+            "Saturn",
+            "Uranus",
+            "Neptune"
+        ])))
     );
 
     assert_eq!(

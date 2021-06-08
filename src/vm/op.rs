@@ -154,10 +154,14 @@ impl Runable for Op {
             // Calls
             Op::CallOrCopy => {
                 let value = context.pop();
-                if value.borrow().is_callable(false) {
-                    value.borrow().call(context, 0, None)
+                let value = value.borrow();
+
+                if value.is_callable(false) {
+                    // Call the value without parameters
+                    value.call(context, 0, None)
                 } else {
-                    context.push(value)
+                    // Push a copy of the value
+                    context.push(value.clone().into_refvalue())
                 }
             }
 
@@ -231,13 +235,13 @@ impl Runable for Op {
             Op::PushTrue => context.push(Value::True.into_refvalue()),
             Op::PushFalse => context.push(Value::False.into_refvalue()),
 
-            Op::LoadGlobal(addr) => context.push(context.runtime.stack[*addr].get_value()),
-            Op::LoadFast(addr) => context.push(context.runtime.stack[context.stack_start + *addr].get_value()),
+            Op::LoadGlobal(addr) => context.load(*addr),
+            Op::LoadFast(addr) => context.load(context.stack_start + *addr),
 
             Op::LoadFastCapture(index) => {
                 let value = context
-                .get_capture(*index)
-                .unwrap_or(Value::Void.into_refvalue());
+                    .get_capture(*index)
+                    .unwrap_or(Value::Void.into_refvalue());
                 context.push(value)
             }
 
@@ -300,7 +304,8 @@ impl Runable for Op {
             Op::StoreFastHold(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value.clone(), None, 0);
+                context.runtime.stack[context.stack_start + *addr] =
+                    Capture::Value(value.clone(), None, 0);
                 context.push(value)
             }
 
@@ -356,7 +361,8 @@ impl Runable for Op {
                     }
 
                     empty => {
-                        *empty = Capture::Value(Value::Void.into_refvalue(), Some(name.to_string()), 0);
+                        *empty =
+                            Capture::Value(Value::Void.into_refvalue(), Some(name.to_string()), 0);
                     }
                 }
 
@@ -378,7 +384,8 @@ impl Runable for Op {
             }
 
             Op::MakeCollection(count) => {
-                if let Some(value) = context.collect(context.runtime.stack.len() - count, false, false, 0)
+                if let Ok(Some(value)) =
+                    context.collect(context.runtime.stack.len() - count, false, false, false, 0)
                 {
                     context.push(value)
                 } else {
@@ -400,7 +407,8 @@ impl Runable for Op {
             Op::Rot2 => {
                 let a = context.pop();
                 let b = context.pop();
-                context.push(a)?;
+
+                context.runtime.stack.push(Capture::Value(a, None, 10));
                 context.push(b)
             }
 

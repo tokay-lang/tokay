@@ -132,7 +132,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> AstResult {
     } else if let Some(dict) = ast.get_dict() {
         traverse_node(compiler, dict)
     } else {
-        panic!("Cannot traverse_node_or_list {:?}", ast);
+        panic!("Cannot traverse {:?}", ast);
     }
 }
 
@@ -522,8 +522,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let left = traverse_node(compiler, &left.get_dict().unwrap());
             let right = traverse_node(compiler, &right.get_dict().unwrap());
 
-            let mut ops = left.into_ops(compiler, true);
-            ops.extend(right.into_ops(compiler, true));
+            // Push value first, then the alias
+            let mut ops = right.into_ops(compiler, true);
+            ops.extend(left.into_ops(compiler, true));
             ops.push(Op::MakeAlias);
 
             AstResult::Ops(ops)

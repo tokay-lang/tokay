@@ -274,7 +274,7 @@ impl Parser {
 
         (Expression = {
             // if
-            ["if", _, Expression, Statement, "else", _, Statement, (call ast[(value "op_ifelse")])],
+            ["if", _, Expression, Statement, (kle [T_EOL, _]), "else", _, Statement, (call ast[(value "op_ifelse")])],
             ["if", _, Expression, Statement, (call ast[(value "op_if")])],
             ["if", _, (call error[(value "'if': Expecting condition and statement")])],
 
@@ -334,8 +334,8 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, (pos Instruction), _, (expect "}"), _, (opt T_EOL), (call ast[(value "block")])],
-            ["{", _, (expect "}"), _, (opt T_EOL), (Op::PushVoid), (call ast[(value "block")])]
+            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])],
+            ["{", _, (expect "}"), (Op::PushVoid), (call ast[(value "block")])]
         }),
 
         // Sequences

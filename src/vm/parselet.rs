@@ -184,6 +184,10 @@ impl Parselet {
                 None => self.body.run(context),
             };
 
+            //if main {
+            //   println!("state = {:?} result = {:?}", state, result);
+            //}
+
             /*
                 In case this is the main parselet, try matching main as much
                 as possible. This is only the case when input is consumed.
@@ -308,7 +312,11 @@ impl Parselet {
                     5,
                 )))
             } else if results.len() == 1 {
-                Ok(Accept::Push(Capture::Value(results.pop().unwrap(), None, 5)))
+                Ok(Accept::Push(Capture::Value(
+                    results.pop().unwrap(),
+                    None,
+                    5,
+                )))
             } else {
                 Ok(Accept::Next)
             }
@@ -377,7 +385,8 @@ impl Parselet {
 
                     if let Some(addr) = arg.1 {
                         // fixme: This might leak the immutablestatic value to something mutable...
-                        *var = Capture::Value(context.runtime.program.statics[addr].clone(), None, 0);
+                        *var =
+                            Capture::Value(context.runtime.program.statics[addr].clone(), None, 0);
                         //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }

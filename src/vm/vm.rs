@@ -10,20 +10,16 @@ use crate::value::{Dict, List, RefValue, Value};
 
 #[derive(Debug, Clone)]
 pub enum Capture {
-    Empty,                       // Empty capture
-    Range(Range, Option<String>, u8), // Captured range
+    Empty,                               // Empty capture
+    Range(Range, Option<String>, u8),    // Captured range
     Value(RefValue, Option<String>, u8), // Captured value
 }
 
 impl Capture {
     fn from_value(&mut self, from: RefValue) {
         match self {
-            Capture::Empty => {
-                *self = Capture::Value(from, None, 5)
-            }
-            Capture::Range(_, alias, _) => {
-                *self = Capture::Value(from, alias.clone(), 5)
-            }
+            Capture::Empty => *self = Capture::Value(from, None, 5),
+            Capture::Range(_, alias, _) => *self = Capture::Value(from, alias.clone(), 5),
             Capture::Value(value, ..) => {
                 *value = from;
             }
@@ -39,14 +35,16 @@ impl Capture {
                 *self = Capture::Value(value.clone(), alias.clone(), *severity);
                 value
             }
-            Capture::Value(value, ..) => value.clone()
+            Capture::Value(value, ..) => value.clone(),
         }
     }
 
     pub fn get_value(&self) -> RefValue {
         match self {
             Capture::Empty => Value::Void.into_refvalue(),
-            Capture::Range(..) => panic!("Cannot retrieve value of Capture::Range, use .into_value() first!"),
+            Capture::Range(..) => {
+                panic!("Cannot retrieve value of Capture::Range, use .into_value() first!")
+            }
             Capture::Value(value, ..) => value.clone(),
         }
     }
@@ -129,10 +127,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         }
     }
 
-    // Push value onto the stack
+    // Returns a capture push with a value
     pub fn push(&mut self, value: RefValue) -> Result<Accept, Reject> {
-        self.runtime.stack.push(Capture::Value(value, None, 10));
-        Ok(Accept::Skip)
+        Ok(Accept::Push(Capture::Value(value, None, 10)))
     }
 
     /// Pop value off the stack.
@@ -147,6 +144,13 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.last_mut().unwrap();
         capture.into_value(self.runtime.reader)
+    }
+
+    // Push a value onto the stack
+    pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
+        let capture = &mut self.runtime.stack[index];
+        let value = capture.into_value(self.runtime.reader);
+        self.push(value)
     }
 
     /** Return a capture by index as RefValue. */
@@ -221,7 +225,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         capture.from_value(value);
                         break;
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -238,8 +242,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         capture_start: usize,
         copy: bool,
         single: bool,
+        mut inherit: bool,
         severity: u8,
-    ) -> Option<RefValue> {
+    ) -> Result<Option<RefValue>, Capture> {
         // Eiter copy or drain captures from stack
         let captures: Vec<Capture> = if copy {
             Vec::from_iter(
@@ -264,12 +269,17 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         // No captures, then just stop!
         if captures.len() == 0 {
-            return None;
+            return Err(Capture::Empty);
         }
 
         let mut list = List::new();
         let mut dict = Dict::new();
         let mut max = severity;
+
+        // Capture inheritance is only possible when there is only one capture
+        if inherit && captures.len() > 1 {
+            inherit = false;
+        }
 
         // Collect any significant captures and values
         for capture in captures.into_iter() {
@@ -285,8 +295,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
-                    }
-                    else {
+                    } else if inherit {
+                        return Err(Capture::Range(range, alias, severity));
+                    } else {
                         list.push(value);
                     }
                 }
@@ -301,8 +312,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                     if !value.borrow().is_void() {
                         if let Some(alias) = alias {
                             dict.insert(alias, value);
-                        }
-                        else {
+                        } else if inherit {
+                            return Err(Capture::Value(value, alias, severity));
+                        } else {
                             list.push(value);
                         }
                     }
@@ -319,12 +331,11 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if dict.len() == 0 {
             if list.len() > 1 || (list.len() > 0 && !single) {
-                Some(Value::List(Box::new(list)).into_refvalue())
+                Ok(Some(Value::List(Box::new(list)).into_refvalue()))
             } else if list.len() == 1 {
-                Some(list.pop().unwrap())
-            }
-            else {
-                None
+                Ok(Some(list.pop().unwrap()))
+            } else {
+                Ok(None)
             }
         } else {
             // Store list-items additionally when there is a dict?
@@ -344,8 +355,26 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            Some(Value::Dict(Box::new(dict)).into_refvalue())
+            Ok(Some(Value::Dict(Box::new(dict)).into_refvalue()))
         }
+    }
+
+    /// Drain n items off the stack as a vector of values
+    pub(crate) fn drain(&mut self, n: usize) -> Vec<RefValue> {
+        let tos = self.runtime.stack.len();
+        assert!(n <= tos - self.capture_start);
+
+        let captures: Vec<Capture> = self
+            .runtime
+            .stack
+            .drain(tos - n..)
+            .filter(|capture| !matches!(capture, Capture::Empty))
+            .collect();
+
+        captures
+            .into_iter()
+            .map(|mut capture| capture.into_value(self.runtime.reader))
+            .collect()
     }
 }
 

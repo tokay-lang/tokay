@@ -1,0 +1,9 @@
+# planets2.tok
+Name {
+    if $1 == "Earth" {
+        $1 = "Home"
+    }
+    else if $1 == "Mars" || $1 == "Venus" {
+        $1 += " (neighbour)"
+    }
+}
