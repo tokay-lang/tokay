@@ -150,14 +150,17 @@ fn test_expression() {
     assert_eq!(
         compile_and_run(
             "\
-            true && true \
-            true && false \
-            true || false \
-            false || true \
+            a = true
+            b = false
             \
-            false || true && true \
-            false || false && true \
-            false && false
+            a && a \
+            a && b \
+            a || b \
+            b || a \
+            \
+            b || a && a \
+            b || b && a \
+            b && b
         ",
             "",
             false

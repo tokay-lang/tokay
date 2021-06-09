@@ -998,19 +998,27 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     // Otherwise, generate operational code
                     ops.extend(left.into_ops(compiler, false));
-                    ops.extend(right.into_ops(compiler, false));
 
                     match parts[2] {
-                        "equal" => Op::Equal,
-                        "unequal" => Op::NotEqual,
-                        "lowerequal" => Op::LowerEqual,
-                        "greaterequal" => Op::GreaterEqual,
-                        "lower" => Op::Lower,
-                        "greater" => Op::Greater,
-                        "and" => Op::LogicalAnd,
-                        "or" => Op::LogicalOr,
+                        "and" => {
+                            Op::IfTrue(Box::new(Op::from_vec(right.into_ops(compiler, false))))
+                        }
+                        "or" => {
+                            Op::IfFalse(Box::new(Op::from_vec(right.into_ops(compiler, false))))
+                        }
                         _ => {
-                            unimplemented!("op_compare_{}", parts[2]);
+                            ops.extend(right.into_ops(compiler, false));
+                            match parts[2] {
+                                "equal" => Op::Equal,
+                                "unequal" => Op::NotEqual,
+                                "lowerequal" => Op::LowerEqual,
+                                "greaterequal" => Op::GreaterEqual,
+                                "lower" => Op::Lower,
+                                "greater" => Op::Greater,
+                                _ => {
+                                    unimplemented!("op_compare_{}", parts[2]);
+                                }
+                            }
                         }
                     }
                 }

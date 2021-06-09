@@ -94,8 +94,8 @@ pub enum Op {
     Lower,        // Compare for lowerness (< operator)
     Greater,      // Compare for greaterness (> operator)
 
-    LogicalAnd, // Logical and (&& operator)
-    LogicalOr,  // Logical or (|| operator)
+    IfTrue(Box<Op>),  // Logical and (&& operator)
+    IfFalse(Box<Op>), // Logical or (|| operator)
 
     // Flow
     If(Box<(Op, Option<Op>)>),
@@ -439,9 +439,7 @@ impl Runable for Op {
             | Op::LowerEqual
             | Op::GreaterEqual
             | Op::Lower
-            | Op::Greater
-            | Op::LogicalAnd
-            | Op::LogicalOr => {
+            | Op::Greater => {
                 let b = context.pop();
                 let a = context.pop();
 
@@ -458,8 +456,6 @@ impl Runable for Op {
                     Op::GreaterEqual => &*a.borrow() >= &*b.borrow(),
                     Op::Lower => &*a.borrow() < &*b.borrow(),
                     Op::Greater => &*a.borrow() > &*b.borrow(),
-                    Op::LogicalAnd => a.borrow().is_true() && b.borrow().is_true(),
-                    Op::LogicalOr => a.borrow().is_true() || b.borrow().is_true(),
 
                     _ => unimplemented!("Unimplemented operator"),
                 };
@@ -511,6 +507,24 @@ impl Runable for Op {
 
                 *value = &*value - &Value::Integer(1); // lazy_static?
                 context.push(value.clone().into_refvalue())
+            }
+
+            Op::IfTrue(then) => {
+                if context.peek().borrow().is_true() {
+                    context.pop();
+                    then.run(context)
+                } else {
+                    Ok(Accept::Skip)
+                }
+            }
+
+            Op::IfFalse(then) => {
+                if !context.peek().borrow().is_true() {
+                    context.pop();
+                    then.run(context)
+                } else {
+                    Ok(Accept::Skip)
+                }
             }
 
             Op::If(then_else) => {
