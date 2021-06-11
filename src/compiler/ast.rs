@@ -1047,9 +1047,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                         }
 
                                         // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                        return AstResult::Ops(
-                                            vec![Op::from_vec(chars.into_ops(compiler, true)).into_optional()]
-                                        );
+                                        return AstResult::Ops(vec![Op::from_vec(
+                                            chars.into_ops(compiler, true),
+                                        )
+                                        .into_optional()]);
                                     }
 
                                     // mod_not on Token::Char becomes negated Token::Char

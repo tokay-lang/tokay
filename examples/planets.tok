@@ -1,2 +1,2 @@
 'Earth'         "Hello World"
-planet => Name  "Hello " + $planet
+planet => Word  "Hello " + $planet

@@ -91,8 +91,6 @@ Syntax is under careful consideration.
 
 - [ ] Implement `Float`
 - [ ] Implement `Number`
-- [ ] Rename `Name` into `Word`
-- [ ] Rename `Cname` to `Identifier`
 
 ## Tests
 

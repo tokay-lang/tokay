@@ -186,7 +186,44 @@ static BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
-        name: "Integer",
+        name: "Identifier", // Matching C-style identifiers
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            if let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphabetic() && ch != '_' {
+                    return Err(Reject::Next);
+                }
+
+                context.runtime.reader.next();
+            } else {
+                return Err(Reject::Next);
+            }
+
+            let mut count: usize = 1;
+
+            while let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphanumeric() && ch != '_' {
+                    break;
+                }
+
+                context.runtime.reader.next();
+                count += 1;
+            }
+
+            if count > 0 {
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_last(count),
+                    None,
+                    5,
+                )))
+            } else {
+                Err(Reject::Next)
+            }
+        },
+    },
+    Builtin {
+        name: "Integer", // Matching 64-bit integers directly
         required: 0,
         signature: "",
         func: |context, _args| {
@@ -230,71 +267,7 @@ static BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
-        name: "Name",
-        required: 0,
-        signature: "",
-        func: |context, _args| {
-            let mut count: usize = 0;
-
-            while let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphanumeric() {
-                    break;
-                }
-
-                context.runtime.reader.next();
-                count += 1;
-            }
-
-            if count > 0 {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_last(count),
-                    None,
-                    5,
-                )))
-            } else {
-                Err(Reject::Next)
-            }
-        },
-    },
-    Builtin {
-        name: "Cname",
-        required: 0,
-        signature: "",
-        func: |context, _args| {
-            if let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphabetic() && ch != '_' {
-                    return Err(Reject::Next);
-                }
-
-                context.runtime.reader.next();
-            } else {
-                return Err(Reject::Next);
-            }
-
-            let mut count: usize = 1;
-
-            while let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphanumeric() && ch != '_' {
-                    break;
-                }
-
-                context.runtime.reader.next();
-                count += 1;
-            }
-
-            if count > 0 {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_last(count),
-                    None,
-                    5,
-                )))
-            } else {
-                Err(Reject::Next)
-            }
-        },
-    },
-    Builtin {
-        name: "Whitespace",
+        name: "Whitespace", // Matching any whitespace
         required: 0,
         signature: "",
         func: |context, _args| {
@@ -302,6 +275,33 @@ static BUILTINS: &[Builtin] = &[
 
             while let Some(ch) = context.runtime.reader.peek() {
                 if !ch.is_whitespace() {
+                    break;
+                }
+
+                context.runtime.reader.next();
+                count += 1;
+            }
+
+            if count > 0 {
+                Ok(Accept::Push(Capture::Range(
+                    context.runtime.reader.capture_last(count),
+                    None,
+                    5,
+                )))
+            } else {
+                Err(Reject::Next)
+            }
+        },
+    },
+    Builtin {
+        name: "Word", // Matching words made of letters
+        required: 0,
+        signature: "",
+        func: |context, _args| {
+            let mut count: usize = 0;
+
+            while let Some(ch) = context.runtime.reader.peek() {
+                if !ch.is_alphabetic() {
                     break;
                 }
 

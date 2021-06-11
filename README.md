@@ -25,12 +25,15 @@ There are plenty of further features planned, see [todo.md](todo.md) for details
 ## Examples
 
 This is how Tokay greets the world
+
 ```tokay
 print("Hello World")
 ```
-but Tokay can also greet any name coming in, that's
+
+but Tokay can also greet any word coming in, that's
+
 ```tokay
-Cname print("Hello " + $1)
+Word print("Hello " + $1)
 ```
 
 With its build-in abstract-syntax tree synthesis, Tokay is designed as a language for directly implementing ad-hoc parsers. The next program directly implements a left-recursive grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`.

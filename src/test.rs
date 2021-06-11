@@ -172,6 +172,47 @@ fn test_expression() {
 }
 
 #[test]
+fn test_builtin_tokens() {
+    let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus 2_cT";
+
+    assert_eq!(
+        compile_and_run("Identifier", gliders, false),
+        Ok(Some(value!([
+            "Glasflügel",
+            "Libelle",
+            "b",
+            "G102",
+            "Astir",
+            "Ventus",
+            "_cT"
+        ])))
+    );
+
+    assert_eq!(
+        compile_and_run("Integer", gliders, false),
+        Ok(Some(value!([201, 102, 2])))
+    );
+
+    assert_eq!(
+        compile_and_run("Whitespace", gliders, false),
+        Ok(Some(value!([" ", " ", "\t", " ", "  \n", " "])))
+    );
+
+    assert_eq!(
+        compile_and_run("Word", gliders, false),
+        Ok(Some(value!([
+            "Glasflügel",
+            "Libelle",
+            "b",
+            "G",
+            "Astir",
+            "Ventus",
+            "cT"
+        ])))
+    );
+}
+
+#[test]
 fn test_variables() {
     assert_eq!(
         compile_and_run(
