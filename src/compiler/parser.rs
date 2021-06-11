@@ -352,13 +352,18 @@ impl Parser {
             [(pos SequenceItem), (call ast[(value "sequence")])]
         }),
 
+        (SequenceOrExpression = {
+            [Expression, (peek T_EOL)],
+            Sequence
+        }),
+
         (Instruction = {
             ["begin", _, Block, _, (call ast[(value "begin")])],
             ["begin", _, Sequence, (expect T_EOL), (call ast[(value "begin")])],
             ["end", _, Block, _, (call ast[(value "end")])],
             ["end", _, Sequence, (expect T_EOL), (call ast[(value "end")])],
 
-            [T_Identifier, _, ":", _, (expect Expression), (expect T_EOL),
+            [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],
             Sequence,
             [T_EOL, (Op::Skip)]

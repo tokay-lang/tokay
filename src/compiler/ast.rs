@@ -1037,11 +1037,21 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                             if let Token::Char(mut ccl) = *token.clone() {
                                 match parts[2] {
                                     // mod_pos on Token::Char becomes Token::Chars
-                                    "pos" => {
-                                        return AstResult::Value(
+                                    "pos" | "kle" => {
+                                        let chars = AstResult::Value(
                                             Token::Chars(ccl).into_value().into_refvalue(),
-                                        )
+                                        );
+
+                                        if parts[2] == "pos" {
+                                            return chars;
+                                        }
+
+                                        // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                        return AstResult::Ops(
+                                            vec![Op::from_vec(chars.into_ops(compiler, true)).into_optional()]
+                                        );
                                     }
+
                                     // mod_not on Token::Char becomes negated Token::Char
                                     "not" => {
                                         ccl.negate();
