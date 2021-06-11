@@ -1,3 +1,14 @@
+// Tokay
+// Copyright © 2021 by Jan Max Meyer, Phorward Software Technologies.
+// Licensed under the MIT license. See LICENSE for more information.
+
+/*! Tokay
+
+    An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
+
+    Visit [https://tokay.dev](https://tokay.dev) for more information.
+*/
+
 pub mod builtin;
 pub mod ccl;
 pub mod compiler;

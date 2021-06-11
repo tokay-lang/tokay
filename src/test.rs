@@ -1,3 +1,5 @@
+//! Unit tests
+
 use crate::compiler::*;
 use crate::token::*;
 use crate::utils::*;

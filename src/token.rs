@@ -1,3 +1,5 @@
+//! Token callables represented by Value::Token
+
 use crate::ccl;
 use crate::ccl::Ccl;
 use crate::reader::Reader;

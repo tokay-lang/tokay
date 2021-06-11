@@ -1,3 +1,5 @@
+//! Tokay value and object representation
+
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -98,6 +100,21 @@ pub enum Value {
     Builtin(usize),                  // Builtin
 }
 
+/** Value construction helper-macro
+
+This macro is used to easily construct Tokay values in Rust code.
+
+Examples:
+```
+use tokay::value::*;
+use tokay::value;
+
+let i = value![1];
+let s = value!("String");
+let l = value![[1, 2, 3]];
+let d = value![["a" => 1, "b" => 2, "c" => 3]];
+```
+*/
 #[macro_export]
 macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {

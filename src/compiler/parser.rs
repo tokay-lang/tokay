@@ -1,3 +1,5 @@
+//! Parser and grammar for Tokay, implemented using Tokay itself.
+
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;

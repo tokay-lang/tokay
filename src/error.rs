@@ -1,3 +1,5 @@
+//! Implementation of an error object that can occur during Tokay's program compilation or execution
+
 use crate::reader::Offset;
 use crate::vm::{Accept, Reject};
 

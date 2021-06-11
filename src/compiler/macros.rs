@@ -1,4 +1,5 @@
-/*
+/*! Macros for Rust-internal Tokay program definition
+
     This is a minimalistic Tokay compiler implemented with Rust macros to
     bootstrap the self-hosted Tokay parser defined in the parser-module.
 
@@ -6,6 +7,7 @@
     see tests.
 */
 
+/// Internlly used by token_embed!()
 #[macro_export]
 macro_rules! tokay_embed_item {
 
@@ -274,6 +276,10 @@ macro_rules! tokay_embed_item {
     };
 }
 
+/** Used to define a Tokay program in Rust code without using the Tokay parser
+
+In fact, this macro is used to bootstrap the Tokay parser as a Tokay program itself.
+*/
 #[macro_export]
 macro_rules! tokay_embed {
     ( $( $items:tt ),* ) => {

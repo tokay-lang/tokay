@@ -6,6 +6,10 @@ This is a recently updated brainstorming and todo scribble file.
 
 - [x] Parametized parselets
 - [ ] Generic parselets
+  - [ ] `Until<P, Escape=Void>`
+  - [ ] `Not<P>`
+  - [ ] `Peek<P>`
+  - [ ] `Repeat<P, min=1, max=0>`
 
 ## General
 
@@ -19,6 +23,9 @@ This is a recently updated brainstorming and todo scribble file.
   - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
 - [ ] Locked objects (this is required to disallow modification of Dict and List constants)
 - [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
+- [ ] Module system
+  - [ ] Import constants from other module
+  - [ ] Run other module as separate program and work on resulting values
 
 ## Syntax
 
@@ -35,7 +42,7 @@ Syntax is under careful consideration.
 - [!] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
 - [ ] Implement `ls -ltra` backticks (`) for shell command values
   - [ ] Operators `|>` and `<|` for shell command read/write?
-- [ ] *deref-Operator?
+- [ ] *deref-Operator to avoid automatic calling values when they are directly callable
 - [ ] Parselets should allow for *args and **nargs catchall
 - [ ] Use generic `loop` keyword for loops (instead of `for`, `while` or `do...while`)
   - [ ] `loop i in iter`
@@ -80,6 +87,12 @@ Syntax is under careful consideration.
 - [x] Optimize away single-item sequences and blocks, use `Op::from_vec()` whenever Sequences without aliases are used
 - [x] Modifier optimization, modifiers should generate different code when used by char-class, string, parselet, e.g.
 
+## Built-ins
+
+- [ ] Implement `Float`
+- [ ] Implement `Number`
+- [ ] Rename `Name` into `Word`
+- [ ] Rename `Cname` to `Identifier`
 
 ## Tests
 

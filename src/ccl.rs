@@ -1,7 +1,10 @@
+//! Handling of character-classes used by Token::Char and Token::Chars
+
 use std::cmp::Ordering;
 
 type CclRange = std::ops::RangeInclusive<char>;
 
+/// Representation of a character-class
 #[derive(Clone, PartialEq)]
 pub struct Ccl {
     ranges: Vec<CclRange>,
@@ -206,6 +209,15 @@ impl PartialOrd for Ccl {
     }
 }
 
+/** Character-class construction helper-macro
+
+Example:
+```
+use tokay::ccl;
+
+let ccl = ccl!['A'..='Z', 'a'..='z', '_'..='_'];
+```
+*/
 #[macro_export]
 macro_rules! ccl {
     [$($range:expr),*] => {

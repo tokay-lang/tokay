@@ -1,5 +1,8 @@
+//! Universal interface to let Tokay read input from anywhere
+
 use std::io::prelude::*;
 
+/// Position inside a reader, with row and column counting.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Offset {
     // fixme: Hold source filename information as well in the future?
@@ -10,11 +13,12 @@ pub struct Offset {
 
 pub type Range = std::ops::Range<usize>;
 
+// Abstraction of a buffered Reader with internal buffering, offset counting and clean-up.
 pub struct Reader {
-    reader: Box<dyn BufRead>,
-    buffer: Vec<char>,
-    offset: Offset,
-    eof: bool,
+    reader: Box<dyn BufRead>, // Reader object to read from
+    buffer: Vec<char>,        // Internal buffer
+    offset: Offset,           // Current offset
+    eof: bool,                // EOF marker
 }
 
 impl Reader {

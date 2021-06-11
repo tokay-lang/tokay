@@ -8,6 +8,7 @@ use crate::value::{Dict, List, RefValue, Value};
 
 // --- Capture -----------------------------------------------------------------
 
+/// Captures are stack items where the VM operates on.
 #[derive(Debug, Clone)]
 pub enum Capture {
     Empty,                               // Empty capture
@@ -63,6 +64,7 @@ impl Capture {
 
 // --- Accept ------------------------------------------------------------------
 
+/// Representing the Ok-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Accept {
     Next,
@@ -74,6 +76,7 @@ pub enum Accept {
 
 // --- Reject ------------------------------------------------------------------
 
+/// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
     Next,
@@ -85,6 +88,9 @@ pub enum Reject {
 
 // --- Context -----------------------------------------------------------------
 
+/** Contexts represent stack frames for function calls.
+
+Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
     pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
@@ -360,7 +366,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         }
     }
 
-    /// Drain n items off the stack as a vector of values
+    /// Drains n items off the stack into a vector of values
     pub(crate) fn drain(&mut self, n: usize) -> Vec<RefValue> {
         let tos = self.runtime.stack.len();
         assert!(n <= tos - self.capture_start);
@@ -389,6 +395,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Drop
 
 // --- Runtime -----------------------------------------------------------------
 
+/** Merges a program and a reader into one container.
+
+Holds additional runtime information, like the stack or memoization table */
 pub struct Runtime<'program, 'reader> {
     pub(crate) program: &'program Program,
     pub(crate) reader: &'reader mut Reader,

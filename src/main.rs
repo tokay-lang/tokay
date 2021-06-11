@@ -1,3 +1,5 @@
+//! Tokay main executable
+
 use ::tokay::compiler::Compiler;
 use ::tokay::repl::{repl, Stream};
 

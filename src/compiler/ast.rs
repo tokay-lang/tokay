@@ -1,3 +1,5 @@
+//! Compiler's internal Abstract Syntax Tree traversal
+
 use std::collections::HashSet;
 
 use super::*;
@@ -91,8 +93,8 @@ impl AstResult {
 /// Checks whether identifier's name is the name of a reserved word.
 pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "accept" | "begin" | "end" | "expect" | "false" | "for" | "if" | "in" | "not" | "null"
-        | "peek" | "reject" | "return" | "true" | "void" | "while" => Err(Error::new(
+        "accept" | "begin" | "else" | "end" | "expect" | "false" | "for" | "if" | "in" | "not"
+        | "null" | "peek" | "reject" | "return" | "true" | "void" | "while" => Err(Error::new(
             None,
             format!("Expected identifier, found reserved word '{}'", ident),
         )),

@@ -1,3 +1,5 @@
+//! Tokay built-in functions and parselets
+
 use crate::compiler;
 use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};

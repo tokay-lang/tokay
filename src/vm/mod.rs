@@ -1,3 +1,5 @@
+//! Tokay virtual machine
+
 use crate::value::RefValue;
 
 mod op;

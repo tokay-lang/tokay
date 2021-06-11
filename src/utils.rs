@@ -1,3 +1,5 @@
+//! Utility functions
+
 use crate::compiler::Compiler;
 use crate::error::Error;
 use crate::reader::Reader;

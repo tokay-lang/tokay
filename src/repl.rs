@@ -1,3 +1,5 @@
+//! Tokay repeat-eval-print-loop
+
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, BufReader, Seek};
@@ -49,16 +51,14 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
 
     loop {
         let code = match readline.readline(">>> ") {
-            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
-                break
-            }
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
 
             Err(err) => {
                 println!("Error {:?}", err);
-                break
+                break;
             }
 
-            Ok(code) => code
+            Ok(code) => code,
         };
 
         // Stop when program is empty.

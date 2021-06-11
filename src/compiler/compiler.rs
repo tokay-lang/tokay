@@ -1,3 +1,5 @@
+//! Tokay compiler interface
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::BufReader;
@@ -24,7 +26,13 @@ pub(crate) struct Scope {
     pub(super) consuming: bool, // Determines whether the scope is consuming input for early consumable detection
 }
 
-/** Tokay compiler instance, with related objects. */
+/** Tokay compiler instance
+
+A tokay compiler initializes a Tokay parser for later re-use when called multiple times.
+
+The compiler can be set into an interactive mode so that statics, variables and constants once built
+won't be removed and can be accessed later on. This is useful in REPL mode.
+*/
 pub struct Compiler {
     parser: Option<parser::Parser>, //Tokay parser
     pub debug: bool,
@@ -37,7 +45,7 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn new() -> Self {
-        // Compiler initialization
+        // Initialize new compiler.
         let mut compiler = Self {
             parser: None,
             debug: false,
@@ -52,7 +60,9 @@ impl Compiler {
         compiler
     }
 
-    /** Compile a Tokay program from source into a Program struct. */
+    /** Compile a Tokay program from source into a Program struct.
+
+    In case None is returend, causing errors where already reported to stdout. */
     pub fn compile(&mut self, reader: Reader) -> Option<Program> {
         // Push a main scope on if not present
         if self.scopes.len() == 0 {
@@ -96,7 +106,7 @@ impl Compiler {
         Some(program)
     }
 
-    /// Compile a Tokay program from a &str.
+    /// Shortcut to compile a Tokay program from a &str.
     pub fn compile_str(&mut self, src: &'static str) -> Option<Program> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
@@ -188,7 +198,7 @@ impl Compiler {
         );
     }
 
-    // Resolve current scope
+    /// Resolves usages from current scope
     pub(super) fn resolve_scope(&mut self) {
         // Cut out usages created inside this scope for processing
         let usages: Vec<Result<Vec<Op>, Usage>> =
@@ -209,7 +219,7 @@ impl Compiler {
         }
     }
 
-    // Pops a scope and returns it.
+    /// Resolves and pops a scope.
     pub(super) fn pop_scope(&mut self) -> Scope {
         if self.scopes.len() == 0 {
             panic!("No more scopes to pop!");
@@ -228,7 +238,7 @@ impl Compiler {
         scope
     }
 
-    // Pops scope and creates a parselet from it
+    /// Resolves and pops a scope and creates a new parselet from it
     pub(crate) fn create_parselet(
         &mut self,
         name: Option<String>,
@@ -276,7 +286,9 @@ impl Compiler {
         }
     }
 
-    /// Retrieve address of a local variable under a given name.
+    /** Retrieves the address of a local variable under a given name.
+
+    Returns None when the variable does not exist. */
     pub(crate) fn get_local(&self, name: &str) -> Option<usize> {
         // Retrieve local variables from next scope owning variables, except global scope!
         for scope in &self.scopes[..self.scopes.len() - 1] {
