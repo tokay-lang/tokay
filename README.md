@@ -16,7 +16,9 @@ Tokay is a programming language designed for ad-hoc parsing. It is heavily inspi
 - Internally implements a memoizing packrat parsing algorithm
 - Memory safe due its implementation in [Rust](https://rust-lang.org) without any unsafe calls
 - Dynamic lists and dicts
-- Enabling awk-style one-liners in combination with other scripts and programs
+- Enabling awk-style one-liners in combination with other tools
+- Generic functions and parselets (coming soon)
+- Interoperability with other shell commands (coming soon)
 
 There are plenty of further features planned, see [todo.md](todo.md) for details.
 
@@ -28,23 +30,16 @@ print("Hello World")
 ```
 but Tokay can also greet any name coming in, that's
 ```tokay
-Name print("Hello " + $1)
+Cname print("Hello " + $1)
 ```
 
 With its build-in abstract-syntax tree synthesis, Tokay is designed as a language for directly implementing ad-hoc parsers. The next program directly implements a left-recursive grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`.
 
 ```tokay
-# Factor is a parselet matching an Integer or grouped sub-expression.
-
 Factor : @{
-    Integer             # Integer is a builtin matching 64-bit
-                        # signed integer values from a stream
+    Integer             # built-in 64-bit signed integer token
     '(' Expr ')'
 }
-
-# The next two parselets define sequences and their evalutation.
-# Calculated values in sequences take highest precedence, therefore
-# the calculated values become the result of each sequence.
 
 Term : @{
     Term '*' Factor     $1 * $3
@@ -58,8 +53,6 @@ Expr : @{
     Term
 }
 
-# This is the main level, where an expression can occur.
-# Any other input - by default - is ignored and skipped.
 Expr
 ```
 

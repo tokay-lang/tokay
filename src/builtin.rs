@@ -176,7 +176,11 @@ static BUILTINS: &[Builtin] = &[
         signature: "ast",
         func: |_, mut args| {
             compiler::ast::print(&args.remove(0).unwrap().borrow());
-            Ok(Accept::Next)
+            Ok(Accept::Push(Capture::Value(
+                Value::Void.into_refvalue(),
+                None,
+                10,
+            )))
         },
     },
     Builtin {

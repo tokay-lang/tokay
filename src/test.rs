@@ -355,7 +355,7 @@ fn test_parselet_loop() {
 fn test_readme_examples() {
     assert_eq!(
         compile_and_run(
-            include_str!("../planets.tok"),
+            include_str!("../examples/planets.tok"),
             "Mercury Venus Earth Mars",
             false
         ),
@@ -369,7 +369,7 @@ fn test_readme_examples() {
 
     assert_eq!(
         compile_and_run(
-            include_str!("../planets2.tok"),
+            include_str!("../examples/planets2.tok"),
             "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune",
             false
         ),
@@ -386,12 +386,12 @@ fn test_readme_examples() {
     );
 
     assert_eq!(
-        compile_and_run(include_str!("../expressions.tok"), "1+2*3+4", false),
+        compile_and_run(include_str!("../examples/expr.tok"), "1+2*3+4", false),
         Ok(Some(value!(11)))
     );
 
     assert_eq!(
-        compile_and_run(include_str!("../faculty.tok"), "", false),
+        compile_and_run(include_str!("../examples/faculty.tok"), "", false),
         Ok(Some(value!(24)))
     );
 }

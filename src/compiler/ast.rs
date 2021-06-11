@@ -132,7 +132,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> AstResult {
     } else if let Some(dict) = ast.get_dict() {
         traverse_node(compiler, dict)
     } else {
-        panic!("Cannot traverse {:?}", ast);
+        AstResult::Value(ast.clone().into_refvalue())
     }
 }
 

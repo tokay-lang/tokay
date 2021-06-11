@@ -1,6 +1,9 @@
 use std::cell::RefCell;
 use std::fs::File;
-use std::io::{self, BufReader, Seek, Write};
+use std::io::{self, BufReader, Seek};
+
+use rustyline::error::ReadlineError;
+use rustyline::Editor;
 
 use crate::compiler::Compiler;
 use crate::reader::Reader;
@@ -35,30 +38,44 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
 
     let mut compiler = Compiler::new();
     compiler.interactive = true;
-    compiler.debug = true;
+    //compiler.debug = true;
+
+    // todo: Implement a completer?
+    let mut readline = Editor::<()>::new();
+
+    // todo: Implement a history in $HOME?
+    //let history = ".tokayhist";
+    //readline.load_history(history).ok();
 
     loop {
-        print!(">>> ");
-        io::stdout().flush().unwrap();
+        let code = match readline.readline(">>> ") {
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
+                break
+            }
 
-        let mut code = String::new();
-        if io::stdin().read_line(&mut code).is_err() {
-            panic!("Error reading code")
-        }
+            Err(err) => {
+                println!("Error {:?}", err);
+                break
+            }
+
+            Ok(code) => code
+        };
 
         // Stop when program is empty.
         if code.trim().is_empty() {
-            return;
+            continue;
         }
 
         //println!("code = {:?}", code);
 
+        readline.add_history_entry(code.as_str());
+
         match code.as_str() {
-            "#debug\n" => {
+            "#debug" => {
                 compiler.debug = true;
                 println!("<<< Debug switched on")
             }
-            "#nodebug\n" => {
+            "#nodebug" => {
                 compiler.debug = false;
                 println!("<<< Debug switched off")
             }
@@ -94,4 +111,6 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
             }
         }
     }
+
+    //readline.save_history(history).unwrap();
 }

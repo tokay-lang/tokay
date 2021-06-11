@@ -14,3 +14,4 @@ static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 dur
 
 [dependencies]
 clap = { version = "2", features = ["yaml"] }
+rustyline = "8.2.0"
