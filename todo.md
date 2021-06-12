@@ -91,6 +91,48 @@ Syntax is under careful consideration.
 
 - [ ] Implement `Float`
 - [ ] Implement `Number`
+- [ ] Implement `Word` as `Word(min=3)` with min-length
+- [ ] Further built-in and pre-defined tokens for matching standard cases like
+  - [ ] Pre-defined character classes
+    - `CharAlphabetic`
+    - `CharAlphanumeric`
+    - `CharAscii`
+    - `CharAsciiAlphabetic`
+    - `CharAsciiAlphanumeric`
+    - `CharAsciiControl`
+    - `CharAsciiDigit`
+    - `CharAsciiGraphic`
+    - `CharAsciiHexdigit`
+    - `CharAsciiLowercase`
+    - `CharAsciiPunctuation`
+    - `CharAsciiUppercase`
+    - `CharAsciiWhitespace`
+    - `CharControl`
+    - `CharDigit`
+    - `CharLowercase`
+    - `CharNumeric`
+    - `CharUppercase`
+    - `CharWhitespace`
+  - [ ] Pre-defined tokens matching `CharAlphabetic+`
+    - `Alphabetics`
+    - `Alphanumerics`
+    - `Asciis`
+    - `AsciiAlphabetics`
+    - `AsciiAlphanumerics`
+    - `AsciiControls`
+    - `AsciiDigits`
+    - `AsciiGraphics`
+    - `AsciiHexdigits`
+    - `AsciiLowercases`
+    - `AsciiPunctuations`
+    - `AsciiUppercases`
+    - `AsciiWhitespaces`
+    - `Controls`
+    - `Digits`
+    - `Lowercases`
+    - `Numerics`
+    - `Uppercases`
+    - `Whitespaces`
 
 ## Tests
 

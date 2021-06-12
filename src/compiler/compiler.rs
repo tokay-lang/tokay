@@ -335,7 +335,59 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub(crate) fn set_constant(&mut self, name: &str, value: RefValue) {
+    pub(crate) fn set_constant(&mut self, name: &str, mut value: RefValue) {
+        /*
+            Special meaning for whitespace constants names "_" and "__".
+
+            When set, the corresponding consumable Value becomes the following:
+
+            - `__ : Value+`
+            - `_ : __?`
+
+            This is always the case whenever "_" or "__" is set.
+            Fallback defaults to `Value : Whitespace`, handled in get_constant().
+        */
+        if name == "_" || name == "__" {
+            // First of all, "__" is defined as `__ : Value+`...
+            value = Parselet::new(
+                Some("__".to_string()),
+                Vec::new(),
+                0,
+                true, // consuming!
+                true, // silent!
+                Op::Nop,
+                Op::Nop,
+                // becomes silent `Value+`
+                Repeat::new(Op::CallStatic(self.define_static(value)), 1, 0, true).into_op(),
+            )
+            .into_value()
+            .into_refvalue();
+
+            // Insert "__" as new constant
+            self.scopes
+                .first_mut()
+                .unwrap()
+                .constants
+                .insert("__".to_string(), value.clone());
+
+            // ...and then in-place "_" is defined as `_ : __?`
+            value = Parselet::new(
+                Some(name.to_string()),
+                Vec::new(),
+                0,
+                true, // consuming!
+                true, // silent!
+                Op::Nop,
+                Op::Nop,
+                // becomes silent `Value?`
+                Repeat::new(Op::CallStatic(self.define_static(value)), 0, 1, true).into_op(),
+            )
+            .into_value()
+            .into_refvalue();
+
+            // Insert "_" afterwards
+        }
+
         self.scopes
             .first_mut()
             .unwrap()
@@ -345,7 +397,7 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope,
     a builtin or special. */
-    pub(crate) fn get_constant(&self, name: &str) -> Option<RefValue> {
+    pub(crate) fn get_constant(&mut self, name: &str) -> Option<RefValue> {
         for scope in &self.scopes {
             if let Some(value) = scope.constants.get(name) {
                 return Some(value.clone());
@@ -357,11 +409,20 @@ impl Compiler {
             return Some(Value::Builtin(builtin).into_refvalue());
         }
 
-        // Special tokens
+        // Builtin constants are defined on demand as fallback
         match name {
             "Void" => Some(Token::Void.into_value().into_refvalue()),
             "Any" => Some(Token::Any.into_value().into_refvalue()),
             "EOF" => Some(Token::EOF.into_value().into_refvalue()),
+            "__" | "_" => {
+                // Fallback for "_" defines parselet `_ : Whitespace?`
+                self.set_constant(
+                    "_",
+                    Value::Builtin(builtin::get("Whitespace").unwrap()).into_refvalue(),
+                );
+                Some(self.get_constant(name).unwrap())
+            }
+
             _ => None,
         }
     }

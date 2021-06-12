@@ -179,7 +179,8 @@ impl Parser {
             TokenLiteral,
             [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
                 (call ast[(value "call")])],
-            [T_Consumable, (call ast[(value "call")])]
+            [T_Consumable, (call ast[(value "call")])],
+            Parselet
         }),
 
         (Token = {
@@ -215,8 +216,7 @@ impl Parser {
             Literal,
             Token,
             Load,
-            Block,
-            Parselet
+            Block
         }),
 
         (Rvalue = {

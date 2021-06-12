@@ -173,7 +173,7 @@ fn test_expression() {
 
 #[test]
 fn test_builtin_tokens() {
-    let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus 2_cT";
+    let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
 
     assert_eq!(
         compile_and_run("Identifier", gliders, false),
@@ -183,8 +183,7 @@ fn test_builtin_tokens() {
             "b",
             "G102",
             "Astir",
-            "Ventus",
-            "_cT"
+            "Ventus_2cT"
         ])))
     );
 
@@ -195,7 +194,7 @@ fn test_builtin_tokens() {
 
     assert_eq!(
         compile_and_run("Whitespace", gliders, false),
-        Ok(Some(value!([" ", " ", "\t", " ", "  \n", " "])))
+        Ok(Some(value!([" ", " ", "\t", " ", "  \n"])))
     );
 
     assert_eq!(
@@ -209,6 +208,19 @@ fn test_builtin_tokens() {
             "Ventus",
             "cT"
         ])))
+    );
+
+    // Builtin Whitespace handling
+    let abc = "abc   \tdef  abcabc= ghi abcdef";
+
+    assert_eq!(
+        compile_and_run("Word _; ", abc, false),
+        Ok(Some(value![["abc", "def", "abcabc", "ghi", "abcdef"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("Word __; ", abc, false),
+        Ok(Some(value![["abc", "def", "ghi"]]))
     );
 }
 
@@ -395,7 +407,7 @@ fn test_parselet_loop() {
 }
 
 #[test]
-fn test_readme_examples() {
+fn test_examples() {
     assert_eq!(
         compile_and_run(
             include_str!("../examples/planets.tok"),
@@ -430,6 +442,25 @@ fn test_readme_examples() {
 
     assert_eq!(
         compile_and_run(include_str!("../examples/expr.tok"), "1+2*3+4", false),
+        Ok(Some(value!(11)))
+    );
+
+    // todo: Would be nice to test against stdout
+    assert_eq!(
+        compile_and_run(
+            include_str!("../examples/expr_with_ast.tok"),
+            "1+2*3+4",
+            false
+        ),
+        Ok(None)
+    );
+
+    assert_eq!(
+        compile_and_run(
+            include_str!("../examples/expr_with_spaces.tok"),
+            "1 +  \t 2 \n *  3 + 4",
+            false
+        ),
         Ok(Some(value!(11)))
     );
 

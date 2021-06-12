@@ -42,7 +42,7 @@ macro_rules! tokay_embed_item {
                     .collect()
             );
 
-            let body = Repeat::new(body, 0, 0, true);
+            //let body = Repeat::new(body, 0, 0, true);  //this became obsolete by the compiler!
 
             let parselet = $compiler.create_parselet(
                 Some("_".to_string()),

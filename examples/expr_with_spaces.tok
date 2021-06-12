@@ -1,0 +1,18 @@
+Factor : @{
+    Integer _            # built-in 64-bit signed integer token
+    '(' _ Expr ')' _
+}
+
+Term : @{
+    Term '*' _ Factor     $1 * $4
+    Term '/' _ Factor     $1 / $4
+    Factor
+}
+
+Expr : @{
+    Expr '+' _ Term       $1 + $4
+    Expr '-' _ Term       $1 - $4
+    Term
+}
+
+Expr

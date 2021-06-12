@@ -97,6 +97,8 @@ impl Runable for Repeat {
             context.runtime.stack.truncate(capture_start);
             context.runtime.reader.reset(reader_start);
             Err(Reject::Next)
+        } else if self.silent {
+            Ok(Accept::Next)
         } else {
             match context.collect(capture_start, false, true, true, 1) {
                 Err(capture) => Ok(Accept::Push(capture)),
