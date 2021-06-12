@@ -1033,7 +1033,21 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     // Special operations for Token::Char
                     if let AstResult::Value(value) = &res {
-                        if let Value::Token(token) = &*value.borrow() {
+                        let value = value.borrow();
+
+                        if !value.is_consuming() {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!(
+                                    "Operator '{}' has no effect on non-consuming value",
+                                    parts[2]
+                                ),
+                            ));
+                        } else {
+                            compiler.scopes[0].consuming = true;
+                        }
+
+                        if let Value::Token(token) = &*value {
                             if let Token::Char(mut ccl) = *token.clone() {
                                 match parts[2] {
                                     // mod_pos on Token::Char becomes Token::Chars
