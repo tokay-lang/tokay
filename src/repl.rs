@@ -45,9 +45,10 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
     // todo: Implement a completer?
     let mut readline = Editor::<()>::new();
 
-    // todo: Implement a history in $HOME?
-    //let history = ".tokayhist";
-    //readline.load_history(history).ok();
+    // todo: Implement a history in $HOME for production?
+    if cfg!(debug_assertions) {
+        readline.load_history(".tokayhist").ok();
+    }
 
     loop {
         let code = match readline.readline(">>> ") {
@@ -112,5 +113,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
         }
     }
 
-    //readline.save_history(history).unwrap();
+    if cfg!(debug_assertions) {
+        readline.save_history(".tokayhist").unwrap();
+    }
 }
