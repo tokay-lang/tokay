@@ -279,7 +279,7 @@ impl Value {
         }
     }
 
-    // Get Value's integer representation.
+    // Get Value's usize representation.
     pub fn to_addr(&self) -> usize {
         match self {
             Self::True => 1,
@@ -533,112 +533,90 @@ impl Value {
             _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
         }
     }
-}
 
-impl<'a, 'b> std::ops::Add<&'b Value> for &'a Value {
-    type Output = Value;
-
-    fn add(self, rhs: &'b Value) -> Value {
+    // Addition
+    pub fn add(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is String...
-            (Value::String(a), b) => Value::String(a.to_owned() + &b.to_string()),
-            (a, Value::String(b)) => Value::String(a.to_string() + &b),
+            (Value::String(a), b) => Ok(Value::String(a.to_owned() + &b.to_string())),
+            (a, Value::String(b)) => Ok(Value::String(a.to_string() + &b)),
 
             // When one is Float...
-            (Value::Float(a), b) => Value::Float(a + b.to_float()),
-            (a, Value::Float(b)) => Value::Float(a.to_float() + b),
+            (Value::Float(a), b) => Ok(Value::Float(a + b.to_float())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() + b)),
 
             // All is threatened as Integer
-            (a, b) => Value::Integer(a.to_integer() + b.to_integer()),
+            (a, b) => Ok(Value::Integer(a.to_integer() + b.to_integer())),
         }
     }
-}
 
-impl<'a, 'b> std::ops::Sub<&'b Value> for &'a Value {
-    type Output = Value;
-
-    fn sub(self, rhs: &'b Value) -> Value {
+    // Substraction
+    pub fn sub(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is Float...
-            (Value::Float(a), b) => Value::Float(a - b.to_float()),
-            (a, Value::Float(b)) => Value::Float(a.to_float() - b),
+            (Value::Float(a), b) => Ok(Value::Float(a - b.to_float())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() - b)),
 
             // All is threatened as Integer
-            (a, b) => Value::Integer(a.to_integer() - b.to_integer()),
+            (a, b) => Ok(Value::Integer(a.to_integer() - b.to_integer())),
         }
     }
-}
 
-impl<'a, 'b> std::ops::Mul<&'b Value> for &'a Value {
-    type Output = Value;
-
-    fn mul(self, rhs: &'b Value) -> Value {
+    // Multiplication
+    pub fn mul(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is String and one is something else...
             (Value::String(s), n) | (n, Value::String(s)) => {
                 let n = n.to_integer();
-
-                //Todo: why not extend `s`?
                 let mut r = String::new();
 
                 for _ in 0..n {
                     r += &s;
                 }
 
-                Value::String(r)
+                Ok(Value::String(r))
             }
 
             // When one is Float...
-            (Value::Float(a), b) => Value::Float(a * b.to_float()),
-            (a, Value::Float(b)) => Value::Float(a.to_float() * b),
+            (Value::Float(a), b) => Ok(Value::Float(a * b.to_float())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() * b)),
 
             // All is threatened as Integer
-            (a, b) => Value::Integer(a.to_integer() * b.to_integer()),
+            (a, b) => Ok(Value::Integer(a.to_integer() * b.to_integer())),
         }
     }
-}
 
-impl<'a, 'b> std::ops::Div<&'b Value> for &'a Value {
-    type Output = Value;
-
-    fn div(self, rhs: &'b Value) -> Value {
+    // Division
+    pub fn div(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is Float...
-            (Value::Float(a), b) => Value::Float(a / b.to_float()),
-            (a, Value::Float(b)) => Value::Float(a.to_float() / b),
+            (Value::Float(a), b) => Ok(Value::Float(a / b.to_float())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() / b)),
 
             // All is threatened as Integer
-            (a, b) => Value::Integer(a.to_integer() / b.to_integer()),
+            (a, b) => Ok(Value::Integer(a.to_integer() / b.to_integer())),
             // todo: handle float as results?
         }
     }
-}
 
-impl<'v> std::ops::Neg for &'v Value {
-    type Output = Value;
-
-    fn neg(self) -> Value {
+    // Negate
+    pub fn neg(&self) -> Result<Value, Error> {
         match self {
-            Value::Float(v) => Value::Float(-v),
-            v => Value::Integer(-v.to_integer()),
+            Value::Float(v) => Ok(Value::Float(-v)),
+            v => Ok(Value::Integer(-v.to_integer())),
         }
     }
-}
 
-impl<'v> std::ops::Not for &'v Value {
-    type Output = Value;
-
-    fn not(self) -> Value {
+    // Logical not
+    pub fn not(&self) -> Result<Value, Error> {
         match self {
             //Value::Integer(i) => Value::Integer(!i),  // breaks semantics
             //Value::Addr(a) => Value::Addr(!a),
-            v => {
-                if v.is_true() {
-                    Value::False
-                } else {
-                    Value::True
-                }
-            }
+            v => Ok(if v.is_true() {
+                Value::False
+            } else {
+                Value::True
+            }),
         }
     }
 }

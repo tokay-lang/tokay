@@ -552,10 +552,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 ops.extend(traverse_node(compiler, value).into_ops(compiler, false));
 
                 match parts[1] {
-                    "add" => ops.push(Op::IAdd),
-                    "sub" => ops.push(Op::ISub),
-                    "mul" => ops.push(Op::IMul),
-                    "div" => ops.push(Op::IDiv),
+                    "add" => ops.push(Op::InlineAdd),
+                    "sub" => ops.push(Op::InlineSub),
+                    "mul" => ops.push(Op::InlineMul),
+                    "div" => ops.push(Op::InlineDiv),
                     _ => unreachable!(),
                 }
 
@@ -819,9 +819,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             match parts[1] {
                 "pre" => {
                     ops.push(if parts[2] == "inc" {
-                        Op::IInc
+                        Op::InlineInc
                     } else {
-                        Op::IDec
+                        Op::InlineDec
                     });
                 }
                 "post" => {
@@ -829,9 +829,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         Op::Dup,
                         Op::Rot2,
                         if parts[2] == "inc" {
-                            Op::IInc
+                            Op::InlineInc
                         } else {
-                            Op::IDec
+                            Op::InlineDec
                         },
                         Op::Drop,
                     ]);
@@ -908,10 +908,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     {
                         return AstResult::Value(
                             match parts[2] {
-                                "add" => &*left.borrow() + &*right.borrow(),
-                                "sub" => &*left.borrow() - &*right.borrow(),
-                                "mul" => &*left.borrow() * &*right.borrow(),
-                                "div" => &*left.borrow() / &*right.borrow(),
+                                "add" => left.borrow().add(&*right.borrow()).unwrap(),
+                                "sub" => left.borrow().sub(&*right.borrow()).unwrap(),
+                                "mul" => left.borrow().mul(&*right.borrow()).unwrap(),
+                                "div" => left.borrow().div(&*right.borrow()).unwrap(),
                                 _ => {
                                     unimplemented!("op_binary_{}", parts[2]);
                                 }
@@ -943,8 +943,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     if let Ok(value) = res.get_evaluable_value() {
                         return AstResult::Value(
                             match parts[2] {
-                                "not" => !&*value.borrow(),
-                                "neg" => -&*value.borrow(),
+                                "not" => value.borrow().not().unwrap(),
+                                "neg" => value.borrow().neg().unwrap(),
                                 _ => {
                                     unimplemented!("op_unary_{}", parts[2]);
                                 }

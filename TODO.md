@@ -18,14 +18,19 @@ This is a recently updated brainstorming and todo scribble file.
   - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
   - [ ] **lazy_static** for parser and compiler
   - [ ] **log** crate and related logger
+  - [ ]
 - [ ] Grammar view
   - [ ] Perform left-recursion detection on begin and end also?
   - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
-- [ ] Locked objects (this is required to disallow modification of Dict and List constants)
-- [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
-- [ ] Module system
+- [ ] Implementation of a module system
   - [ ] Import constants from other module
   - [ ] Run other module as separate program and work on resulting values
+- [ ] Values
+  - [ ] Locked objects (this is required to disallow modification of Dict and List constants)
+  - [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
+  - [ ] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
+  - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
+    - [ ] Use external crate **num_bigint** for integers instead of i64
 
 ## Syntax
 
@@ -78,8 +83,6 @@ Syntax is under careful consideration.
 - [ ] Undefined variables incremented or decremented (`i++`, `++i`, `i--`, `--i`) as well as variables assigned by `+=`, `-=`, `*=`, `/=` should enforce initialize the undefined variable to 0, so for a simple counting, an explicit setting to 0 is not required.
 - [ ] Capture::Named alias inferring
 - [x] Capture::Named should recognize severity
-- [ ] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
-- [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
 
 ## Optimization
 

@@ -79,13 +79,13 @@ pub enum Op {
     Not, // unary not (! operator)
     Neg, // unary negation (-x operator)
 
-    IAdd, // Inline add (+= operator)
-    ISub, // Inline sub (-= operator)
-    IMul, // Inline mul (*= operator)
-    IDiv, // Inline div (/= operator)
+    InlineAdd, // Inline add (+= operator)
+    InlineSub, // Inline sub (-= operator)
+    InlineMul, // Inline mul (*= operator)
+    InlineDiv, // Inline div (/= operator)
 
-    IInc, // Inline increment (++x and x++ operators)
-    IDec, // Inline decrement (--x and x-- operators)
+    InlineInc, // Inline increment (++x and x++ operators)
+    InlineDec, // Inline decrement (--x and x-- operators)
 
     Equal,        // Compare for equality (== operator)
     NotEqual,     // Compare for unequality (!= operator)
@@ -424,10 +424,10 @@ impl Runable for Op {
                 */
 
                 let c = match self {
-                    Op::Add => (&*a.borrow() + &*b.borrow()).into_refvalue(),
-                    Op::Sub => (&*a.borrow() - &*b.borrow()).into_refvalue(),
-                    Op::Mul => (&*a.borrow() * &*b.borrow()).into_refvalue(),
-                    Op::Div => (&*a.borrow() / &*b.borrow()).into_refvalue(),
+                    Op::Add => a.borrow().add(&*b.borrow())?.into_refvalue(),
+                    Op::Sub => a.borrow().sub(&*b.borrow())?.into_refvalue(),
+                    Op::Mul => a.borrow().mul(&*b.borrow())?.into_refvalue(),
+                    Op::Div => a.borrow().div(&*b.borrow())?.into_refvalue(),
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
@@ -464,14 +464,14 @@ impl Runable for Op {
             }
 
             Op::Not => {
-                let value = (!&*context.pop().borrow()).into_refvalue();
+                let value = context.pop().borrow().not()?.into_refvalue();
                 context.push(value)
             }
             Op::Neg => {
-                let value = (-&*context.pop().borrow()).into_refvalue();
+                let value = context.pop().borrow().neg()?.into_refvalue();
                 context.push(value)
             }
-            Op::IAdd | Op::ISub | Op::IMul | Op::IDiv => {
+            Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
                 let b = context.pop();
                 let value = context.pop();
                 let mut value = value.borrow_mut();
@@ -483,29 +483,29 @@ impl Runable for Op {
                 */
 
                 *value = match self {
-                    Op::IAdd => (&*value + &*b.borrow()),
-                    Op::ISub => (&*value - &*b.borrow()),
-                    Op::IMul => (&*value * &*b.borrow()),
-                    Op::IDiv => (&*value / &*b.borrow()),
+                    Op::InlineAdd => value.add(&*b.borrow())?,
+                    Op::InlineSub => value.sub(&*b.borrow())?,
+                    Op::InlineMul => value.mul(&*b.borrow())?,
+                    Op::InlineDiv => value.div(&*b.borrow())?,
                     _ => unimplemented!("Unimplemented operator"),
                 };
 
                 context.push(value.clone().into_refvalue())
             }
 
-            Op::IInc => {
+            Op::InlineInc => {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = &*value + &Value::Integer(1); // lazy_static?
+                *value = value.add(&Value::Integer(1))?;
                 context.push(value.clone().into_refvalue())
             }
 
-            Op::IDec => {
+            Op::InlineDec => {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = &*value - &Value::Integer(1); // lazy_static?
+                *value = value.sub(&Value::Integer(1))?;
                 context.push(value.clone().into_refvalue())
             }
 

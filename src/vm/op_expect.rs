@@ -23,11 +23,13 @@ impl Runable for Expect {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         self.body.run(context).or_else(|reject| {
             if let Reject::Next = reject {
+                let start = context.runtime.reader.tell();
+
                 if let Some(msg) = &self.msg {
-                    Error::new(Some(context.runtime.reader.tell()), msg.clone()).into_reject()
+                    Error::new(Some(start), msg.clone()).into_reject()
                 } else {
                     Error::new(
-                        Some(context.runtime.reader.tell()),
+                        Some(start),
                         format!("Expecting {}", self.body),
                     )
                     .into_reject()

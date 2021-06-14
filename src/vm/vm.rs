@@ -86,6 +86,12 @@ pub enum Reject {
     Error(Box<Error>),
 }
 
+impl From<Error> for Reject {
+    fn from(error: Error) -> Self {
+        Reject::Error(Box::new(error))
+    }
+}
+
 // --- Context -----------------------------------------------------------------
 
 /** Contexts represent stack frames for function calls.

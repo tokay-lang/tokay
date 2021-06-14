@@ -232,12 +232,9 @@ impl Parser {
             [Rvalue, _]
         }),
 
-        // todo: & and |
-
         (MulDiv = {
             [MulDiv, "*", _, (expect Unary), (call ast[(value "op_binary_mul")])],
             [MulDiv, "/", _, (expect Unary), (call ast[(value "op_binary_div")])],
-            // todo: ^ (pow)
             Unary
         }),
 
@@ -310,7 +307,7 @@ impl Parser {
             ["reject", _, (call ast[(value "op_reject")])],
             // todo: report, escape, repeat
 
-            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
+            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect Expression), (call ast[(value "assign")])],
             [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
             [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],

@@ -24,7 +24,7 @@ Tokay is a very young project and gains much potential. Volunteers are welcome!
 - Generic functions and parselets (coming soon)
 - Interoperability with other shell commands (coming soon)
 
-There are plenty of further features planned, see [todo.md](todo.md) for details.
+There are plenty of further features planned, see [TODO.md](TODO.md) for details.
 
 ## Examples
 

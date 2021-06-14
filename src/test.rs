@@ -229,6 +229,22 @@ fn test_variables() {
     assert_eq!(
         compile_and_run(
             "
+            a = true a \
+            a + 2 == 3 \
+            a += 30 a \
+            a -= 9 a \
+            a *= 3 a \
+            a /= 6 a
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[true, true, 31, 22, 66, 11]]))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            "
             a = 1 \
             a \
             a++ \
