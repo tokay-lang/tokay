@@ -28,11 +28,7 @@ impl Runable for Expect {
                 if let Some(msg) = &self.msg {
                     Error::new(Some(start), msg.clone()).into_reject()
                 } else {
-                    Error::new(
-                        Some(start),
-                        format!("Expecting {}", self.body),
-                    )
-                    .into_reject()
+                    Error::new(Some(start), format!("Expecting {}", self.body)).into_reject()
                 }
             } else {
                 Err(reject)

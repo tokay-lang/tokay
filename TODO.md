@@ -4,7 +4,6 @@ This is a recently updated brainstorming and todo scribble file.
 
 ## Pritority
 
-- [x] Parametized parselets
 - [ ] Generic parselets
   - [ ] `Until<P, Escape=Void>`
   - [ ] `Not<P>`
@@ -14,11 +13,6 @@ This is a recently updated brainstorming and todo scribble file.
 ## General
 
 - [x] Row & column number recording in Reader/Range by working with an Offset data structure rather than usize to allow further tracking, e.g. of row + col numbers
-- Extensions by third-party crates
-  - [ ] **indexmap** for Dict (https://github.com/bluss/indexmap)
-  - [ ] **lazy_static** for parser and compiler
-  - [ ] **log** crate and related logger
-  - [ ]
 - [ ] Grammar view
   - [ ] Perform left-recursion detection on begin and end also?
   - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
@@ -26,9 +20,10 @@ This is a recently updated brainstorming and todo scribble file.
   - [ ] Import constants from other module
   - [ ] Run other module as separate program and work on resulting values
 - [ ] Values
+  - [ ] Dict should use **indexmap** crate (https://github.com/bluss/indexmap)
   - [ ] Locked objects (this is required to disallow modification of Dict and List constants)
   - [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
-  - [ ] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
+  - [x] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
   - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
     - [ ] Use external crate **num_bigint** for integers instead of i64
 
@@ -36,15 +31,12 @@ This is a recently updated brainstorming and todo scribble file.
 
 Syntax is under careful consideration.
 
-- [x] Implementation of Lists `(a, b, c)` and Dicts `(a => b, c => d)`
-- [ ] Missing expressional constructs
-  - [x] Assignment operations `+=`, `-=`, `*=`, `/=`
-  - [x] `&&` and `||`
-  - [ ] `&` and `|`
-  - [ ] `^` (pow)
-- [x] Sequence item aliasing: `a x => b c $2 $x $1
-- [x] Definition of Chars tokens `[A-Za-z_]` etc...
-- [!] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
+- [ ] Missing expressional constructs (should be discussed if these are really necessary)
+  - [ ] binary `&` (`&=`) and `|` `|=`?
+  - [ ] `^` and `^=` (xor)?
+  - [ ] `**` and `**=` (powers)?
+  - [ ] `//` and `//=` (integer division)?
+- [ ] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
 - [ ] Implement `ls -ltra` backticks (`) for shell command values
   - [ ] Operators `|>` and `<|` for shell command read/write?
 - [ ] *deref-Operator to avoid automatic calling values when they are directly callable
@@ -55,7 +47,7 @@ Syntax is under careful consideration.
   - [ ] `loop i = 0; ; print(i++) if i > 100 break`
   - [ ] `loop {}`
   - [ ] Loops with value collection using `continue` and `break`
-- [ ] Token operators as generics
+- [ ] Token operators as generics (see on Priority also)
   - [ ] `until`-Operator (not available yet, but might be `Until<P, Escape=Void>`)
   - [ ] `not`-Operator (`Not<P>`)
   - [ ] `peek`-Operator (`Peek<P>`)
@@ -81,8 +73,7 @@ Syntax is under careful consideration.
 
 - [x] Use capitalized identifiers for consumable constants
 - [ ] Undefined variables incremented or decremented (`i++`, `++i`, `i--`, `--i`) as well as variables assigned by `+=`, `-=`, `*=`, `/=` should enforce initialize the undefined variable to 0, so for a simple counting, an explicit setting to 0 is not required.
-- [ ] Capture::Named alias inferring
-- [x] Capture::Named should recognize severity
+- [ ] Capture alias inferring
 
 ## Optimization
 
@@ -93,8 +84,9 @@ Syntax is under careful consideration.
 ## Built-ins
 
 - [ ] Implement `Float`
-- [ ] Implement `Number`
-- [ ] Implement `Word` as `Word(min=3)` with min-length
+  - [ ] What about scientific notations like `1.3e-08`?
+- [ ] Implement `Number`, as the union of `Integer` and `Float`
+- [ ] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
 - [ ] Further built-in and pre-defined tokens for matching standard cases like
   - [ ] Pre-defined character classes
     - `CharAlphabetic`
@@ -135,9 +127,11 @@ Syntax is under careful consideration.
     - `Lowercases`
     - `Numerics`
     - `Uppercases`
-    - `Whitespaces`
+    - `Whitespaces` (must become replacement for current `Whitespace`)
 
 ## Tests
+
+We need sooo many tests!!!
 
 - [x] starting with the stuff from main.rs
 - [ ] Tests for expect
@@ -150,5 +144,4 @@ Syntax is under careful consideration.
 
 ## Bugs
 
-- [x] `x : print` is not possible
-- [ ] builtins::collect() doesn't recognize correct total offset when main program is e.g. just `Integer collect`.
+- [ ] builtins::ast() doesn't recognize correct total offset when main program is e.g. just `Integer ast("int")` because the Reader is cleared and restarts at 0 again. An overall offset counter in the runtime has to be made available.

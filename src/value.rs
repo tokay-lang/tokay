@@ -590,12 +590,35 @@ impl Value {
     pub fn div(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a / b.to_float())),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() / b)),
+            (Value::Float(_), _) | (_, Value::Float(_)) => {
+                let a = self.to_float();
+                let b = rhs.to_float();
+
+                if b == 0.0 {
+                    return Err(Error::new(None, "Cannot divide by zero".to_string()));
+                }
+
+                Ok(Value::Float(a / b))
+            }
 
             // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_integer() / b.to_integer())),
-            // todo: handle float as results?
+            (a, b) => {
+                let a = a.to_integer();
+                let b = b.to_integer();
+
+                if b == 0 {
+                    return Err(Error::new(None, "Cannot divide by zero".to_string()));
+                }
+
+                // If there's no remainder, perform an integer division
+                if a % b == 0 {
+                    Ok(Value::Integer(a / b))
+                }
+                // Otherwise a floating point division
+                else {
+                    Ok(Value::Float(a as f64 / b as f64))
+                }
+            }
         }
     }
 

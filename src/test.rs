@@ -225,7 +225,8 @@ fn test_builtin_tokens() {
 }
 
 #[test]
-fn test_variables() {
+fn test_operations() {
+    // Test assignment-operations
     assert_eq!(
         compile_and_run(
             "
@@ -234,14 +235,17 @@ fn test_variables() {
             a += 30 a \
             a -= 9 a \
             a *= 3 a \
-            a /= 6 a
+            a /= 6 a \
+            a /= 2 a \
+            a *= 10 a
             ",
             "",
             false
         ),
-        Ok(Some(value![[true, true, 31, 22, 66, 11]]))
+        Ok(Some(value![[true, true, 31, 22, 66, 11, 5.5, 55.0]]))
     );
 
+    // Test for pre- and post-increment and -decrements
     assert_eq!(
         compile_and_run(
             "
@@ -250,7 +254,7 @@ fn test_variables() {
             a++ \
             ++a \
             a++ a++ \
-            a+++++a
+            a+++++a  # yes it works!
             ",
             "",
             false

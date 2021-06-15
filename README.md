@@ -8,9 +8,9 @@ An imperative, procedural programming language dedicated to parsing and other te
 
 Tokay is a programming language designed for ad-hoc parsing. It is heavily inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy and design principles. It might also be useful as a general purpose scripting language, but mainly focuses on processing textual input and work on trees with information extracted from this input.
 
-The language was designed to quickly create solutions in text processing problems, which can be just simple pattern matching but also huger programs. Tokay therefore provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, including interpreters or compilers. For example, Tokay uses itself for parsing its syntax.
+The language was designed to quickly create solutions in text processing problems, which can be just simple pattern matching but even bigger things. Therefore Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, including interpreters or compilers. For example, Tokay's own language parser is implemented using Tokay itself.
 
-Tokay is a very young project and gains much potential. Volunteers are welcome!
+Tokay is a very young project and gains much potential. [Volunteers are welcome!](#contribute)
 
 ## Highlights
 
@@ -18,11 +18,11 @@ Tokay is a very young project and gains much potential. Volunteers are welcome!
 - Stream-based input processing
 - Automatic parse tree synthesis
 - Left-recursive parsing structures ("parselets") supported
-- Internally implements a memoizing packrat parsing algorithm
-- Robust due to its implementation in safe [Rust](https://rust-lang.org) only
+- Implements a memoizing packrat parsing algorithm internally
+- Robust due to its implementation in only safe [Rust](https://rust-lang.org)
 - Enabling awk-style one-liners in combination with other tools
-- Generic functions and parselets (coming soon)
-- Interoperability with other shell commands (coming soon)
+- Generic functions and parselets (*coming soon)
+- Interoperability with other shell commands (*coming soon)
 
 There are plenty of further features planned, see [TODO.md](TODO.md) for details.
 
@@ -75,17 +75,19 @@ faculty : @x {
 faculty(4)
 ```
 
+## Contribute
+
+Contributions of any kind, may it be code, documentation, support or advertising are very welcome!
+
+Take a look into the [TODO.md](TODO.md) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things to be improved.
+
+Feel free to [contact me](https://phorward.info) on any questions, or directly file [an issue here](https://github.com/phorward/tokay/issues).
+
+Tokay is also my first project written in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
+
 ## Logo
 
-The Tokay logo and icon was designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl).
-
-
-## Contributions
-
-Contributions of any kind are very welcome. Feel free to contact me.
-
-Tokay is also my first project written in Rust, therefore I'm sure some things inside the code could easily be improved by more experienced Rustaceans out there.
-
+The Tokay logo and icon was designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl), many thanks to him!
 
 ## License
 

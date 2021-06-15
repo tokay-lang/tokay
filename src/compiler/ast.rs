@@ -906,18 +906,22 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return AstResult::Value(
-                            match parts[2] {
-                                "add" => left.borrow().add(&*right.borrow()).unwrap(),
-                                "sub" => left.borrow().sub(&*right.borrow()).unwrap(),
-                                "mul" => left.borrow().mul(&*right.borrow()).unwrap(),
-                                "div" => left.borrow().div(&*right.borrow()).unwrap(),
-                                _ => {
-                                    unimplemented!("op_binary_{}", parts[2]);
-                                }
+                        if let Ok(value) = match parts[2] {
+                            "add" => left.borrow().add(&*right.borrow()),
+                            "sub" => left.borrow().sub(&*right.borrow()),
+                            "mul" => left.borrow().mul(&*right.borrow()),
+                            "div" => left.borrow().div(&*right.borrow()),
+                            _ => {
+                                unimplemented!("op_binary_{}", parts[2]);
                             }
-                            .into_refvalue(),
-                        );
+                        } {
+                            return AstResult::Value(value.into_refvalue());
+                        }
+                    }
+
+                    // Push operation position here
+                    if let Some(offset) = traverse_node_offset(node) {
+                        ops.push(Op::Offset(Box::new(offset)));
                     }
 
                     // Otherwise, generate operational code
@@ -941,16 +945,20 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     let res = traverse_node(compiler, children);
                     if let Ok(value) = res.get_evaluable_value() {
-                        return AstResult::Value(
-                            match parts[2] {
-                                "not" => value.borrow().not().unwrap(),
-                                "neg" => value.borrow().neg().unwrap(),
-                                _ => {
-                                    unimplemented!("op_unary_{}", parts[2]);
-                                }
+                        if let Ok(value) = match parts[2] {
+                            "not" => value.borrow().not(),
+                            "neg" => value.borrow().neg(),
+                            _ => {
+                                unimplemented!("op_unary_{}", parts[2]);
                             }
-                            .into_refvalue(),
-                        );
+                        } {
+                            return AstResult::Value(value.into_refvalue());
+                        }
+                    }
+
+                    // Push operation position here
+                    if let Some(offset) = traverse_node_offset(node) {
+                        ops.push(Op::Offset(Box::new(offset)));
                     }
 
                     ops.extend(res.into_ops(compiler, true));
