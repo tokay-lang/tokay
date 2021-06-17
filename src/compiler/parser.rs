@@ -105,7 +105,7 @@ impl Parser {
 
         (CclChar = {
             [EOF, (call error[(value "Unclosed character-class, expecting ']'")])],
-            ["\\", (token (Token::Any))],
+            ["\\", (token (Token::any()))],
             (token (Token::char_except(']')))
         }),
 
@@ -380,7 +380,7 @@ impl Parser {
 
         (Tokay = {
             (pos Instruction),
-            [(token (Token::Any)),
+            [(token (Token::any())),
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 

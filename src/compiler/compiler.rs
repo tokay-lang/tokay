@@ -412,7 +412,7 @@ impl Compiler {
         // Builtin constants are defined on demand as fallback
         match name {
             "Void" => Some(Token::Void.into_value().into_refvalue()),
-            "Any" => Some(Token::Any.into_value().into_refvalue()),
+            "Any" => Some(Token::any().into_value().into_refvalue()),
             "EOF" => Some(Token::EOF.into_value().into_refvalue()),
             "__" | "_" => {
                 // Fallback for "_" defines parselet `_ : Whitespace?`

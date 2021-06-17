@@ -198,7 +198,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
                 Token::Touch(value).into_value()
             }
         }
-        "value_token_any" => Token::Any.into_value(),
+        "value_token_any" => Token::any().into_value(),
         "value_token_ccl" => {
             let node = node.borrow_by_key("children").to_dict();
 

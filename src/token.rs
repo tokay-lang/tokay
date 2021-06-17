@@ -9,7 +9,6 @@ use crate::vm::*;
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Token {
     Void,
-    Any,
     EOF,
     Char(Ccl),
     Chars(Ccl),
@@ -18,6 +17,12 @@ pub enum Token {
 }
 
 impl Token {
+    pub fn any() -> Self {
+        let mut ccl = Ccl::new();
+        ccl.negate();
+        Self::Char(ccl)
+    }
+
     // Repeat any char until given stop character
     pub fn chars_until(ch: char) -> Self {
         let mut ccl = ccl![ch..=ch];
@@ -38,17 +43,6 @@ impl Token {
     pub fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         match self {
             Token::Void => Ok(Accept::Push(Capture::Empty)),
-            Token::Any => {
-                if let Some(_) = reader.next() {
-                    return Ok(Accept::Push(Capture::Range(
-                        reader.capture_last(1),
-                        None,
-                        5,
-                    )));
-                }
-
-                Err(Reject::Next)
-            }
             Token::EOF => {
                 if let None = reader.peek() {
                     Ok(Accept::Next)
@@ -124,7 +118,7 @@ impl Token {
     pub fn is_nullable(&self) -> bool {
         match self {
             Token::Void => true,
-            Token::Any | Token::EOF => false,
+            Token::EOF => false,
             Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
             Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
         }
