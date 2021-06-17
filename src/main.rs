@@ -106,6 +106,6 @@ fn main() {
         }
     } else {
         print_version();
-        repl(streams);
+        repl(streams, debug > 0);
     }
 }

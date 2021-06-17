@@ -35,12 +35,12 @@ impl Stream {
 }
 
 // A first simple REPL for Tokay
-pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
+pub fn repl(streams: Vec<(&str, RefCell<Stream>)>, debug: bool) {
     let mut globals: Vec<RefValue> = Vec::new();
 
     let mut compiler = Compiler::new();
     compiler.interactive = true;
-    //compiler.debug = true;
+    compiler.debug = debug;
 
     // todo: Implement a completer?
     let mut readline = Editor::<()>::new();

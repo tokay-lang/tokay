@@ -245,7 +245,8 @@ fn test_operations() {
         Ok(Some(value![[true, true, 31, 22, 66, 11, 5.5, 55.0]]))
     );
 
-    // Test for pre- and post-increment and -decrements
+    // Tests for pre- and post-increment and -decrements
+    // These require spaces in some situations to find correct path throug meaning
     assert_eq!(
         compile_and_run(
             "
@@ -254,12 +255,14 @@ fn test_operations() {
             a++ \
             ++a \
             a++ a++ \
-            a+++++a  # yes it works!
-            ",
+            a++ + ++a \
+            a-- - --a \
+            a-- - - --a \
+            a",
             "",
             false
         ),
-        Ok(Some(value![[1, 1, 3, 3, 4, 12]]))
+        Ok(Some(value![[1, 1, 3, 3, 4, 12, 2, 8, 3]]))
     );
 }
 

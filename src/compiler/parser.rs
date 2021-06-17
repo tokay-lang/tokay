@@ -69,16 +69,22 @@ impl Parser {
         (T_String = {
             [
                 "\"",
-                (token (Token::chars_until('\"'))),     //fixme: Escape sequences (using Until built-in parselet)
-                "\""
+                {
+                    (token (Token::chars_until('\"'))), //fixme: Escape sequences (using Until built-in parselet)
+                    (value "")  // yes, push an empty string!
+                },
+                (expect "\"")
             ]
         }),
 
         (T_Match = {
             [
                 "\'",
-                (token (Token::chars_until('\''))),    //fixme: Escape sequences (using Until built-in parselet)
-                "\'"
+                {
+                    (token (Token::chars_until('\''))), //fixme: Escape sequences (using Until built-in parselet)
+                    (call error[(value "Match token literals must not be empty")])
+                },
+                (expect "\'")
             ]
         }),
 
@@ -145,6 +151,8 @@ impl Parser {
             Variable
         }),
 
+        // Calls
+
         (CallParameter = {
             [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "param_named")])],
             [Expression, (call ast[(value "param")])]
@@ -153,6 +161,8 @@ impl Parser {
         (CallParameters = {
             (pos [CallParameter, (opt [",", _])])
         }),
+
+        // Literals
 
         (Literal = {
             /* below calls to (peek T_NoIdentifier) avoid to wrongly interpret
@@ -164,6 +174,21 @@ impl Parser {
             [T_String, (call ast[(value "value_string")])],
             T_Float,
             T_Integer
+        }),
+
+        // Collections (are at least embedded sequences)
+
+        (CollectionItem = {
+            [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
+            [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
+            Expression
+        }),
+
+        (Collection = {
+            ["(", _, (pos [Expression, (opt [",", _])]), ")", // no expect ")" here!
+                (call ast[(value "sequence")])],
+            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"),
+                (call ast[(value "sequence")])]
         }),
 
         // Tokens
@@ -180,7 +205,9 @@ impl Parser {
             [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
                 (call ast[(value "call")])],
             [T_Consumable, (call ast[(value "call")])],
-            Parselet
+            Parselet,
+            Collection,
+            Block
         }),
 
         (Token = {
@@ -197,26 +224,11 @@ impl Parser {
 
         // Expression & Flow
 
-        (CollectionItem = {
-            [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
-            [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
-            Expression
-        }),
-
-        (Collection = {
-            ["(", _, (pos [Expression, (opt [",", _])]), ")", // no expect ")" here!
-                (call ast[(value "collection")])],
-            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"),
-                (call ast[(value "collection")])]
-        }),
-
         (Atomic = {
             ["(", _, Expression, ")"], // no expect ")" here!
-            Collection,
             Literal,
             Token,
-            Load,
-            Block
+            Load
         }),
 
         (Rvalue = {
@@ -227,7 +239,7 @@ impl Parser {
         }),
 
         (Unary = {
-            ["-", _, Unary, (call ast[(value "op_unary_neg")])],
+            ["-", (not "-"), _, Unary, (call ast[(value "op_unary_neg")])],
             ["!", _, Unary, (call ast[(value "op_unary_not")])],
             [Rvalue, _]
         }),
@@ -239,9 +251,9 @@ impl Parser {
         }),
 
         (AddSub = {
-            [AddSub, "+", _, MulDiv, // no expect(MulDiv) here because of pre-increment fallback
+            [AddSub, "+", (not "+"), _, (expect MulDiv), // avoid matching "++"
                 (call ast[(value "op_binary_add")])],
-            [AddSub, "-", _, MulDiv, // no expect(MulDiv) here because of pre-decrement fallback
+            [AddSub, "-", (not "-"), _, (expect MulDiv), // avoid matching "--"
                 (call ast[(value "op_binary_sub")])],
             MulDiv
         }),
@@ -346,7 +358,7 @@ impl Parser {
         }),
 
         (Sequence = {
-            [(pos SequenceItem), (call ast[(value "sequence")])]
+            [(pos [SequenceItem, (opt [",", _])]), (call ast[(value "sequence")])]
         }),
 
         (SequenceOrExpression = {
@@ -372,6 +384,8 @@ impl Parser {
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
+        // todo: error when non-whitespace follows Tokay call,
+        //       which might be the result of an incomplete parse.
         [_, Tokay, (call ast[(value "main")])]
 
         // ----------------------------------------------------------------------------

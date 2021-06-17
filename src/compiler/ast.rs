@@ -381,10 +381,13 @@ fn traverse_node_lvalue(
                         ops.extend(
                             traverse_node_or_list(compiler, &children).into_ops(compiler, false),
                         );
-                        if store && hold {
-                            ops.push(Op::StoreCaptureHold)
-                        } else if store {
-                            ops.push(Op::StoreCapture)
+
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreCaptureHold)
+                            } else {
+                                ops.push(Op::StoreCapture)
+                            }
                         } else {
                             ops.push(Op::LoadCapture)
                         }
@@ -394,10 +397,12 @@ fn traverse_node_lvalue(
                         let children = children.get_dict().unwrap();
                         let index = traverse_node_value(compiler, children);
 
-                        if store && hold {
-                            ops.push(Op::StoreFastCaptureHold(index.to_addr()));
-                        } else if store {
-                            ops.push(Op::StoreFastCapture(index.to_addr()));
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastCaptureHold(index.to_addr()));
+                            } else {
+                                ops.push(Op::StoreFastCapture(index.to_addr()));
+                            }
                         } else {
                             ops.push(Op::LoadFastCapture(index.to_addr()));
                         }
@@ -459,40 +464,44 @@ fn traverse_node_lvalue(
                         break;
                     }
 
-                    ops.push(
-                        /* Generates code for a symbol store, which means:
+                    /* Generates code for a symbol store, which means:
 
-                            1. look-up local variable, and store into
-                            2. look-up global variable, and store into
-                            3. create local variable, and store into
-                        */
-                        if let Some(addr) = compiler.get_local(name) {
-                            if store && hold {
-                                Op::StoreFastHold(addr)
-                            } else if store {
-                                Op::StoreFast(addr)
+                        1. look-up local variable, and store into
+                        2. look-up global variable, and store into
+                        3. create local variable, and store into
+                    */
+                    if let Some(addr) = compiler.get_local(name) {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr))
                             } else {
-                                Op::LoadFast(addr)
-                            }
-                        } else if let Some(addr) = compiler.get_global(name) {
-                            if store && hold {
-                                Op::StoreGlobalHold(addr)
-                            } else if store {
-                                Op::StoreGlobal(addr)
-                            } else {
-                                Op::LoadGlobal(addr)
+                                ops.push(Op::StoreFast(addr))
                             }
                         } else {
-                            let addr = compiler.new_local(name);
-                            if store && hold {
-                                Op::StoreFastHold(addr)
-                            } else if store {
-                                Op::StoreFast(addr)
+                            ops.push(Op::LoadFast(addr))
+                        }
+                    } else if let Some(addr) = compiler.get_global(name) {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreGlobalHold(addr))
                             } else {
-                                Op::LoadFast(addr)
+                                ops.push(Op::StoreGlobal(addr))
                             }
-                        },
-                    )
+                        } else {
+                            ops.push(Op::LoadGlobal(addr))
+                        }
+                    } else {
+                        let addr = compiler.new_local(name);
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr))
+                            } else {
+                                ops.push(Op::StoreFast(addr))
+                            }
+                        } else {
+                            ops.push(Op::LoadFast(addr))
+                        }
+                    }
                 }
             }
 
@@ -608,7 +617,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             if let Some(children) = node.get("children") {
                 let body =
                     traverse_node_or_list(compiler, &children.borrow()).into_ops(compiler, true);
-                AstResult::Ops(vec![Block::new(body)])
+
+                AstResult::Ops(if body.len() > 1 {
+                    vec![Block::new(body)]
+                } else {
+                    body
+                })
             } else {
                 AstResult::Empty
             }
@@ -1037,7 +1051,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     let children = node.borrow_by_key("children");
                     let children = children.get_dict().unwrap();
 
+                    //compiler.push_scope(false);
+
                     let res = traverse_node(compiler, children);
+
+                    //let scope = compiler.pop_scope();
 
                     // Special operations for Token::Char
                     if let AstResult::Value(value) = &res {
@@ -1087,6 +1105,34 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                             }
                         }
                     }
+
+                    // This reports error when modifier is used with non-consuming code
+                    // (for now disabled and under further consideration)
+                    /*
+                    if !scope.consuming {
+                        compiler.errors.push(Error::new(
+                            traverse_node_offset(node),
+                            format!(
+                                "Operator '{}' has no effect on non-consuming {}",
+                                match parts[2] {
+                                    "pos" => "+",
+                                    "kle" => "*",
+                                    "opt" => "?",
+                                    other => other
+                                },
+                                if matches!(res, AstResult::Value(_)) {
+                                    "value"
+                                }
+                                else {
+                                    "code"
+                                }
+                            ),
+                        ));
+                    }
+                    else {
+                        compiler.scopes[0].consuming = true;
+                    }
+                    */
 
                     let op = Op::from_vec(res.into_ops(compiler, true));
 
@@ -1159,7 +1205,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         }
 
         // sequence  ------------------------------------------------------
-        "sequence" | "collection" => {
+        "sequence" => {
             let children = node.borrow_by_key("children");
             let children = children.to_list();
 
@@ -1170,12 +1216,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             }
 
             if ops.len() > 0 {
-                if emit == "collection" {
-                    ops.push(Op::MakeCollection(children.len()));
-                    AstResult::Ops(ops)
-                } else {
-                    AstResult::Ops(vec![Sequence::new(ops)])
-                }
+                // fixme: Sequences with just one Op might be optimized away but this breaks some tests
+                //        where another solution with remaining values must be found.
+                AstResult::Ops(vec![Sequence::new(ops)])
             } else {
                 AstResult::Empty
             }
