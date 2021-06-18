@@ -5,10 +5,14 @@ This is a recently updated brainstorming and todo scribble file.
 ## Pritority
 
 - [ ] Generic parselets
-  - [ ] `Until<P, Escape=Void>`
+  - [ ] `Until<P, Escape=Void>`, e.g. `print(Until<EOF>)`
   - [ ] `Not<P>`
   - [ ] `Peek<P>`
-  - [ ] `Repeat<P, min=1, max=0>`
+  - [ ] `Repeat<P, min:1, max:0>`
+- [ ] Implementation of a module system
+  - [ ] Import constants from other module
+  - [ ] Run other module as separate programs and work on resulting values
+  - [ ] Pass string to separate tokay process (`tokay`-keyword?)
 
 ## General
 
@@ -16,9 +20,6 @@ This is a recently updated brainstorming and todo scribble file.
 - [ ] Grammar view
   - [ ] Perform left-recursion detection on begin and end also?
   - [ ] Resolve indirect left-recursion as done in pegen? (see src/test.rs comments)
-- [ ] Implementation of a module system
-  - [ ] Import constants from other module
-  - [ ] Run other module as separate program and work on resulting values
 - [ ] Values
   - [ ] Dict should use **indexmap** crate (https://github.com/bluss/indexmap)
   - [ ] Locked objects (this is required to disallow modification of Dict and List constants)
@@ -60,9 +61,9 @@ Syntax is under careful consideration.
 
 ## Compiler
 
-- [ ] Missing traversals for
-  - [ ] `loop` as the unified loop keyword for `while` and `for`
-    - [ ] `break` and `continue`
+- [ ] Parser improvements
+  - [ ] Unescaping of character-class items
+  - [ ] Use built-in tokens like Integer or Float on appropriate positions
 
 ## REPL
 
@@ -86,7 +87,7 @@ Syntax is under careful consideration.
 - [ ] Implement `Float`
   - [ ] What about scientific notations like `1.3e-08`?
 - [ ] Implement `Number`, as the union of `Integer` and `Float`
-- [ ] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
+- [x] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
 - [ ] Further built-in and pre-defined tokens for matching standard cases like
   - [ ] Pre-defined character classes
     - `CharAlphabetic`
@@ -145,3 +146,4 @@ We need sooo many tests!!!
 ## Bugs
 
 - [ ] builtins::ast() doesn't recognize correct total offset when main program is e.g. just `Integer ast("int")` because the Reader is cleared and restarts at 0 again. An overall offset counter in the runtime has to be made available.
+- [ ] `a = b = 10` currently works not as expected: the value 10 is stored both as a and b, and in-place modifying either a or b changes the value in both variables (as it is literally the same value). To fix this, all *Hold-Ops need to clone the peeked TOS object, but this raises a problem with safe Rust currently stated [here](https://github.com/phorward/tokay/commit/dabeb58ff051d2cadaf31f4f183544469e9550b0) in detail.

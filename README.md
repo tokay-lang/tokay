@@ -19,10 +19,11 @@ Tokay is a very young project and gains much potential. [Volunteers are welcome!
 - Automatic parse tree synthesis
 - Left-recursive parsing structures ("parselets") supported
 - Implements a memoizing packrat parsing algorithm internally
-- Robust due to its implementation in only safe [Rust](https://rust-lang.org)
+- Robust due to its implementation in safe [Rust](https://rust-lang.org)
 - Enabling awk-style one-liners in combination with other tools
 - Generic functions and parselets (*coming soon)
-- Interoperability with other shell commands (*coming soon)
+- Import system to create modularized programs (*coming soon)
+- Embedded interoperability with other programs (*coming soon)
 
 There are plenty of further features planned, see [TODO.md](TODO.md) for details.
 
@@ -40,7 +41,7 @@ but Tokay can also greet any wor(l)d coming in, that's
 Word print("Hello " + $1)
 ```
 
-With its build-in abstract-syntax tree synthesis, Tokay is designed as a language for directly implementing ad-hoc parsers. The next program directly implements a left-recursive grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`.
+With its build-in abstract-syntax tree synthesis, Tokay is designed as a language for implementing ad-hoc parsers. The next example directly implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
 
 ```tokay
 Factor : @{
@@ -63,8 +64,8 @@ Expr : @{
 Expr
 ```
 
-Tokay can also be used for writing programs without any parsing features.
-Next one is a recursive attempt for calculating the faculty of a value.
+Tokay can also be used for programs without any parsing features.
+Next is a recursive attempt for calculating the faculty of a value.
 
 ```
 faculty : @x {

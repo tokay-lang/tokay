@@ -111,80 +111,7 @@ impl Builtin {
 }
 
 static BUILTINS: &[Builtin] = &[
-    Builtin {
-        name: "ast",
-        required: 1,
-        signature: "emit value",
-        func: |context, mut args| {
-            let emit = args.remove(0).unwrap();
-
-            let mut ret = Dict::new();
-            ret.insert("emit".to_string(), emit);
-
-            let value = args.remove(0).or_else(|| {
-                // In case no value is set, collect them from the current context.
-                context
-                    .collect(context.capture_start, false, true, false, 0)
-                    .unwrap_or(None)
-            });
-
-            if let Some(value) = value {
-                // List or Dict values are classified as child nodes
-                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
-                    ret.insert("children".to_string(), value);
-                } else {
-                    ret.insert("value".to_string(), value);
-                }
-            }
-
-            // Store positions of reader start
-            ret.insert(
-                "offset".to_string(),
-                Value::Addr(context.reader_start.offset).into_refvalue(),
-            );
-            ret.insert(
-                "row".to_string(),
-                Value::Addr(context.reader_start.row as usize).into_refvalue(),
-            );
-            ret.insert(
-                "col".to_string(),
-                Value::Addr(context.reader_start.col as usize).into_refvalue(),
-            );
-
-            // Store positions of reader stop
-            let current = context.runtime.reader.tell();
-
-            ret.insert(
-                "stop_offset".to_string(),
-                Value::Addr(current.offset).into_refvalue(),
-            );
-            ret.insert(
-                "stop_row".to_string(),
-                Value::Addr(current.row as usize).into_refvalue(),
-            );
-            ret.insert(
-                "stop_col".to_string(),
-                Value::Addr(current.col as usize).into_refvalue(),
-            );
-
-            Ok(Accept::Return(Some(
-                Value::Dict(Box::new(ret)).into_refvalue(),
-            )))
-        },
-    },
-    Builtin {
-        name: "ast_print",
-        required: 1,
-        signature: "ast",
-        func: |_, mut args| {
-            compiler::ast::print(&args.remove(0).unwrap().borrow());
-            Ok(Accept::Push(Capture::Value(
-                Value::Void.into_refvalue(),
-                None,
-                10,
-            )))
-        },
-    },
+    // Tokens -----------------------------------------------------------------
     Builtin {
         name: "Identifier", // Matching C-style identifiers
         required: 0,
@@ -337,14 +264,89 @@ static BUILTINS: &[Builtin] = &[
             }
         },
     },
+    // Functions --------------------------------------------------------------
+    Builtin {
+        name: "ast",
+        required: 1,
+        signature: "emit value",
+        func: |context, args| {
+            let emit = args[0].as_ref().unwrap();
+
+            let mut ret = Dict::new();
+            ret.insert("emit".to_string(), emit.clone());
+
+            let value = match &args[1] {
+                Some(value) => Some(value.clone()),
+                None => context
+                    .collect(context.capture_start, false, true, false, 0)
+                    .unwrap_or(None),
+            };
+
+            if let Some(value) = value {
+                // List or Dict values are classified as child nodes
+                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                    ret.insert("children".to_string(), value.clone());
+                } else {
+                    ret.insert("value".to_string(), value.clone());
+                }
+            }
+
+            // Store positions of reader start
+            ret.insert(
+                "offset".to_string(),
+                Value::Addr(context.reader_start.offset).into_refvalue(),
+            );
+            ret.insert(
+                "row".to_string(),
+                Value::Addr(context.reader_start.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "col".to_string(),
+                Value::Addr(context.reader_start.col as usize).into_refvalue(),
+            );
+
+            // Store positions of reader stop
+            let current = context.runtime.reader.tell();
+
+            ret.insert(
+                "stop_offset".to_string(),
+                Value::Addr(current.offset).into_refvalue(),
+            );
+            ret.insert(
+                "stop_row".to_string(),
+                Value::Addr(current.row as usize).into_refvalue(),
+            );
+            ret.insert(
+                "stop_col".to_string(),
+                Value::Addr(current.col as usize).into_refvalue(),
+            );
+
+            Ok(Accept::Return(Some(
+                Value::Dict(Box::new(ret)).into_refvalue(),
+            )))
+        },
+    },
+    Builtin {
+        name: "ast_print",
+        required: 1,
+        signature: "ast",
+        func: |_, args| {
+            compiler::ast::print(&args[0].as_ref().unwrap().borrow());
+            Ok(Accept::Push(Capture::Value(
+                Value::Void.into_refvalue(),
+                None,
+                10,
+            )))
+        },
+    },
     Builtin {
         name: "error",
         required: 1,
         signature: "msg collect",
-        func: |context, mut args| {
-            let msg = args.remove(0).unwrap();
-            let collect = args
-                .remove(0)
+        func: |context, args| {
+            let msg = args[0].as_ref().unwrap();
+            let collect = args[1]
+                .as_ref()
                 .map_or(false, |value| value.borrow().is_true());
 
             let mut msg = msg.borrow().to_string();
