@@ -296,8 +296,11 @@ static BUILTINS: &[Builtin] = &[
     Builtin {
         name: "Word", // Matching words made of letters
         required: 0,
-        signature: "",
-        func: |context, _args| {
+        signature: "min max",
+        func: |context, args| {
+            let min = &args[0];
+            let max = &args[1];
+
             let mut count: usize = 0;
 
             while let Some(ch) = context.runtime.reader.peek() {
@@ -307,6 +310,20 @@ static BUILTINS: &[Builtin] = &[
 
                 context.runtime.reader.next();
                 count += 1;
+            }
+
+            if count > 0 {
+                if let Some(min) = min {
+                    if count < min.borrow().to_addr() {
+                        count = 0;
+                    }
+                }
+
+                if let Some(max) = max {
+                    if count > max.borrow().to_addr() {
+                        count = 0;
+                    }
+                }
             }
 
             if count > 0 {

@@ -287,18 +287,18 @@ impl Runable for Op {
                 Ok(Accept::Next)
             }
 
-            Op::StoreFast(addr) => {
-                // todo: bounds checking?
-                let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, None, 0);
-                Ok(Accept::Next)
-            }
-
             Op::StoreGlobalHold(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
                 context.runtime.stack[*addr] = Capture::Value(value.clone(), None, 0);
                 context.push(value)
+            }
+
+            Op::StoreFast(addr) => {
+                // todo: bounds checking?
+                let value = context.pop();
+                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, None, 0);
+                Ok(Accept::Next)
             }
 
             Op::StoreFastHold(addr) => {
