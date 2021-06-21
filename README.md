@@ -25,7 +25,7 @@ Tokay is a very young project and gains much potential. [Volunteers are welcome!
 - Import system to create modularized programs (*coming soon)
 - Embedded interoperability with other programs (*coming soon)
 
-There are plenty of further features planned, see [TODO.md](TODO.md) for details.
+**Tokay is still in alpha-state; There are plenty of bugs and incomplete features. Please help to improve it!**
 
 ## Examples
 
@@ -35,10 +35,10 @@ This is how Tokay greets the world
 print("Hello World")
 ```
 
-but Tokay can also greet any wor(l)d coming in, that's
+but Tokay can also greet any wor(l)ds fed to it, that's
 
 ```tokay
-Word print("Hello " + $1)
+world => Word   print("Hello " + $world)
 ```
 
 With its build-in abstract-syntax tree synthesis, Tokay is designed as a language for implementing ad-hoc parsers. The next example directly implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
@@ -78,13 +78,13 @@ faculty(4)
 
 ## Contribute
 
-Contributions of any kind, may it be code, documentation, support or advertising are very welcome!
+Contributions of any kind, might it be code, bug reports, documentation, support or advertising are very welcome!
 
-Take a look into the [TODO.md](TODO.md) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things to be improved.
+Take a look into the [TODO.md](TODO.md), the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things to be improved.
 
-Feel free to [contact me](https://phorward.info) on any questions, or directly file [an issue here](https://github.com/phorward/tokay/issues).
+Feel free to [contact me](https://phorward.info) on any questions, or directly file [an issue here](https://github.com/phorward/tokay/issues/new).
 
-Tokay is also my first project written in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
+Tokay is my first project I've started in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
 
 ## Logo
 

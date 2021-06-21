@@ -144,8 +144,3 @@ We need sooo many tests!!!
 - [ ] Dicts
 - [ ] Sequences with aliases
 - [ ] Sequences with aliases and normal items
-
-## Bugs
-
-- [ ] builtins::ast() doesn't recognize correct total offset when main program is e.g. just `Integer ast("int")` because the Reader is cleared and restarts at 0 again. An overall offset counter in the runtime has to be made available.
-- [ ] `a = b = 10` currently works not as expected: the value 10 is stored both as a and b, and in-place modifying either a or b changes the value in both variables (as it is literally the same value). To fix this, all *Hold-Ops need to clone the peeked TOS object, but this raises a problem with safe Rust currently stated [here](https://github.com/phorward/tokay/commit/dabeb58ff051d2cadaf31f4f183544469e9550b0) in detail.
