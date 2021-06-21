@@ -139,10 +139,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         }
     }
 
-    // Immediatelly push a value onto the stack, returns Ok(Accept::Skip)
-    pub fn push(&mut self, value: RefValue) -> Result<Accept, Reject> {
-        self.runtime.stack.push(Capture::Value(value, None, 10));
-        Ok(Accept::Skip)
+    /// Shortcut for an Ok(Accept::Push) with the given value.
+    /// To push a value immediatelly, use context.runtime.stack.push().
+    pub fn push(&self, value: RefValue) -> Result<Accept, Reject> {
+        Ok(Accept::Push(Capture::Value(value, None, 10)))
     }
 
     /// Pop value off the stack.
@@ -282,7 +282,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         // No captures, then just stop!
         if captures.len() == 0 {
-            return Err(Capture::Empty);
+            return Ok(None)
         }
 
         let mut list = List::new();

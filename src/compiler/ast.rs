@@ -604,9 +604,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 .into_ops(compiler, true);
 
             if emit == "begin" {
-                compiler.scopes[0].begin.extend(ops);
+                compiler.scopes[0].begin.push(Op::from_vec(ops))
             } else {
-                compiler.scopes[0].end.extend(ops);
+                compiler.scopes[0].end.push(Op::from_vec(ops))
             }
 
             AstResult::Empty
@@ -864,10 +864,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let main = compiler.create_parselet(
                 Some("__main__".to_string()),
                 Vec::new(),
-                if body.len() > 0 {
-                    Block::new(body)
-                } else {
-                    Op::Nop
+                match body.len() {
+                    0 => Op::Nop,
+                    1 => body.into_iter().next().unwrap(),
+                    _ => Block::new(body)
                 },
                 None,
                 false,
@@ -1215,9 +1215,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 ops.extend(traverse_node_or_list(compiler, &node.borrow()).into_ops(compiler, true))
             }
 
-            if ops.len() > 0 {
-                // fixme: Sequences with just one Op might be optimized away but this breaks some tests
-                //        where another solution with remaining values must be found.
+            if ops.len() == 1 {
+                AstResult::Ops(ops)
+            } else if ops.len() > 0 {
                 AstResult::Ops(vec![Sequence::new(ops)])
             } else {
                 AstResult::Empty

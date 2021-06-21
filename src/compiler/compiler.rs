@@ -248,6 +248,14 @@ impl Compiler {
         silent: bool,
         main: bool,
     ) -> Parselet {
+        fn ensure_block(ops: Vec<Op>) -> Op {
+            match ops.len() {
+                0 => Op::Nop,
+                1 => ops.into_iter().next().unwrap(),
+                _ => Block::new(ops).into_op()
+            }
+        }
+
         if main {
             assert!(
                 self.scopes[0].variables.is_some(),
@@ -263,8 +271,8 @@ impl Compiler {
                     .map_or(0, |vars| vars.len()),
                 consuming.unwrap_or(self.scopes[0].consuming),
                 silent,
-                Op::from_vec(self.scopes[0].begin.drain(..).collect()),
-                Op::from_vec(self.scopes[0].end.drain(..).collect()),
+                ensure_block(self.scopes[0].begin.drain(..).collect()),
+                ensure_block(self.scopes[0].end.drain(..).collect()),
                 body,
             )
         } else {
@@ -277,8 +285,8 @@ impl Compiler {
                         scope.variables.map_or(0, |vars| vars.len()),
                         consuming.unwrap_or(scope.consuming),
                         silent,
-                        Op::from_vec(scope.begin),
-                        Op::from_vec(scope.end),
+                        ensure_block(scope.begin),
+                        ensure_block(scope.end),
                         body,
                     );
                 }

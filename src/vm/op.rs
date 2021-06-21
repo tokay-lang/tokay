@@ -405,11 +405,13 @@ impl Runable for Op {
             }
 
             Op::Rot2 => {
-                let a = context.pop();
-                let b = context.pop();
+                let a = context.runtime.stack.pop().unwrap();
+                let b = context.runtime.stack.pop().unwrap();
 
-                context.push(a)?;
-                context.push(b)
+                context.runtime.stack.push(a);
+                context.runtime.stack.push(b);
+
+                Ok(Accept::Skip)
             }
 
             // Operations
