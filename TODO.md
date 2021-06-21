@@ -12,7 +12,7 @@ This is a recently updated brainstorming and todo scribble file.
 - [ ] Implementation of a module system
   - [ ] Import constants from other module
   - [ ] Run other module as separate programs and work on resulting values
-  - [ ] Pass string to separate tokay process (`tokay`-keyword?)
+  - [ ] Pass string to separate tokay process (`tokay`-keyword, `@>` operator?)
 
 ## General
 
@@ -27,6 +27,7 @@ This is a recently updated brainstorming and todo scribble file.
   - [x] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
   - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
     - [ ] Use external crate **num_bigint** for integers instead of i64
+  - [ ] `Op::Repeat(min=1, max=0)` needs some more clarity what is being accepted, especially when no input is consumed
 
 ## Syntax
 
@@ -84,6 +85,7 @@ Syntax is under careful consideration.
 
 ## Built-ins
 
+- [ ] Implement a generic `Token` builtin-token that matches either identifiers, punctuations, numbers...
 - [ ] Implement `Float`
   - [ ] What about scientific notations like `1.3e-08`?
 - [ ] Implement `Number`, as the union of `Integer` and `Float`

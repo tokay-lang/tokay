@@ -85,7 +85,7 @@ fn main() {
         let mut compiler = Compiler::new();
         compiler.debug = debug > 0; // todo: too less...
 
-        if let Some(program) = compiler.compile(program.get_reader()) {
+        if let Ok(program) = compiler.compile(program.get_reader()) {
             for (name, stream) in &streams {
                 let ret = program.run_from_reader(stream.borrow_mut().get_reader());
 

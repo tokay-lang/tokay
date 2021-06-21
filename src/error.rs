@@ -26,6 +26,11 @@ impl Error {
             self.offset = Some(offset);
         }
     }
+
+    /// Turn an error into a string
+    pub fn into_string(self) -> String {
+        format!("{}", self)
+    }
 }
 
 impl std::fmt::Display for Error {

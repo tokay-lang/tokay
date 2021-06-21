@@ -81,8 +81,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>, debug: bool) {
                 println!("<<< Debug switched off")
             }
             _ => {
-                if let Some(program) =
-                    compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
+                if let Ok(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
                 {
                     for (name, stream) in &streams {
                         let mut reader = stream.borrow_mut().get_reader();

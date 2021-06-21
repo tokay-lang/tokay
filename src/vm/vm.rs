@@ -282,7 +282,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         // No captures, then just stop!
         if captures.len() == 0 {
-            return Ok(None)
+            return Ok(None);
         }
 
         let mut list = List::new();

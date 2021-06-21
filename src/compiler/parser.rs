@@ -384,9 +384,9 @@ impl Parser {
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
-        // todo: error when non-whitespace follows Tokay call,
-        //       which might be the result of an incomplete parse.
-        [_, Tokay, (call ast[(value "main")])]
+        [_, Tokay,
+            (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
+            (call ast[(value "main")])]
 
         // ----------------------------------------------------------------------------
                     }))

@@ -46,13 +46,16 @@ pub fn compile_and_run(
     src: &'static str,
     input: &'static str,
     debug: bool,
-) -> Result<Option<RefValue>, Error> {
+) -> Result<Option<RefValue>, String> {
     let mut compiler = Compiler::new();
     compiler.debug = debug;
 
-    if let Some(program) = compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src)))) {
-        program.run_from_str(input)
-    } else {
-        Err(Error::new(None, "Error during compilations".to_string()))
+    match compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src)))) {
+        Ok(program) => program.run_from_str(input).map_err(|err| err.to_string()),
+        Err(errors) => Err(errors
+            .into_iter()
+            .map(|err| err.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")),
     }
 }

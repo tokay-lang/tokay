@@ -63,7 +63,7 @@ impl Compiler {
     /** Compile a Tokay program from source into a Program struct.
 
     In case None is returend, causing errors where already reported to stdout. */
-    pub fn compile(&mut self, reader: Reader) -> Option<Program> {
+    pub fn compile(&mut self, reader: Reader) -> Result<Program, Vec<Error>> {
         // Push a main scope on if not present
         if self.scopes.len() == 0 {
             self.push_scope(true); // Main scope
@@ -78,7 +78,7 @@ impl Compiler {
             Ok(ast) => ast,
             Err(error) => {
                 println!("{}", error);
-                return None;
+                return Err(vec![error]);
             }
         };
 
@@ -91,11 +91,11 @@ impl Compiler {
         let program = match self.to_program() {
             Ok(program) => program,
             Err(errors) => {
-                for error in errors {
+                for error in &errors {
                     println!("{}", error);
                 }
 
-                return None;
+                return Err(errors);
             }
         };
 
@@ -103,11 +103,11 @@ impl Compiler {
             program.dump();
         }
 
-        Some(program)
+        Ok(program)
     }
 
     /// Shortcut to compile a Tokay program from a &str.
-    pub fn compile_str(&mut self, src: &'static str) -> Option<Program> {
+    pub fn compile_str(&mut self, src: &'static str) -> Result<Program, Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
         )))))
@@ -252,7 +252,7 @@ impl Compiler {
             match ops.len() {
                 0 => Op::Nop,
                 1 => ops.into_iter().next().unwrap(),
-                _ => Block::new(ops).into_op()
+                _ => Block::new(ops).into_op(),
             }
         }
 

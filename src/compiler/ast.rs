@@ -867,7 +867,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 match body.len() {
                     0 => Op::Nop,
                     1 => body.into_iter().next().unwrap(),
-                    _ => Block::new(body)
+                    _ => Block::new(body),
                 },
                 None,
                 false,

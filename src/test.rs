@@ -535,6 +535,38 @@ fn test_begin_end() {
     );
 }
 
+#[test]
+fn test_structure() {
+    // Testing several parsing constructs
+
+    // Tests for blocks and empty blocks
+    assert_eq!(
+        compile_and_run(
+            "
+            a = {}
+            b = {
+            }
+            c = {
+                1
+                2
+                3
+            }
+
+            a b c
+        ",
+            "",
+            false
+        ),
+        Ok(Some(value!(3)))
+    );
+
+    // Test for invalid input when EOF is expected
+    assert_eq!(
+        compile_and_run("{}}", "", false),
+        Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
+    );
+}
+
 // todo: turn the examples below into a test suite
 //let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
 //let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
