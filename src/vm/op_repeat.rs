@@ -63,6 +63,16 @@ impl Runable for Repeat {
 
         let mut count: usize = 0;
 
+        /*
+        let debug = match &context.parselet.name {
+            Some(name) if name == "Block" => true,
+            _ => false
+        };
+
+        if debug {
+            println!("--- {:?} ---\n{:#?}", context.parselet.name, self);
+        }
+        */
         loop {
             let loop_start = context.runtime.reader.tell();
 
@@ -78,6 +88,8 @@ impl Runable for Repeat {
                 Ok(Accept::Next) => {}
 
                 Ok(Accept::Push(capture)) => {
+                    count += 1;
+
                     if !self.silent {
                         context.runtime.stack.push(capture)
                     }
@@ -85,8 +97,6 @@ impl Runable for Repeat {
 
                 Ok(accept) => return Ok(accept),
             }
-
-            count += 1;
 
             if (self.max > 0 && count == self.max) || loop_start == context.runtime.reader.tell() {
                 break;
@@ -104,15 +114,14 @@ impl Runable for Repeat {
                 Err(capture) => Ok(Accept::Push(capture)),
                 Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
                 Ok(None) => {
+                    /*
                     // Push a capture of consumed range with no severity
                     let range = context.runtime.reader.capture_from(&reader_start);
                     if range.len() > 0 {
                         Ok(Accept::Push(Capture::Range(range, None, 0)))
                     }
-                    // Else, just accept next
-                    else {
-                        Ok(Accept::Next)
-                    }
+                    */
+                    Ok(Accept::Next)
                 }
             }
         }

@@ -346,7 +346,7 @@ impl Parser {
 
         (Block = {
             ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])],
-            ["{", _, (expect "}"), (Op::PushVoid), (call ast[(value "block")])]
+            ["{", _, (kle [T_EOL, _]), (expect "}"), (call ast[(value "value_void")])]
         }),
 
         // Sequences
