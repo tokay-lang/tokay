@@ -535,8 +535,31 @@ fn test_begin_end() {
     );
 }
 
+// Universal function to run test-cases with expected errors inside the code.
+fn run_testcase(code: &'static str) {
+    if let Some((code, result)) = code.split_once("#---\n") {
+        let expect = result
+            .trim()
+            .split("\n")
+            .into_iter()
+            .map(|line| {
+                assert!(
+                    line.starts_with("#"),
+                    "Lines in result must start with a comment-#"
+                );
+                line[1..].to_string()
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        assert_eq!(compile_and_run(code, "", false), Err(expect));
+    } else {
+        panic!("Testcase invalid, require for a '#---' delimiter.")
+    }
+}
+
 #[test]
-fn test_structure() {
+fn test_compiler_structure() {
     // Testing several parsing constructs
 
     // Tests for blocks and empty blocks
@@ -565,6 +588,40 @@ fn test_structure() {
         compile_and_run("{}}", "", false),
         Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
     );
+}
+
+#[test]
+fn test_compiler_identifier_naming() {
+    // Tests for correct identifier names for various value types
+    run_testcase(include_str!(
+        "tests/testcase_compiler_identifier_names.tok"
+    ));
+}
+
+#[test]
+fn test_parselet_call_error_reporting() {
+    // Tests for calling functions with wrong parameter counts
+    for (call, msg) in [
+        ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
+        (
+            "f()",
+            "Line 2, column 1: Call to 'f' doesn't accept any arguments",
+        ),
+        (
+            "f(1, 2, 3, 4)",
+            "Line 2, column 1: Too many parameters, 3 possible, 4 provided",
+        ),
+        ("f(c=10, d=3)", "Line 2, column 1: Parameter 'a' required"),
+        (
+            "f(1, c=10, d=3)",
+            "Line 2, column 1: Parameter 'd' provided to call but not used",
+        ),
+    ] {
+        let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
+        println!("calling {:?}, expecting {:?}", call, msg);
+
+        assert_eq!(compile_and_run(&call, "", false), Err(msg.to_owned()));
+    }
 }
 
 // todo: turn the examples below into a test suite

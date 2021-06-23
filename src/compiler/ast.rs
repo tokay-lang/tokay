@@ -299,8 +299,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
                     assert!(children.len() <= 2);
                     let default = if children.len() == 2 {
                         let default = children.borrow_by_idx(1);
-                        let value =
-                            traverse_node_static(compiler, None, default.get_dict().unwrap());
+                        let value = traverse_node_static(
+                            compiler,
+                            Some(&ident),
+                            default.get_dict().unwrap(),
+                        );
                         Some(compiler.define_static(value))
                     } else {
                         None
@@ -325,8 +328,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
     }
 }
 
-// Traverse a static value
-fn traverse_node_static(compiler: &mut Compiler, name: Option<String>, node: &Dict) -> RefValue {
+/** Traverse a static value.
+The value must either be a literal or something from a known constant.
+
+The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
+*/
+fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> RefValue {
     compiler.push_scope(true);
 
     match traverse_node(compiler, node) {
@@ -337,20 +344,33 @@ fn traverse_node_static(compiler: &mut Compiler, name: Option<String>, node: &Di
         AstResult::Value(value) => {
             compiler.pop_scope();
 
-            if name.is_some() {
+            if let Some(lvalue) = lvalue {
                 if let Value::Parselet(parselet) = &*value.borrow() {
                     let mut parselet = parselet.borrow_mut();
-                    parselet.name = name;
+                    parselet.name = Some(lvalue.to_string());
                 }
             }
 
             value
         }
-        AstResult::Ops(ops) => compiler
-            .create_parselet(name, Vec::new(), Op::from_vec(ops), None, false, false)
-            .into_value()
-            .into_refvalue(),
-        _ => unreachable!(),
+        other => {
+            let ops = match other {
+                AstResult::Ops(ops) => ops,
+                other => other.into_ops(compiler, false),
+            };
+
+            compiler
+                .create_parselet(
+                    lvalue.and_then(|lvalue| Some(lvalue.to_string())),
+                    Vec::new(),
+                    Op::from_vec(ops),
+                    None,
+                    false,
+                    false,
+                )
+                .into_value()
+                .into_refvalue()
+        }
     }
 }
 
@@ -769,10 +789,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             }
 
             // Distinguish between pure values or an expression
-            let node = value.get_dict().unwrap();
+            let value = value.get_dict().unwrap();
 
             // fixme: Restricted to pure values currently.
-            let value = traverse_node_static(compiler, Some(ident.to_string()), node);
+            let value = traverse_node_static(compiler, Some(&ident), value);
 
             if value.borrow().is_consuming() {
                 if !identifier_is_consumable(ident) {

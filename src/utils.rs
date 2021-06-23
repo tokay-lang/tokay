@@ -1,7 +1,6 @@
 //! Utility functions
 
 use crate::compiler::Compiler;
-use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::*;
 
@@ -43,14 +42,14 @@ pub fn unescape(s: String) -> String {
 
 Used mostly in tests and for quick testing purposes. */
 pub fn compile_and_run(
-    src: &'static str,
+    src: &str,
     input: &'static str,
     debug: bool,
 ) -> Result<Option<RefValue>, String> {
     let mut compiler = Compiler::new();
     compiler.debug = debug;
 
-    match compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src)))) {
+    match compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned())))) {
         Ok(program) => program.run_from_str(input).map_err(|err| err.to_string()),
         Err(errors) => Err(errors
             .into_iter()

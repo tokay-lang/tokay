@@ -74,10 +74,15 @@ impl Usage {
                         }
 
                         return Some(vec![Op::CallStaticArgNamed(Box::new((addr, *args)))]);
-                    } else {
+                    } else if *args == 0 && *nargs == 0 {
                         *self = Usage::Error(Error::new(
                             *offset,
                             format!("Call to '{}' doesn't accept any arguments", name),
+                        ));
+                    } else {
+                        *self = Usage::Error(Error::new(
+                            *offset,
+                            format!("'{}' cannot be called without arguments", name),
                         ));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
