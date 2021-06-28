@@ -23,26 +23,26 @@ impl Parser {
 
         // Whitespace & EOL
 
-        (_ = {
+        (_ = {  // true whitespace
             [" "],
             ["#", (token (Token::chars_until('\n')))],
             ["\\", "\n"]
         }),
 
-        (T_EOL = {
+        (___ = {  // check for non-trailing identifier
+            [(peek (not (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))))), _]
+        }),
+
+        (T_EOL = {  // end-of-line
             ["\n", _, (Op::Skip)],
             [";", _, (Op::Skip)],
             [(token (Token::EOF)), (Op::Skip)],
             [(peek "}"), (Op::Skip)]
         }),
 
-        (T_NoIdentifier = {
-            (not (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))))
-        }),
-
         // Prime Tokens (might probably be replaced by something native, pluggable one)
 
-        (T_Identifier = {
+        (T_Identifier = {  // any identifier
             [
                 (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
@@ -50,7 +50,7 @@ impl Parser {
             ]
         }),
 
-        (T_Consumable = {
+        (T_Consumable = {  // consumable identifier
             [
                 (token (Token::Char(ccl!['A'..='Z', '_'..='_']))),
                 (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
@@ -68,7 +68,7 @@ impl Parser {
 
         (T_String = {
             [
-                "\"",
+                "\"",  // a string
                 {
                     (token (Token::chars_until('\"'))), //fixme: Escape sequences (using Until built-in parselet)
                     (value "")  // yes, push an empty string!
@@ -77,12 +77,12 @@ impl Parser {
             ]
         }),
 
-        (T_Match = {
+        (T_Touch = {
             [
-                "\'",
+                "\'",  // a touch
                 {
                     (token (Token::chars_until('\''))), //fixme: Escape sequences (using Until built-in parselet)
-                    (call error[(value "Match token literals must not be empty")])
+                    (call error[(value "Token literals must not be empty")])
                 },
                 (expect "\'")
             ]
@@ -165,12 +165,11 @@ impl Parser {
         // Literals
 
         (Literal = {
-            /* below calls to (peek T_NoIdentifier) avoid to wrongly interpret
-                e.g. "truex" as "true" and "x" */
-            ["true", (peek T_NoIdentifier), (call ast[(value "value_true")])],
-            ["false", (peek T_NoIdentifier), (call ast[(value "value_false")])],
-            ["void", (peek T_NoIdentifier), (call ast[(value "value_void")])],
-            ["null", (peek T_NoIdentifier), (call ast[(value "value_null")])],
+            /* below calls to ___ avoid to wrongly interpret e.g. "truex" as "true" and "x" */
+            ["true", ___, (call ast[(value "value_true")])],
+            ["false", ___, (call ast[(value "value_false")])],
+            ["void", ___, (call ast[(value "value_void")])],
+            ["null", ___, (call ast[(value "value_null")])],
             [T_String, (call ast[(value "value_string")])],
             T_Float,
             T_Integer
@@ -194,8 +193,8 @@ impl Parser {
         // Tokens
 
         (TokenLiteral = {
-            ["'", T_Match, "'", (call ast[(value "value_token_match")])],
-            [T_Match, (call ast[(value "value_token_touch")])],
+            ["'", T_Touch, "'", (call ast[(value "value_token_match")])],
+            [T_Touch, (call ast[(value "value_token_touch")])],
             [".", (call ast[(value "value_token_any")])],
             ['[', Ccl, ']', (call ast[(value "value_token_ccl")])]
         }),
@@ -217,9 +216,9 @@ impl Parser {
             [TokenCall, "?", (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
             TokenCall,
-            ["peek", _, (expect Token), (call ast[(value "op_mod_peek")])],
-            ["not", _, (expect Token), (call ast[(value "op_mod_not")])],
-            ["expect", _, (expect Token), (call ast[(value "op_mod_expect")])]
+            ["peek", ___, (expect Token), (call ast[(value "op_mod_peek")])],
+            ["not", ___, (expect Token), (call ast[(value "op_mod_not")])],
+            ["expect", ___, (expect Token), (call ast[(value "op_mod_expect")])]
         }),
 
         // Expression & Flow
@@ -285,15 +284,15 @@ impl Parser {
 
         (Expression = {
             // if
-            ["if", _, Expression, Statement, (kle [T_EOL, _]), "else", _, Statement, (call ast[(value "op_ifelse")])],
-            ["if", _, Expression, Statement, (call ast[(value "op_if")])],
-            ["if", _, (call error[(value "'if': Expecting condition and statement")])],
+            ["if", ___, Expression, Statement, (kle [T_EOL, _]), "else", ___, Statement, (call ast[(value "op_ifelse")])],
+            ["if", ___, Expression, Statement, (call ast[(value "op_if")])],
+            ["if", ___, (call error[(value "'if': Expecting condition and statement")])],
 
             // for
-            ["for", _, T_Identifier, _, "in", _, Expression, Statement, (call ast[(value "op_for_in")])],
-            ["for", _, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _,
+            ["for", ___, T_Identifier, _, "in", _, Expression, Statement, (call ast[(value "op_for_in")])],
+            ["for", ___, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _,
                 StatementOrVoid, (call ast[(value "op_for")])],
-            ["for", _, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+            ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // assignment
             [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
@@ -313,11 +312,11 @@ impl Parser {
         }),
 
         (Statement = {
-            ["accept", _, ExpressionOrVoid, (call ast[(value "op_accept")])],
-            ["return", _, ExpressionOrVoid, (call ast[(value "op_accept")])],
-            ["repeat", _, ExpressionOrVoid, (call ast[(value "op_repeat")])],
-            ["reject", _, (call ast[(value "op_reject")])],
-            // todo: report, escape, repeat
+            ["accept", ___, ExpressionOrVoid, (call ast[(value "op_accept")])],
+            ["return", ___, ExpressionOrVoid, (call ast[(value "op_accept")])],
+            ["repeat", ___, ExpressionOrVoid, (call ast[(value "op_repeat")])],
+            ["reject", ___, (call ast[(value "op_reject")])],
+            // todo: next, escape, break, continue?
 
             [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect Expression), (call ast[(value "assign")])],
@@ -367,10 +366,10 @@ impl Parser {
         }),
 
         (Instruction = {
-            ["begin", _, Block, _, (call ast[(value "begin")])],
-            ["begin", _, Sequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", _, Block, _, (call ast[(value "end")])],
-            ["end", _, Sequence, (expect T_EOL), (call ast[(value "end")])],
+            ["begin", ___, Block, _, (call ast[(value "begin")])],
+            ["begin", ___, Sequence, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", ___, Block, _, (call ast[(value "end")])],
+            ["end", ___, Sequence, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],

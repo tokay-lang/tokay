@@ -94,10 +94,12 @@ impl AstResult {
 pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "accept" | "begin" | "else" | "end" | "expect" | "false" | "for" | "if" | "in" | "not"
-        | "null" | "peek" | "reject" | "return" | "true" | "void" | "while" => Err(Error::new(
-            None,
-            format!("Expected identifier, found reserved word '{}'", ident),
-        )),
+        | "null" | "peek" | "reject" | "repeat" | "return" | "true" | "void" | "while" => {
+            Err(Error::new(
+                None,
+                format!("Expected identifier, found reserved word '{}'", ident),
+            ))
+        }
         _ => Ok(()),
     }
 }

@@ -193,7 +193,7 @@ fn test_builtin_tokens() {
     );
 
     assert_eq!(
-        compile_and_run("Whitespace", gliders, false),
+        compile_and_run("Whitespaces", gliders, false),
         Ok(Some(value!([" ", " ", "\t", " ", "  \n"])))
     );
 
@@ -210,7 +210,7 @@ fn test_builtin_tokens() {
         ])))
     );
 
-    // Builtin Whitespace handling
+    // Builtin whitespace handling
     let abc = "abc   \tdef  abcabc= ghi abcdef";
 
     assert_eq!(
@@ -593,9 +593,7 @@ fn test_compiler_structure() {
 #[test]
 fn test_compiler_identifier_naming() {
     // Tests for correct identifier names for various value types
-    run_testcase(include_str!(
-        "tests/testcase_compiler_identifier_names.tok"
-    ));
+    run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
 
 #[test]

@@ -59,6 +59,7 @@ Syntax is under careful consideration.
     - [x] `not` keyword
     - [x] `peek` keyword
     - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work (syntax is ugly)
+- [ ] Some kind of `continue` and `break` for blocks?
 
 ## Compiler
 
@@ -75,7 +76,7 @@ Syntax is under careful consideration.
 
 - [x] Use capitalized identifiers for consumable constants
 - [ ] Undefined variables incremented or decremented (`i++`, `++i`, `i--`, `--i`) as well as variables assigned by `+=`, `-=`, `*=`, `/=` should enforce initialize the undefined variable to 0, so for a simple counting, an explicit setting to 0 is not required.
-- [ ] Capture alias inferring
+- [ ] Capture alias inferring, so `name => Name $n` $n shorthands $name?
 
 ## Optimization
 
@@ -85,33 +86,33 @@ Syntax is under careful consideration.
 
 ## Built-ins
 
-- [ ] Implement a generic `Token` builtin-token that matches either identifiers, punctuations, numbers...
+- [ ] Implement a generic `Token` builtin-token that matches anything belonging togeter (Identifier, Punctuation), except whitespace?
 - [ ] Implement `Float`
   - [ ] What about scientific notations like `1.3e-08`?
 - [ ] Implement `Number`, as the union of `Integer` and `Float`
 - [x] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
 - [ ] Further built-in and pre-defined tokens for matching standard cases like
-  - [ ] Pre-defined character classes
-    - `CharAlphabetic`
-    - `CharAlphanumeric`
-    - `CharAscii`
-    - `CharAsciiAlphabetic`
-    - `CharAsciiAlphanumeric`
-    - `CharAsciiControl`
-    - `CharAsciiDigit`
-    - `CharAsciiGraphic`
-    - `CharAsciiHexdigit`
-    - `CharAsciiLowercase`
-    - `CharAsciiPunctuation`
-    - `CharAsciiUppercase`
-    - `CharAsciiWhitespace`
-    - `CharControl`
-    - `CharDigit`
-    - `CharLowercase`
-    - `CharNumeric`
-    - `CharUppercase`
-    - `CharWhitespace`
-  - [ ] Pre-defined tokens matching `CharAlphabetic+`
+  - [ ] Builtin tokens or character classes
+    - `Alphabetic`
+    - `Alphanumeric`
+    - `Ascii`
+    - `AsciiAlphabetic`
+    - `AsciiAlphanumeric`
+    - `AsciiControl`
+    - `AsciiDigit`
+    - `AsciiGraphic`
+    - `AsciiHexdigit`
+    - `AsciiLowercase`
+    - `AsciiPunctuation`
+    - `AsciiUppercase`
+    - `AsciiWhitespace`
+    - `Control`
+    - `Digit`
+    - `Lowercase`
+    - `Numeric`
+    - `Uppercase`
+    - `Whitespace`
+  - [ ] Pre-defined tokens matching `Alphabetic+`
     - `Alphabetics`
     - `Alphanumerics`
     - `Asciis`
@@ -130,7 +131,7 @@ Syntax is under careful consideration.
     - `Lowercases`
     - `Numerics`
     - `Uppercases`
-    - `Whitespaces` (must become replacement for current `Whitespace`)
+    - `Whitespaces` exists!
 
 ## Tests
 

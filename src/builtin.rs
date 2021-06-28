@@ -194,7 +194,7 @@ static BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
-        name: "Whitespace", // Matching any whitespace
+        name: "Whitespaces", // Matching any whitespace
         required: 0,
         signature: "",
         func: |context, _args| {
