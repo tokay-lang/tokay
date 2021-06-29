@@ -398,7 +398,7 @@ fn traverse_node_lvalue(
                 let children = item.borrow_by_key("children");
 
                 match capture {
-                    "capture_expr" => {
+                    "capture_expr" | "capture_alias" => {
                         ops.extend(
                             traverse_node_or_list(compiler, &children).into_ops(compiler, false),
                         );
@@ -427,10 +427,6 @@ fn traverse_node_lvalue(
                         } else {
                             ops.push(Op::LoadFastCapture(index.to_addr()));
                         }
-                    }
-
-                    "capture_alias" => {
-                        unimplemented!("//todo");
                     }
 
                     _ => {

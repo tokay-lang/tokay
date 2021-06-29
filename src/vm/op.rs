@@ -298,9 +298,10 @@ impl Runable for Op {
 
             Op::StoreGlobalHold(addr) => {
                 // todo: bounds checking?
-                let value = context.pop();
-                context.runtime.stack[*addr] = Capture::Value(value.clone(), None, 0);
-                context.push(value)
+                let value = context.peek();
+                context.runtime.stack[*addr] =
+                    Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
+                Ok(Accept::Skip)
             }
 
             Op::StoreFast(addr) => {
@@ -312,10 +313,10 @@ impl Runable for Op {
 
             Op::StoreFastHold(addr) => {
                 // todo: bounds checking?
-                let value = context.pop();
+                let value = context.peek();
                 context.runtime.stack[context.stack_start + *addr] =
-                    Capture::Value(value.clone(), None, 0);
-                context.push(value)
+                    Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
+                Ok(Accept::Skip)
             }
 
             Op::StoreFastCapture(index) => {
@@ -326,10 +327,10 @@ impl Runable for Op {
             }
 
             Op::StoreFastCaptureHold(index) => {
-                let value = context.pop();
+                let value = context.peek();
 
-                context.set_capture(*index, value.clone());
-                context.push(value)
+                context.set_capture(*index, value.borrow().clone().into_refvalue());
+                Ok(Accept::Skip)
             }
 
             Op::StoreCapture | Op::StoreCaptureHold => {
@@ -346,13 +347,15 @@ impl Runable for Op {
                     }
 
                     Value::String(alias) => {
-                        let value = context.pop();
-                        context.set_capture_by_name(alias, value.clone());
-
                         if matches!(self, Op::StoreCapture) {
+                            let value = context.pop();
+                            context.set_capture_by_name(alias, value);
                             Ok(Accept::Next)
-                        } else {
-                            context.push(value)
+                        }
+                        else {
+                            let value = context.peek();
+                            context.set_capture_by_name(alias, value.borrow().clone().into_refvalue());
+                            Ok(Accept::Skip)
                         }
                     }
 

@@ -11,7 +11,7 @@ use crate::{tokay_embed, tokay_embed_item};
 // Tests expression basics ------------------------------------------------------------------------
 
 #[test]
-fn test_literal() {
+fn literal() {
     assert_eq!(
         compile_and_run(
             "\
@@ -29,7 +29,7 @@ fn test_literal() {
 }
 
 #[test]
-fn test_expression() {
+fn expression() {
     // Simple Integer expressions
     assert_eq!(
         compile_and_run(
@@ -174,7 +174,7 @@ fn test_expression() {
 }
 
 #[test]
-fn test_operations() {
+fn operations() {
     // Test assignment-operations
     assert_eq!(
         compile_and_run(
@@ -215,10 +215,82 @@ fn test_operations() {
     );
 }
 
+#[test]
+fn variables() {
+    // Test store-hold-global
+    assert_eq!(
+        compile_and_run(
+            "
+            a = b = 10
+            a++
+            a b
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[11, 10]]))
+    );
+
+    // Test store-hold-local
+    assert_eq!(
+        compile_and_run(
+            "
+            f : @{
+                a = b = 10
+                a++
+                a b
+            }
+
+            f
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[11, 10]]))
+    );
+
+    // Test store-hold-capture
+    assert_eq!(
+        compile_and_run(
+            "
+            10 20 $1 = $2 = 30 ++$1 $2
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[31, 30, 31, 30]]))
+    );
+
+    // Test store-hold-aliased-capture
+    assert_eq!(
+        compile_and_run(
+            "
+            a => 10 b => 20 $a = $b = 30 c => ++$a d => $b
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![["a" => 31, "b" => 30, "c" => 31, "d" => 30]]))
+    );
+}
+
+#[test]
+fn scoping() {
+    // Test-case for scoping
+    assert_eq!(
+        compile_and_run(
+            include_str!("tests/testcase_scopes.tok"),
+            "",
+            false
+        ),
+        Ok(Some(value![[10, 2000, 1072]]))
+    );
+}
+
 // Tests for dicts and lists ----------------------------------------------------------------------
 
 #[test]
-fn test_collections() {
+fn collections() {
     // Lists
     assert_eq!(
         compile_and_run(
@@ -260,7 +332,7 @@ fn test_collections() {
 // Tests for tokens -------------------------------------------------------------------------------
 
 #[test]
-fn test_token() {
+fn token() {
     let s = "ab abbb bb 123 ABC 456 'def'";
 
     // Simple touch
@@ -325,7 +397,7 @@ fn test_token() {
 }
 
 #[test]
-fn test_builtin_tokens() {
+fn builtin_tokens() {
     let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
 
     assert_eq!(
@@ -380,7 +452,7 @@ fn test_builtin_tokens() {
 // Tests for parselets ----------------------------------------------------------------------------
 
 #[test]
-fn test_parselet_static_with_args() {
+fn parselet_static_with_args() {
     assert_eq!(
         compile_and_run(
             "
@@ -399,7 +471,7 @@ fn test_parselet_static_with_args() {
 }
 
 #[test]
-fn test_parselet_variable_with_args() {
+fn parselet_variable_with_args() {
     assert_eq!(
         compile_and_run(
             "
@@ -418,7 +490,7 @@ fn test_parselet_variable_with_args() {
 }
 
 #[test]
-fn test_parselet_leftrec() {
+fn parselet_leftrec() {
     assert_eq!(
         compile_and_run("P: @{ P? ''a'' }\nP", "aaaa", false),
         Ok(Some(value!([[["a", "a"], "a"], "a"])))
@@ -428,7 +500,7 @@ fn test_parselet_leftrec() {
 }
 
 #[test]
-fn test_parselet_call_error_reporting() {
+fn parselet_call_error_reporting() {
     // Tests for calling functions with wrong parameter counts
     for (call, msg) in [
         ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
@@ -454,7 +526,7 @@ fn test_parselet_call_error_reporting() {
 }
 
 #[test]
-fn test_examples() {
+fn examples() {
     assert_eq!(
         compile_and_run(
             include_str!("../examples/planets.tok"),
@@ -518,7 +590,7 @@ fn test_examples() {
 }
 
 #[test]
-fn test_capture() {
+fn capture() {
     assert_eq!(
         compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab", false),
         Ok(Some(value!("aabbb")))
@@ -533,7 +605,7 @@ fn test_capture() {
 // Tests for control flow -------------------------------------------------------------------------
 
 #[test]
-fn test_begin_end() {
+fn begin_end() {
     assert_eq!(
         compile_and_run(
             "
@@ -576,7 +648,7 @@ fn test_begin_end() {
 }
 
 #[test]
-fn test_repeat() {
+fn repeat() {
     assert_eq!(
         compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
         Ok(Some(value!(["a", "a", "a", "a"])))
@@ -586,7 +658,7 @@ fn test_repeat() {
 }
 
 #[test]
-fn test_if_else() {
+fn if_else() {
     // These expressions are optimized by the compiler
     assert_eq!(
         compile_and_run(
@@ -620,7 +692,7 @@ fn test_if_else() {
 }
 
 #[test]
-fn test_push_next() {
+fn push_next() {
     assert_eq!(
         compile_and_run(
             "
@@ -662,7 +734,7 @@ fn run_testcase(code: &'static str) {
 }
 
 #[test]
-fn test_compiler_structure() {
+fn compiler_structure() {
     // Testing several parsing constructs
 
     // Tests for blocks and empty blocks
@@ -694,7 +766,7 @@ fn test_compiler_structure() {
 }
 
 #[test]
-fn test_compiler_identifier_naming() {
+fn compiler_identifier_naming() {
     // Tests for correct identifier names for various value types
     run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
@@ -721,7 +793,7 @@ fn test_compiler_identifier_naming() {
 */
 
 #[test]
-fn testindirectleftrec() {
+fn parser_indirectleftrec() {
     let program = tokay_embed!({
         (X = {
             [Y, (MATCH "c")]
@@ -742,7 +814,7 @@ fn testindirectleftrec() {
 }
 
 #[test]
-fn testleftrec() {
+fn parser_leftrec() {
     /*
     let program = tokay_embed!({
         (X = {
