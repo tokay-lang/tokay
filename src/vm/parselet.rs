@@ -164,6 +164,7 @@ impl Parselet {
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
+        let mut first = !matches!(self.begin, Op::Nop);
         let mut results = Vec::new();
         let mut state = if let Op::Nop = self.begin {
             None
@@ -184,9 +185,9 @@ impl Parselet {
                 None => self.body.run(context),
             };
 
-            //if main {
-            //   println!("state = {:?} result = {:?}", state, result);
-            //}
+            // if main {
+            //     println!("state = {:?} result = {:?}", state, result);
+            // }
 
             /*
                 In case this is the main parselet, try matching main as much
@@ -210,6 +211,10 @@ impl Parselet {
                 };
                 //println!("main result(2) = {:?}", result);
             }
+
+            // if main {
+            //     println!("state = {:?} result = {:?}", state, result);
+            // }
 
             // Evaluate result of parselet loop.
             match result {
@@ -294,7 +299,7 @@ impl Parselet {
 
             if let Some(false) = state {
                 break None;
-            } else if context.runtime.reader.eof() {
+            } else if !first && context.runtime.reader.eof() {
                 state = Some(false);
             } else {
                 state = None;
@@ -302,6 +307,7 @@ impl Parselet {
 
             // Reset capture stack for loop repeat ($0 must be kept alive)
             context.runtime.stack.truncate(context.capture_start + 1);
+            first = false;
         };
 
         result.unwrap_or_else(|| {
