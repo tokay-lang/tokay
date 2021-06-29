@@ -8,6 +8,8 @@ use crate::value::*;
 use crate::vm::*;
 use crate::{tokay_embed, tokay_embed_item};
 
+// Tests expression basics ------------------------------------------------------------------------
+
 #[test]
 fn test_literal() {
     assert_eq!(
@@ -172,59 +174,6 @@ fn test_expression() {
 }
 
 #[test]
-fn test_builtin_tokens() {
-    let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
-
-    assert_eq!(
-        compile_and_run("Identifier", gliders, false),
-        Ok(Some(value!([
-            "Glasflügel",
-            "Libelle",
-            "b",
-            "G102",
-            "Astir",
-            "Ventus_2cT"
-        ])))
-    );
-
-    assert_eq!(
-        compile_and_run("Integer", gliders, false),
-        Ok(Some(value!([201, 102, 2])))
-    );
-
-    assert_eq!(
-        compile_and_run("Whitespaces", gliders, false),
-        Ok(Some(value!([" ", " ", "\t", " ", "  \n"])))
-    );
-
-    assert_eq!(
-        compile_and_run("Word", gliders, false),
-        Ok(Some(value!([
-            "Glasflügel",
-            "Libelle",
-            "b",
-            "G",
-            "Astir",
-            "Ventus",
-            "cT"
-        ])))
-    );
-
-    // Builtin whitespace handling
-    let abc = "abc   \tdef  abcabc= ghi abcdef";
-
-    assert_eq!(
-        compile_and_run("Word _; ", abc, false),
-        Ok(Some(value![["abc", "def", "abcabc", "ghi", "abcdef"]]))
-    );
-
-    assert_eq!(
-        compile_and_run("Word __; ", abc, false),
-        Ok(Some(value![["abc", "def", "ghi"]]))
-    );
-}
-
-#[test]
 fn test_operations() {
     // Test assignment-operations
     assert_eq!(
@@ -266,6 +215,8 @@ fn test_operations() {
     );
 }
 
+// Tests for dicts and lists ----------------------------------------------------------------------
+
 #[test]
 fn test_collections() {
     // Lists
@@ -305,6 +256,8 @@ fn test_collections() {
         ])))
     );
 }
+
+// Tests for tokens -------------------------------------------------------------------------------
 
 #[test]
 fn test_token() {
@@ -372,6 +325,61 @@ fn test_token() {
 }
 
 #[test]
+fn test_builtin_tokens() {
+    let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
+
+    assert_eq!(
+        compile_and_run("Identifier", gliders, false),
+        Ok(Some(value!([
+            "Glasflügel",
+            "Libelle",
+            "b",
+            "G102",
+            "Astir",
+            "Ventus_2cT"
+        ])))
+    );
+
+    assert_eq!(
+        compile_and_run("Integer", gliders, false),
+        Ok(Some(value!([201, 102, 2])))
+    );
+
+    assert_eq!(
+        compile_and_run("Whitespaces", gliders, false),
+        Ok(Some(value!([" ", " ", "\t", " ", "  \n"])))
+    );
+
+    assert_eq!(
+        compile_and_run("Word", gliders, false),
+        Ok(Some(value!([
+            "Glasflügel",
+            "Libelle",
+            "b",
+            "G",
+            "Astir",
+            "Ventus",
+            "cT"
+        ])))
+    );
+
+    // Builtin whitespace handling
+    let abc = "abc   \tdef  abcabc= ghi abcdef";
+
+    assert_eq!(
+        compile_and_run("Word _; ", abc, false),
+        Ok(Some(value![["abc", "def", "abcabc", "ghi", "abcdef"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("Word __; ", abc, false),
+        Ok(Some(value![["abc", "def", "ghi"]]))
+    );
+}
+
+// Tests for parselets ----------------------------------------------------------------------------
+
+#[test]
 fn test_parselet_static_with_args() {
     assert_eq!(
         compile_and_run(
@@ -420,13 +428,29 @@ fn test_parselet_leftrec() {
 }
 
 #[test]
-fn test_parselet_loop() {
-    assert_eq!(
-        compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
-        Ok(Some(value!(["a", "a", "a", "a"])))
-    );
+fn test_parselet_call_error_reporting() {
+    // Tests for calling functions with wrong parameter counts
+    for (call, msg) in [
+        ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
+        (
+            "f()",
+            "Line 2, column 1: Call to 'f' doesn't accept any arguments",
+        ),
+        (
+            "f(1, 2, 3, 4)",
+            "Line 2, column 1: Too many parameters, 3 possible, 4 provided",
+        ),
+        ("f(c=10, d=3)", "Line 2, column 1: Parameter 'a' required"),
+        (
+            "f(1, c=10, d=3)",
+            "Line 2, column 1: Parameter 'd' provided to call but not used",
+        ),
+    ] {
+        let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
+        println!("calling {:?}, expecting {:?}", call, msg);
 
-    // todo: More examples here please!
+        assert_eq!(compile_and_run(&call, "", false), Err(msg.to_owned()));
+    }
 }
 
 #[test]
@@ -506,6 +530,8 @@ fn test_capture() {
     );
 }
 
+// Tests for control flow -------------------------------------------------------------------------
+
 #[test]
 fn test_begin_end() {
     assert_eq!(
@@ -533,7 +559,84 @@ fn test_begin_end() {
         ),
         Ok(Some(value!([["lol", 1], ["lollol", 2], ["lollollol", 3]])))
     );
+
+    // begin and end without any input
+    assert_eq!(
+        compile_and_run(
+            "
+            begin 1
+            2 3 4
+            end 5
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!([1, [2, 3, 4], 5])))
+    )
 }
+
+#[test]
+fn test_repeat() {
+    assert_eq!(
+        compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
+        Ok(Some(value!(["a", "a", "a", "a"])))
+    );
+
+    // todo: More examples here please!
+}
+
+#[test]
+fn test_if_else() {
+    // These expressions are optimized by the compiler
+    assert_eq!(
+        compile_and_run(
+            "
+            if true 1 \
+            if false 2 \
+            if $1 3 else 4 \
+            if !$2 5 else 6",
+            "",
+            false
+        ),
+        Ok(Some(value!([1, 3, 5])))
+    );
+
+    // These expressions are evaluated at compile time
+    assert_eq!(
+        compile_and_run(
+            "
+            b = true
+            nb = false
+
+            if b 1 \
+            if nb 2 \
+            if $1 3 else 4 \
+            if !$2 5 else 6",
+            "",
+            false
+        ),
+        Ok(Some(value!([1, 3, 5])))
+    );
+}
+
+#[test]
+fn test_push_next() {
+    assert_eq!(
+        compile_and_run(
+            "
+            1 2 3 next
+            4 5 6 push 7
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value!(7)))
+    );
+
+    // todo: This test is a stub. Add more tests regarding next and push.
+}
+
+// Tests for compiler behavior --------------------------------------------------------------------
 
 // Universal function to run test-cases with expected errors inside the code.
 fn run_testcase(code: &'static str) {
@@ -596,180 +699,7 @@ fn test_compiler_identifier_naming() {
     run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
 
-#[test]
-fn test_parselet_call_error_reporting() {
-    // Tests for calling functions with wrong parameter counts
-    for (call, msg) in [
-        ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
-        (
-            "f()",
-            "Line 2, column 1: Call to 'f' doesn't accept any arguments",
-        ),
-        (
-            "f(1, 2, 3, 4)",
-            "Line 2, column 1: Too many parameters, 3 possible, 4 provided",
-        ),
-        ("f(c=10, d=3)", "Line 2, column 1: Parameter 'a' required"),
-        (
-            "f(1, c=10, d=3)",
-            "Line 2, column 1: Parameter 'd' provided to call but not used",
-        ),
-    ] {
-        let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
-        println!("calling {:?}, expecting {:?}", call, msg);
-
-        assert_eq!(compile_and_run(&call, "", false), Err(msg.to_owned()));
-    }
-}
-
-// todo: turn the examples below into a test suite
-//let s = "P = @{\nP? 'Hello'\nP? \"World\"}\nP";
-//let s = "P = @{\nP? \"Hello\"\nP? \"World\"}\nP";
-//let s = "A = @{ \"Hello\"+ B* (1337.+-3) (+true) { if a == b + 1 c else d } }";
-//let s = "A B C\nX Y Z";
-//let s = "x = @{return0}";
-//let s = "a = 42 a a + 1 a + 2";
-//let s = "A = 'Hello' A+ 3 + 2* ('Bernd Waldemar')";
-
-// Capture modification
-//let s = "a = 2 'Hello' 'World' $2 = $3 * 2 + $2 $3";
-//let s = "a = 2 'Hello' 'World' $(a) = $3 * 2 + $2 $3 * 2";
-
-// Comparisons
-//let s = "'Hello' 'World' $1 == $2";
-
-//let s = "P = @{ P 'A' 'B' $2 * 2 + $3 * 3 }\nP";
-//let s = "a:'Hello' a\na : 'Hallo' A";
-
-/*
-println!("{:?}",
-    compile_and_run(
-        "
-        A : {
-            [a-zA-Z]+   $1
-            Integer     $1 * 2
-        }
-
-        A",
-        "73.2 Integer6        Benno",
-        false
-    )
-);
-*/
-
-/*
-Tests for the parser
-
-let parser = Parser::new();
-for expr in &[
-    "A : [a-c]\nA+\n",
-    "A : [a-c]+\nA+\n",
-    "B : 'Hello'\nB+\n",
-    "B : 'Hello'+\nB+\n",
-] {
-    println!("-------------------------------------\n{}", expr);
-    let ast = parser.parse(Reader::new(Box::new(io::Cursor::new(expr))));
-
-    match ast {
-        Ok(ast) => Parser::print(&ast),
-        Err(err) => println!("{}", err),
-    }
-}
-*/
-
-//println!("{:?}", compile_and_run("[loA-Z]+ print", "lol", true));
-
-/*
-println!("{:?}",
-    compile_and_run(
-        "
-        begin { x = 0 1337 }
-        end 1338
-
-        P: @{ 'lol' x = x + 1 x }
-        P",
-        "lolalolaalolol",
-        false
-    )
-);
-*/
-
-/*
-let ast = compile_and_run(
-    include_str!("repl.tok"),
-    "#debug\n",
-    true,
-).unwrap().unwrap();
-
-Parser::print(
-    &ast.borrow()
-);
-*/
-
-/*
-let ast = compile_and_run(
-    include_str!("../readme1.tok"),
-    "1+2*3+4",
-    true,
-).unwrap().unwrap();
-
-Compiler::print(
-    &ast.borrow()
-);
-*/
-
-/*
-println!(
-    "{:?}",
-    compile_and_run(
-        "
-            print(\"Hello World\" + 23 * 4)
-            Integer print(\"Have \" + $1)
-        ",
-        "yay42",
-        true,
-    )
-);
-*/
-
-/*
-println!("{:#?}", compile_and_run(
-    "
-    TheTokaySayer : @Match: result:\"TOKAY!!!\" {
-        Match result + \": \" + $1
-    }
-
-    TheTokaySayer(Integer)
-    TheTokaySayer(pos 'Hello')
-    ",
-    "123HelloHelloello456Hello", true
-));
-*/
-
-/*
-println!(
-    "{:#?}",
-    /*
-    compile_and_run(
-    "
-        >> x=1
-        'Hallo' $1 x x = x + 1
-    ",
-        "HalloHallololHallo",
-        true
-    )
-    */
-    compile_and_run(
-        "
-        hw : @{'hello' 'world'}
-        hw
-        Integer
-        ",
-        " 123 helloworldworldworld 456",
-        true
-    )
-);
-*/
+// Tests for parsing and packrat features ---------------------------------------------------------
 
 /*
     Below are some tests that provide indirect left-recursion.
@@ -831,9 +761,6 @@ fn testleftrec() {
         }),
         (X = {
             [Y, (MATCH "b")]
-        }),
-        (Z = {
-            (call print[(value "hello world")])
         }),
         X
     });

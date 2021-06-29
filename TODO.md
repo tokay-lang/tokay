@@ -59,7 +59,7 @@ Syntax is under careful consideration.
     - [x] `not` keyword
     - [x] `peek` keyword
     - [ ] Min(-Max)-Modifier syntax, e.g. `'t'{2, 4}` allowing for `tt`, `ttt`, `ttt` but not `tttt` .... `'t'{2}` should also work (syntax is ugly)
-- [ ] Some kind of `continue` and `break` for blocks?
+- [x] `push` and `next` for sequences
 
 ## Compiler
 

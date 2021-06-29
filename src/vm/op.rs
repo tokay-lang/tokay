@@ -30,6 +30,9 @@ pub enum Op {
 
     // Interrupts
     Skip,
+    Next,
+    Push,
+    LoadPush,
     Accept,
     LoadAccept,
     Repeat,
@@ -214,6 +217,12 @@ impl Runable for Op {
 
             // Execution
             Op::Skip => Err(Reject::Skip),
+            Op::Next => Err(Reject::Next),
+            Op::Push => Ok(Accept::Push(Capture::Empty)),
+            Op::LoadPush => {
+                let value = context.pop();
+                Ok(Accept::Push(Capture::Value(value, None, 15)))
+            }
             Op::Accept => Ok(Accept::Return(None)),
             Op::LoadAccept => {
                 let value = context.pop();

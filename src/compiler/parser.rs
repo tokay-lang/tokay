@@ -277,11 +277,6 @@ impl Parser {
             LogicalAnd
         }),
 
-        (ExpressionOrVoid = {
-            Expression,
-            (call ast[(value "value_void")])
-        }),
-
         (Expression = {
             // if
             ["if", ___, Expression, Statement, (kle [T_EOL, _]), "else", ___, Statement, (call ast[(value "op_ifelse")])],
@@ -312,11 +307,13 @@ impl Parser {
         }),
 
         (Statement = {
-            ["accept", ___, ExpressionOrVoid, (call ast[(value "op_accept")])],
-            ["return", ___, ExpressionOrVoid, (call ast[(value "op_accept")])],
-            ["repeat", ___, ExpressionOrVoid, (call ast[(value "op_repeat")])],
+            ["accept", ___, (opt Expression), (call ast[(value "op_accept")])],
+            ["next", ___, (call ast[(value "op_next")])],
+            ["push", ___, (opt Expression), (call ast[(value "op_push")])],
             ["reject", ___, (call ast[(value "op_reject")])],
-            // todo: next, escape, break, continue?
+            ["repeat", ___, (opt Expression), (call ast[(value "op_repeat")])],
+            ["return", ___, (opt Expression), (call ast[(value "op_accept")])],
+            // todo: escape, break, continue?
 
             [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect Expression), (call ast[(value "assign")])],
@@ -366,9 +363,7 @@ impl Parser {
         }),
 
         (Instruction = {
-            ["begin", ___, Block, _, (call ast[(value "begin")])],
             ["begin", ___, Sequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", ___, Block, _, (call ast[(value "end")])],
             ["end", ___, Sequence, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),

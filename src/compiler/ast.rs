@@ -93,13 +93,12 @@ impl AstResult {
 /// Checks whether identifier's name is the name of a reserved word.
 pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "accept" | "begin" | "else" | "end" | "expect" | "false" | "for" | "if" | "in" | "not"
-        | "null" | "peek" | "reject" | "repeat" | "return" | "true" | "void" | "while" => {
-            Err(Error::new(
-                None,
-                format!("Expected identifier, found reserved word '{}'", ident),
-            ))
-        }
+        "accept" | "begin" | "else" | "end" | "expect" | "false" | "for" | "if" | "in" | "loop"
+        | "next" | "not" | "null" | "peek" | "push" | "reject" | "repeat" | "return" | "true"
+        | "void" => Err(Error::new(
+            None,
+            format!("Expected identifier, found reserved word '{}'", ident),
+        )),
         _ => Ok(()),
     }
 }
@@ -828,7 +827,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         // identifier -----------------------------------------------------
         "identifier" => {
             let name = node.borrow_by_key("value").to_string();
-            AstResult::Identifier(name, traverse_node_offset(node))
+
+            // Check if identifier is valid
+            if let Err(mut error) = identifier_is_valid(&name) {
+                if let Some(offset) = traverse_node_offset(node) {
+                    error.patch_offset(offset);
+                }
+
+                compiler.errors.push(error);
+                AstResult::Empty
+            } else {
+                AstResult::Identifier(name, traverse_node_offset(node))
+            }
         }
 
         // index ----------------------------------------------------------
@@ -906,27 +916,31 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let mut ops = Vec::new();
 
             let op = match parts[1] {
-                "accept" | "repeat" => {
-                    let children = node.borrow_by_key("children");
-
-                    match traverse_node(compiler, &children.get_dict().unwrap()) {
-                        AstResult::Value(value) if matches!(&*value.borrow(), Value::Void) => {
-                            if parts[1] == "repeat" {
-                                Op::Repeat
-                            } else {
-                                Op::Accept
-                            }
+                "accept" | "push" | "repeat" => {
+                    if let Some(value) = node.get("children") {
+                        let value = value.borrow();
+                        ops.extend(
+                            traverse_node(compiler, &value.get_dict().unwrap())
+                                .into_ops(compiler, true),
+                        );
+                        match parts[1] {
+                            "accept" => Op::LoadAccept,
+                            "push" => Op::LoadPush,
+                            "repeat" => Op::LoadRepeat,
+                            _ => unreachable!(),
                         }
-                        result => {
-                            ops.extend(result.into_ops(compiler, false));
-                            if parts[1] == "repeat" {
-                                Op::LoadRepeat
-                            } else {
-                                Op::LoadAccept
-                            }
+                    } else {
+                        match parts[1] {
+                            "accept" => Op::Accept,
+                            "push" => Op::Push,
+                            "repeat" => Op::Repeat,
+                            _ => unreachable!(),
                         }
                     }
                 }
+
+                "next" => Op::Next,
+                "reject" => Op::Reject,
 
                 "binary" => {
                     let children = node.borrow_by_key("children");
@@ -1190,7 +1204,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                             return eelse;
                         }
 
-                        return AstResult::Empty;
+                        return AstResult::Value(Value::Void.into_refvalue());
                     }
 
                     ops.extend(condition.into_ops(compiler, false));
