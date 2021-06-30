@@ -8,34 +8,62 @@ use crate::value::*;
 "a string
 containing  simple escape sequences"
 */
-pub fn unescape(s: String) -> String {
-    let mut chars = s.into_bytes();
-    let mut len = chars.len();
-    let mut i = 0;
-    let mut j = 0;
+pub fn unescape(s: &str) -> String {
+    // fixme: this little parsing function should easily be implementable in Tokay itself in future.
+    let mut chars = s.chars();
+    let mut ret = String::with_capacity(s.len());
 
-    while i < len {
-        if chars[j] == b'\\' {
-            chars[i] = match chars[j + 1] {
-                b'n' => b'\n',
-                b'r' => b'\r',
-                b't' => b'\t',
-                c => c,
+    while let Some(mut ch) = chars.next() {
+        if ch == '\\' {
+            ch = match chars.next() {
+                Some(ch) => match ch {
+                    'a' => '\x07',
+                    'b' => '\x08',
+                    'f' => '\x0c',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    'v' => '\x0b',
+                    // octal / hex / unicode
+                    '0'..='8' | 'x' | 'u' | 'U' => {
+                        let (n, c) = match ch {
+                            'u' => (4, 0),
+                            'U' => (8, 0),
+                            'x' => (2, 0),
+                            _ => (2, 1),
+                        };
+
+                        // read code point of n digits
+                        let mut code = String::with_capacity(n + c);
+                        for _ in 0..n {
+                            code.push(chars.next().unwrap_or_default());
+                        }
+
+                        match ch {
+                            // Unicode
+                            'u' | 'U' => std::char::from_u32(
+                                u32::from_str_radix(&code, 16).unwrap_or_default(),
+                            )
+                            .unwrap_or_default(),
+                            // Hex
+                            'x' => u8::from_str_radix(&code, 16).unwrap_or_default() as char,
+                            // Octal
+                            _ => {
+                                code.insert(0, ch);
+                                u8::from_str_radix(&code, 8).unwrap_or_default() as char
+                            }
+                        }
+                    }
+                    ch => ch,
+                },
+                None => ch,
             };
-            j += 2;
-            len -= 1;
-        } else {
-            if i != j {
-                chars[i] = chars[j];
-            }
-            j += 1;
         }
 
-        i += 1;
+        ret.push(ch);
     }
 
-    chars.truncate(len);
-    String::from_utf8(chars).unwrap()
+    ret
 }
 
 /** Compiles and runs a source with an input.

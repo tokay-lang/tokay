@@ -173,18 +173,31 @@ impl Ccl {
 
 impl std::fmt::Debug for Ccl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn escape(ch: char) -> String {
+            match ch {
+                '\x07' => "\\a".to_string(),
+                '\x08' => "\\b".to_string(),
+                '\x0c' => "\\f".to_string(),
+                '\n' => "\\n".to_string(),
+                '\r' => "\\r".to_string(),
+                '\t' => "\\t".to_string(),
+                '\x0b' => "\\v".to_string(),
+                _ => format!("{}", ch),
+            }
+        }
+
         if self.is_any() {
             write!(f, ".")?;
         } else {
-            write!(f, "|")?;
+            write!(f, "[")?;
             for range in &self.ranges {
                 if range.start() < range.end() {
-                    write!(f, "{}-{}", range.start(), range.end())?;
+                    write!(f, "{}-{}", escape(*range.start()), escape(*range.end()))?;
                 } else {
-                    write!(f, "{}", range.start())?;
+                    write!(f, "{}", escape(*range.start()))?;
                 }
             }
-            write!(f, "|")?;
+            write!(f, "]")?;
         }
 
         Ok(())

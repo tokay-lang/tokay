@@ -78,7 +78,7 @@ faculty(4)
 
 ## Contribute
 
-Contributions of any kind, might it be code, bug reports, documentation, support or advertising are always welcome!
+Contributions of any kind, might it be code, bug reports + fixes, documentation, support or advertising are always welcome!
 
 Take a look into the [TODO.md](TODO.md), the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things to be improved.
 

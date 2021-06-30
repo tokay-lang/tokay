@@ -166,10 +166,9 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => {
-            let value = node.borrow_by_key("value").to_string();
-            Value::String(value)
-        }
+        "value_string" => Value::String(utils::unescape(
+            node.borrow_by_key("value").get_string().unwrap(),
+        )),
         "value_integer" => {
             let value = node.borrow_by_key("value").to_string();
             Value::Integer(match value.parse::<i64>() {
@@ -191,7 +190,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
-            let value = utils::unescape(node.borrow_by_key("value").to_string());
+            let value = utils::unescape(node.borrow_by_key("value").get_string().unwrap());
 
             if emit == "value_token_match" {
                 Token::Match(value).into_value()
@@ -217,7 +216,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
                 let emit = emit.get_string().unwrap();
 
                 let value = range.borrow_by_key("value");
-                let value = value.get_string().unwrap();
+                let value = utils::unescape(value.get_string().unwrap()); // todo: unescape might not me necessary soon
 
                 match &emit[..] {
                     "char" => {

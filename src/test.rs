@@ -278,11 +278,7 @@ fn variables() {
 fn scoping() {
     // Test-case for scoping
     assert_eq!(
-        compile_and_run(
-            include_str!("tests/testcase_scopes.tok"),
-            "",
-            false
-        ),
+        compile_and_run(include_str!("tests/testcase_scopes.tok"), "", false),
         Ok(Some(value![[10, 2000, 1072]]))
     );
 }
@@ -852,4 +848,15 @@ fn parser_leftrec() {
     */
 
     println!("{:#?}", program.run_from_str("abb"));
+}
+
+// Tests for utils --------------------------------------------------------------------------------
+
+#[test]
+fn unescape() {
+    // First try to unescape by utils function
+    assert_eq!(
+        crate::utils::unescape("test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F929"),
+        "test\\yes\nÊþ\t@_€🤩"
+    );
 }

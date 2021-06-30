@@ -351,10 +351,10 @@ impl Runable for Op {
                             let value = context.pop();
                             context.set_capture_by_name(alias, value);
                             Ok(Accept::Next)
-                        }
-                        else {
+                        } else {
                             let value = context.peek();
-                            context.set_capture_by_name(alias, value.borrow().clone().into_refvalue());
+                            context
+                                .set_capture_by_name(alias, value.borrow().clone().into_refvalue());
                             Ok(Accept::Skip)
                         }
                     }

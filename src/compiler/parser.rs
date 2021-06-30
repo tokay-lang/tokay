@@ -105,7 +105,7 @@ impl Parser {
 
         (CclChar = {
             [EOF, (call error[(value "Unclosed character-class, expecting ']'")])],
-            ["\\", (token (Token::any()))],
+            ["\\", (token (Token::any())), (Op::LoadFastCapture(0))],  // fixme: this is a stub! Need full escape sequencing here.
             (token (Token::char_except(']')))
         }),
 
@@ -288,6 +288,10 @@ impl Parser {
             ["for", ___, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _,
                 StatementOrVoid, (call ast[(value "op_for")])],
             ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+
+            // loop
+            ["loop", ___, Expression, _, (opt T_EOL), _, Statement, (call ast[(value "op_loop")])],
+            ["loop", ___, Statement, (call ast[(value "op_loop_forever")])],
 
             // assignment
             [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
