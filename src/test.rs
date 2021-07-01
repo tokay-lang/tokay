@@ -767,6 +767,28 @@ fn compiler_identifier_naming() {
     run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
 
+// Tests for builtins -----------------------------------------------------------------------------
+
+#[test]
+fn builtins() {
+    // ord/chr
+    assert_eq!(
+        compile_and_run("i = ord(\"€\"); i chr(i)", "", false),
+        Ok(Some(value![[(8364 as usize), "€"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("ord(\"12\")", "", false),
+        Err("Line 1, column 1: ord() expected single character, but received string of length 2".to_string())
+    );
+
+    assert_eq!(
+        compile_and_run("ord(\"\")", "", false),
+        Err("Line 1, column 1: ord() expected single character, but received string of length 0".to_string())
+    );
+}
+
+
 // Tests for parsing and packrat features ---------------------------------------------------------
 
 /*

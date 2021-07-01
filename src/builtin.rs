@@ -340,6 +340,21 @@ static BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
+        name: "chr",
+        required: 1,
+        signature: "i",
+        func: |context, args| {
+            let i = args[0].as_ref().unwrap().borrow().to_addr();
+            println!("i = {}", i);
+
+            Ok(Accept::Push(Capture::Value(
+                Value::String(format!("{}", std::char::from_u32(i as u32).unwrap())).into_refvalue(),
+                None,
+                10,
+            )))
+        },
+    },
+    Builtin {
         name: "error",
         required: 1,
         signature: "msg collect",
@@ -366,6 +381,26 @@ static BUILTINS: &[Builtin] = &[
             }
 
             Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
+        },
+    },
+    Builtin {
+        name: "ord",
+        required: 1,
+        signature: "c",
+        func: |context, args| {
+            let c = args[0].as_ref().unwrap().borrow().to_string();
+            if c.chars().count() != 1 {
+                Error::new(None, format!("ord() expected single character, but received string of length {}", c.len())).into_reject()
+            }
+            else {
+                let c = c.chars().next().unwrap();
+
+                Ok(Accept::Push(Capture::Value(
+                    Value::Addr(c as usize).into_refvalue(),
+                    None,
+                    10,
+                )))
+            }
         },
     },
     Builtin {
