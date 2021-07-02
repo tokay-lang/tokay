@@ -72,7 +72,7 @@ impl Ccl {
     }
 
     /** Negate entire character class */
-    pub fn negate(&mut self) {
+    pub fn negate(mut self) -> Ccl {
         let mut prev_count: usize = 0;
         let mut start = '\0';
         let mut end = '\0';
@@ -117,6 +117,7 @@ impl Ccl {
         }
 
         self.normalize();
+        self
     }
 
     /** Add range to character class. */
@@ -130,18 +131,6 @@ impl Ccl {
     /** Clears entire range to be empty. */
     pub fn clear(&mut self) {
         self.ranges.clear();
-    }
-
-    /** Unions two character-classes; Returns the numer of characters added. */
-    pub fn union(&mut self, merge: &Ccl) -> u32 {
-        let len = self.len();
-
-        for range in &merge.ranges {
-            self.ranges.push(range.clone());
-        }
-
-        self.normalize();
-        self.len() - len
     }
 
     /** Test */
@@ -182,6 +171,7 @@ impl std::fmt::Debug for Ccl {
                 '\r' => "\\r".to_string(),
                 '\t' => "\\t".to_string(),
                 '\x0b' => "\\v".to_string(),
+                '\\' => "\\\\".to_string(),
                 _ => format!("{}", ch),
             }
         }
@@ -222,24 +212,57 @@ impl PartialOrd for Ccl {
     }
 }
 
+impl std::ops::Add for Ccl {
+    type Output = Self;
+
+    fn add(mut self, other: Self) -> Self {
+        for range in &other.ranges {
+            self.ranges.push(range.clone());
+        }
+
+        self.normalize();
+        self
+    }
+}
+
+impl std::ops::AddAssign for Ccl {
+    fn add_assign(&mut self, other: Self) {
+        for range in &other.ranges {
+            self.ranges.push(range.clone());
+        }
+
+        self.normalize();
+    }
+}
+
+// Todo: A std::ops::Sub is not implemented yet but might be interesting ;)
+
 /** Character-class construction helper-macro
 
 Example:
 ```
 use tokay::ccl;
 
-let ccl = ccl!['A'..='Z', 'a'..='z', '_'..='_'];
+let ccl = ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_'];
 ```
 */
 #[macro_export]
 macro_rules! ccl {
-    [$($range:expr),*] => {
+    ( $( $from:expr => $to:expr ),+ ) => {
         {
             let mut ccl = $crate::ccl::Ccl::new();
-            $( ccl.add($range); )*
+            $( ccl.add($from..=$to); )*
             ccl
         }
-    }
+    };
+
+    ( $( $chr:expr ),+ ) => {
+        {
+            let mut ccl = $crate::ccl::Ccl::new();
+            $( ccl.add($chr..=$chr); )*
+            ccl
+        }
+    };
 }
 
 pub fn ccl_test() {
@@ -268,6 +291,6 @@ pub fn ccl_test() {
     let mut t = Ccl::new();
     t.add('A'..='D');
 
-    ccl.union(&t);
+    ccl += t;
     ccl.dump();
 }

@@ -1,6 +1,5 @@
 //! Token callables represented by Value::Token
 
-use crate::ccl;
 use crate::ccl::Ccl;
 use crate::reader::Reader;
 use crate::value::Value;
@@ -18,22 +17,7 @@ pub enum Token {
 
 impl Token {
     pub fn any() -> Self {
-        let mut ccl = Ccl::new();
-        ccl.negate();
-        Self::Char(ccl)
-    }
-
-    // Repeat any char until given stop character
-    pub fn chars_until(ch: char) -> Self {
-        let mut ccl = ccl![ch..=ch];
-        ccl.negate();
-        Self::Chars(ccl)
-    }
-
-    pub fn char_except(ch: char) -> Self {
-        let mut ccl = ccl![ch..=ch];
-        ccl.negate();
-        Self::Char(ccl)
+        Self::Char(Ccl::new().negate())
     }
 
     pub fn into_value(self) -> Value {

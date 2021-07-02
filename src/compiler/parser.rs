@@ -25,12 +25,12 @@ impl Parser {
 
         (_ = {  // true whitespace
             [" "],
-            ["#", (token (Token::chars_until('\n')))],
+            ["#", (token (Token::Chars(ccl!['\n'].negate())))],
             ["\\", "\n"]
         }),
 
         (___ = {  // check for non-trailing identifier
-            [(peek (not (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))))), _]
+            [(peek (not (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))))), _]
         }),
 
         (T_EOL = {  // end-of-line
@@ -44,24 +44,24 @@ impl Parser {
 
         (T_Identifier = {  // any identifier
             [
-                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
-                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
+                (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))),
+                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
         (T_Consumable = {  // consumable identifier
             [
-                (token (Token::Char(ccl!['A'..='Z', '_'..='_']))),
-                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
+                (token (Token::Char(ccl!['A' => 'Z'] + ccl!['_']))),
+                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
         (T_Alias = {  // T_Alias is an identifier treated as string value
             [
-                (token (Token::Char(ccl!['A'..='Z', 'a'..='z', '_'..='_']))),
-                (opt (token (Token::Chars(ccl!['A'..='Z', 'a'..='z', '0'..='9', '_'..='_'])))),
+                (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))),
+                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
                 (call ast[(value "value_string"), (Op::LoadFastCapture(0))])
             ]
         }),
@@ -70,8 +70,8 @@ impl Parser {
             [
                 "\"",  // a string
                 {
-                    (token (Token::chars_until('\"'))), //fixme: Escape sequences (using Until built-in parselet)
-                    (value "")  // yes, push an empty string!
+                    [(token (Token::Chars(ccl!['\"'].negate())))],
+                    (value "")  // push empty string
                 },
                 (expect "\"")
             ]
@@ -81,7 +81,7 @@ impl Parser {
             [
                 "\'",  // a touch
                 {
-                    (token (Token::chars_until('\''))), //fixme: Escape sequences (using Until built-in parselet)
+                    (token (Token::Chars(ccl!['\''].negate()))), //fixme: Escape sequences (using Until built-in parselet)
                     (call error[(value "Token literals must not be empty")])
                 },
                 (expect "\'")
@@ -90,23 +90,23 @@ impl Parser {
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0'..='9']))), (call ast[(value "value_integer")])]
+            [(token (Token::Chars(ccl!['0' => '9']))), (call ast[(value "value_integer")])]
         }),
 
         (T_Float = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0'..='9']))), ".", (opt (token (Token::Chars(ccl!['0'..='9'])))),
+            [(token (Token::Chars(ccl!['0' => '9']))), ".", (opt (token (Token::Chars(ccl!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(opt (token (Token::Chars(ccl!['0'..='9'])))), ".", (token (Token::Chars(ccl!['0'..='9']))),
+            [(opt (token (Token::Chars(ccl!['0' => '9'])))), ".", (token (Token::Chars(ccl!['0' => '9']))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 
         // Character classes
 
         (CclChar = {
-            [EOF, (call error[(value "Unclosed character-class, expecting ']'")])],
-            ["\\", (token (Token::any())), (Op::LoadFastCapture(0))],  // fixme: this is a stub! Need full escape sequencing here.
-            (token (Token::char_except(']')))
+            (token (Token::Char(ccl![']'].negate()))),
+            ["\\", Any, (Op::LoadFastCapture(0))],  // fixme: this is a stub! Need full escape sequencing here.
+            [EOF, (call error[(value "Unclosed character-class, expecting ']'")])]
         }),
 
         (CclRange = {
@@ -378,8 +378,7 @@ impl Parser {
 
         (Tokay = {
             (pos Instruction),
-            [(token (Token::any())),
-                (call error[(value "Parse error, unexpected token"), (value true)])]
+            [Any, (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
         [_, Tokay,

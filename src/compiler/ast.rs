@@ -236,12 +236,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
             }
 
             if emit == "ccl_neg" {
-                ccl.negate();
+                Token::Char(ccl.negate()).into_value()
             } else {
                 assert!(emit == "ccl");
+                Token::Char(ccl).into_value()
             }
-
-            Token::Char(ccl).into_value()
         }
 
         // Parselets
@@ -1105,7 +1104,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         }
 
                         if let Value::Token(token) = &*value {
-                            if let Token::Char(mut ccl) = *token.clone() {
+                            if let Token::Char(ccl) = *token.clone() {
                                 match parts[2] {
                                     // mod_pos on Token::Char becomes Token::Chars
                                     "pos" | "kle" => {
@@ -1126,9 +1125,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                                     // mod_not on Token::Char becomes negated Token::Char
                                     "not" => {
-                                        ccl.negate();
                                         return AstResult::Value(
-                                            Token::Char(ccl).into_value().into_refvalue(),
+                                            Token::Char(ccl.negate()).into_value().into_refvalue(),
                                         );
                                     }
                                     _ => {}

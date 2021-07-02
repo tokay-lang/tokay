@@ -163,6 +163,11 @@ macro_rules! value {
         {
             Value::Integer(*value).into_refvalue()
         }
+        else
+        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<usize>()
+        {
+            Value::Addr(*value).into_refvalue()
+        }
         else {
             Value::String($value.to_string()).into_refvalue()
         }

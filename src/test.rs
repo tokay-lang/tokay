@@ -767,6 +767,18 @@ fn compiler_identifier_naming() {
     run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
 
+#[test]
+fn compiler_unescaping() {
+    assert_eq!(
+        compile_and_run(
+            "\"test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F929\"",
+            "",
+            false
+        ),
+        Ok(Some(value!("test\\yes\nÊþ\t@_€🤩")))
+    );
+}
+
 // Tests for builtins -----------------------------------------------------------------------------
 
 #[test]
@@ -779,15 +791,20 @@ fn builtins() {
 
     assert_eq!(
         compile_and_run("ord(\"12\")", "", false),
-        Err("Line 1, column 1: ord() expected single character, but received string of length 2".to_string())
+        Err(
+            "Line 1, column 1: ord() expected single character, but received string of length 2"
+                .to_string()
+        )
     );
 
     assert_eq!(
         compile_and_run("ord(\"\")", "", false),
-        Err("Line 1, column 1: ord() expected single character, but received string of length 0".to_string())
+        Err(
+            "Line 1, column 1: ord() expected single character, but received string of length 0"
+                .to_string()
+        )
     );
 }
-
 
 // Tests for parsing and packrat features ---------------------------------------------------------
 
@@ -870,15 +887,4 @@ fn parser_leftrec() {
     */
 
     println!("{:#?}", program.run_from_str("abb"));
-}
-
-// Tests for utils --------------------------------------------------------------------------------
-
-#[test]
-fn unescape() {
-    // First try to unescape by utils function
-    assert_eq!(
-        crate::utils::unescape("test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F929"),
-        "test\\yes\nÊþ\t@_€🤩"
-    );
 }
