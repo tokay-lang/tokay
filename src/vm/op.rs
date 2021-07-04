@@ -654,13 +654,31 @@ impl std::fmt::Display for Op {
 
 // --- Rust --------------------------------------------------------------------
 
-/*
-/** This is allows to run any Rust code in position as Parsable. */
-pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
+/** This is allows to run any Rust code in position as Runable. */
+pub struct Rust(fn(&mut Context) -> Result<Accept, Reject>);
 
-impl Parsable for Rust {
+impl Rust {
+    pub fn new(f: fn(&mut Context) -> Result<Accept, Reject>) -> Op {
+        Rust(f).into_op()
+    }
+}
+
+impl Runable for Rust {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         self.0(context)
+    }
+
+    fn resolve(&mut self, _usages: &mut Vec<Vec<Op>>) {
+        // Just do nothing!
+    }
+
+    fn finalize(
+        &mut self,
+        _statics: &Vec<RefValue>,
+        _stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        // Just do nothing!
+        None
     }
 }
 
@@ -675,4 +693,3 @@ impl std::fmt::Display for Rust {
         write!(f, "{{rust-function}}")
     }
 }
-*/

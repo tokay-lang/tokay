@@ -777,6 +777,24 @@ fn compiler_unescaping() {
         ),
         Ok(Some(value!("test\\yes\nÊþ\t@_€🤩")))
     );
+
+    assert_eq!(
+        compile_and_run(
+            "'hello\\nworld'", // double \ quotation required
+            "hello\nworld",
+            false
+        ),
+        Ok(Some(value!("hello\nworld")))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            "[0-9\\u20ac]+", // double \ quotation required
+            "12345€ €12345",
+            false
+        ),
+        Ok(Some(value!(["12345€", "€12345"])))
+    );
 }
 
 // Tests for builtins -----------------------------------------------------------------------------

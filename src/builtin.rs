@@ -385,6 +385,27 @@ static BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
+        name: "str_join",
+        required: 2,
+        signature: "self list",
+        func: |_context, args| {
+            let delimiter = args[0].as_ref().unwrap().borrow().to_string();
+            let list = args[1].as_ref().unwrap().borrow().to_list();
+
+            let mut ret = String::new();
+
+            for item in list {
+                if ret.len() > 0 {
+                    ret.push_str(&delimiter);
+                }
+
+                ret.push_str(&item.borrow().to_string());
+            }
+
+            Value::String(ret).into_accept_push_capture()
+        },
+    },
+    Builtin {
         name: "ord",
         required: 1,
         signature: "c",

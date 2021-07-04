@@ -40,6 +40,36 @@ impl Parser {
             [(peek "}"), (Op::Skip)]
         }),
 
+        // Escape sequences
+
+        (T_OctDigit = {  // T_OctDigit is used by T_EscapeSequence
+            (token (Token::Char(ccl!['0' => '7'])))
+        }),
+
+        (T_HexDigit = {    // T_HexDigit is used by T_EscapeSequence
+            (token (Token::Char(ccl!['0' => '9', 'A' => 'F', 'a' => 'f'])))
+        }),
+
+        (T_EscapeSequence = {   // Parsing escape sequences
+            ["a", (value "\x07")],
+            ["b", (value "\x08")],
+            ["f", (value "\x0c")],
+            ["n", (value "\n")],
+            ["r", (value "\r")],
+            ["t", (value "\t")],
+            ["v", (value "\x0b")],
+            [T_OctDigit, T_OctDigit, T_OctDigit,
+                (Rust::new(|context| code_to_char(context, 0, 8)))],
+            ["x", T_HexDigit, T_HexDigit,
+                (Rust::new(|context| code_to_char(context, 1, 16)))],
+            ["u", T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
+                (Rust::new(|context| code_to_char(context, 1, 16)))],
+            ["U", T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
+                T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
+                (Rust::new(|context| code_to_char(context, 1, 16)))],
+            Any
+        }),
+
         // Prime Tokens (might probably be replaced by something native, pluggable one)
 
         (T_Identifier = {  // any identifier
@@ -69,10 +99,12 @@ impl Parser {
         (T_String = {
             [
                 "\"",  // a string
-                {
-                    [(token (Token::Chars(ccl!['\"'].negate())))],
-                    (value "")  // push empty string
-                },
+                (kle {
+                    ["\\", T_EscapeSequence],
+                    [(token (Token::Chars(ccl!['\\', '\"'].negate())))],
+                    [EOF, (call error[(value "Unclosed string, expecting '\"'")])]
+                }),
+                (call str_join[(value ""), (Op::LoadFastCapture(2))]),
                 (expect "\"")
             ]
         }),
@@ -80,10 +112,12 @@ impl Parser {
         (T_Touch = {
             [
                 "\'",  // a touch
-                {
-                    (token (Token::Chars(ccl!['\''].negate()))), //fixme: Escape sequences (using Until built-in parselet)
-                    (call error[(value "Token literals must not be empty")])
-                },
+                (kle {
+                    ["\\", T_EscapeSequence],
+                    [(token (Token::Chars(ccl!['\\', '\''].negate())))],
+                    [EOF, (call error[(value "Unclosed match, expecting '\''")])]
+                }),
+                (call str_join[(value ""), (Op::LoadFastCapture(2))]),
                 (expect "\'")
             ]
         }),
@@ -104,8 +138,8 @@ impl Parser {
         // Character classes
 
         (CclChar = {
+            ["\\", T_EscapeSequence],
             (token (Token::Char(ccl![']'].negate()))),
-            ["\\", Any, (Op::LoadFastCapture(0))],  // fixme: this is a stub! Need full escape sequencing here.
             [EOF, (call error[(value "Unclosed character-class, expecting ']'")])]
         }),
 
@@ -378,7 +412,8 @@ impl Parser {
 
         (Tokay = {
             (pos Instruction),
-            [Any, (call error[(value "Parse error, unexpected token"), (value true)])]
+            [(token (Token::any())),
+                (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
         [_, Tokay,
@@ -407,4 +442,20 @@ impl Parser {
             Err(error) => Err(error),
         }
     }
+}
+
+fn code_to_char(context: &mut Context, skip: u8, base: u32) -> Result<Accept, Reject> {
+    let value = context.get_capture(0).unwrap();
+    let value = value.borrow();
+    let slice = &value.get_string().unwrap()[skip as usize..];
+
+    let code = if slice.len() <= 2 {
+        u8::from_str_radix(slice, base).unwrap_or_default() as char
+    } else {
+        std::char::from_u32(u32::from_str_radix(slice, base).unwrap_or_default())
+            .unwrap_or_default()
+    };
+
+    let value = Value::String(format!("{}", code)).into_refvalue();
+    Ok(Accept::Return(Some(value)))
 }

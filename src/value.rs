@@ -7,7 +7,7 @@ use std::rc::Rc;
 use crate::builtin;
 use crate::error::Error;
 use crate::token::Token;
-use crate::vm::{Accept, Context, Parselet, Reject};
+use crate::vm::{Accept, Capture, Context, Parselet, Reject};
 
 pub trait BorrowByKey {
     fn borrow_by_key(&self, key: &str) -> Ref<Value>;
@@ -219,12 +219,12 @@ impl std::fmt::Debug for Value {
 */
 
 impl Value {
-    // Create a RefValue from a Value.
+    /// Create a RefValue from a Value.
     pub fn into_refvalue(self) -> RefValue {
         RefValue::new(RefCell::new(self))
     }
 
-    // Convert a RefValue into a Value
+    /// Convert a RefValue into a Value
     pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
         match Rc::try_unwrap(this) {
             Ok(this) => Ok(this.into_inner()),
@@ -232,11 +232,17 @@ impl Value {
         }
     }
 
+    /** Create an Ok(Accept::Push) from a value. This function is a shortcut. **/
+    pub fn into_accept_push_capture(self) -> Result<Accept, Reject> {
+        Ok(Accept::Push(Capture::Value(self.into_refvalue(), None, 10)))
+    }
+
+    /// Check if value is void.
     pub fn is_void(&self) -> bool {
         matches!(self, Value::Void)
     }
 
-    // Get Value's boolean meaning.
+    /// Get a value's boolean meaning.
     pub fn is_true(&self) -> bool {
         match self {
             Self::True => true,
@@ -250,7 +256,7 @@ impl Value {
         }
     }
 
-    // Get Value's integer representation.
+    /// Get value's integer representation.
     pub fn to_integer(&self) -> i64 {
         match self {
             Self::True => 1,
@@ -267,7 +273,7 @@ impl Value {
         }
     }
 
-    // Get Value's float representation.
+    /// Get value's float representation.
     pub fn to_float(&self) -> f64 {
         match self {
             Self::True => 1.0,
@@ -284,7 +290,7 @@ impl Value {
         }
     }
 
-    // Get Value's usize representation.
+    /// Get value's usize representation.
     pub fn to_addr(&self) -> usize {
         match self {
             Self::True => 1,
@@ -302,7 +308,7 @@ impl Value {
         }
     }
 
-    // Get Value's Tokay code representation.
+    // Get value's representation as Tokay code.
     pub fn repr(&self) -> String {
         match self {
             Self::Void => "void".to_string(),
@@ -376,7 +382,7 @@ impl Value {
         }
     }
 
-    // Get Value's string representation.
+    /// Get value's string representation.
     pub fn to_string(&self) -> String {
         match self {
             Self::Void => "".to_string(),
@@ -391,7 +397,7 @@ impl Value {
         }
     }
 
-    // Get a Value's list representation.
+    /// Get a value's list representation.
     pub fn to_list(&self) -> List {
         if let Self::List(l) = self {
             *l.clone()
@@ -402,7 +408,7 @@ impl Value {
         }
     }
 
-    // Get a Value's dict representation.
+    /// Get a value's dict representation.
     pub fn to_dict(&self) -> Dict {
         if let Self::Dict(d) = self {
             *d.clone()
@@ -414,7 +420,7 @@ impl Value {
         }
     }
 
-    // Turn value into raw String, consuming the value.
+    /// Turn value into raw String, consuming the value.
     pub fn into_string(self) -> String {
         if let Self::String(s) = self {
             s
@@ -423,7 +429,7 @@ impl Value {
         }
     }
 
-    // Turn value into raw List, consuming the value.
+    /// Turn value into raw List, consuming the value.
     pub fn into_list(self) -> List {
         if let Self::List(l) = self {
             *l
@@ -432,7 +438,7 @@ impl Value {
         }
     }
 
-    // Turn value into raw Dict, consuming the value.
+    /// Turn value into raw Dict, consuming the value.
     pub fn into_dict(self) -> Dict {
         if let Self::Dict(d) = self {
             *d
@@ -441,7 +447,7 @@ impl Value {
         }
     }
 
-    // Extract String from a value
+    /// Extract String from a value
     pub fn get_string(&self) -> Option<&str> {
         if let Self::String(s) = self {
             Some(&s)
@@ -450,7 +456,7 @@ impl Value {
         }
     }
 
-    // Extract List from a value
+    /// Extract List from a value
     pub fn get_list(&self) -> Option<&List> {
         if let Self::List(l) = self {
             Some(&l)
@@ -459,7 +465,7 @@ impl Value {
         }
     }
 
-    // Extract Dict from a value
+    /// Extract Dict from a value
     pub fn get_dict(&self) -> Option<&Dict> {
         if let Self::Dict(d) = self {
             Some(&d)
@@ -468,7 +474,7 @@ impl Value {
         }
     }
 
-    // Get index
+    /// Retrieve index from a value.
     pub fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         match self {
             Self::List(l) => {
@@ -491,7 +497,7 @@ impl Value {
         }
     }
 
-    // Check whether a value is callable, and when its callable if with or without arguments.
+    /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
             Value::Token(_) => !with_arguments,
@@ -501,7 +507,7 @@ impl Value {
         }
     }
 
-    // Check whether a value is nullable in meaning of a grammar view
+    /// Check whether a value is nullable in meaning of a grammar view
     pub fn is_nullable(&self) -> bool {
         match self {
             Value::Token(token) => token.is_nullable(),
@@ -511,7 +517,7 @@ impl Value {
         }
     }
 
-    // Check whether a value is consuming
+    /// Check whether a value is consuming
     pub fn is_consuming(&self) -> bool {
         match self {
             Value::Token(_) => true,
@@ -521,7 +527,7 @@ impl Value {
         }
     }
 
-    // Call
+    /// Call a value with a given context, argument and named argument set.
     pub fn call(
         &self,
         context: &mut Context,
@@ -538,6 +544,11 @@ impl Value {
             _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
         }
     }
+
+    // The following functions where prevously solved by std::ops::*, etc. but this
+    // is now changed as error handling must work with Tokay VM.
+    // Fixme: For better integration with Rust, std::ops::* could be implemented re-implemented
+    // by wrapping these operational functions.
 
     // Addition
     pub fn add(&self, rhs: &Value) -> Result<Value, Error> {
@@ -627,7 +638,7 @@ impl Value {
         }
     }
 
-    // Negate
+    // Negation
     pub fn neg(&self) -> Result<Value, Error> {
         match self {
             Value::Float(v) => Ok(Value::Float(-v)),
