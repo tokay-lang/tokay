@@ -53,7 +53,7 @@ pub enum Op {
     LoadFast(usize),
     LoadFastCapture(usize),
     LoadCapture,
-    //LoadAttr,
+    LoadAttr,
     LoadIndex,
     //LoadFastAttr(usize),
     StoreGlobal(usize),
@@ -176,10 +176,8 @@ impl Runable for Op {
 
             Op::CallArg(args) => {
                 let target = context.pop();
-
                 let target = target.borrow();
                 target.call(context, *args, None)
-                //println!("CallArg returns {:?}", ret);
             }
 
             Op::CallArgNamed(args) => {
@@ -277,13 +275,24 @@ impl Runable for Op {
                 }
             }
 
-            Op::LoadIndex => {
+            Op::LoadAttr => {
                 let attr = context.pop();
                 let attr = attr.borrow();
                 let value = context.pop();
+
+                match Value::get_attr(value, &attr) {
+                    Ok(value) => context.push(value),
+                    Err(msg) => Error::new(None, msg).into_reject(),
+                }
+            }
+
+            Op::LoadIndex => {
+                let index = context.pop();
+                let index = index.borrow();
+                let value = context.pop();
                 let value = value.borrow();
 
-                match value.get_index(&attr) {
+                match value.get_index(&index) {
                     Ok(value) => context.push(value),
                     Err(msg) => Error::new(None, msg).into_reject(),
                 }

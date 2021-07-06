@@ -157,7 +157,6 @@ impl Parser {
         // Statics, Variables & Constants
 
         (Subscript = {
-            [".", T_Identifier, _, (call ast[(value "attribute")])],
             ["[", _, Expression, "]", _, (call ast[(value "index")])]
         }),
 
@@ -174,7 +173,9 @@ impl Parser {
         }),
 
         (Lvalue = {
-            [Variable, (kle Subscript), _, (call ast[(value "lvalue")])]
+            //[Lvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
+            //[Lvalue, (pos Subscript)],
+            [Variable, (call ast[(value "lvalue")])]
         }),
 
         (Load = {
@@ -265,9 +266,10 @@ impl Parser {
         }),
 
         (Rvalue = {
+            [Rvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
+            [Rvalue, (pos Subscript), (call ast[(value "rvalue")])],
             [Rvalue, "(", _, (opt CallParameters), (expect ")"), _,
                 (call ast[(value "call")])],
-            [Atomic, (pos Subscript), (call ast[(value "rvalue")])],
             Atomic
         }),
 
@@ -328,12 +330,12 @@ impl Parser {
             ["loop", ___, Statement, (call ast[(value "op_loop_forever")])],
 
             // assignment
-            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
+            [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
                 _, (expect Expression), (call ast[(value "assign_hold")])],
-            [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add_hold")])],
-            [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub_hold")])],
-            [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul_hold")])],
-            [Lvalue, "/=", _, (expect Expression), (call ast[(value "assign_div_hold")])],
+            [Lvalue, _, "+=", _, (expect Expression), (call ast[(value "assign_add_hold")])],
+            [Lvalue, _, "-=", _, (expect Expression), (call ast[(value "assign_sub_hold")])],
+            [Lvalue, _, "*=", _, (expect Expression), (call ast[(value "assign_mul_hold")])],
+            [Lvalue, _, "/=", _, (expect Expression), (call ast[(value "assign_div_hold")])],
 
             // normal expression starting with LogicalOr
             LogicalOr
@@ -353,12 +355,12 @@ impl Parser {
             ["return", ___, (opt Expression), (call ast[(value "op_accept")])],
             // todo: escape, break, continue?
 
-            [Lvalue, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
+            [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect Expression), (call ast[(value "assign")])],
-            [Lvalue, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
-            [Lvalue, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],
-            [Lvalue, "*=", _, (expect Expression), (call ast[(value "assign_mul")])],
-            [Lvalue, "/=", _, (expect Expression), (call ast[(value "assign_div")])],
+            [Lvalue, _, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
+            [Lvalue, _, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],
+            [Lvalue, _, "*=", _, (expect Expression), (call ast[(value "assign_mul")])],
+            [Lvalue, _, "/=", _, (expect Expression), (call ast[(value "assign_div")])],
 
             Expression
         }),

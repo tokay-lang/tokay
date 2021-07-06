@@ -8,7 +8,7 @@ An imperative, procedural programming language dedicated to parsing and other te
 
 Tokay is a programming language designed for ad-hoc parsing. It is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy and design principles. It might also be useful as a general purpose scripting language, but mainly focuses on processing textual input and work on trees with information extracted from this input.
 
-The language was designed to quickly create solutions in text processing problems, which can be just simple pattern matching but even bigger things. Therefore Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, including interpreters or compilers. For example, Tokay's own language parser is implemented in Tokay itself.
+The language was designed to quickly create solutions in text processing problems, which can be just simple pattern matching but even major things. Therefore Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, including interpreters or compilers. For example, Tokay's own language parser is implemented in Tokay itself.
 
 Tokay is a very young project and gains much potential. [Volunteers are welcome!](#contribute)
 
@@ -76,6 +76,10 @@ faculty : @x {
 faculty(4)
 ```
 
+## Documentation
+
+The full documentation of the language is in progress, and recently updated to the [website tokay.dev](https://tokay.dev). The documentation source code is currently maintained in a [separate repository](https://github.com/phorward/tokay-lang.github.io/).
+
 ## Contribute
 
 Contributions of any kind, might it be code, bug reports + fixes, documentation, support or advertising are always welcome!
@@ -90,9 +94,11 @@ If you want to create a pull request, ensure that `cargo run` and `cargo test` (
 
 ## Logo
 
+The Tokay programming language is named after the [Tokay gecko (Gekko gecko)](https://en.wikipedia.org/wiki/Tokay_gecko) from Asia, shouting out "token" in the night.
+
 The Tokay logo and icon was designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl), many thanks to him!
 
 ## License
 
-Tokay is free software under the MIT license.
+Tokay and its documentation is free software under the MIT license.
 Please see the LICENSE file for more details.

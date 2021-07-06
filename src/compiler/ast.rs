@@ -613,12 +613,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
         // attribute ------------------------------------------------------
         "attribute" => {
-            unimplemented!();
+            let children = node.borrow_by_key("children");
+            let (rvalue, ident) = children.get_list().unwrap().borrow_first_2();
 
-            //let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children")).into_ops(compiler, true);
-            //ops.push(Op::LoadAttr);
+            let mut ops = traverse_node_or_list(compiler, &rvalue).into_ops(compiler, true);
 
-            //AstResult::Ops(ops)
+            ops.extend(
+                traverse_node(compiler, ident.get_dict().unwrap()).into_ops(compiler, false),
+            );
+            ops.push(Op::LoadAttr); // todo: this can probably evaluated during compile-time
+
+            AstResult::Ops(ops)
         }
         // begin ----------------------------------------------------------
         "begin" | "end" => {

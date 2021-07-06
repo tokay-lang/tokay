@@ -11,6 +11,7 @@ use crate::{tokay_embed, tokay_embed_item};
 // Tests expression basics ------------------------------------------------------------------------
 
 #[test]
+// Test for literals
 fn literal() {
     assert_eq!(
         compile_and_run(
@@ -29,6 +30,7 @@ fn literal() {
 }
 
 #[test]
+// Test for expressions
 fn expression() {
     // Simple Integer expressions
     assert_eq!(
@@ -171,9 +173,25 @@ fn expression() {
         ),
         Ok(Some(value!([true, false, true, true, true, false, false])))
     );
+
+    // Unary operations
+    assert_eq!(
+        compile_and_run(
+            "\
+            -1 \
+            (-(-1)) \
+            !true \
+            !!true
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[(-1), 1, false, true]]))
+    );
 }
 
 #[test]
+// Test for operations
 fn operations() {
     // Test assignment-operations
     assert_eq!(
@@ -216,6 +234,7 @@ fn operations() {
 }
 
 #[test]
+// Test for variable store/hold cases
 fn variables() {
     // Test store-hold-global
     assert_eq!(
@@ -275,8 +294,8 @@ fn variables() {
 }
 
 #[test]
+// Test-case for scoping
 fn scoping() {
-    // Test-case for scoping
     assert_eq!(
         compile_and_run(include_str!("tests/testcase_scopes.tok"), "", false),
         Ok(Some(value![[10, 2000, 1072]]))
@@ -286,6 +305,7 @@ fn scoping() {
 // Tests for dicts and lists ----------------------------------------------------------------------
 
 #[test]
+// Test for collection (list, dict) parsing
 fn collections() {
     // Lists
     assert_eq!(
@@ -328,7 +348,8 @@ fn collections() {
 // Tests for tokens -------------------------------------------------------------------------------
 
 #[test]
-fn token() {
+// Test for token modifiers
+fn token_modifiers() {
     let s = "ab abbb bb 123 ABC 456 'def'";
 
     // Simple touch
@@ -393,6 +414,7 @@ fn token() {
 }
 
 #[test]
+// Test for built-in tokens
 fn builtin_tokens() {
     let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
 
@@ -448,6 +470,7 @@ fn builtin_tokens() {
 // Tests for parselets ----------------------------------------------------------------------------
 
 #[test]
+// Testing static function with arguments
 fn parselet_static_with_args() {
     assert_eq!(
         compile_and_run(
@@ -467,6 +490,7 @@ fn parselet_static_with_args() {
 }
 
 #[test]
+// Testing variable function with arguments
 fn parselet_variable_with_args() {
     assert_eq!(
         compile_and_run(
@@ -486,6 +510,7 @@ fn parselet_variable_with_args() {
 }
 
 #[test]
+// Testing left-recursive parselets
 fn parselet_leftrec() {
     assert_eq!(
         compile_and_run("P: @{ P? ''a'' }\nP", "aaaa", false),
@@ -496,6 +521,7 @@ fn parselet_leftrec() {
 }
 
 #[test]
+// Testing compile- and run-time error reporting
 fn parselet_call_error_reporting() {
     // Tests for calling functions with wrong parameter counts
     for (call, msg) in [
@@ -522,6 +548,7 @@ fn parselet_call_error_reporting() {
 }
 
 #[test]
+// Testing examples provided in the examples folder
 fn examples() {
     assert_eq!(
         compile_and_run(
@@ -586,6 +613,7 @@ fn examples() {
 }
 
 #[test]
+// Testing sequence captures
 fn capture() {
     assert_eq!(
         compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab", false),
@@ -601,6 +629,7 @@ fn capture() {
 // Tests for control flow -------------------------------------------------------------------------
 
 #[test]
+// Testing parselet begin and end special patterns
 fn begin_end() {
     assert_eq!(
         compile_and_run(
@@ -644,6 +673,7 @@ fn begin_end() {
 }
 
 #[test]
+// Testing parselet repeat
 fn repeat() {
     assert_eq!(
         compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
@@ -654,6 +684,7 @@ fn repeat() {
 }
 
 #[test]
+// Testing if...else construct
 fn if_else() {
     // These expressions are optimized by the compiler
     assert_eq!(
@@ -688,6 +719,7 @@ fn if_else() {
 }
 
 #[test]
+// tests for push and next
 fn push_next() {
     assert_eq!(
         compile_and_run(
@@ -730,9 +762,8 @@ fn run_testcase(code: &'static str) {
 }
 
 #[test]
+// Testing several special parsing constructs and error reporting
 fn compiler_structure() {
-    // Testing several parsing constructs
-
     // Tests for blocks and empty blocks
     assert_eq!(
         compile_and_run(
@@ -762,20 +793,39 @@ fn compiler_structure() {
 }
 
 #[test]
+// Tests for correct identifier names for various value types
 fn compiler_identifier_naming() {
-    // Tests for correct identifier names for various value types
     run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
 }
 
 #[test]
+// Tests for compiler string, match and ccl escaping
 fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
-            "\"test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F929\"",
+            "\"test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F98E\"",
             "",
             false
         ),
-        Ok(Some(value!("test\\yes\nÊþ\t@_€🤩")))
+        Ok(Some(value!("test\\yes\nÊþ\t@_€🦎")))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            "'hello\\nworld'", // double \ quotation required
+            "hello\nworld",
+            false
+        ),
+        Ok(Some(value!("hello\nworld")))
+    );
+
+    assert_eq!(
+        compile_and_run(
+            "[0-9\\u20ac]+", // double \ quotation required
+            "12345€ €12345",
+            false
+        ),
+        Ok(Some(value!(["12345€", "€12345"])))
     );
 
     assert_eq!(
@@ -800,6 +850,7 @@ fn compiler_unescaping() {
 // Tests for builtins -----------------------------------------------------------------------------
 
 #[test]
+// Tests for builtin functions
 fn builtins() {
     // ord/chr
     assert_eq!(
@@ -821,6 +872,37 @@ fn builtins() {
             "Line 1, column 1: ord() expected single character, but received string of length 0"
                 .to_string()
         )
+    );
+}
+
+#[test]
+// Tests for builtin string functions
+fn builtins_str() {
+    assert_eq!(
+        compile_and_run(
+            "
+            \"abcäöü\".upper() \
+            \"ABCÄÖÜ\".lower() \
+            \"hello world\".replace(\"l\") \
+            \"hello world\".replace(\"l\", n=2) \
+            \"hello world\".replace(\"l\", \"x\") \
+            \"hello world\".replace(\"l\", \"x\", 2) \
+            \"hello world\".replace(\"l\").upper() \
+            \"Tokay\".upper()[1] \
+            ",
+            "",
+            false
+        ),
+        Ok(Some(value![[
+            "ABCÄÖÜ",
+            "abcäöü",
+            "heo word",
+            "heo world",
+            "hexxo worxd",
+            "hexxo world",
+            "HEO WORD",
+            "O"
+        ]]))
     );
 }
 

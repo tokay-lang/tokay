@@ -95,9 +95,10 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),               // Token
-    Parselet(Rc<RefCell<Parselet>>), // Parselet
-    Builtin(usize),                  // Builtin
+    Token(Box<Token>),                 // Token
+    Parselet(Rc<RefCell<Parselet>>),   // Parselet
+    Builtin(usize),                    // Builtin
+    Method(Box<(RefValue, RefValue)>), // Method
 }
 
 /** Value construction helper-macro
@@ -376,8 +377,16 @@ impl Value {
                 ret.push(')');
                 ret
             }
-            Self::Parselet(p) => format!("<parselet {:?}>", p),
+            Self::Parselet(p) => {
+                let p = &*p.borrow();
+                if let Some(name) = p.name.as_ref() {
+                    format!("<parselet {}>", name)
+                } else {
+                    format!("<parselet {}>", p as *const Parselet as usize)
+                }
+            }
             Self::Builtin(b) => format!("<builtin {:?}>", b),
+            Self::Method(m) => format!("<method {}.{}>", m.0.borrow().repr(), m.1.borrow().repr()),
             other => other.to_string(),
         }
     }
@@ -477,6 +486,14 @@ impl Value {
     /// Retrieve index from a value.
     pub fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         match self {
+            Self::String(s) => {
+                let index = index.to_addr();
+                if let Some(ch) = s.chars().nth(index) {
+                    Ok(Value::String(format!("{}", ch)).into_refvalue())
+                } else {
+                    Err(format!("Index {} beyond end of string", index))
+                }
+            }
             Self::List(l) => {
                 let index = index.to_addr();
                 if let Some(value) = l.get(index) {
@@ -497,12 +514,58 @@ impl Value {
         }
     }
 
+    /// Retrieve attribute from a refvalue.
+    /// Currently this is only a built-in mapping with a value.
+    pub fn get_attr(this: RefValue, attr: &Value) -> Result<RefValue, String> {
+        let value = &*this.borrow();
+
+        let prefix = match value {
+            Self::String(_) => "str",
+            Self::Dict(_) => "dict",
+            Self::List(_) => "list",
+            _ => {
+                return Err(format!(
+                    "Value '{}' doesn't allow for attribute access",
+                    value.repr()
+                ))
+            }
+        };
+
+        let attr = attr.get_string().unwrap();
+        match attr {
+            "len" => Ok(Value::Addr(value.get_attr_len()).into_refvalue()),
+            _ => {
+                let name = format!("{}_{}", prefix, attr);
+
+                if let Some(builtin) = builtin::get(&name) {
+                    return Ok(Value::Method(Box::new((
+                        this.clone(),
+                        Value::Builtin(builtin).into_refvalue(),
+                    )))
+                    .into_refvalue());
+                }
+
+                Err(format!("Method '{}' not found", name))
+            }
+        }
+    }
+
+    pub fn get_attr_len(&self) -> usize {
+        match self {
+            Value::String(s) => s.chars().count(),
+            Value::Dict(d) => d.len(),
+            Value::List(l) => l.len(),
+            _ => 0,
+        }
+    }
+
     /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
             Value::Token(_) => !with_arguments,
             Value::Builtin(_) => true,
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
+            Value::Method(method) => method.1.borrow().is_callable(with_arguments),
             _ => false,
         }
     }
@@ -541,6 +604,14 @@ impl Value {
             }
             Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
+            Value::Method(method) => {
+                // Method call injects the related object into the stack and calls the method afterwards.
+                context.runtime.stack.insert(
+                    context.runtime.stack.len() - args,
+                    Capture::Value(method.0.clone(), None, 0),
+                );
+                method.1.borrow().call(context, args + 1, nargs)
+            }
             _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
         }
     }
@@ -583,14 +654,7 @@ impl Value {
         match (self, rhs) {
             // When one is String and one is something else...
             (Value::String(s), n) | (n, Value::String(s)) => {
-                let n = n.to_integer();
-                let mut r = String::new();
-
-                for _ in 0..n {
-                    r += &s;
-                }
-
-                Ok(Value::String(r))
+                Ok(Value::String(s.repeat(n.to_addr())))
             }
 
             // When one is Float...
