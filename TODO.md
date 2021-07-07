@@ -13,6 +13,10 @@ This is a recently updated brainstorming and todo scribble file.
   - [ ] Import constants from other module
   - [ ] Run other module as separate programs and work on resulting values
   - [ ] Pass string to separate tokay process (`tokay`-keyword, `@>` operator?)
+- [ ] Implement loops
+  - `for` construct
+  - `loop` construct
+  - Implement `break` and `continue`
 
 ## General
 
@@ -43,12 +47,6 @@ Syntax is under careful consideration.
   - [ ] Operators `|>` and `<|` for shell command read/write?
 - [ ] *deref-Operator to avoid automatic calling values when they are directly callable
 - [ ] Parselets should allow for *args and **nargs catchall
-- [ ] Use generic `loop` keyword for loops (instead of `for`, `while` or `do...while`)
-  - [ ] `loop i in iter`
-  - [ ] `loop i = 0; i < 10; print(i++)`
-  - [ ] `loop i = 0; ; print(i++) if i > 100 break`
-  - [ ] `loop {}`
-  - [ ] Loops with value collection using `continue` and `break`
 - [ ] Token operators as generics (see on Priority also)
   - [ ] `until`-Operator (not available yet, but might be `Until<P, Escape=Void>`)
   - [ ] `not`-Operator (`Not<P>`)
@@ -64,7 +62,7 @@ Syntax is under careful consideration.
 ## Compiler
 
 - [ ] Parser improvements
-  - [ ] Unescaping of character-class items
+  - [x] Unescaping of character-class items
   - [ ] Use built-in tokens like Integer or Float on appropriate positions
 
 ## REPL

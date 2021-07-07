@@ -78,7 +78,7 @@ faculty(4)
 
 ## Documentation
 
-The full documentation of the language is in progress, and recently updated to the [website tokay.dev](https://tokay.dev). The documentation source code is currently maintained in a [separate repository](https://github.com/phorward/tokay-lang.github.io/).
+The full documentation of the language is currently work-in-progress, and can be obtained on the website [tokay.dev](https://tokay.dev). The documentation source code is maintained in a [separate repository](https://github.com/phorward/tokay-lang.github.io/).
 
 ## Contribute
 
