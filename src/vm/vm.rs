@@ -67,11 +67,13 @@ impl Capture {
 /// Representing the Ok-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Accept {
-    Next,
-    Skip,
-    Push(Capture),
-    Repeat(Option<RefValue>),
-    Return(Option<RefValue>),
+    Next,                     // soft-accept, push void, run next
+    Skip,                     // soft-accept, push nothing, run next
+    Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
+    Break(Option<RefValue>), // soft-accept, break a loop with optional push value ('break'-keyword)
+    Continue,                // soft-accept, continue a loop ('continue'-keyword)
+    Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
+    Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
 }
 
 // --- Reject ------------------------------------------------------------------
@@ -79,11 +81,11 @@ pub enum Accept {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,
-    Skip,
-    Return,
-    Main,
-    Error(Box<Error>),
+    Next,              // soft-reject, skip to next sequence
+    Skip,              // soft-reject, silently drop current parselet
+    Return,            // hard-reject current parselet ('reject'-keyword)
+    Main,              // hard-reject current parselet and exit to main scope ('escape'-keyword)
+    Error(Box<Error>), //hard-reject with error message (runtime error)
 }
 
 impl From<Error> for Reject {

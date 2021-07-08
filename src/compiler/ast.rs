@@ -929,7 +929,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let mut ops = Vec::new();
 
             let op = match parts[1] {
-                "accept" | "push" | "repeat" => {
+                "accept" | "break" | "push" | "repeat" => {
                     if let Some(value) = node.get("children") {
                         let value = value.borrow();
                         ops.extend(
@@ -938,6 +938,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         );
                         match parts[1] {
                             "accept" => Op::LoadAccept,
+                            "break" => Op::LoadBreak,
                             "push" => Op::LoadPush,
                             "repeat" => Op::LoadRepeat,
                             _ => unreachable!(),
@@ -945,6 +946,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     } else {
                         match parts[1] {
                             "accept" => Op::Accept,
+                            "break" => Op::Break,
                             "push" => Op::Push,
                             "repeat" => Op::Repeat,
                             _ => unreachable!(),
@@ -952,6 +954,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     }
                 }
 
+                "continue" => Op::Continue,
                 "next" => Op::Next,
                 "reject" => Op::Reject,
 
@@ -1195,7 +1198,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     }
                 }
 
-                "if" | "ifelse" => {
+                "if" => {
                     let children = node.borrow_by_key("children");
                     let children = children.get_list().unwrap();
 
@@ -1224,6 +1227,25 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         Op::from_vec(then.into_ops(compiler, true)),
                         eelse.and_then(|eelse| Some(Op::from_vec(eelse.into_ops(compiler, true)))),
                     )))
+                }
+
+                "loop" => {
+                    let children = node.borrow_by_key("children");
+                    let children = children.get_list().unwrap();
+
+                    let mut ops = traverse_node_or_list(compiler, &children[0].borrow())
+                        .into_ops(compiler, true);
+
+                    // In case the node has two children, the first child is the condition
+                    if children.len() == 2 {
+                        ops.extend(vec![Op::IfFalse(Op::Break.into_box()), Op::Drop]);
+                        ops.extend(
+                            traverse_node_or_list(compiler, &children[1].borrow())
+                                .into_ops(compiler, true),
+                        );
+                    }
+
+                    Op::Loop(Op::from_vec(ops).into_box())
                 }
 
                 _ => {

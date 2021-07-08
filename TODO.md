@@ -17,6 +17,7 @@ This is a recently updated brainstorming and todo scribble file.
   - `for` construct
   - `loop` construct
   - Implement `break` and `continue`
+- [ ] Implement the escape keyword
 
 ## General
 

@@ -29,15 +29,18 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Interrupts
-    Skip,
-    Next,
-    Push,
-    LoadPush,
-    Accept,
-    LoadAccept,
-    Repeat,
-    LoadRepeat,
-    Reject,
+    Skip,       // Err(Reject::Skip)
+    Next,       // Ok(Accept::Next)
+    Push,       // Ok(Accept::Push)
+    Continue,   // Ok(Accept::Continue)
+    LoadPush,   // Ok(Accept::Push) with value
+    Break,      // Ok(Accept::Break)
+    LoadBreak,  // Ok(Accept::Break) with value
+    Accept,     // Ok(Accept::Return)
+    LoadAccept, // Ok(Accept::Return) with value
+    Repeat,     // Ok(Accept::Repeat)
+    LoadRepeat, // Ok(Accept::Repeat) with value
+    Reject,     // Ok(Err::Reject)
 
     // Constants
     LoadStatic(usize), // Load static from statics
@@ -102,6 +105,7 @@ pub enum Op {
 
     // Flow
     If(Box<(Op, Option<Op>)>),
+    Loop(Box<Op>),
 }
 
 impl Op {
@@ -216,20 +220,29 @@ impl Runable for Op {
             // Execution
             Op::Skip => Err(Reject::Skip),
             Op::Next => Err(Reject::Next),
+            Op::Continue => Ok(Accept::Continue),
+
             Op::Push => Ok(Accept::Push(Capture::Empty)),
             Op::LoadPush => {
                 let value = context.pop();
-                Ok(Accept::Push(Capture::Value(value, None, 15)))
+                Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
             }
+
+            Op::Break => Ok(Accept::Break(None)),
+            Op::LoadBreak => {
+                let value = context.pop();
+                Ok(Accept::Break(Some(value)))
+            }
+
             Op::Accept => Ok(Accept::Return(None)),
             Op::LoadAccept => {
                 let value = context.pop();
-                Ok(Accept::Return(Some(value.clone())))
+                Ok(Accept::Return(Some(value)))
             }
             Op::Repeat => Ok(Accept::Repeat(None)),
             Op::LoadRepeat => {
                 let value = context.pop();
-                Ok(Accept::Repeat(Some(value.clone())))
+                Ok(Accept::Repeat(Some(value)))
             }
             Op::Reject => Err(Reject::Return),
 
@@ -466,11 +479,9 @@ impl Runable for Op {
                 let b = context.pop();
                 let a = context.pop();
 
-                /*
-                println!("{:?}", self);
-                println!("a = {:?}", a);
-                println!("b = {:?}", b);
-                */
+                //println!("{:?}", self);
+                //println!("a = {:?}", a);
+                //println!("b = {:?}", b);
 
                 let c = match self {
                     Op::Equal => &*a.borrow() == &*b.borrow(),
@@ -482,6 +493,8 @@ impl Runable for Op {
 
                     _ => unimplemented!("Unimplemented operator"),
                 };
+
+                //println!("c = {:?}", c);
 
                 context.push((if c { Value::True } else { Value::False }).into_refvalue())
             }
@@ -520,7 +533,7 @@ impl Runable for Op {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = value.add(&Value::Integer(1))?;
+                *value = value.add(&Value::Integer(1))?;  // todo: perform inc by bit-shift
                 context.push(value.clone().into_refvalue())
             }
 
@@ -528,7 +541,7 @@ impl Runable for Op {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = value.sub(&Value::Integer(1))?;
+                *value = value.sub(&Value::Integer(1))?;  // todo: perform dec by bit-shift
                 context.push(value.clone().into_refvalue())
             }
 
@@ -559,6 +572,19 @@ impl Runable for Op {
                     Ok(Accept::Next)
                 }
             }
+
+            Op::Loop(body) => loop {
+                let ret = body.run(context);
+                //println!("loop {:?}", ret);
+                match ret {
+                    Ok(Accept::Next | Accept::Continue) => {}
+                    Ok(Accept::Break(Some(value))) => {
+                        break Ok(Accept::Push(Capture::Value(value, None, 10)))
+                    }
+                    Ok(Accept::Break(None)) => break Ok(Accept::Next),
+                    other => break other,
+                }
+            },
         }
     }
 
@@ -566,6 +592,7 @@ impl Runable for Op {
         match self {
             Op::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
             Op::Runable(runable) => runable.resolve(usages),
+            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.resolve(usages),
             Op::If(then_else) => {
                 then_else.0.resolve(usages);
                 then_else.1.as_mut().map(|eelse| eelse.resolve(usages));
@@ -628,6 +655,8 @@ impl Runable for Op {
                     }
                 }
             }
+
+            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.finalize(statics, stack),
 
             Op::If(then_else) => {
                 let then = then_else.0.finalize(statics, stack);

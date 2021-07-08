@@ -315,19 +315,22 @@ impl Parser {
 
         (Expression = {
             // if
-            ["if", ___, Expression, Statement, (kle [T_EOL, _]), "else", ___, Statement, (call ast[(value "op_ifelse")])],
+            ["if", ___, Expression, Statement, (kle [T_EOL, _]),
+                "else", ___, Statement, (call ast[(value "op_if")])],
             ["if", ___, Expression, Statement, (call ast[(value "op_if")])],
             ["if", ___, (call error[(value "'if': Expecting condition and statement")])],
 
             // for
+            /*
             ["for", ___, T_Identifier, _, "in", _, Expression, Statement, (call ast[(value "op_for_in")])],
             ["for", ___, StatementOrVoid, ";", _, StatementOrVoid, ";", _, StatementOrVoid, (opt T_EOL), _,
                 StatementOrVoid, (call ast[(value "op_for")])],
             ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+            */
 
             // loop
-            ["loop", ___, Expression, _, (opt T_EOL), _, Statement, (call ast[(value "op_loop")])],
-            ["loop", ___, Statement, (call ast[(value "op_loop_forever")])],
+            ["loop", ___, Expression, _, Statement, (call ast[(value "op_loop")])],
+            ["loop", ___, Statement, (call ast[(value "op_loop")])],
 
             // assignment
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
@@ -348,12 +351,14 @@ impl Parser {
 
         (Statement = {
             ["accept", ___, (opt Expression), (call ast[(value "op_accept")])],
+            ["break", ___, (opt Expression), (call ast[(value "op_break")])],
+            ["continue", ___, (opt Expression), (call ast[(value "op_continue")])],
             ["next", ___, (call ast[(value "op_next")])],
             ["push", ___, (opt Expression), (call ast[(value "op_push")])],
             ["reject", ___, (call ast[(value "op_reject")])],
             ["repeat", ___, (opt Expression), (call ast[(value "op_repeat")])],
             ["return", ___, (opt Expression), (call ast[(value "op_accept")])],
-            // todo: escape, break, continue?
+            // todo: escape?
 
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect Expression), (call ast[(value "assign")])],
