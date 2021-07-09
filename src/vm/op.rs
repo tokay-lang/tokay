@@ -533,7 +533,7 @@ impl Runable for Op {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = value.add(&Value::Integer(1))?;  // todo: perform inc by bit-shift
+                *value = value.add(&Value::Integer(1))?; // todo: perform inc by bit-shift
                 context.push(value.clone().into_refvalue())
             }
 
@@ -541,7 +541,7 @@ impl Runable for Op {
                 let value = context.pop();
                 let mut value = value.borrow_mut();
 
-                *value = value.sub(&Value::Integer(1))?;  // todo: perform dec by bit-shift
+                *value = value.sub(&Value::Integer(1))?; // todo: perform dec by bit-shift
                 context.push(value.clone().into_refvalue())
             }
 

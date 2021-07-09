@@ -27,7 +27,8 @@ macro_rules! tokay_embed_item {
     // Assign whitespace
     ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
-            $compiler.push_scope(true);
+            $compiler.push_parselet();
+            $compiler.mark_consuming();
 
             let items = vec![
                 $(
@@ -44,13 +45,11 @@ macro_rules! tokay_embed_item {
 
             //let body = Repeat::new(body, 0, 0, true);  //this became obsolete by the compiler!
 
-            let parselet = $compiler.create_parselet(
+            let parselet = $compiler.pop_parselet(
                 Some("_".to_string()),
                 Vec::new(),
                 body,
-                Some(true),  // always flag consuming!
-                true,
-                false).into_value().into_refvalue();
+                true).into_value().into_refvalue();
 
             $compiler.set_constant("_", parselet);
 
@@ -68,7 +67,8 @@ macro_rules! tokay_embed_item {
                 panic!("Parselet identifier must begin with an upper-case letter or underscore!");
             }
 
-            $compiler.push_scope(true);
+            $compiler.push_parselet();
+            $compiler.mark_consuming();
 
             let items = vec![
                 $(
@@ -83,12 +83,10 @@ macro_rules! tokay_embed_item {
                     .collect()
             );
 
-            let parselet = $compiler.create_parselet(
+            let parselet = $compiler.pop_parselet(
                 Some(stringify!($name).to_string()),
                 Vec::new(),
                 body,
-                Some(true),  // always flag consuming!
-                false,
                 false
             ).into_value().into_refvalue();
 
@@ -285,20 +283,21 @@ macro_rules! tokay_embed {
     ( $( $items:tt ),* ) => {
         {
             let mut compiler = Compiler::new();
+
+            compiler.push_parselet();  // Main
+            compiler.mark_consuming();
+
             //compiler.debug = true;
             let main = tokay_embed_item!(compiler, $( $items ),*);
 
-            if let Some(main) = main {
-                let parselet = compiler.create_parselet(
-                    Some("__main__".to_string()),
-                    Vec::new(),
-                    main,
-                    Some(true),  // always flag consuming!
-                    false,
-                    true
-                ).into_value().into_refvalue();
-                compiler.define_static(parselet);
-            }
+            let parselet = compiler.pop_parselet(
+                Some("__main__".to_string()),
+                Vec::new(),
+                main.unwrap_or(Op::Nop),
+                false
+            ).into_value().into_refvalue();
+
+            compiler.define_static(parselet);
 
             match compiler.to_program() {
                 Ok(program) => {

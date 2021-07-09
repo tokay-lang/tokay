@@ -36,7 +36,7 @@ impl AstResult {
 
                 vec![if call && inner.is_callable(false) {
                     if let Value::Token(_) = &*inner {
-                        compiler.scopes[0].consuming = true;
+                        compiler.mark_consuming();
                     }
 
                     Op::CallStatic(compiler.define_static(value.clone()))
@@ -259,7 +259,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
 
         // Parselets
         "value_parselet" => {
-            compiler.push_scope(true);
+            compiler.push_parselet();
 
             let children = node.borrow_by_key("children");
 
@@ -333,9 +333,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
             let body = traverse_node(compiler, &body.get_dict().unwrap());
             let body = Op::from_vec(body.into_ops(compiler, true));
 
-            compiler
-                .create_parselet(None, sig, body, None, false, false)
-                .into_value()
+            compiler.pop_parselet(None, sig, body, false).into_value()
         }
         _ => unimplemented!("unhandled value node {}", emit),
     }
@@ -347,15 +345,17 @@ The value must either be a literal or something from a known constant.
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
 fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> RefValue {
-    compiler.push_scope(true);
+    compiler.push_parselet(); // yep, we push a parselet scope here...
 
+    // ... because when case AstResult::Ops is returned here,
+    // it would be nice to have it in a separate scope.
     match traverse_node(compiler, node) {
         AstResult::Empty => {
-            compiler.pop_scope();
+            compiler.pop_parselet(None, Vec::new(), Op::Nop, false);
             Value::Void.into_refvalue()
         }
         AstResult::Value(value) => {
-            compiler.pop_scope();
+            compiler.pop_parselet(None, Vec::new(), Op::Nop, false);
 
             if let Some(lvalue) = lvalue {
                 if let Value::Parselet(parselet) = &*value.borrow() {
@@ -373,12 +373,10 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             };
 
             compiler
-                .create_parselet(
+                .pop_parselet(
                     lvalue.and_then(|lvalue| Some(lvalue.to_string())),
                     Vec::new(),
                     Op::from_vec(ops),
-                    None,
-                    false,
                     false,
                 )
                 .into_value()
@@ -627,20 +625,20 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         }
         // begin ----------------------------------------------------------
         "begin" | "end" => {
-            if compiler.scopes[0].variables.is_none() {
-                compiler.errors.push(Error::new(
-                    traverse_node_offset(node),
-                    format!("'{}' may only be used in parselet scope", emit),
-                ))
-            }
-
             let ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
                 .into_ops(compiler, true);
 
-            if emit == "begin" {
-                compiler.scopes[0].begin.push(Op::from_vec(ops))
+            if let Scope::Parselet { begin, end, .. } = &mut compiler.scopes[0] {
+                if emit == "begin" {
+                    begin.push(Op::from_vec(ops))
+                } else {
+                    end.push(Op::from_vec(ops))
+                }
             } else {
-                compiler.scopes[0].end.push(Op::from_vec(ops))
+                compiler.errors.push(Error::new(
+                    traverse_node_offset(node),
+                    format!("'{}' may only be used in parselet scope", emit),
+                ));
             }
 
             AstResult::Empty
@@ -649,8 +647,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         // block ----------------------------------------------------------
         "block" => {
             if let Some(children) = node.get("children") {
+                compiler.push_block();
                 let body =
                     traverse_node_or_list(compiler, &children.borrow()).into_ops(compiler, true);
+                compiler.pop_block();
 
                 AstResult::Ops(if body.len() > 1 {
                     vec![Block::new(body)]
@@ -738,7 +738,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
             if let AstResult::Identifier(ident, offset) = callee {
                 if identifier_is_consumable(&ident) {
-                    compiler.scopes[0].consuming = true;
+                    compiler.mark_consuming();
                 }
 
                 ops.extend(
@@ -832,7 +832,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             compiler.set_constant(ident, value);
 
             // Try to resolve usage of newly introduced constant in current scope
-            compiler.resolve_scope();
+            compiler.resolve();
 
             AstResult::Empty
         }
@@ -905,8 +905,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         "main" => {
             let children = node.borrow_by_key("children");
 
+            compiler.push_parselet(); // Main
+
             let body = traverse_node_or_list(compiler, &children).into_ops(compiler, true);
-            let main = compiler.create_parselet(
+
+            let main = compiler.pop_parselet(
                 Some("__main__".to_string()),
                 Vec::new(),
                 match body.len() {
@@ -914,9 +917,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     1 => body.into_iter().next().unwrap(),
                     _ => Block::new(body),
                 },
-                None,
                 false,
-                true,
             );
 
             compiler.define_static(main.into_value().into_refvalue());
@@ -930,6 +931,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
             let op = match parts[1] {
                 "accept" | "break" | "push" | "repeat" => {
+                    if parts[1] == "break" && !compiler.check_loop() {
+                        compiler.errors.push(Error::new(
+                            traverse_node_offset(node),
+                            format!("'break' cannot be used outside of a loop."),
+                        ));
+                    }
+
                     if let Some(value) = node.get("children") {
                         let value = value.borrow();
                         ops.extend(
@@ -954,7 +962,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     }
                 }
 
-                "continue" => Op::Continue,
+                "continue" => {
+                    if !compiler.check_loop() {
+                        compiler.errors.push(Error::new(
+                            traverse_node_offset(node),
+                            format!("'continue' cannot be used outside of a loop."),
+                        ));
+                    }
+
+                    Op::Continue
+                }
                 "next" => Op::Next,
                 "reject" => Op::Reject,
 
@@ -1103,11 +1120,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     let children = node.borrow_by_key("children");
                     let children = children.get_dict().unwrap();
 
-                    //compiler.push_scope(false);
-
                     let res = traverse_node(compiler, children);
-
-                    //let scope = compiler.pop_scope();
 
                     // Special operations for Token::Char
                     if let AstResult::Value(value) = &res {
@@ -1122,7 +1135,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                 ),
                             ));
                         } else {
-                            compiler.scopes[0].consuming = true;
+                            compiler.mark_consuming();
                         }
 
                         if let Value::Token(token) = &*value {
@@ -1231,7 +1244,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                 "loop" => {
                     let children = node.borrow_by_key("children");
-                    let children = children.get_list().unwrap();
+                    let children = children.to_list();
+
+                    compiler.push_loop();
 
                     let mut ops = traverse_node_or_list(compiler, &children[0].borrow())
                         .into_ops(compiler, true);
@@ -1244,6 +1259,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                 .into_ops(compiler, true),
                         );
                     }
+
+                    compiler.pop_loop();
 
                     Op::Loop(Op::from_vec(ops).into_box())
                 }

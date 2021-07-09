@@ -14,16 +14,27 @@ use crate::vm::*;
 
 /** Compiler symbolic scope.
 
-In Tokay code, this relates to any block. Parselet blocks (parselets) introduce new variable scopes.
+In Tokay code, this relates to any block.
+Parselets introduce new variable scopes.
+Loops introduce a new loop scope.
 */
 #[derive(Debug)]
-pub(crate) struct Scope {
-    pub(super) variables: Option<HashMap<String, usize>>, // Variable symbol table; Determines whether a scope is a parselet-level scope or just block scope
-    constants: HashMap<String, RefValue>,                 // Constants symbol table
-    pub(super) begin: Vec<Op>, // Begin operations; Can only be set for parselet-scopes
-    pub(super) end: Vec<Op>,   // End operations; Can only be set for parselet-scopes
-    usage_start: usize,        // Begin of usages to resolve until when scope is closed
-    pub(super) consuming: bool, // Determines whether the scope is consuming input for early consumable detection
+pub(crate) enum Scope {
+    Parselet {
+        // parselet-level scope (variables and constants can be defined here)
+        usage_start: usize, // Begin of usages to resolve until when scope is closed
+        constants: HashMap<String, RefValue>, // Constants symbol table
+        variables: HashMap<String, usize>, // Variable symbol table
+        begin: Vec<Op>,     // Begin operations
+        end: Vec<Op>,       // End operations
+        consuming: bool, // Determines whether the scope is consuming input for early consumable detection
+    },
+    Block {
+        // block level (constants can be defined here)
+        usage_start: usize, // Begin of usages to resolve until when scope is closed
+        constants: HashMap<String, RefValue>, // Constants symbol table
+    },
+    Loop, // loop level (allows use of break & continue)
 }
 
 /** Tokay compiler instance
@@ -46,7 +57,7 @@ pub struct Compiler {
 impl Compiler {
     pub fn new() -> Self {
         // Initialize new compiler.
-        let mut compiler = Self {
+        Self {
             parser: None,
             debug: false,
             interactive: false,
@@ -54,21 +65,13 @@ impl Compiler {
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
-        };
-
-        compiler.push_scope(true); // Main scope
-        compiler
+        }
     }
 
     /** Compile a Tokay program from source into a Program struct.
 
     In case None is returend, causing errors where already reported to stdout. */
     pub fn compile(&mut self, reader: Reader) -> Result<Program, Vec<Error>> {
-        // Push a main scope on if not present
-        if self.scopes.len() == 0 {
-            self.push_scope(true); // Main scope
-        }
-
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -118,16 +121,7 @@ impl Compiler {
         let mut errors: Vec<Error> = self.errors.drain(..).collect();
 
         // Close all scopes except main
-        while self.scopes.len() > 1 {
-            self.pop_scope();
-        }
-
-        // Either resolve or pop global scope
-        if self.interactive {
-            self.resolve_scope();
-        } else {
-            self.pop_scope();
-        }
+        assert!(self.scopes.len() == 0 || (self.scopes.len() == 1 && self.interactive));
 
         let statics: Vec<RefValue> = if self.interactive {
             self.statics.borrow().clone()
@@ -179,129 +173,158 @@ impl Compiler {
         Ok(Program::new(statics))
     }
 
-    /// Introduces a new scope, either for variables or constants only.
-    pub(crate) fn push_scope(&mut self, has_variables: bool) {
-        self.scopes.insert(
-            0,
-            Scope {
-                variables: if has_variables {
-                    Some(HashMap::new())
-                } else {
-                    None
-                },
-                constants: HashMap::new(),
-                begin: Vec::new(),
-                end: Vec::new(),
-                usage_start: self.usages.len(),
-                consuming: false,
-            },
-        );
-    }
-
     /// Resolves usages from current scope
-    pub(super) fn resolve_scope(&mut self) {
-        // Cut out usages created inside this scope for processing
-        let usages: Vec<Result<Vec<Op>, Usage>> =
-            self.usages.drain(self.scopes[0].usage_start..).collect();
+    pub(super) fn resolve(&mut self) {
+        if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
+            &self.scopes[0]
+        {
+            // Cut out usages created inside this scope for processing
+            let usages: Vec<Result<Vec<Op>, Usage>> = self.usages.drain(usage_start..).collect();
 
-        // Afterwards, resolve and insert them again
-        for usage in usages.into_iter() {
-            match usage {
-                Err(mut usage) => {
-                    if let Some(res) = usage.try_resolve(self) {
-                        self.usages.push(Ok(res))
-                    } else {
-                        self.usages.push(Err(usage))
+            // Afterwards, resolve and insert them again
+            for usage in usages.into_iter() {
+                match usage {
+                    Err(mut usage) => {
+                        if let Some(res) = usage.try_resolve(self) {
+                            self.usages.push(Ok(res))
+                        } else {
+                            self.usages.push(Err(usage))
+                        }
                     }
+                    Ok(res) => self.usages.push(Ok(res)),
                 }
-                Ok(res) => self.usages.push(Ok(res)),
             }
         }
     }
 
-    /// Resolves and pops a scope.
-    pub(super) fn pop_scope(&mut self) -> Scope {
-        if self.scopes.len() == 0 {
-            panic!("No more scopes to pop!");
-        }
-
-        self.resolve_scope();
-
-        // Now scope can be removed
-        let scope = self.scopes.remove(0);
-
-        // Inherit consumable attribute to upper scope when this is not a variable-holding scope
-        if scope.consuming && self.scopes.len() > 0 && self.scopes[0].variables.is_none() {
-            self.scopes[0].consuming = true;
-        }
-
-        scope
+    /// Push a parselet scope
+    pub(crate) fn push_parselet(&mut self) {
+        self.scopes.insert(
+            0,
+            Scope::Parselet {
+                usage_start: self.usages.len(),
+                variables: HashMap::new(),
+                constants: HashMap::new(),
+                begin: Vec::new(),
+                end: Vec::new(),
+                consuming: false,
+            },
+        )
     }
 
-    /// Resolves and pops a scope and creates a new parselet from it
-    pub(crate) fn create_parselet(
+    /// Push a block scope
+    pub(crate) fn push_block(&mut self) {
+        self.scopes.insert(
+            0,
+            Scope::Block {
+                usage_start: self.usages.len(),
+                constants: HashMap::new(),
+            },
+        )
+    }
+
+    /// Push a loop scope
+    pub(crate) fn push_loop(&mut self) {
+        self.scopes.insert(0, Scope::Loop);
+    }
+
+    /// Resolves and drops a parselet scope and creates a new parselet from it.
+    pub(crate) fn pop_parselet(
         &mut self,
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: Op,
-        consuming: Option<bool>,
         silent: bool,
-        main: bool,
     ) -> Parselet {
-        fn ensure_block(ops: Vec<Op>) -> Op {
-            match ops.len() {
-                0 => Op::Nop,
-                1 => ops.into_iter().next().unwrap(),
-                _ => Block::new(ops).into_op(),
-            }
-        }
+        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
-        if main {
-            assert!(
-                self.scopes[0].variables.is_some(),
-                "Main scope must be a parselet-level scope."
-            );
+        self.resolve();
+        let mut scope = self.scopes.remove(0);
 
-            Parselet::new(
-                name,
-                sig,
-                self.scopes[0]
-                    .variables
-                    .as_ref()
-                    .map_or(0, |vars| vars.len()),
-                consuming.unwrap_or(self.scopes[0].consuming),
-                silent,
-                ensure_block(self.scopes[0].begin.drain(..).collect()),
-                ensure_block(self.scopes[0].end.drain(..).collect()),
-                body,
-            )
-        } else {
-            loop {
-                let scope = self.pop_scope();
-                if scope.variables.is_some() {
-                    break Parselet::new(
-                        name,
-                        sig,
-                        scope.variables.map_or(0, |vars| vars.len()),
-                        consuming.unwrap_or(scope.consuming),
-                        silent,
-                        ensure_block(scope.begin),
-                        ensure_block(scope.end),
-                        body,
-                    );
+        if let Scope::Parselet {
+            variables,
+            begin,
+            end,
+            consuming,
+            ..
+        } = &mut scope
+        {
+            fn ensure_block(ops: Vec<Op>) -> Op {
+                match ops.len() {
+                    0 => Op::Nop,
+                    1 => ops.into_iter().next().unwrap(),
+                    _ => Block::new(ops).into_op(),
                 }
             }
+
+            let parselet = Parselet::new(
+                name,
+                sig,
+                variables.len(),
+                *consuming,
+                silent,
+                // Ensure that begin and end are blocks.
+                ensure_block(begin.drain(..).collect()),
+                ensure_block(end.drain(..).collect()),
+                body,
+            );
+
+            if self.scopes.len() == 0 && self.interactive {
+                self.scopes.push(scope);
+            }
+
+            parselet
+        } else {
+            unreachable!();
         }
+    }
+
+    /// Drops a block scope.
+    pub(crate) fn pop_block(&mut self) {
+        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
+        self.resolve();
+        self.scopes.remove(0);
+    }
+
+    /// Drops a loop scope.
+    pub(crate) fn pop_loop(&mut self) {
+        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
+        self.scopes.remove(0);
+    }
+
+    /// Marks the nearest parselet scope as consuming
+    pub(crate) fn mark_consuming(&mut self) {
+        for scope in &mut self.scopes {
+            if let Scope::Parselet { consuming, .. } = scope {
+                *consuming = true;
+                return;
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet scope!");
+    }
+
+    /// Check if there's a loop
+    pub(crate) fn check_loop(&mut self) -> bool {
+        for i in 0..self.scopes.len() {
+            match &self.scopes[i] {
+                Scope::Parselet { .. } => return false,
+                Scope::Loop => return true,
+                _ => {}
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet scope!");
     }
 
     /** Retrieves the address of a local variable under a given name.
 
     Returns None when the variable does not exist. */
     pub(crate) fn get_local(&self, name: &str) -> Option<usize> {
-        // Retrieve local variables from next scope owning variables, except global scope!
+        // Retrieve local variables from next parselet scope owning variables, except global scope!
         for scope in &self.scopes[..self.scopes.len() - 1] {
             // Check for scope with variables
-            if let Some(variables) = &scope.variables {
+            if let Scope::Parselet { variables, .. } = &scope {
                 if let Some(addr) = variables.get(name) {
                     return Some(*addr);
                 }
@@ -317,7 +340,7 @@ impl Compiler {
     pub(crate) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
-            if let Some(variables) = &mut scope.variables {
+            if let Scope::Parselet { variables, .. } = scope {
                 if let Some(addr) = variables.get(name) {
                     return *addr;
                 }
@@ -328,18 +351,20 @@ impl Compiler {
             }
         }
 
-        unreachable!("This should not be possible")
+        unreachable!("There _must_ be at least one parselet scope!");
     }
 
     /** Retrieve address of a global variable. */
     pub(crate) fn get_global(&self, name: &str) -> Option<usize> {
-        let variables = self.scopes.last().unwrap().variables.as_ref().unwrap();
+        if let Scope::Parselet { variables, .. } = self.scopes.last().unwrap() {
+            if let Some(addr) = variables.get(name) {
+                return Some(*addr);
+            }
 
-        if let Some(addr) = variables.get(name) {
-            Some(*addr)
-        } else {
-            None
+            return None;
         }
+
+        unreachable!("Top-level scope is not a parselet scope");
     }
 
     /** Set constant to name in current scope. */
@@ -355,6 +380,8 @@ impl Compiler {
             This is always the case whenever "_" or "__" is set.
             Fallback defaults to `Value : Whitespace`, handled in get_constant().
         */
+        let mut secondary = None;
+
         if name == "_" || name == "__" {
             // First of all, "__" is defined as `__ : Value+`...
             value = Parselet::new(
@@ -372,11 +399,7 @@ impl Compiler {
             .into_refvalue();
 
             // Insert "__" as new constant
-            self.scopes
-                .first_mut()
-                .unwrap()
-                .constants
-                .insert("__".to_string(), value.clone());
+            secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
             value = Parselet::new(
@@ -396,19 +419,30 @@ impl Compiler {
             // Insert "_" afterwards
         }
 
-        self.scopes
-            .first_mut()
-            .unwrap()
-            .constants
-            .insert(name.to_string(), value);
+        // Insert constant into next constant-holding scope
+        for scope in &mut self.scopes {
+            if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
+                if let Some((name, value)) = secondary {
+                    constants.insert(name.to_string(), value);
+                }
+
+                constants.insert(name.to_string(), value);
+                return;
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet or block scope!");
     }
 
     /** Get constant value, either from current or preceding scope,
     a builtin or special. */
     pub(crate) fn get_constant(&mut self, name: &str) -> Option<RefValue> {
+        // Check for constant in available scopes
         for scope in &self.scopes {
-            if let Some(value) = scope.constants.get(name) {
-                return Some(value.clone());
+            if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
+                if let Some(value) = constants.get(name) {
+                    return Some(value.clone());
+                }
             }
         }
 
