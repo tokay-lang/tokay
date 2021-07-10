@@ -573,18 +573,24 @@ impl Runable for Op {
                 }
             }
 
-            Op::Loop(body) => loop {
-                let ret = body.run(context);
-                //println!("loop {:?}", ret);
-                match ret {
-                    Ok(Accept::Next | Accept::Continue) => {}
-                    Ok(Accept::Break(Some(value))) => {
-                        break Ok(Accept::Push(Capture::Value(value, None, 10)))
+            Op::Loop(body) => {
+                let capture_start = context.runtime.stack.len();
+
+                loop {
+                    let ret = body.run(context);
+                    //println!("loop {:?}", ret);
+                    match ret {
+                        Ok(Accept::Next | Accept::Continue) => {
+                            context.runtime.stack.truncate(capture_start);
+                        }
+                        Ok(Accept::Break(Some(value))) => {
+                            break Ok(Accept::Push(Capture::Value(value, None, 10)))
+                        }
+                        Ok(Accept::Break(None)) => break Ok(Accept::Next),
+                        other => break other,
                     }
-                    Ok(Accept::Break(None)) => break Ok(Accept::Next),
-                    other => break other,
                 }
-            },
+            }
         }
     }
 

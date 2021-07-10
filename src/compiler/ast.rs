@@ -68,7 +68,12 @@ impl AstResult {
                     usage.resolve_or_dispose(compiler)
                 }
             }
-            AstResult::Ops(ops) => ops,
+            AstResult::Ops(ops) => {
+                // Filter any Op::Nop from the ops.
+                ops.into_iter()
+                    .filter(|op| !matches!(op, Op::Nop))
+                    .collect()
+            }
         }
     }
 
@@ -973,6 +978,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     Op::Continue
                 }
                 "next" => Op::Next,
+                "nop" => Op::Nop,
                 "reject" => Op::Reject,
 
                 "binary" => {
@@ -1242,6 +1248,39 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     )))
                 }
 
+                "for" => {
+                    let children = node.borrow_by_key("children");
+                    let children = children.get_list().unwrap();
+
+                    // Initial
+                    let mut ops = traverse_node_or_list(compiler, &children[0].borrow())
+                        .into_ops(compiler, true);
+
+                    let mut loop_ops = Vec::new();
+
+                    compiler.push_loop();
+
+                    // The order of insertion in code is: 0, 1, 3, 2
+                    for i in [1, 3, 2] {
+                        let part_ops = traverse_node_or_list(compiler, &children[i].borrow())
+                            .into_ops(compiler, true);
+                        if part_ops.len() > 0 {
+                            loop_ops.extend(part_ops);
+
+                            // 2nd child is abort condition
+                            if i == 1 {
+                                loop_ops.extend(vec![Op::IfFalse(Op::Break.into_box()), Op::Drop]);
+                            }
+                        }
+                    }
+
+                    compiler.pop_loop();
+
+                    loop_ops.push(Op::Continue); // Avoid pushing sequence results
+                    ops.push(Op::Loop(Op::from_vec(loop_ops).into_box()));
+                    return AstResult::Ops(ops);
+                }
+
                 "loop" => {
                     let children = node.borrow_by_key("children");
                     let children = children.to_list();
@@ -1262,6 +1301,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     compiler.pop_loop();
 
+                    ops.push(Op::Continue); // Avoid pushing sequence results
                     Op::Loop(Op::from_vec(ops).into_box())
                 }
 
