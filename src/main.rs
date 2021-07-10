@@ -100,7 +100,7 @@ fn main() {
                         }
                     }
                     Ok(Some(value)) => println!("{}", value.borrow()),
-                    Err(error) => println!("{}", error),
+                    Err(error) => eprintln!("{}", error),
                 }
             }
         }

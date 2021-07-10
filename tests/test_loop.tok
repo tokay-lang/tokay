@@ -1,0 +1,32 @@
+i = 0
+
+loop i < 10 {
+    print("Loop" + i++)
+}
+
+loop {
+    if i++ >= 20 break
+    else if i == 15 continue
+    print("Loop" + i)
+}
+
+#---
+#Loop0
+#Loop1
+#Loop2
+#Loop3
+#Loop4
+#Loop5
+#Loop6
+#Loop7
+#Loop8
+#Loop9
+#Loop11
+#Loop12
+#Loop13
+#Loop14
+#Loop16
+#Loop17
+#Loop18
+#Loop19
+#Loop20

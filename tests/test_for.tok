@@ -1,0 +1,14 @@
+for i=0; i < 10; i++ {
+    print("For" + i)
+}
+#---
+#For0
+#For1
+#For2
+#For3
+#For4
+#For5
+#For6
+#For7
+#For8
+#For9

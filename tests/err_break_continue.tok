@@ -1,0 +1,6 @@
+break
+a = 0
+if a == 10 continue
+#---
+#ERR:Line 1, column 1: 'break' cannot be used outside of a loop.
+#ERR:Line 3, column 12: 'continue' cannot be used outside of a loop.

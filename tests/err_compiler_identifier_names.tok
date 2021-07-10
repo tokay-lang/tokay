@@ -16,6 +16,6 @@ IsOkay : @{
 }  # Ok, because the function is a parselet as it calls Cident
 
 #---
-#Line 1, column 1: Cannot assign to constant 'Pi'. Use identifier starting in lower-case, e.g. 'pi'
-#Line 5, column 1: Cannot assign constant 'cident' as consumable. Use identifier starting in upper-case, e.g. 'Cident'
-#Line 12, column 1: Cannot assign to constant 'Faculty'. Use identifier starting in lower-case, e.g. 'faculty'
+#ERR:Line 1, column 1: Cannot assign to constant 'Pi'. Use identifier starting in lower-case, e.g. 'pi'
+#ERR:Line 5, column 1: Cannot assign constant 'cident' as consumable. Use identifier starting in upper-case, e.g. 'Cident'
+#ERR:Line 12, column 1: Cannot assign to constant 'Faculty'. Use identifier starting in lower-case, e.g. 'faculty'

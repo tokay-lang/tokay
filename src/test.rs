@@ -8,6 +8,78 @@ use crate::value::*;
 use crate::vm::*;
 use crate::{tokay_embed, tokay_embed_item};
 
+//use std::env;
+use std::fs::File;
+use std::io::Read;
+use std::process::Command;
+
+// Universal function to run test-cases from files with expected output.
+fn run_testcase(filename: &'static str) {
+    let mut code = String::new();
+
+    match File::open(filename) {
+        // The file is open (no error).
+        Ok(mut file) => {
+            // Read all the file content into a variable (ignoring the result of the operation).
+            file.read_to_string(&mut code).unwrap();
+
+            // The file is automatically closed when is goes out of scope.
+        }
+        // Error handling.
+        Err(error) => {
+            panic!("Error opening file {}: {}", filename, error);
+        }
+    }
+
+    //println!("code = {:?}", code);
+
+    if let Some((_, result)) = code.split_once("#---\n") {
+        //let program = env::args().next().unwrap(); // Doens't work with cargo test
+        let program = "target/debug/tokay";
+
+        let output = Command::new(program)
+            .args(&[filename])
+            //.env("LS_COLORS", "rs=0:di=38;5;27:mh=44;38;5;15")
+            .output()
+            .expect(&format!(
+                "Failed to run '{} {}'; You have to `cargo run` first!",
+                program, filename
+            ));
+
+        let mut out: Vec<String> = String::from_utf8(output.stdout)
+            .expect("Not UTF-8")
+            .split("\n")
+            .map(|line| line.to_string())
+            .collect();
+        let mut err: Vec<String> = String::from_utf8(output.stderr)
+            .expect("Not UTF-8")
+            .split("\n")
+            .map(|line| line.to_string())
+            .collect();
+
+        println!("out = {:?}", out);
+        println!("err = {:?}", err);
+
+        for line in result.trim().split("\n").into_iter() {
+            assert!(
+                line.starts_with("#"),
+                "Lines in result must start with a #-comment"
+            );
+
+            if line.starts_with("#ERR:") {
+                assert_eq!(err.remove(0), line[5..].to_string());
+            } else {
+                assert_eq!(out.remove(0), line[1..].to_string());
+            }
+        }
+
+        assert!(out.len() == 1, "Some output not consumed: {:?}", out);
+        assert!(err.len() == 1, "Some errors not consumed: {:?}", err);
+    } else {
+        panic!("Testcase invalid, require for a '#---' delimiter.")
+    }
+}
+
 // Tests expression basics ------------------------------------------------------------------------
 
 #[test]
@@ -297,7 +369,7 @@ fn variables() {
 // Test-case for scoping
 fn scoping() {
     assert_eq!(
-        compile_and_run(include_str!("tests/testcase_scopes.tok"), "", false),
+        compile_and_run(include_str!("../tests/test_scopes.tok"), "", false),
         Ok(Some(value![[10, 2000, 1072]]))
     );
 }
@@ -736,30 +808,15 @@ fn push_next() {
     // todo: This test is a stub. Add more tests regarding next and push.
 }
 
-// Tests for compiler behavior --------------------------------------------------------------------
-
-// Universal function to run test-cases with expected errors inside the code.
-fn run_testcase(code: &'static str) {
-    if let Some((code, result)) = code.split_once("#---\n") {
-        let expect = result
-            .trim()
-            .split("\n")
-            .into_iter()
-            .map(|line| {
-                assert!(
-                    line.starts_with("#"),
-                    "Lines in result must start with a comment-#"
-                );
-                line[1..].to_string()
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        assert_eq!(compile_and_run(code, "", false), Err(expect));
-    } else {
-        panic!("Testcase invalid, require for a '#---' delimiter.")
-    }
+#[test]
+// tests for push and next
+fn loops() {
+    run_testcase("tests/test_loop.tok");
+    run_testcase("tests/test_for.tok");
+    run_testcase("tests/err_break_continue.tok");
 }
+
+// Tests for compiler behavior --------------------------------------------------------------------
 
 #[test]
 // Testing several special parsing constructs and error reporting
@@ -795,7 +852,7 @@ fn compiler_structure() {
 #[test]
 // Tests for correct identifier names for various value types
 fn compiler_identifier_naming() {
-    run_testcase(include_str!("tests/testcase_compiler_identifier_names.tok"));
+    run_testcase("tests/err_compiler_identifier_names.tok");
 }
 
 #[test]

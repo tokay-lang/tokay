@@ -80,7 +80,7 @@ impl Compiler {
         let ast = match self.parser.as_ref().unwrap().parse(reader) {
             Ok(ast) => ast,
             Err(error) => {
-                println!("{}", error);
+                eprintln!("{}", error);
                 return Err(vec![error]);
             }
         };
@@ -95,7 +95,7 @@ impl Compiler {
             Ok(program) => program,
             Err(errors) => {
                 for error in &errors {
-                    println!("{}", error);
+                    eprintln!("{}", error);
                 }
 
                 return Err(errors);
