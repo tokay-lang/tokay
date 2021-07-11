@@ -234,7 +234,6 @@ impl Compiler {
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: Op,
-        silent: bool,
     ) -> Parselet {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
@@ -257,17 +256,17 @@ impl Compiler {
                 }
             }
 
-            let parselet = Parselet::new(
+            let mut parselet = Parselet::new(
                 name,
                 sig,
                 variables.len(),
-                *consuming,
-                silent,
                 // Ensure that begin and end are blocks.
                 ensure_block(begin.drain(..).collect()),
                 ensure_block(end.drain(..).collect()),
                 body,
             );
+
+            parselet.consuming = *consuming;
 
             if self.scopes.len() == 0 && self.interactive {
                 self.scopes.push(scope);
@@ -384,37 +383,39 @@ impl Compiler {
 
         if name == "_" || name == "__" {
             // First of all, "__" is defined as `__ : Value+`...
-            value = Parselet::new(
+            let mut parselet = Parselet::new(
                 Some("__".to_string()),
                 Vec::new(),
                 0,
-                true, // consuming!
-                true, // silent!
                 Op::Nop,
                 Op::Nop,
                 // becomes silent `Value+`
                 Repeat::new(Op::CallStatic(self.define_static(value)), 1, 0, true).into_op(),
-            )
-            .into_value()
-            .into_refvalue();
+            );
+
+            parselet.consuming = true;
+            parselet.silent = true;
+
+            value = parselet.into_value().into_refvalue();
 
             // Insert "__" as new constant
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            value = Parselet::new(
+            let mut parselet = Parselet::new(
                 Some(name.to_string()),
                 Vec::new(),
                 0,
-                true, // consuming!
-                true, // silent!
                 Op::Nop,
                 Op::Nop,
                 // becomes silent `Value?`
                 Repeat::new(Op::CallStatic(self.define_static(value)), 0, 1, true).into_op(),
-            )
-            .into_value()
-            .into_refvalue();
+            );
+
+            parselet.consuming = true;
+            parselet.silent = true;
+
+            value = parselet.into_value().into_refvalue();
 
             // Insert "_" afterwards
         }

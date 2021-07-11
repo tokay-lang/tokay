@@ -45,13 +45,14 @@ macro_rules! tokay_embed_item {
 
             //let body = Repeat::new(body, 0, 0, true);  //this became obsolete by the compiler!
 
-            let parselet = $compiler.pop_parselet(
+            let mut parselet = $compiler.pop_parselet(
                 Some("_".to_string()),
                 Vec::new(),
-                body,
-                true).into_value().into_refvalue();
+                body
+            );
 
-            $compiler.set_constant("_", parselet);
+            parselet.silent = true;  // mark as silent parselet
+            $compiler.set_constant("_", parselet.into_value().into_refvalue());
 
             //println!("assign _ = {}", stringify!($item));
             None
@@ -86,8 +87,7 @@ macro_rules! tokay_embed_item {
             let parselet = $compiler.pop_parselet(
                 Some(stringify!($name).to_string()),
                 Vec::new(),
-                body,
-                false
+                body
             ).into_value().into_refvalue();
 
             $compiler.define_static(parselet.clone());
@@ -293,8 +293,7 @@ macro_rules! tokay_embed {
             let parselet = compiler.pop_parselet(
                 Some("__main__".to_string()),
                 Vec::new(),
-                main.unwrap_or(Op::Nop),
-                false
+                main.unwrap_or(Op::Nop)
             ).into_value().into_refvalue();
 
             compiler.define_static(parselet);

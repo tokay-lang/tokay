@@ -338,7 +338,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> Value {
             let body = traverse_node(compiler, &body.get_dict().unwrap());
             let body = Op::from_vec(body.into_ops(compiler, true));
 
-            compiler.pop_parselet(None, sig, body, false).into_value()
+            compiler.pop_parselet(None, sig, body).into_value()
         }
         _ => unimplemented!("unhandled value node {}", emit),
     }
@@ -356,11 +356,11 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
     // it would be nice to have it in a separate scope.
     match traverse_node(compiler, node) {
         AstResult::Empty => {
-            compiler.pop_parselet(None, Vec::new(), Op::Nop, false);
+            compiler.pop_parselet(None, Vec::new(), Op::Nop);
             Value::Void.into_refvalue()
         }
         AstResult::Value(value) => {
-            compiler.pop_parselet(None, Vec::new(), Op::Nop, false);
+            compiler.pop_parselet(None, Vec::new(), Op::Nop);
 
             if let Some(lvalue) = lvalue {
                 if let Value::Parselet(parselet) = &*value.borrow() {
@@ -382,7 +382,6 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
                     lvalue.and_then(|lvalue| Some(lvalue.to_string())),
                     Vec::new(),
                     Op::from_vec(ops),
-                    false,
                 )
                 .into_value()
                 .into_refvalue()
@@ -922,7 +921,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     1 => body.into_iter().next().unwrap(),
                     _ => Block::new(body),
                 },
-                false,
             );
 
             compiler.define_static(main.into_value().into_refvalue());
