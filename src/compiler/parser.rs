@@ -262,6 +262,25 @@ impl Parser {
             ["(", _, Expression, ")"], // no expect ")" here!
             Literal,
             Token,
+
+            // if
+            ["if", ___, Expression, Statement, (kle [T_EOL, _]),
+                "else", ___, Statement, (call ast[(value "op_if")])],
+            ["if", ___, Expression, Statement, (call ast[(value "op_if")])],
+            ["if", ___, (call error[(value "'if': Expecting condition and statement")])],
+
+            // for
+            //["for", ___, T_Identifier, _, "in", ___, Expression, Statement,
+            //    (call ast[(value "op_for_in")])],
+            ["for", ___, StatementOrEmpty, ";", _, StatementOrEmpty, ";", _, StatementOrEmpty,
+                StatementOrEmpty, (call ast[(value "op_for")])],
+            ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+
+            // loop
+            ["loop", ___, Expression, _, Statement, (call ast[(value "op_loop")])],
+            ["loop", ___, (expect Statement), (call ast[(value "op_loop")])],
+
+            // standard load
             Load
         }),
 
@@ -314,22 +333,6 @@ impl Parser {
         }),
 
         (Expression = {
-            // if
-            ["if", ___, Expression, Statement, (kle [T_EOL, _]),
-                "else", ___, Statement, (call ast[(value "op_if")])],
-            ["if", ___, Expression, Statement, (call ast[(value "op_if")])],
-            ["if", ___, (call error[(value "'if': Expecting condition and statement")])],
-
-            // for
-            //["for", ___, T_Identifier, _, "in", ___, Expression, Statement,
-            //    (call ast[(value "op_for_in")])],
-            ["for", ___, StatementOrEmpty, ";", _, StatementOrEmpty, ";", _, StatementOrEmpty,
-                StatementOrEmpty, (call ast[(value "op_for")])],
-            ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
-
-            // loop
-            ["loop", ___, Expression, _, Statement, (call ast[(value "op_loop")])],
-            ["loop", ___, (expect Statement), (call ast[(value "op_loop")])],
 
             // assignment
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="

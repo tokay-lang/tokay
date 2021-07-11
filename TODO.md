@@ -9,15 +9,16 @@ This is a recently updated brainstorming and todo scribble file.
   - [ ] `Not<P>`
   - [ ] `Peek<P>`
   - [ ] `Repeat<P, min:1, max:0>`
+- [ ] Implement loops
+  - [x] `for` construct
+  - [ ] `for...in` construct
+  - [x] `loop` construct
+  - [x] Implement `break` and `continue`
+- [ ] Implement the escape keyword
 - [ ] Implementation of a module system
   - [ ] Import constants from other module
   - [ ] Run other module as separate programs and work on resulting values
   - [ ] Pass string to separate tokay process (`tokay`-keyword, `@>` operator?)
-- [ ] Implement loops
-  - `for` construct
-  - `loop` construct
-  - Implement `break` and `continue`
-- [ ] Implement the escape keyword
 
 ## General
 
