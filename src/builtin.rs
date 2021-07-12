@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::value::{Dict, RefValue, Value};
 use crate::vm::*;
 
-// Abstraction of static built-in functions (builtins)
+// Abstraction of a built-in function
 pub struct Builtin {
     name: &'static str,      // Function's external name
     required: i8,            // Number of required arguments, -1 for dynamic parameters
@@ -14,11 +14,6 @@ pub struct Builtin {
 }
 
 impl Builtin {
-    /// Check if specific builtin is consumable by identifier
-    pub fn is_consumable(&self) -> bool {
-        compiler::ast::identifier_is_consumable(self.name)
-    }
-
     // Call builtin from the VM.
     pub fn call(
         &self,
@@ -189,33 +184,6 @@ static BUILTINS: &[Builtin] = &[
                 )))
             } else {
                 context.runtime.reader.reset(start);
-                Err(Reject::Next)
-            }
-        },
-    },
-    Builtin {
-        name: "Whitespaces", // Matching any whitespace
-        required: 0,
-        signature: "",
-        func: |context, _args| {
-            let mut count: usize = 0;
-
-            while let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_whitespace() {
-                    break;
-                }
-
-                context.runtime.reader.next();
-                count += 1;
-            }
-
-            if count > 0 {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_last(count),
-                    None,
-                    5,
-                )))
-            } else {
                 Err(Reject::Next)
             }
         },
@@ -498,7 +466,7 @@ static BUILTINS: &[Builtin] = &[
     },
 ];
 
-/// Retrieve static builtin by name
+/// Retrieve builtin by name
 pub fn get(ident: &str) -> Option<usize> {
     for i in 0..BUILTINS.len() {
         if BUILTINS[i].name == ident {
@@ -509,12 +477,12 @@ pub fn get(ident: &str) -> Option<usize> {
     None
 }
 
-/// Check if static builtin is consuming
+/// Check if builtin is consuming
 pub fn is_consumable(builtin: usize) -> bool {
-    BUILTINS[builtin].is_consumable()
+    compiler::ast::identifier_is_consumable(BUILTINS[builtin].name)
 }
 
-// Call static builtin from the VM.
+// Call builtin
 pub fn call(
     builtin: usize,
     context: &mut Context,

@@ -8,7 +8,7 @@ use super::*;
 use crate::builtin;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::token::Token;
+use crate::token;
 use crate::value::{RefValue, Value};
 use crate::vm::*;
 
@@ -447,27 +447,28 @@ impl Compiler {
             }
         }
 
-        // When not found, check for a builtin
+        // When not found, check for a builtin function
         if let Some(builtin) = builtin::get(name) {
             return Some(Value::Builtin(builtin).into_refvalue());
         }
 
         // Builtin constants are defined on demand as fallback
-        match name {
-            "Void" => Some(Token::Void.into_value().into_refvalue()),
-            "Any" => Some(Token::any().into_value().into_refvalue()),
-            "EOF" => Some(Token::EOF.into_value().into_refvalue()),
-            "__" | "_" => {
-                // Fallback for "_" defines parselet `_ : Whitespace?`
-                self.set_constant(
-                    "_",
-                    Value::Builtin(builtin::get("Whitespaces").unwrap()).into_refvalue(),
-                );
-                Some(self.get_constant(name).unwrap())
-            }
+        if name == "_" || name == "__" {
+            // Fallback for "_" defines parselet `_ : Whitespace?`
+            self.set_constant(
+                "_",
+                Value::Builtin(builtin::get("Whitespaces").unwrap()).into_refvalue(),
+            );
 
-            _ => None,
+            return Some(self.get_constant(name).unwrap());
         }
+
+        // Check for built-in token
+        if let Some(value) = token::get(name) {
+            return Some(value.into_value().into_refvalue());
+        }
+
+        None
     }
 
     /** Defines a new static value inside the program.

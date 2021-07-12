@@ -92,7 +92,7 @@ Syntax is under careful consideration.
 - [ ] Implement `Number`, as the union of `Integer` and `Float`
 - [x] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
 - [ ] Further built-in and pre-defined tokens for matching standard cases like
-  - [ ] Builtin tokens or character classes
+  - [x] Builtin tokens or character classes
     - `Alphabetic`
     - `Alphanumeric`
     - `Ascii`
@@ -112,7 +112,7 @@ Syntax is under careful consideration.
     - `Numeric`
     - `Uppercase`
     - `Whitespace`
-  - [ ] Pre-defined tokens matching `Alphabetic+`
+  - [x] Pre-defined tokens matching `Alphabetic+`
     - `Alphabetics`
     - `Alphanumerics`
     - `Asciis`
