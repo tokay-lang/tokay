@@ -1,5 +1,6 @@
 //! Token callables represented by Value::Token
 
+use crate::ccl;
 use crate::ccl::Ccl;
 use crate::reader::Reader;
 use crate::value::Value;
@@ -151,22 +152,24 @@ fn get_builtin_mapping(ident: &str) -> Option<Token> {
         "Alphabetic" => Token::BuiltinChar(|c| c.is_alphabetic()),
         "Alphanumeric" => Token::BuiltinChar(|c| c.is_alphanumeric()),
         "Ascii" => Token::BuiltinChar(|c| c.is_ascii()),
-        "AsciiAlphabetic" => Token::BuiltinChar(|c| c.is_ascii_alphabetic()),
-        "AsciiAlphanumeric" => Token::BuiltinChar(|c| c.is_ascii_alphanumeric()),
+        "AsciiAlphabetic" => Token::Char(ccl!['A' => 'Z', 'a' => 'z']),
+        "AsciiAlphanumeric" => Token::Char(ccl!['A' => 'Z', 'a' => 'z', '0' => '9']),
         "AsciiControl" => Token::BuiltinChar(|c| c.is_ascii_control()),
-        "AsciiDigit" => Token::BuiltinChar(|c| c.is_ascii_digit()),
-        "AsciiGraphic" => Token::BuiltinChar(|c| c.is_ascii_graphic()),
-        "AsciiHexdigit" => Token::BuiltinChar(|c| c.is_ascii_hexdigit()),
-        "AsciiLowercase" => Token::BuiltinChar(|c| c.is_ascii_lowercase()),
+        "AsciiDigit" => Token::Char(ccl!['0' => '9']),
+        "AsciiGraphic" => Token::Char(ccl!['!' => '~']),
+        "AsciiHexdigit" => Token::Char(ccl!['0' => '9', 'A' => 'F', 'a' => 'f']),
+        "AsciiLowercase" => Token::Char(ccl!['a' => 'z']),
         "AsciiPunctuation" => Token::BuiltinChar(|c| c.is_ascii_punctuation()),
-        "AsciiUppercase" => Token::BuiltinChar(|c| c.is_ascii_uppercase()),
-        "AsciiWhitespace" => Token::BuiltinChar(|c| c.is_ascii_whitespace()),
+        "AsciiUppercase" => Token::Char(ccl!['A' => 'Z']),
+        "AsciiWhitespace" => Token::Char(ccl!['A' => 'Z', 'a' => 'z']),
         "Control" => Token::BuiltinChar(|c| c.is_control()),
         "Digit" => Token::BuiltinChar(|c| c.is_digit(10)),
         "Lowercase" => Token::BuiltinChar(|c| c.is_lowercase()),
         "Numeric" => Token::BuiltinChar(|c| c.is_numeric()),
         "Uppercase" => Token::BuiltinChar(|c| c.is_uppercase()),
         "Whitespace" => Token::BuiltinChar(|c| c.is_whitespace()),
+
+        // Any identifier attached with an "s" will be checked for Token+
         ident if ident.len() > 1 && ident.ends_with("s") => {
             if let Some(Token::BuiltinChar(f)) = get_builtin_mapping(&ident[..ident.len() - 1]) {
                 Token::BuiltinChars(f)

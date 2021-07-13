@@ -131,7 +131,7 @@ Syntax is under careful consideration.
     - `Lowercases`
     - `Numerics`
     - `Uppercases`
-    - `Whitespaces` exists!
+    - `Whitespaces`
 
 ## Tests
 

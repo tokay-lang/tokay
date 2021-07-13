@@ -457,7 +457,10 @@ impl Compiler {
             // Fallback for "_" defines parselet `_ : Whitespace?`
             self.set_constant(
                 "_",
-                Value::Builtin(builtin::get("Whitespaces").unwrap()).into_refvalue(),
+                token::get("Whitespaces")
+                    .unwrap()
+                    .into_value()
+                    .into_refvalue(),
             );
 
             return Some(self.get_constant(name).unwrap());
