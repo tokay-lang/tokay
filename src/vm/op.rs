@@ -247,7 +247,10 @@ impl Runable for Op {
             Op::Reject => Err(Reject::Return),
 
             // Values
-            Op::LoadStatic(addr) => context.push(context.runtime.program.statics[*addr].clone()),
+            Op::LoadStatic(addr) => {
+                let value = &context.runtime.program.statics[*addr];
+                context.push(value.borrow().clone().into_refvalue())
+            }
             Op::Push0 => context.push(Value::Integer(0).into_refvalue()),
             Op::Push1 => context.push(Value::Integer(1).into_refvalue()),
             Op::PushVoid => context.push(Value::Void.into_refvalue()),
