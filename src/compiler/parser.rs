@@ -163,7 +163,7 @@ impl Parser {
         (Capture = {
             ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
-            ["$", "(", _, Expression, ")", _, (call ast[(value "capture_expr")])],
+            ["$", "(", _, (kle [T_EOL, _]), Expression, ")", _, (call ast[(value "capture_expr")])],
             ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
         }),
 
@@ -194,7 +194,7 @@ impl Parser {
         }),
 
         (CallParameters = {
-            (pos [CallParameter, (opt [",", _])])
+            (pos [CallParameter, (opt [",", _]), (kle [T_EOL, _])])
         }),
 
         // Literals
@@ -219,9 +219,9 @@ impl Parser {
         }),
 
         (Collection = {
-            ["(", _, (pos [Expression, (opt [",", _])]), ")", // no expect ")" here!
+            ["(", _, (kle [T_EOL, _]), (pos [Expression, (opt [",", _]), (kle [T_EOL, _])]), ")", // no expect ")" here!
                 (call ast[(value "sequence")])],
-            ["(", _, (pos [CollectionItem, (opt [",", _])]), (expect ")"),
+            ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
                 (call ast[(value "sequence")])]
         }),
 
@@ -236,7 +236,7 @@ impl Parser {
 
         (TokenCall = {
             TokenLiteral,
-            [T_Consumable, "(", _, (opt CallParameters), (expect ")"),
+            [T_Consumable, "(", _, (kle [T_EOL, _]), (opt CallParameters), (kle [T_EOL, _]), (expect ")"),
                 (call ast[(value "call")])],
             [T_Consumable, (call ast[(value "call")])],
             Parselet,
@@ -259,15 +259,14 @@ impl Parser {
         // Expression & Flow
 
         (Atomic = {
-            ["(", _, Expression, ")"], // no expect ")" here!
+            ["(", _, (kle [T_EOL, _]), Expression, (kle [T_EOL, _]), ")"], // no expect ")" here!
             Literal,
             Token,
 
             // if
-            ["if", ___, Expression, Statement, (kle [T_EOL, _]),
-                "else", ___, Statement, (call ast[(value "op_if")])],
-            ["if", ___, Expression, Statement, (call ast[(value "op_if")])],
-            ["if", ___, (call error[(value "'if': Expecting condition and statement")])],
+            ["if", ___, Expression, (kle [T_EOL, _]), (expect Statement),
+                (opt [(kle [T_EOL, _]), "else", ___, (kle [T_EOL, _]), (expect Statement)]),
+                    (call ast[(value "op_if")])],
 
             // for
             //["for", ___, T_Identifier, _, "in", ___, Expression, Statement,
@@ -287,7 +286,7 @@ impl Parser {
         (Rvalue = {
             [Rvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
             [Rvalue, (pos Subscript), (call ast[(value "rvalue")])],
-            [Rvalue, "(", _, (opt CallParameters), (expect ")"), _,
+            [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"), _,
                 (call ast[(value "call")])],
             Atomic
         }),

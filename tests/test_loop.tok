@@ -10,6 +10,33 @@ loop {
     print("Loop" + i)
 }
 
+# Loop with explicit continue and break in the body
+count = 10
+loop {
+    count = count - 1
+    if count == 3 {
+        print("Ignition")
+        continue
+    }
+
+    print(count)
+    if count == 0 {
+        print("Liftoff")
+        break
+    }
+}
+
+# Loop with condition
+count = 10
+loop count >= 0 print(
+    if --count == 3
+        "Ignition"
+    else if count < 0
+        "Liftoff"
+    else
+        count
+)
+
 #---
 #Loop0
 #Loop1
@@ -30,3 +57,25 @@ loop {
 #Loop18
 #Loop19
 #Loop20
+#9
+#8
+#7
+#6
+#5
+#4
+#Ignition
+#2
+#1
+#0
+#Liftoff
+#9
+#8
+#7
+#6
+#5
+#4
+#Ignition
+#2
+#1
+#0
+#Liftoff
