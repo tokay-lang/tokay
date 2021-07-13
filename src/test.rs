@@ -33,12 +33,29 @@ fn run_testcase(filename: &'static str) {
 
     //println!("code = {:?}", code);
 
-    if let Some((_, result)) = code.split_once("#---\n") {
+    if let Some((_, data)) = code.split_once("#---\n") {
+        let mut params = vec![filename];
+        let mut result = data;
+        let tmp;
+
+        // In case there is another separator, split into input and output
+        if let Some((i, o)) = data.split_once("#---\n") {
+            let input: Vec<&str> = i.split("\n")
+                .filter(|line| line.starts_with("#"))
+                .map(|line| &line[1..])
+                .collect()
+                ;
+
+            tmp = input.join("\n");
+            params.extend(vec!["--", &tmp]);
+            result = o;
+        }
+
         //let program = env::args().next().unwrap(); // Doens't work with cargo test
         let program = "target/debug/tokay";
 
         let output = Command::new(program)
-            .args(&[filename])
+            .args(&params)
             //.env("LS_COLORS", "rs=0:di=38;5;27:mh=44;38;5;15")
             .output()
             .expect(&format!(
@@ -788,6 +805,8 @@ fn if_else() {
         ),
         Ok(Some(value!([1, 3, 5])))
     );
+
+    run_testcase("tests/test_if.tok");
 }
 
 #[test]

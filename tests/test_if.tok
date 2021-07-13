@@ -1,0 +1,32 @@
+sense = 42
+axis = 23.5
+
+if sense == 42 && axis == 23.5 {
+    print("Well, this is fine!")
+}
+else {
+    print("That's quite bad.")
+}
+
+axis = 7
+
+print(
+    if sense == 42 && axis == 23.5
+        "Well, this is fine!"
+    else
+        "That's quite bad."
+)
+
+# if can be part of an expression though
+Word "Hello " + if $1 == "World" "Earth" else $1
+
+#---
+#Mars World
+#---
+#Well, this is fine!
+#That's quite bad.
+#Well, this is fine!
+#That's quite bad.
+#Well, this is fine!
+#That's quite bad.
+#("Hello Mars", "Hello Earth")
