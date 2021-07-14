@@ -97,9 +97,9 @@ impl AstResult {
 /// Checks whether identifier's name is the name of a reserved word.
 pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "accept" | "begin" | "else" | "end" | "expect" | "false" | "for" | "if" | "in" | "loop"
-        | "next" | "not" | "null" | "peek" | "push" | "reject" | "repeat" | "return" | "true"
-        | "void" => Err(Error::new(
+        "accept" | "begin" | "else" | "end" | "exit" | "expect" | "false" | "for" | "if" | "in"
+        | "loop" | "next" | "not" | "null" | "peek" | "push" | "reject" | "repeat" | "return"
+        | "true" | "void" => Err(Error::new(
             None,
             format!("Expected identifier, found reserved word '{}'", ident),
         )),
@@ -933,7 +933,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let mut ops = Vec::new();
 
             let op = match parts[1] {
-                "accept" | "break" | "push" | "repeat" => {
+                "accept" | "break" | "exit" | "push" | "repeat" => {
                     if parts[1] == "break" && !compiler.check_loop() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
@@ -950,6 +950,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         match parts[1] {
                             "accept" => Op::LoadAccept,
                             "break" => Op::LoadBreak,
+                            "exit" => Op::LoadExit,
                             "push" => Op::LoadPush,
                             "repeat" => Op::LoadRepeat,
                             _ => unreachable!(),
@@ -958,6 +959,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         match parts[1] {
                             "accept" => Op::Accept,
                             "break" => Op::Break,
+                            "exit" => Op::Exit,
                             "push" => Op::Push,
                             "repeat" => Op::Repeat,
                             _ => unreachable!(),

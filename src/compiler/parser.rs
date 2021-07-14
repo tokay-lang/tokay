@@ -354,6 +354,7 @@ impl Parser {
             ["accept", ___, (opt Expression), (call ast[(value "op_accept")])],
             ["break", ___, (opt Expression), (call ast[(value "op_break")])],
             ["continue", ___, (opt Expression), (call ast[(value "op_continue")])],
+            ["exit", ___, (opt Expression), (call ast[(value "op_exit")])],
             ["next", ___, (call ast[(value "op_next")])],
             ["push", ___, (opt Expression), (call ast[(value "op_push")])],
             ["reject", ___, (call ast[(value "op_reject")])],

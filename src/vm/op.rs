@@ -41,6 +41,8 @@ pub enum Op {
     Repeat,     // Ok(Accept::Repeat)
     LoadRepeat, // Ok(Accept::Repeat) with value
     Reject,     // Ok(Err::Reject)
+    LoadExit,   // Exit with errorcode
+    Exit,       // Exit with 0
 
     // Constants
     LoadStatic(usize), // Load static from statics
@@ -245,6 +247,10 @@ impl Runable for Op {
                 Ok(Accept::Repeat(Some(value)))
             }
             Op::Reject => Err(Reject::Return),
+            Op::LoadExit => {
+                std::process::exit(context.pop().borrow().to_integer() as i32);
+            }
+            Op::Exit => std::process::exit(0),
 
             // Values
             Op::LoadStatic(addr) => {

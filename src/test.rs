@@ -40,11 +40,11 @@ fn run_testcase(filename: &'static str) {
 
         // In case there is another separator, split into input and output
         if let Some((i, o)) = data.split_once("#---\n") {
-            let input: Vec<&str> = i.split("\n")
+            let input: Vec<&str> = i
+                .split("\n")
                 .filter(|line| line.starts_with("#"))
                 .map(|line| &line[1..])
-                .collect()
-                ;
+                .collect();
 
             tmp = input.join("\n");
             params.extend(vec!["--", &tmp]);

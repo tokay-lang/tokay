@@ -92,46 +92,8 @@ Syntax is under careful consideration.
 - [ ] Implement `Number`, as the union of `Integer` and `Float`
 - [x] Implement `Word` with min-parameter `Word(min=3)` to accept words with specified length only
 - [ ] Further built-in and pre-defined tokens for matching standard cases like
-  - [x] Builtin tokens or character classes
-    - `Alphabetic`
-    - `Alphanumeric`
-    - `Ascii`
-    - `AsciiAlphabetic`
-    - `AsciiAlphanumeric`
-    - `AsciiControl`
-    - `AsciiDigit`
-    - `AsciiGraphic`
-    - `AsciiHexdigit`
-    - `AsciiLowercase`
-    - `AsciiPunctuation`
-    - `AsciiUppercase`
-    - `AsciiWhitespace`
-    - `Control`
-    - `Digit`
-    - `Lowercase`
-    - `Numeric`
-    - `Uppercase`
-    - `Whitespace`
-  - [x] Pre-defined tokens matching `Alphabetic+`
-    - `Alphabetics`
-    - `Alphanumerics`
-    - `Asciis`
-    - `AsciiAlphabetics`
-    - `AsciiAlphanumerics`
-    - `AsciiControls`
-    - `AsciiDigits`
-    - `AsciiGraphics`
-    - `AsciiHexdigits`
-    - `AsciiLowercases`
-    - `AsciiPunctuations`
-    - `AsciiUppercases`
-    - `AsciiWhitespaces`
-    - `Controls`
-    - `Digits`
-    - `Lowercases`
-    - `Numerics`
-    - `Uppercases`
-    - `Whitespaces`
+  - [x] Builtin character classes, like `Alphabetic` (implemented partly as Token::BuiltinChar)
+  - [x] Pre-defined tokens matching `Alphabetic+` (implemented partly as Token::BuiltinChars)
 
 ## Tests
 
