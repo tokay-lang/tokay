@@ -909,7 +909,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
         "main" => {
             let children = node.borrow_by_key("children");
 
-            compiler.push_parselet(); // Main
+            // When interactive and there's a scope, don't push, as the main scope
+            // is kept to hold globals.
+            if compiler.scopes.len() != 1 || !compiler.interactive {
+                compiler.push_parselet(); // Main
+            }
 
             let body = traverse_node_or_list(compiler, &children).into_ops(compiler, true);
 

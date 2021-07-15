@@ -433,14 +433,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
     }
 
     pub fn save_stack(mut self) -> Vec<RefValue> {
-        let mut ret = Vec::new();
-        let stack: Vec<Capture> = self.stack.drain(..).collect();
-
-        for item in stack {
-            ret.push(item.get_value());
-        }
-
-        ret
+        self.stack.drain(..).map(|item| item.get_value()).collect()
     }
 
     pub fn dump(&self) {
