@@ -7,9 +7,48 @@
     see tests.
 */
 
-/// Internlly used by token_embed!()
+/** Macro to define a Tokay program embedded in Rust code without using the Tokay parser.
+In fact, this macro is used to bootstrap the Tokay parser as a Tokay program itself.
+*/
 #[macro_export]
-macro_rules! tokay_embed_item {
+macro_rules! tokay {
+
+    // Tokay
+    ( { $( $items:tt ),+ } ) => {
+        {
+            let mut compiler = Compiler::new();
+
+            compiler.push_parselet();  // Main
+            compiler.mark_consuming();
+
+            //compiler.debug = true;
+            let main = tokay!(compiler, { $( $items ),* });
+
+            let parselet = compiler.pop_parselet(
+                Some("__main__".to_string()),
+                Vec::new(),
+                main.unwrap_or(Op::Nop)
+            ).into_value().into_refvalue();
+
+            compiler.define_static(parselet);
+
+            match compiler.to_program() {
+                Ok(program) => {
+                    if compiler.debug {
+                        program.dump();
+                    }
+                    program
+                },
+                Err(errors) => {
+                    for error in errors {
+                        println!("{}", error);
+                    }
+
+                    panic!("Errors in compile!");
+                }
+            }
+        }
+    };
 
     // Assign a value
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
@@ -32,7 +71,7 @@ macro_rules! tokay_embed_item {
 
             let items = vec![
                 $(
-                    tokay_embed_item!($compiler, $item)
+                    tokay!($compiler, $item)
                 ),*
             ];
 
@@ -73,7 +112,7 @@ macro_rules! tokay_embed_item {
 
             let items = vec![
                 $(
-                    tokay_embed_item!($compiler, $item)
+                    tokay!($compiler, $item)
                 ),*
             ];
 
@@ -103,7 +142,7 @@ macro_rules! tokay_embed_item {
             //println!("sequence");
             let items = vec![
                 $(
-                    tokay_embed_item!($compiler, $item)
+                    tokay!($compiler, $item)
                 ),*
             ];
 
@@ -129,7 +168,7 @@ macro_rules! tokay_embed_item {
 
             let items = vec![
                 $(
-                    tokay_embed_item!($compiler, $item)
+                    tokay!($compiler, $item)
                 ),*
             ];
 
@@ -146,27 +185,27 @@ macro_rules! tokay_embed_item {
 
     // Kleene
     ( $compiler:expr, (kle $item:tt) ) => {
-        Some(tokay_embed_item!($compiler, $item).unwrap().into_kleene())
+        Some(tokay!($compiler, $item).unwrap().into_kleene())
     };
 
     // Positive
     ( $compiler:expr, (pos $item:tt) ) => {
-        Some(tokay_embed_item!($compiler, $item).unwrap().into_positive())
+        Some(tokay!($compiler, $item).unwrap().into_positive())
     };
 
     // Optional
     ( $compiler:expr, (opt $item:tt) ) => {
-        Some(tokay_embed_item!($compiler, $item).unwrap().into_optional())
+        Some(tokay!($compiler, $item).unwrap().into_optional())
     };
 
     // Not
     ( $compiler:expr, (not $item:tt) ) => {
-        Some(Not::new(tokay_embed_item!($compiler, $item).unwrap()))
+        Some(Not::new(tokay!($compiler, $item).unwrap()))
     };
 
     // Peek
     ( $compiler:expr, (peek $item:tt) ) => {
-        Some(Peek::new(tokay_embed_item!($compiler, $item).unwrap()))
+        Some(Peek::new(tokay!($compiler, $item).unwrap()))
     };
 
     // Expect
@@ -174,13 +213,13 @@ macro_rules! tokay_embed_item {
         {
             let mut msg = "Expecting ".to_string();
             msg.push_str(stringify!($item));
-            Some(Expect::new(tokay_embed_item!($compiler, $item).unwrap(), Some(msg)))
+            Some(Expect::new(tokay!($compiler, $item).unwrap(), Some(msg)))
         }
     };
 
     // Expect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(Expect::new(tokay_embed_item!($compiler, $item).unwrap(), Some($msg.to_string())))
+        Some(Expect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
     };
 
     // Value
@@ -200,7 +239,7 @@ macro_rules! tokay_embed_item {
         {
             let mut items = vec![
                 $(
-                    tokay_embed_item!($compiler, $param).unwrap()
+                    tokay!($compiler, $param).unwrap()
                 ),*
             ];
 
@@ -272,47 +311,4 @@ macro_rules! tokay_embed_item {
             Some($expr)
         }
     };
-}
-
-/** Used to define a Tokay program in Rust code without using the Tokay parser
-
-In fact, this macro is used to bootstrap the Tokay parser as a Tokay program itself.
-*/
-#[macro_export]
-macro_rules! tokay_embed {
-    ( $( $items:tt ),* ) => {
-        {
-            let mut compiler = Compiler::new();
-
-            compiler.push_parselet();  // Main
-            compiler.mark_consuming();
-
-            //compiler.debug = true;
-            let main = tokay_embed_item!(compiler, $( $items ),*);
-
-            let parselet = compiler.pop_parselet(
-                Some("__main__".to_string()),
-                Vec::new(),
-                main.unwrap_or(Op::Nop)
-            ).into_value().into_refvalue();
-
-            compiler.define_static(parselet);
-
-            match compiler.to_program() {
-                Ok(program) => {
-                    if compiler.debug {
-                        program.dump();
-                    }
-                    program
-                },
-                Err(errors) => {
-                    for error in errors {
-                        println!("{}", error);
-                    }
-
-                    panic!("Errors in compile!");
-                }
-            }
-        }
-    }
 }

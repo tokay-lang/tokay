@@ -6,8 +6,7 @@ use crate::reader::Reader;
 use crate::token::Token;
 use crate::value::Value;
 use crate::vm::*;
-use crate::{ccl, value};
-use crate::{tokay_embed, tokay_embed_item};
+use crate::{ccl, tokay, value};
 
 /**
 Implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
@@ -18,7 +17,7 @@ pub struct Parser(Program);
 
 impl Parser {
     pub fn new() -> Self {
-        Self(tokay_embed!({
+        Self(tokay!({
         // ----------------------------------------------------------------------------
 
         // Whitespace & EOL

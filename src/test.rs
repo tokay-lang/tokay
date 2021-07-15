@@ -3,10 +3,9 @@
 use crate::compiler::*;
 use crate::token::*;
 use crate::utils::*;
-use crate::value;
 use crate::value::*;
 use crate::vm::*;
-use crate::{tokay_embed, tokay_embed_item};
+use crate::{tokay, value};
 
 //use std::env;
 use std::fs::File;
@@ -1005,7 +1004,7 @@ fn builtins_str() {
 
 #[test]
 fn parser_indirectleftrec() {
-    let program = tokay_embed!({
+    let program = tokay!({
         (X = {
             [Y, (MATCH "c")]
         }),
@@ -1027,7 +1026,7 @@ fn parser_indirectleftrec() {
 #[test]
 fn parser_leftrec() {
     /*
-    let program = tokay_embed!({
+    let program = tokay!({
         (X = {
             [X, (MATCH "b")],
             (MATCH "a")
@@ -1037,7 +1036,7 @@ fn parser_leftrec() {
     });
     */
 
-    let program = tokay_embed!({
+    let program = tokay!({
         (Y = {
             X,
             (MATCH "a")
@@ -1049,7 +1048,7 @@ fn parser_leftrec() {
     });
 
     /*
-    let program = tokay_embed!({
+    let program = tokay!({
         (Factor = {
             ["(", (pos [Expression]), ")"],
             (token (Token::Chars(ccl!['0'..='9'])))
