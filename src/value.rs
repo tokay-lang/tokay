@@ -4,7 +4,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
-use crate::builtin;
+use crate::builtin::{self, Builtin};
 use crate::error::Error;
 use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Parselet, Reject};
@@ -97,7 +97,7 @@ pub enum Value {
     // Callables
     Token(Box<Token>),                 // Token
     Parselet(Rc<RefCell<Parselet>>),   // Parselet
-    Builtin(usize),                    // Builtin
+    Builtin(&'static Builtin),         // Builtin
     Method(Box<(RefValue, RefValue)>), // Method
 }
 
@@ -385,7 +385,7 @@ impl Value {
                     format!("<parselet {}>", p as *const Parselet as usize)
                 }
             }
-            Self::Builtin(b) => format!("<builtin {:?}>", b),
+            Self::Builtin(b) => format!("<builtin {}>", b.name),
             Self::Method(m) => format!("<method {}.{}>", m.0.borrow().repr(), m.1.borrow().repr()),
             other => other.to_string(),
         }
@@ -584,7 +584,7 @@ impl Value {
     pub fn is_consuming(&self) -> bool {
         match self {
             Value::Token(_) => true,
-            Value::Builtin(addr) => builtin::is_consumable(*addr),
+            Value::Builtin(builtin) => builtin.is_consumable(),
             Value::Parselet(parselet) => parselet.borrow().consuming,
             _ => false,
         }
@@ -602,7 +602,7 @@ impl Value {
                 assert!(args == 0 && nargs.is_none());
                 token.read(context.runtime.reader)
             }
-            Value::Builtin(addr) => builtin::call(*addr, context, args, nargs),
+            Value::Builtin(builtin) => builtin.call(context, args, nargs),
             Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
             Value::Method(method) => {
                 // Method call injects the related object into the stack and calls the method afterwards.
@@ -617,8 +617,8 @@ impl Value {
     }
 
     // The following functions where prevously solved by std::ops::*, etc. but this
-    // is now changed as error handling must work with Tokay VM.
-    // Fixme: For better integration with Rust, std::ops::* could be implemented re-implemented
+    // is now changed as error handling must work with Tokay's VM.
+    // Fixme: For better integration with Rust, std::ops::* could be re-implemented
     // by wrapping these operational functions.
 
     // Addition

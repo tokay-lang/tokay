@@ -147,6 +147,7 @@ impl Token {
     }
 }
 
+// Built-in token
 fn get_builtin_mapping(ident: &str) -> Option<Token> {
     Some(match ident {
         "Alphabetic" => Token::BuiltinChar(|c| c.is_alphabetic()),
