@@ -1,5 +1,6 @@
 //! Compiler's internal Abstract Syntax Tree traversal
 
+use std::cell::{Ref, RefMut};
 use std::collections::HashSet;
 
 use super::*;
@@ -7,8 +8,63 @@ use crate::ccl::Ccl;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::token::Token;
-use crate::value::{BorrowByIdx, BorrowByKey, Dict, RefValue, Value};
+use crate::value::{Dict, List, RefValue, Value};
 use crate::vm::*;
+
+// Helper trait for Dict
+pub trait BorrowByKey {
+    fn borrow_by_key(&self, key: &str) -> Ref<Value>;
+    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value>;
+}
+
+impl BorrowByKey for Dict {
+    fn borrow_by_key(&self, key: &str) -> Ref<Value> {
+        let value = self.get(key).unwrap();
+        value.borrow()
+    }
+
+    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value> {
+        let value = self.get(key).unwrap();
+        value.borrow_mut()
+    }
+}
+
+// Helper trait for List
+pub trait BorrowByIdx {
+    fn borrow_by_idx(&self, idx: usize) -> Ref<Value>;
+    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value>;
+
+    fn borrow_first(&self) -> Ref<Value> {
+        self.borrow_by_idx(0)
+    }
+
+    fn borrow_first_2(&self) -> (Ref<Value>, Ref<Value>) {
+        let first = self.borrow_by_idx(0);
+        let second = self.borrow_by_idx(1);
+
+        (first, second)
+    }
+
+    fn borrow_first_3(&self) -> (Ref<Value>, Ref<Value>, Ref<Value>) {
+        let first = self.borrow_by_idx(0);
+        let second = self.borrow_by_idx(1);
+        let third = self.borrow_by_idx(2);
+
+        (first, second, third)
+    }
+}
+
+impl BorrowByIdx for List {
+    fn borrow_by_idx(&self, idx: usize) -> Ref<Value> {
+        let value = self.get(idx).unwrap();
+        value.borrow()
+    }
+
+    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value> {
+        let value = self.get(idx).unwrap();
+        value.borrow_mut()
+    }
+}
 
 /** AST traversal result.
 

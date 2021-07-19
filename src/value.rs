@@ -1,6 +1,6 @@
 //! Tokay value and object representation
 
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
@@ -9,72 +9,9 @@ use crate::error::Error;
 use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Parselet, Reject};
 
-pub trait BorrowByKey {
-    fn borrow_by_key(&self, key: &str) -> Ref<Value>;
-    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value>;
-}
-
-pub trait BorrowByIdx {
-    fn borrow_by_idx(&self, idx: usize) -> Ref<Value>;
-    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value>;
-
-    fn borrow_first(&self) -> Ref<Value> {
-        self.borrow_by_idx(0)
-    }
-
-    fn borrow_first_2(&self) -> (Ref<Value>, Ref<Value>) {
-        let first = self.borrow_by_idx(0);
-        let second = self.borrow_by_idx(1);
-
-        (first, second)
-    }
-
-    fn borrow_first_3(&self) -> (Ref<Value>, Ref<Value>, Ref<Value>) {
-        let first = self.borrow_by_idx(0);
-        let second = self.borrow_by_idx(1);
-        let third = self.borrow_by_idx(2);
-
-        (first, second, third)
-    }
-}
-
-// https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=4dae75b00e3fe033dc495b279b52684f
-
-// --- RefValue ---------------------------------------------------------------
-
 pub type RefValue = Rc<RefCell<Value>>;
-
-// --- List -------------------------------------------------------------------
 pub type List = Vec<RefValue>;
-
-impl BorrowByIdx for List {
-    fn borrow_by_idx(&self, idx: usize) -> Ref<Value> {
-        let value = self.get(idx).unwrap();
-        value.borrow()
-    }
-
-    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value> {
-        let value = self.get(idx).unwrap();
-        value.borrow_mut()
-    }
-}
-
-// --- Dict -------------------------------------------------------------------
 pub type Dict = BTreeMap<String, RefValue>;
-
-impl BorrowByKey for Dict {
-    fn borrow_by_key(&self, key: &str) -> Ref<Value> {
-        let value = self.get(key).unwrap();
-        value.borrow()
-    }
-
-    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value> {
-        let value = self.get(key).unwrap();
-        value.borrow_mut()
-    }
-}
-
-// --- Value ------------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
