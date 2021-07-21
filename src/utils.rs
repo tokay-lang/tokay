@@ -7,15 +7,11 @@ use crate::value::*;
 /** Compiles and runs a source with an input.
 
 Used mostly in tests and for quick testing purposes. */
-pub fn compile_and_run(
-    src: &str,
-    input: &'static str,
-    debug: bool,
-) -> Result<Option<RefValue>, String> {
+pub fn compile_and_run(src: &str, input: &'static str) -> Result<Option<RefValue>, String> {
     let mut compiler = Compiler::new();
-    compiler.debug = debug;
+    let program = compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))));
 
-    match compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned())))) {
+    match program {
         Ok(program) => program.run_from_str(input).map_err(|err| err.to_string()),
         Err(errors) => Err(errors
             .into_iter()

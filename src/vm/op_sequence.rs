@@ -141,9 +141,11 @@ impl Runable for Sequence {
 
 impl std::fmt::Display for Sequence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(")?;
         for item in &self.items {
             write!(f, "{} ", item)?;
         }
+        write!(f, ")")?;
 
         Ok(())
     }

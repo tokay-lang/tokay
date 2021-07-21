@@ -106,7 +106,8 @@ pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) capture_start: usize,          // Stack capturing start
     pub(crate) reader_start: Offset,          // Current reader offset
     pub(super) source_offset: Option<Offset>, // Tokay source offset
-    hold: usize, // Defines number of stack items to hold on context drop
+    hold: usize,             // Defines number of stack items to hold on context drop
+    pub(crate) depth: usize, // Recursion depth
 }
 
 impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
@@ -115,6 +116,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         parselet: &'parselet Parselet,
         take: usize,
         hold: usize,
+        depth: usize,
     ) -> Self {
         let stack_start = runtime.stack.len() - take;
 
@@ -138,16 +140,25 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             parselet,
             source_offset: None,
             hold,
+            depth,
         }
+    }
+
+    /// Print debug output with context depth indention
+    #[inline]
+    pub fn debug(&self, msg: &str) {
+        println!("{}{}", ".".repeat(self.depth), msg);
     }
 
     /// Shortcut for an Ok(Accept::Push) with the given value.
     /// To push a value immediatelly, use context.runtime.stack.push().
+    #[inline]
     pub fn push(&self, value: RefValue) -> Result<Accept, Reject> {
         Ok(Accept::Push(Capture::Value(value, None, 10)))
     }
 
     /// Pop value off the stack.
+    #[inline]
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let mut capture = self.runtime.stack.pop().unwrap();
@@ -155,6 +166,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     /// Peek top value of stack.
+    #[inline]
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.last_mut().unwrap();
@@ -162,6 +174,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     // Push a value onto the stack
+    #[inline]
     pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
         let capture = &mut self.runtime.stack[index];
         let value = capture.into_value(self.runtime.reader);
@@ -276,10 +289,16 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 .collect()
         };
 
-        if self.runtime.debug {
-            println!("--- Collect ---");
-            println!("single = {}, severity = {}", single, severity);
-            println!("captures = {:?}", captures);
+        if self.runtime.debug > 3 {
+            self.debug(&format!(
+                "collect captures = {} single = {}, severity = {}",
+                captures.len(),
+                single,
+                severity
+            ));
+            for i in 0..captures.len() {
+                self.debug(&format!(" {}: {:?}", i, captures[i]));
+            }
         }
 
         // No captures, then just stop!
@@ -339,7 +358,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             };
         }
 
-        if self.runtime.debug {
+        if self.runtime.debug > 3 {
             println!("list = {:?}", list);
             println!("dict = {:?}", dict);
         }
@@ -412,7 +431,7 @@ pub struct Runtime<'program, 'reader> {
 
     pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
-    pub debug: bool,
+    pub debug: u8, // Debug level
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
@@ -422,7 +441,11 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             reader,
             memo: HashMap::new(),
             stack: Vec::new(),
-            debug: false,
+            debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
+                level.parse::<u8>().unwrap_or_default()
+            } else {
+                0
+            },
         }
     }
 

@@ -110,8 +110,7 @@ fn literal() {
             false \
             \"Hello World\" \
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([1337, 23.5, true, false, "Hello World"])))
     );
@@ -129,9 +128,8 @@ fn expression() {
             7 * 3 \
             21 / 3 \
             1 + 2 * 3 + 4 \
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([3, 1, 21, 7, 11])))
     );
@@ -145,9 +143,8 @@ fn expression() {
             2.1 * 6.5 \
             13.6 / 15.1 \
             1.1 + 2.2 * 3.3 + 4.4 \
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([
             0.5,
@@ -168,9 +165,8 @@ fn expression() {
             \"a\" + \"b\" * 3 \
             \"a\" * 9 \
             \"a\" * 3.3 \
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([
             "ab",
@@ -203,9 +199,8 @@ fn expression() {
             \"a\" != \"a\" \
             \"a\" != \"a\" * 2 \
             \"a\" == \"a\" * 2 \
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([
             true, true, true, false, false, false, true, false, true, false, true, false, true,
@@ -231,9 +226,8 @@ fn expression() {
             \"42.23\" <= 42.23 \
             \"42.23\" < 42.23 \
             \"42.23\" > 42.23 \
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([
             true, true, false, false, true, true, false, false, true, false, false, true
@@ -255,9 +249,8 @@ fn expression() {
             b || a && a \
             b || b && a \
             b && b
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!([true, false, true, true, true, false, false])))
     );
@@ -271,8 +264,7 @@ fn expression() {
             !true \
             !!true
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[(-1), 1, false, true]]))
     );
@@ -294,8 +286,7 @@ fn operations() {
             a /= 2 a \
             a *= 10 a
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[true, true, 31, 22, 66, 11, 5.5, 55.0]]))
     );
@@ -314,8 +305,7 @@ fn operations() {
             a-- - --a \
             a-- - - --a \
             a",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[1, 1, 3, 3, 4, 12, 2, 8, 3]]))
     );
@@ -332,8 +322,7 @@ fn variables() {
             a++
             a b
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[11, 10]]))
     );
@@ -350,8 +339,7 @@ fn variables() {
 
             f
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[11, 10]]))
     );
@@ -362,8 +350,7 @@ fn variables() {
             "
             10 20 $1 = $2 = 30 ++$1 $2
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[31, 30, 31, 30]]))
     );
@@ -374,8 +361,7 @@ fn variables() {
             "
             a => 10 b => 20 $a = $b = 30 c => ++$a d => $b
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![["a" => 31, "b" => 30, "c" => 31, "d" => 30]]))
     );
@@ -385,7 +371,7 @@ fn variables() {
 // Test-case for scoping
 fn scoping() {
     assert_eq!(
-        compile_and_run(include_str!("../tests/test_scopes.tok"), "", false),
+        compile_and_run(include_str!("../tests/test_scopes.tok"), ""),
         Ok(Some(value![[10, 2000, 1072]]))
     );
 }
@@ -403,8 +389,7 @@ fn collections() {
             (1, 2, 3) \
             (42, \"Hello\", 23.5, true, false)
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([
             [1, 2, 3],
@@ -422,8 +407,7 @@ fn collections() {
             (a => 1, b => 2, c => 3) \
             (a => 42, x * 2 => \"Hello\", c => 23.5)
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([
             ["a" => 1, "b" => 2, "c" => 3],
@@ -442,25 +426,25 @@ fn token_modifiers() {
 
     // Simple touch
     assert_eq!(
-        compile_and_run("'a' 'b'", s, false),
+        compile_and_run("'a' 'b'", s),
         Ok(Some(value![[["a", "b"], ["a", "b"]]]))
     );
 
     // Touch and match
     assert_eq!(
-        compile_and_run("'a' ''b''", s, false),
+        compile_and_run("'a' ''b''", s),
         Ok(Some(value![["b", "b"]]))
     );
 
     // Match with positive modifier
     assert_eq!(
-        compile_and_run("'a' ''b''+", s, false),
+        compile_and_run("'a' ''b''+", s),
         Ok(Some(value![["b", ["b", "b", "b"]]]))
     );
 
     // Match with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("''a''* ''b''+", s, false),
+        compile_and_run("''a''* ''b''+", s),
         Ok(Some(value![[
             ["a", "b"],
             ["a", ["b", "b", "b"]],
@@ -470,33 +454,30 @@ fn token_modifiers() {
 
     // Touch with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("'a'* ''b''+", s, false),
+        compile_and_run("'a'* ''b''+", s),
         Ok(Some(value![["b", ["b", "b", "b"], ["b", "b"]]]))
     );
 
     // Character classes
     assert_eq!(
-        compile_and_run("[a-z]", &s[..2], false),
+        compile_and_run("[a-z]", &s[..2]),
         Ok(Some(value![["a", "b"]]))
     );
 
     assert_eq!(
-        compile_and_run("[a-z]+", s, false),
+        compile_and_run("[a-z]+", s),
         Ok(Some(value![["ab", "abbb", "bb", "def"]]))
     );
 
     assert_eq!(
-        compile_and_run("[^ ']+", s, false),
+        compile_and_run("[^ ']+", s),
         Ok(Some(value![[
             "ab", "abbb", "bb", "123", "ABC", "456", "def"
         ]]))
     );
 
     // Built-in token
-    assert_eq!(
-        compile_and_run("Integer", s, false),
-        Ok(Some(value![[123, 456]]))
-    );
+    assert_eq!(compile_and_run("Integer", s), Ok(Some(value![[123, 456]])));
 
     // todo: more token tests, please!
 }
@@ -507,7 +488,7 @@ fn builtin_tokens() {
     let gliders = "Glasflügel Libelle 201b\tG102 Astir  \nVentus_2cT";
 
     assert_eq!(
-        compile_and_run("Identifier", gliders, false),
+        compile_and_run("Identifier", gliders),
         Ok(Some(value!([
             "Glasflügel",
             "Libelle",
@@ -519,17 +500,17 @@ fn builtin_tokens() {
     );
 
     assert_eq!(
-        compile_and_run("Integer", gliders, false),
+        compile_and_run("Integer", gliders),
         Ok(Some(value!([201, 102, 2])))
     );
 
     assert_eq!(
-        compile_and_run("Whitespaces", gliders, false),
+        compile_and_run("Whitespaces", gliders),
         Ok(Some(value!([" ", " ", "\t", " ", "  \n"])))
     );
 
     assert_eq!(
-        compile_and_run("Word", gliders, false),
+        compile_and_run("Word", gliders),
         Ok(Some(value!([
             "Glasflügel",
             "Libelle",
@@ -545,12 +526,12 @@ fn builtin_tokens() {
     let abc = "abc   \tdef  abcabc= ghi abcdef";
 
     assert_eq!(
-        compile_and_run("Word _; ", abc, false),
+        compile_and_run("Word _; ", abc),
         Ok(Some(value![["abc", "def", "abcabc", "ghi", "abcdef"]]))
     );
 
     assert_eq!(
-        compile_and_run("Word __; ", abc, false),
+        compile_and_run("Word __; ", abc),
         Ok(Some(value![["abc", "def", "ghi"]]))
     );
 }
@@ -570,8 +551,7 @@ fn parselet_static_with_args() {
 
             faculty(4)
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!(24)))
     );
@@ -590,8 +570,7 @@ fn parselet_variable_with_args() {
 
             faculty(4)
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!(24)))
     );
@@ -601,7 +580,7 @@ fn parselet_variable_with_args() {
 // Testing left-recursive parselets
 fn parselet_leftrec() {
     assert_eq!(
-        compile_and_run("P: @{ P? ''a'' }\nP", "aaaa", false),
+        compile_and_run("P: @{ P? ''a'' }\nP", "aaaa"),
         Ok(Some(value!([[["a", "a"], "a"], "a"])))
     );
 
@@ -631,8 +610,16 @@ fn parselet_call_error_reporting() {
         let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
         println!("calling {:?}, expecting {:?}", call, msg);
 
-        assert_eq!(compile_and_run(&call, "", false), Err(msg.to_owned()));
+        assert_eq!(compile_and_run(&call, ""), Err(msg.to_owned()));
     }
+}
+
+#[test]
+fn kaputt() {
+    assert_eq!(
+        compile_and_run("{{}}", ""),
+        Ok(Some(Value::Void.into_refvalue()))
+    );
 }
 
 #[test]
@@ -641,8 +628,7 @@ fn examples() {
     assert_eq!(
         compile_and_run(
             include_str!("../examples/planets.tok"),
-            "Mercury Venus Earth Mars",
-            false
+            "Mercury Venus Earth Mars"
         ),
         Ok(Some(value!([
             "Hello Mercury",
@@ -652,11 +638,11 @@ fn examples() {
         ])))
     );
 
+    /*
     assert_eq!(
         compile_and_run(
             include_str!("../examples/planets2.tok"),
-            "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune",
-            false
+            "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune"
         ),
         Ok(Some(value!([
             "Mercury",
@@ -669,33 +655,29 @@ fn examples() {
             "Neptune"
         ])))
     );
+    */
 
     assert_eq!(
-        compile_and_run(include_str!("../examples/expr.tok"), "1+2*3+4", false),
+        compile_and_run(include_str!("../examples/expr.tok"), "1+2*3+4"),
         Ok(Some(value!(11)))
     );
 
     // todo: Would be nice to test against stdout
     assert_eq!(
-        compile_and_run(
-            include_str!("../examples/expr_with_ast.tok"),
-            "1+2*3+4",
-            false
-        ),
+        compile_and_run(include_str!("../examples/expr_with_ast.tok"), "1+2*3+4"),
         Ok(None)
     );
 
     assert_eq!(
         compile_and_run(
             include_str!("../examples/expr_with_spaces.tok"),
-            "1 +  \t 2 \n *  3 + 4",
-            false
+            "1 +  \t 2 \n *  3 + 4"
         ),
         Ok(Some(value!(11)))
     );
 
     assert_eq!(
-        compile_and_run(include_str!("../examples/faculty.tok"), "", false),
+        compile_and_run(include_str!("../examples/faculty.tok"), ""),
         Ok(Some(value!(24)))
     );
 }
@@ -704,12 +686,12 @@ fn examples() {
 // Testing sequence captures
 fn capture() {
     assert_eq!(
-        compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab", false),
+        compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab"),
         Ok(Some(value!("aabbb")))
     );
 
     assert_eq!(
-        compile_and_run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab", false),
+        compile_and_run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab"),
         Ok(Some(value!("bbbaa")))
     );
 }
@@ -727,8 +709,7 @@ fn begin_end() {
 
             P: @{ 'lol' x = x + 1 x }
             P",
-            "lolalolaalolol",
-            false
+            "lolalolaalolol"
         ),
         Ok(Some(value!([1337, 1, 2, 3, 1338])))
     );
@@ -739,8 +720,7 @@ fn begin_end() {
             begin x = 1
 
             'lol' $1 * x x x = x + 1",
-            "lolAlolBlol",
-            false
+            "lolAlolBlol"
         ),
         Ok(Some(value!([["lol", 1], ["lollol", 2], ["lollollol", 3]])))
     );
@@ -753,8 +733,7 @@ fn begin_end() {
             2 3 4
             end 5
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([1, [2, 3, 4], 5])))
     )
@@ -764,7 +743,7 @@ fn begin_end() {
 // Testing parselet repeat
 fn repeat() {
     assert_eq!(
-        compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa", false),
+        compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa"),
         Ok(Some(value!(["a", "a", "a", "a"])))
     );
 
@@ -782,8 +761,7 @@ fn if_else() {
             if false 2 \
             if $1 3 else 4 \
             if !$2 5 else 6",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([1, 3, 5])))
     );
@@ -799,8 +777,7 @@ fn if_else() {
             if nb 2 \
             if $1 3 else 4 \
             if !$2 5 else 6",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!([1, 3, 5])))
     );
@@ -817,8 +794,7 @@ fn push_next() {
             1 2 3 next
             4 5 6 push 7
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!(7)))
     );
@@ -853,16 +829,15 @@ fn compiler_structure() {
             }
 
             a b c
-        ",
-            "",
-            false
+            ",
+            ""
         ),
         Ok(Some(value!(3)))
     );
 
     // Test for invalid input when EOF is expected
     assert_eq!(
-        compile_and_run("{}}", "", false),
+        compile_and_run("{}}", ""),
         Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
     );
 }
@@ -879,8 +854,7 @@ fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
             "\"test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F98E\"",
-            "",
-            false
+            ""
         ),
         Ok(Some(value!("test\\yes\nÊþ\t@_€🦎")))
     );
@@ -888,8 +862,7 @@ fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
             "'hello\\nworld'", // double \ quotation required
-            "hello\nworld",
-            false
+            "hello\nworld"
         ),
         Ok(Some(value!("hello\nworld")))
     );
@@ -897,8 +870,7 @@ fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
             "[0-9\\u20ac]+", // double \ quotation required
-            "12345€ €12345",
-            false
+            "12345€ €12345"
         ),
         Ok(Some(value!(["12345€", "€12345"])))
     );
@@ -906,8 +878,7 @@ fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
             "'hello\\nworld'", // double \ quotation required
-            "hello\nworld",
-            false
+            "hello\nworld"
         ),
         Ok(Some(value!("hello\nworld")))
     );
@@ -915,8 +886,7 @@ fn compiler_unescaping() {
     assert_eq!(
         compile_and_run(
             "[0-9\\u20ac]+", // double \ quotation required
-            "12345€ €12345",
-            false
+            "12345€ €12345"
         ),
         Ok(Some(value!(["12345€", "€12345"])))
     );
@@ -929,12 +899,12 @@ fn compiler_unescaping() {
 fn builtins() {
     // ord/chr
     assert_eq!(
-        compile_and_run("i = ord(\"€\"); i chr(i)", "", false),
+        compile_and_run("i = ord(\"€\"); i chr(i)", ""),
         Ok(Some(value![[(8364 as usize), "€"]]))
     );
 
     assert_eq!(
-        compile_and_run("ord(\"12\")", "", false),
+        compile_and_run("ord(\"12\")", ""),
         Err(
             "Line 1, column 1: ord() expected single character, but received string of length 2"
                 .to_string()
@@ -942,7 +912,7 @@ fn builtins() {
     );
 
     assert_eq!(
-        compile_and_run("ord(\"\")", "", false),
+        compile_and_run("ord(\"\")", ""),
         Err(
             "Line 1, column 1: ord() expected single character, but received string of length 0"
                 .to_string()
@@ -965,8 +935,7 @@ fn builtins_str() {
             \"hello world\".replace(\"l\").upper() \
             \"Tokay\".upper()[1] \
             ",
-            "",
-            false
+            ""
         ),
         Ok(Some(value![[
             "ABCÄÖÜ",

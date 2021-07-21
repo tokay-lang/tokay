@@ -540,7 +540,11 @@ impl Value {
                 token.read(context.runtime.reader)
             }
             Value::Builtin(builtin) => builtin.call(context, args, nargs),
-            Value::Parselet(parselet) => parselet.borrow().run(context.runtime, args, nargs, false),
+            Value::Parselet(parselet) => {
+                parselet
+                    .borrow()
+                    .run(context.runtime, args, nargs, false, context.depth + 1)
+            }
             Value::Method(method) => {
                 // Method call injects the related object into the stack and calls the method afterwards.
                 context.runtime.stack.insert(

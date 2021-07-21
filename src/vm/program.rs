@@ -42,7 +42,7 @@ impl Program {
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = &self.main {
             let main = main.borrow();
-            let res = main.run(runtime, runtime.stack.len(), None, true);
+            let res = main.run(runtime, runtime.stack.len(), None, true, 0);
 
             let res = match res {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),

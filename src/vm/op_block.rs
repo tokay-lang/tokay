@@ -80,9 +80,11 @@ impl Runable for Block {
 
 impl std::fmt::Display for Block {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{")?;
         for item in &self.items {
-            write!(f, "{}\n", item)?;
+            write!(f, "{} ", item)?;
         }
+        write!(f, "}}")?;
 
         Ok(())
     }

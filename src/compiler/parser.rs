@@ -436,6 +436,12 @@ impl Parser {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
+        if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
+            runtime.debug = level.parse::<u8>().unwrap_or_default();
+        } else {
+            runtime.debug = 0;
+        }
+
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
                 let ast = Value::from_ref(ast).unwrap();

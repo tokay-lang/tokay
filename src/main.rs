@@ -25,6 +25,9 @@ fn main() {
     //println!("opts = {:?}", opts);
 
     let debug = opts.occurrences_of("debug");
+    if debug > 0 {
+        std::env::set_var("TOKAY_DEBUG", format!("{}", debug));
+    }
 
     if opts.is_present("license") {
         print_version();
@@ -83,7 +86,6 @@ fn main() {
 
     if let Some(mut program) = program {
         let mut compiler = Compiler::new();
-        compiler.debug = debug > 0; // todo: too less...
 
         if let Ok(program) = compiler.compile(program.get_reader()) {
             for (name, stream) in &streams {
@@ -106,6 +108,6 @@ fn main() {
         }
     } else {
         print_version();
-        repl(streams, debug > 0);
+        repl(streams);
     }
 }

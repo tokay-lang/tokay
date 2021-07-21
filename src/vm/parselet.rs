@@ -339,6 +339,7 @@ impl Parselet {
         args: usize,
         mut nargs: Option<Dict>,
         main: bool,
+        depth: usize,
     ) -> Result<Accept, Reject> {
         // Check for a previously memoized result in memo table
         let id = self as *const Parselet as usize;
@@ -359,7 +360,12 @@ impl Parselet {
             self,
             args,
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
+            depth,
         );
+
+        if context.runtime.debug > 2 {
+            context.debug(self.name.as_deref().unwrap_or("(unnamed)"));
+        }
 
         if !main {
             // Check for provided argument count bounds first

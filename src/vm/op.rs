@@ -138,14 +138,19 @@ impl Op {
 
 impl Runable for Op {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        /*
-        if context.runtime.debug {
-            println!("--- {:?} @ {} ---", self, context.runtime.reader.tell().offset);
-            for i in 0..context.runtime.stack.len() {
-                println!("  {}: {:?}", i, context.runtime.stack[i]);
+        if context.runtime.debug > 5 {
+            context.debug(&format!(
+                "{} @ {}",
+                self,
+                context.runtime.reader.tell().offset
+            ));
+
+            if context.runtime.debug > 6 {
+                for i in 0..context.runtime.stack.len() {
+                    context.debug(&format!(" {}: {:?}", i, context.runtime.stack[i]));
+                }
             }
         }
-        */
 
         match self {
             Op::Nop => Ok(Accept::Next),

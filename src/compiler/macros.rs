@@ -17,11 +17,11 @@ macro_rules! tokay {
     ( { $( $items:tt ),+ } ) => {
         {
             let mut compiler = Compiler::new();
+            compiler.debug = 0;  // unset debug always
 
             compiler.push_parselet();  // Main
             compiler.mark_consuming();
 
-            //compiler.debug = true;
             let main = tokay!(compiler, { $( $items ),* });
 
             let parselet = compiler.pop_parselet(
@@ -34,7 +34,7 @@ macro_rules! tokay {
 
             match compiler.to_program() {
                 Ok(program) => {
-                    if compiler.debug {
+                    if compiler.debug > 0 {
                         program.dump();
                     }
                     program

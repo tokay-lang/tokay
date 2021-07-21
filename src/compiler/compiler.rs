@@ -46,7 +46,7 @@ won't be removed and can be accessed later on. This is useful in REPL mode.
 */
 pub struct Compiler {
     parser: Option<parser::Parser>, //Tokay parser
-    pub debug: bool,
+    pub debug: u8,
     pub interactive: bool,
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     pub(super) scopes: Vec<Scope>,              // Current compilation scopes
@@ -59,7 +59,11 @@ impl Compiler {
         // Initialize new compiler.
         Self {
             parser: None,
-            debug: false,
+            debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
+                level.parse::<u8>().unwrap_or_default()
+            } else {
+                0
+            },
             interactive: false,
             statics: RefCell::new(Vec::new()),
             scopes: Vec::new(),
@@ -77,7 +81,8 @@ impl Compiler {
             self.parser = Some(Parser::new());
         }
 
-        let ast = match self.parser.as_ref().unwrap().parse(reader) {
+        let parser = self.parser.as_ref().unwrap();
+        let ast = match parser.parse(reader) {
             Ok(ast) => ast,
             Err(error) => {
                 eprintln!("{}", error);
@@ -85,7 +90,7 @@ impl Compiler {
             }
         };
 
-        if self.debug {
+        if self.debug > 0 {
             ast::print(&ast);
         }
 
@@ -102,7 +107,7 @@ impl Compiler {
             }
         };
 
-        if self.debug {
+        if self.debug > 0 {
             program.dump();
         }
 
