@@ -16,7 +16,7 @@ pub type Range = std::ops::Range<usize>;
 // Abstraction of a buffered Reader with internal buffering, offset counting and clean-up.
 pub struct Reader {
     reader: Box<dyn BufRead>, // Reader object to read from
-    buffer: Vec<char>,        // Internal buffer
+    buffer: String,           // Internal buffer
     offset: Offset,           // Current offset
     eof: bool,                // EOF marker
 }
@@ -26,7 +26,7 @@ impl Reader {
     pub fn new(reader: Box<dyn BufRead>) -> Self {
         let mut ret = Self {
             reader,
-            buffer: Vec::new(),
+            buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             offset: Offset {
                 offset: 0,
                 row: 1,
@@ -41,15 +41,10 @@ impl Reader {
 
     /// Internal function for reading a line.
     fn read_line(&mut self) -> Option<usize> {
-        let mut s = String::new();
-        if let Ok(n) = self.reader.read_line(&mut s) {
+        if let Ok(n) = self.reader.read_line(&mut self.buffer) {
             if n == 0 {
                 self.eof = true;
                 return None;
-            }
-
-            for ch in s.chars() {
-                self.buffer.push(ch);
             }
 
             Some(n)
@@ -60,39 +55,40 @@ impl Reader {
     }
 
     pub fn next(&mut self) -> Option<char> {
-        if self.offset.offset < self.buffer.len() {
-            self.offset.offset += 1;
+        loop {
+            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
+                self.offset.offset += ch.len_utf8();
 
-            let ch = self.buffer[self.offset.offset - 1];
-            if ch == '\n' {
-                self.offset.row += 1;
-                self.offset.col = 1;
-            } else {
-                self.offset.col += 1;
+                if ch == '\n' {
+                    self.offset.row += 1;
+                    self.offset.col = 1;
+                } else {
+                    self.offset.col += 1;
+                }
+
+                return Some(ch);
             }
 
-            return Some(ch);
-        }
+            if self.eof {
+                return None;
+            }
 
-        if self.eof {
-            return None;
+            self.read_line();
         }
-
-        self.read_line();
-        self.next()
     }
 
     pub fn peek(&mut self) -> Option<char> {
-        if self.offset.offset < self.buffer.len() {
-            return Some(self.buffer[self.offset.offset]);
-        }
+        loop {
+            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
+                return Some(ch);
+            }
 
-        if self.eof {
-            return None;
-        }
+            if self.eof {
+                return None;
+            }
 
-        self.read_line();
-        self.peek()
+            self.read_line();
+        }
     }
 
     pub fn tell(&self) -> Offset {
@@ -132,7 +128,7 @@ impl Reader {
     }
 
     pub fn extract(&self, range: &Range) -> String {
-        self.buffer[range.start..range.end].iter().collect()
+        self.buffer[range.start..range.end].to_string()
     }
 
     /// Commits current input buffer and removes cached content

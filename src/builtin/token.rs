@@ -28,7 +28,7 @@ inventory::submit! {
                 }
 
                 context.runtime.reader.next();
-                count += 1;
+                count += ch.len_utf8();
             }
 
             if count > 0 {
@@ -108,7 +108,7 @@ inventory::submit! {
                 }
 
                 context.runtime.reader.next();
-                count += 1;
+                count += ch.len_utf8();
             }
 
             if count > 0 {
