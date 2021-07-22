@@ -104,8 +104,6 @@ pub enum Op {
 
     IfTrue(Box<Op>),  // Logical and (&& operator)
     IfFalse(Box<Op>), // Logical or (|| operator)
-
-    Loop(Box<Op>),
 }
 
 impl Op {
@@ -574,25 +572,6 @@ impl Runable for Op {
                     Ok(Accept::Skip)
                 }
             }
-
-            Op::Loop(body) => {
-                let capture_start = context.runtime.stack.len();
-
-                loop {
-                    let ret = body.run(context);
-                    //println!("loop {:?}", ret);
-                    match ret {
-                        Ok(Accept::Next | Accept::Continue) => {
-                            context.runtime.stack.truncate(capture_start);
-                        }
-                        Ok(Accept::Break(Some(value))) => {
-                            break Ok(Accept::Push(Capture::Value(value, None, 10)))
-                        }
-                        Ok(Accept::Break(None)) => break Ok(Accept::Next),
-                        other => break other,
-                    }
-                }
-            }
         }
     }
 
@@ -600,7 +579,7 @@ impl Runable for Op {
         match self {
             Op::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
             Op::Runable(runable) => runable.resolve(usages),
-            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.resolve(usages),
+            Op::IfTrue(op) | Op::IfFalse(op) => op.resolve(usages),
             _ => {}
         }
     }
@@ -660,7 +639,7 @@ impl Runable for Op {
                 }
             }
 
-            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.finalize(statics, stack),
+            Op::IfTrue(op) | Op::IfFalse(op) => op.finalize(statics, stack),
 
             _ => None,
         }

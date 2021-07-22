@@ -1342,7 +1342,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     compiler.pop_loop();
 
                     loop_ops.push(Op::Continue); // Avoid pushing sequence results
-                    ops.push(Op::Loop(Op::from_vec(loop_ops).into_box()));
+                    ops.push(Loop::new(Op::from_vec(loop_ops)));
                     return AstResult::Ops(ops);
                 }
 
@@ -1367,7 +1367,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     compiler.pop_loop();
 
                     ops.push(Op::Continue); // Avoid pushing sequence results
-                    Op::Loop(Op::from_vec(ops).into_box())
+                    Loop::new(Op::from_vec(ops))
                 }
 
                 _ => {
