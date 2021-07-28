@@ -7,7 +7,8 @@ use std::rc::Rc;
 use crate::builtin::{self, Builtin};
 use crate::error::Error;
 use crate::token::Token;
-use crate::vm::{Accept, Capture, Context, Parselet, Reject};
+use crate::vm::{Accept, Capture, Context, Reject};
+use crate::compiler::iml::Parselet;  // todo: temporary!
 
 pub type RefValue = Rc<RefCell<Value>>;
 pub type List = Vec<RefValue>;

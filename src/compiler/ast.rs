@@ -9,7 +9,6 @@ use crate::error::Error;
 use crate::reader::Offset;
 use crate::token::Token;
 use crate::value::{Dict, List, RefValue, Value};
-use crate::vm::*;
 
 // Helper trait for Dict
 pub trait BorrowByKey {

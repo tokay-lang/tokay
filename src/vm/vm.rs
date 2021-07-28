@@ -5,6 +5,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value};
+use crate::compiler::iml::Parselet; // todo: temporary!
 
 // --- Capture -----------------------------------------------------------------
 
@@ -105,7 +106,7 @@ pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) stack_start: usize,            // Stack start (including locals and parameters)
     pub(crate) capture_start: usize,          // Stack capturing start
     pub(crate) reader_start: Offset,          // Current reader offset
-    pub(super) source_offset: Option<Offset>, // Tokay source offset
+    pub(crate /*todo: super*/) source_offset: Option<Offset>, // Tokay source offset
     hold: usize,             // Defines number of stack items to hold on context drop
     pub(crate) depth: usize, // Recursion depth
 }
@@ -429,7 +430,7 @@ pub struct Runtime<'program, 'reader> {
     pub(crate) program: &'program Program,
     pub(crate) reader: &'reader mut Reader,
 
-    pub(super) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
+    pub(crate /*todo: super*/) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
     pub debug: u8, // Debug level
 }

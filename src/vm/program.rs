@@ -7,13 +7,14 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{RefValue, Value};
+use crate::compiler::iml::Parselet; // todo: temporary!
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
 A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
-    pub(super) statics: Vec<RefValue>, // Static values referenced by this program
+    pub(crate /*todo: super*/) statics: Vec<RefValue>, // Static values referenced by this program
     main: Option<Rc<RefCell<Parselet>>>, // The main parselet to run
 }
 
