@@ -8,11 +8,11 @@ rejected and vice-versa.
 
 #[derive(Debug)]
 pub struct Not {
-    body: Op,
+    body: ImlOp,
 }
 
 impl Not {
-    pub fn new(body: Op) -> Op {
+    pub fn new(body: ImlOp) -> ImlOp {
         Self { body }.into_op()
     }
 }
@@ -28,7 +28,7 @@ impl Runable for Not {
         res
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
 

@@ -9,12 +9,12 @@ On error, a helpul error message is raised as Reject::Error.
 
 #[derive(Debug)]
 pub struct Expect {
-    body: Op,
+    body: ImlOp,
     msg: Option<String>,
 }
 
 impl Expect {
-    pub fn new(body: Op, msg: Option<String>) -> Op {
+    pub fn new(body: ImlOp, msg: Option<String>) -> ImlOp {
         Self { body, msg }.into_op()
     }
 }
@@ -36,7 +36,7 @@ impl Runable for Expect {
         })
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
 

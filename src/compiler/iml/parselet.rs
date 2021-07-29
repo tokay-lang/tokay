@@ -29,9 +29,9 @@ pub struct Parselet {
     pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
     pub(crate) locals: usize, // Number of local variables present
-    begin: Op,               // Begin-operations
-    end: Op,                 // End-operations
-    pub(crate) body: Op,     // Operations
+    begin: ImlOp,            // Begin-operations
+    end: ImlOp,              // End-operations
+    pub(crate) body: ImlOp,  // Operations
 }
 
 impl Parselet {
@@ -40,9 +40,9 @@ impl Parselet {
         name: Option<String>,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
-        begin: Op,
-        end: Op,
-        body: Op,
+        begin: ImlOp,
+        end: ImlOp,
+        body: ImlOp,
     ) -> Self {
         assert!(
             signature.len() <= locals,
@@ -68,7 +68,7 @@ impl Parselet {
         Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.begin.resolve(usages);
         self.end.resolve(usages);
         self.body.resolve(usages);
@@ -90,7 +90,7 @@ impl Parselet {
     Maybe there will be a better method for this detection in
     future.
     */
-    pub(crate) fn finalize(mut usages: Vec<Vec<Op>>, statics: &Vec<RefValue>) -> usize {
+    pub(crate) fn finalize(mut usages: Vec<Vec<ImlOp>>, statics: &Vec<RefValue>) -> usize {
         let mut changes = true;
         let mut loops = 0;
 
@@ -162,9 +162,9 @@ impl Parselet {
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
-        let mut first = !matches!(self.begin, Op::Nop);
+        let mut first = !matches!(self.begin, ImlOp::Nop);
         let mut results = Vec::new();
-        let mut state = if let Op::Nop = self.begin {
+        let mut state = if let ImlOp::Nop = self.begin {
             None
         } else {
             Some(true)

@@ -10,11 +10,11 @@ parser.
 
 #[derive(Debug)]
 pub struct Block {
-    items: Vec<Op>,
+    items: Vec<ImlOp>,
 }
 
 impl Block {
-    pub fn new(items: Vec<Op>) -> Op {
+    pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self { items: items }.into_op()
     }
 }
@@ -46,7 +46,7 @@ impl Runable for Block {
         result
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         for alt in self.items.iter_mut() {
             alt.resolve(usages);
         }

@@ -25,8 +25,8 @@ pub(crate) enum Scope {
         usage_start: usize, // Begin of usages to resolve until when scope is closed
         constants: HashMap<String, RefValue>, // Constants symbol table
         variables: HashMap<String, usize>, // Variable symbol table
-        begin: Vec<Op>,     // Begin operations
-        end: Vec<Op>,       // End operations
+        begin: Vec<ImlOp>,  // Begin operations
+        end: Vec<ImlOp>,    // End operations
         consuming: bool, // Determines whether the scope is consuming input for early consumable detection
     },
     Block {
@@ -50,7 +50,7 @@ pub struct Compiler {
     pub interactive: bool,
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     pub(super) scopes: Vec<Scope>,              // Current compilation scopes
-    pub(super) usages: Vec<Result<Vec<Op>, Usage>>, // Usages of symbols in parselets
+    pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
     pub(super) errors: Vec<Error>,              // Collected errors during compilation
 }
 
@@ -159,7 +159,7 @@ impl Compiler {
                         };
 
                         errors.push(error);
-                        vec![Op::Nop] // Dummy instruction
+                        vec![ImlOp::Nop] // Dummy instruction
                     }
                 }
             })
@@ -168,7 +168,7 @@ impl Compiler {
         Parselet::finalize(usages, &statics);
 
         // Stop when any unresolved usages occured;
-        // We do this here so that eventual undefined symbols are replaced by Op::Nop,
+        // We do this here so that eventual undefined symbols are replaced by ImlOp::Nop,
         // and later don't throw other errors especially when in interactive mode.
         if errors.len() > 0 {
             return Err(errors);
@@ -184,7 +184,7 @@ impl Compiler {
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<Result<Vec<Op>, Usage>> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<Result<Vec<ImlOp>, Usage>> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again
             for usage in usages.into_iter() {
@@ -238,7 +238,7 @@ impl Compiler {
         &mut self,
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
-        body: Op,
+        body: ImlOp,
     ) -> Parselet {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
@@ -253,9 +253,9 @@ impl Compiler {
             ..
         } = &mut scope
         {
-            fn ensure_block(ops: Vec<Op>) -> Op {
+            fn ensure_block(ops: Vec<ImlOp>) -> ImlOp {
                 match ops.len() {
-                    0 => Op::Nop,
+                    0 => ImlOp::Nop,
                     1 => ops.into_iter().next().unwrap(),
                     _ => Block::new(ops).into_op(),
                 }
@@ -392,10 +392,10 @@ impl Compiler {
                 Some("__".to_string()),
                 Vec::new(),
                 0,
-                Op::Nop,
-                Op::Nop,
+                ImlOp::Nop,
+                ImlOp::Nop,
                 // becomes silent `Value+`
-                Repeat::new(Op::CallStatic(self.define_static(value)), 1, 0, true).into_op(),
+                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 1, 0, true).into_op(),
             );
 
             parselet.consuming = true;
@@ -411,10 +411,10 @@ impl Compiler {
                 Some(name.to_string()),
                 Vec::new(),
                 0,
-                Op::Nop,
-                Op::Nop,
+                ImlOp::Nop,
+                ImlOp::Nop,
                 // becomes silent `Value?`
-                Repeat::new(Op::CallStatic(self.define_static(value)), 0, 1, true).into_op(),
+                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 0, 1, true).into_op(),
             );
 
             parselet.consuming = true;

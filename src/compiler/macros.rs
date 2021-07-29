@@ -27,7 +27,7 @@ macro_rules! tokay {
             let parselet = compiler.pop_parselet(
                 Some("__main__".to_string()),
                 Vec::new(),
-                main.unwrap_or(Op::Nop)
+                main.unwrap_or(ImlOp::Nop)
             ).into_value().into_refvalue();
 
             compiler.define_static(parselet);
@@ -224,13 +224,13 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(Op::LoadStatic($compiler.define_static(value!($value))))
+        Some(ImlOp::from(Op::LoadStatic($compiler.define_static(value!($value)))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
         {
-            Some(Op::CallStatic($compiler.define_static($token.into_value().into_refvalue())))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_static($token.into_value().into_refvalue()))))
         }
     };
 
@@ -255,7 +255,7 @@ macro_rules! tokay {
             items.extend(item);
 
             //println!("call = {} {:?}", stringify!($ident), items);
-            Some(Op::from_vec(items))
+            Some(ImlOp::from_vec(items))
         }
     };
 
@@ -270,7 +270,7 @@ macro_rules! tokay {
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
 
-            Some(Op::from_vec(item))
+            Some(ImlOp::from_vec(item))
         }
     };
 
@@ -292,7 +292,7 @@ macro_rules! tokay {
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = Token::Match($literal.to_string()).into_value();
-            Some(Op::CallStatic($compiler.define_static(token.into_refvalue())))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_static(token.into_refvalue()))))
         }
     };
 
@@ -300,7 +300,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = Token::Touch($literal.to_string()).into_value();
-            Some(Op::CallStatic($compiler.define_static(token.into_refvalue())))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_static(token.into_refvalue()))))
         }
     };
 
@@ -308,7 +308,7 @@ macro_rules! tokay {
     ( $compiler:expr, $expr:tt ) => {
         {
             //println!("expr = {}", stringify!($expr));
-            Some($expr)
+            Some(ImlOp::from($expr))
         }
     };
 }

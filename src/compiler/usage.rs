@@ -29,29 +29,29 @@ pub enum Usage {
 }
 
 impl Usage {
-    pub(super) fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<Op>> {
+    pub(super) fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<ImlOp>> {
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
+                    return Some(vec![Op::LoadStatic(compiler.define_static(value)).into()]);
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr)]);
+                    return Some(vec![Op::LoadFast(addr).into()]);
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr)]);
+                    return Some(vec![Op::LoadGlobal(addr).into()]);
                 }
             }
 
             Usage::CallOrCopy { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
                     if value.borrow().is_callable(false) {
-                        return Some(vec![Op::CallStatic(compiler.define_static(value))]);
+                        return Some(vec![Op::CallStatic(compiler.define_static(value)).into()]);
                     } else {
-                        return Some(vec![Op::LoadStatic(compiler.define_static(value))]);
+                        return Some(vec![Op::LoadStatic(compiler.define_static(value)).into()]);
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr), Op::CallOrCopy]);
+                    return Some(vec![Op::LoadFast(addr).into(), Op::CallOrCopy.into()]);
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr), Op::CallOrCopy]);
+                    return Some(vec![Op::LoadGlobal(addr).into(), Op::CallOrCopy.into()]);
                 }
             }
 
@@ -67,12 +67,12 @@ impl Usage {
                         let addr = compiler.define_static(value);
 
                         if *args == 0 && *nargs == 0 {
-                            return Some(vec![Op::CallStatic(addr)]);
+                            return Some(vec![Op::CallStatic(addr).into()]);
                         } else if *args > 0 && *nargs == 0 {
-                            return Some(vec![Op::CallStaticArg(Box::new((addr, *args)))]);
+                            return Some(vec![Op::CallStaticArg(Box::new((addr, *args))).into()]);
                         }
 
-                        return Some(vec![Op::CallStaticArgNamed(Box::new((addr, *args)))]);
+                        return Some(vec![Op::CallStaticArgNamed(Box::new((addr, *args))).into()]);
                     } else if *args == 0 && *nargs == 0 {
                         *self = Usage::Error(Error::new(
                             *offset,
@@ -86,20 +86,26 @@ impl Usage {
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if *args == 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadFast(addr), Op::Call]);
+                        return Some(vec![Op::LoadFast(addr).into(), Op::Call.into()]);
                     } else if *args > 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadFast(addr), Op::CallArg(*args)]);
+                        return Some(vec![Op::LoadFast(addr).into(), Op::CallArg(*args).into()]);
                     }
 
-                    return Some(vec![Op::LoadFast(addr), Op::CallArgNamed(*args)]);
+                    return Some(vec![
+                        Op::LoadFast(addr).into(),
+                        Op::CallArgNamed(*args).into(),
+                    ]);
                 } else if let Some(addr) = compiler.get_global(&name) {
                     if *args == 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadGlobal(addr), Op::Call]);
+                        return Some(vec![Op::LoadGlobal(addr).into(), Op::Call.into()]);
                     } else if *args > 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadGlobal(addr), Op::CallArg(*args)]);
+                        return Some(vec![Op::LoadGlobal(addr).into(), Op::CallArg(*args).into()]);
                     }
 
-                    return Some(vec![Op::LoadGlobal(addr), Op::CallArgNamed(*args)]);
+                    return Some(vec![
+                        Op::LoadGlobal(addr).into(),
+                        Op::CallArgNamed(*args).into(),
+                    ]);
                 }
             }
 
@@ -109,12 +115,12 @@ impl Usage {
         None
     }
 
-    pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> Vec<Op> {
+    pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> Vec<ImlOp> {
         if let Some(res) = self.try_resolve(compiler) {
             res
         } else {
             compiler.usages.push(Err(self));
-            vec![Op::Usage(compiler.usages.len() - 1)]
+            vec![ImlOp::Usage(compiler.usages.len() - 1)]
         }
     }
 }

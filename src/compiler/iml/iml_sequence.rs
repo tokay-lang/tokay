@@ -13,11 +13,11 @@ processed, including data changes, which is a wanted behavior.
 pub struct Sequence {
     leftrec: bool,
     nullable: bool,
-    items: Vec<Op>,
+    items: Vec<ImlOp>,
 }
 
 impl Sequence {
-    pub fn new(items: Vec<Op>) -> Op {
+    pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self {
             leftrec: false,
             nullable: true,
@@ -70,7 +70,7 @@ impl Runable for Sequence {
         }
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         /*
             Sequences are *the* special case for symbol resolving.
             When a resolve replaces one Op by multiple Ops, and this
@@ -88,7 +88,7 @@ impl Runable for Sequence {
         while i < end {
             let item = self.items.get_mut(i).unwrap();
 
-            if let Op::Usage(usage) = *item {
+            if let ImlOp::Usage(usage) = *item {
                 let n = usages[usage].len();
 
                 self.items.splice(i..i + 1, usages[usage].drain(..));

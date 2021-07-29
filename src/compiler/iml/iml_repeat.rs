@@ -11,14 +11,14 @@ leaning parse trees.
 
 #[derive(Debug)]
 pub struct Repeat {
-    body: Op,
+    body: ImlOp,
     min: usize,
     max: usize,
     silent: bool,
 }
 
 impl Repeat {
-    pub fn new(body: Op, min: usize, max: usize, silent: bool) -> Op {
+    pub fn new(body: ImlOp, min: usize, max: usize, silent: bool) -> ImlOp {
         assert!(max == 0 || max >= min);
 
         Self {
@@ -30,27 +30,27 @@ impl Repeat {
         .into_op()
     }
 
-    pub fn kleene(body: Op) -> Op {
+    pub fn kleene(body: ImlOp) -> ImlOp {
         Self::new(body, 0, 0, false)
     }
 
-    pub fn positive(body: Op) -> Op {
+    pub fn positive(body: ImlOp) -> ImlOp {
         Self::new(body, 1, 0, false)
     }
 
-    pub fn optional(body: Op) -> Op {
+    pub fn optional(body: ImlOp) -> ImlOp {
         Self::new(body, 0, 1, false)
     }
 
-    pub fn kleene_silent(body: Op) -> Op {
+    pub fn kleene_silent(body: ImlOp) -> ImlOp {
         Self::new(body, 0, 0, true)
     }
 
-    pub fn positive_silent(body: Op) -> Op {
+    pub fn positive_silent(body: ImlOp) -> ImlOp {
         Self::new(body, 1, 0, true)
     }
 
-    pub fn optional_silent(body: Op) -> Op {
+    pub fn optional_silent(body: ImlOp) -> ImlOp {
         Self::new(body, 0, 1, true)
     }
 }
@@ -127,7 +127,7 @@ impl Runable for Repeat {
         }
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
 

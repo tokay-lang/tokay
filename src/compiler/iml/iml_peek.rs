@@ -11,11 +11,11 @@ Due to Tokays memoizing features, the parsing will only be done once, and is rem
 
 #[derive(Debug)]
 pub struct Peek {
-    body: Op,
+    body: ImlOp,
 }
 
 impl Peek {
-    pub fn new(body: Op) -> Op {
+    pub fn new(body: ImlOp) -> ImlOp {
         Self { body }.into_op()
     }
 }
@@ -28,7 +28,7 @@ impl Runable for Peek {
         ret
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
 

@@ -1,7 +1,7 @@
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
-use crate::value::{Dict, RefValue, Value};
+use crate::value::{Dict, Value};
 
 // --- Op ----------------------------------------------------------------------
 
@@ -11,13 +11,10 @@ Atomic operations.
 Specifies atomic level operations like running a parsable structure or running
 VM code.
 */
-#[derive(Debug)]
 pub enum Op {
     Nop,
-
-    Usage(usize),              // (yet) unresolved usage
-    Offset(Box<Offset>),       // Source offset position for debugging
-    Runable(Box<dyn Runable>), // Runable item
+    Offset(Box<Offset>), // Source offset position for debugging
+    Rust(fn(&mut Context) -> Result<Accept, Reject>),
 
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
@@ -27,6 +24,9 @@ pub enum Op {
     CallStatic(usize),   // Call static element without parameters
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
+
+    // Jumps (UNDER DEVELOPMENT!)
+    Jump(usize), // Relative jump forward
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -101,39 +101,10 @@ pub enum Op {
     GreaterEqual, // Compare for greater-equality (>= operator)
     Lower,        // Compare for lowerness (< operator)
     Greater,      // Compare for greaterness (> operator)
-
-    IfTrue(Box<Op>),  // Logical and (&& operator)
-    IfFalse(Box<Op>), // Logical or (|| operator)
 }
 
 impl Op {
-    pub fn from_vec(ops: Vec<Op>) -> Self {
-        match ops.len() {
-            0 => Op::Nop,
-            1 => ops.into_iter().next().unwrap(),
-            _ => Sequence::new(ops),
-        }
-    }
-
-    pub fn into_box(self) -> Box<Self> {
-        Box::new(self)
-    }
-
-    pub fn into_kleene(self) -> Self {
-        Repeat::kleene(self)
-    }
-
-    pub fn into_positive(self) -> Self {
-        Repeat::positive(self)
-    }
-
-    pub fn into_optional(self) -> Self {
-        Repeat::optional(self)
-    }
-}
-
-impl Runable for Op {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+    pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         if context.runtime.debug > 5 {
             context.debug(&format!(
                 "{} @ {}",
@@ -150,16 +121,11 @@ impl Runable for Op {
 
         match self {
             Op::Nop => Ok(Accept::Next),
-            Op::Usage(_) => panic!(
-                "{:?} can't be run; Trying to run an unresolved program?",
-                self
-            ),
             Op::Offset(offset) => {
                 context.source_offset = Some(**offset);
                 Ok(Accept::Skip)
             }
-
-            Op::Runable(runable) => runable.run(context),
+            Op::Rust(f) => f(context),
 
             // Calls
             Op::CallOrCopy => {
@@ -219,6 +185,9 @@ impl Runable for Op {
                 )
                 //println!("CallStaticArg returns {:?}",
             }
+
+            // Jumps
+            Op::Jump(_) => unimplemented!("This is not intended to be run"),
 
             // Execution
             Op::Skip => Err(Reject::Skip),
@@ -554,94 +523,6 @@ impl Runable for Op {
                 *value = value.sub(&Value::Integer(1))?; // todo: perform dec by bit-shift
                 context.push(value.clone().into_refvalue())
             }
-
-            Op::IfTrue(then) => {
-                if context.peek().borrow().is_true() {
-                    context.pop();
-                    then.run(context)
-                } else {
-                    Ok(Accept::Skip)
-                }
-            }
-
-            Op::IfFalse(then) => {
-                if !context.peek().borrow().is_true() {
-                    context.pop();
-                    then.run(context)
-                } else {
-                    Ok(Accept::Skip)
-                }
-            }
-        }
-    }
-
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
-        match self {
-            Op::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
-            Op::Runable(runable) => runable.resolve(usages),
-            Op::IfTrue(op) | Op::IfFalse(op) => op.resolve(usages),
-            _ => {}
-        }
-    }
-
-    fn finalize(
-        &mut self,
-        statics: &Vec<RefValue>,
-        stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
-        match self {
-            Op::Runable(runable) => runable.finalize(statics, stack),
-            Op::CallStatic(target) => {
-                match &*statics[*target].borrow() {
-                    Value::Parselet(parselet) => {
-                        if stack.len() > 0 {
-                            if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                if !parselet.consuming {
-                                    return None;
-                                }
-
-                                stack.push((*target, parselet.nullable));
-                                let ret = parselet.body.finalize(statics, stack);
-                                stack.pop();
-
-                                // --- Incomplete solution for the problem described in test/testindirectleftrec ---
-                                // If left-recursion detected and called parselet is already
-                                // left-recursive, thread currently analyzed parselet as
-                                // not left-recursive here!
-                                /*
-                                if ret.0 && parselet.leftrec {
-                                    ret.0 = false;
-                                }
-                                */
-
-                                ret
-                            } else {
-                                for i in 0..stack.len() {
-                                    if *target == stack[i].0 {
-                                        return Some((i == 0, stack[i].1));
-                                    }
-                                }
-
-                                panic!("Can't find entry for {}", *target)
-                            }
-                        } else {
-                            None
-                        }
-                    }
-
-                    object => {
-                        if object.is_consuming() {
-                            Some((false, object.is_nullable()))
-                        } else {
-                            None
-                        }
-                    }
-                }
-            }
-
-            Op::IfTrue(op) | Op::IfFalse(op) => op.finalize(statics, stack),
-
-            _ => None,
         }
     }
 }
@@ -649,50 +530,17 @@ impl Runable for Op {
 impl std::fmt::Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Runable(p) => write!(f, "{}", p),
-            op => write!(f, "Op {:?}", op),
+            Op::Rust(_) => write!(f, "{{rust-function}}"),
+            op => write!(f, "{:?}", op),
         }
     }
 }
 
-// --- Rust --------------------------------------------------------------------
-
-/** This is allows to run any Rust code in position as Runable. */
-pub struct Rust(fn(&mut Context) -> Result<Accept, Reject>);
-
-impl Rust {
-    pub fn new(f: fn(&mut Context) -> Result<Accept, Reject>) -> Op {
-        Rust(f).into_op()
-    }
-}
-
-impl Runable for Rust {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        self.0(context)
-    }
-
-    fn resolve(&mut self, _usages: &mut Vec<Vec<Op>>) {
-        // Just do nothing!
-    }
-
-    fn finalize(
-        &mut self,
-        _statics: &Vec<RefValue>,
-        _stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
-        // Just do nothing!
-        None
-    }
-}
-
-impl std::fmt::Debug for Rust {
+impl std::fmt::Debug for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{rust-function}}")
-    }
-}
-
-impl std::fmt::Display for Rust {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{rust-function}}")
+        match self {
+            Op::Rust(_) => write!(f, "{{rust-function}}"),
+            op => write!(f, "{:?}", op),
+        }
     }
 }

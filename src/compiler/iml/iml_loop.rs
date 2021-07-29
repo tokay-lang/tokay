@@ -4,11 +4,11 @@ use super::*;
 
 #[derive(Debug)]
 pub struct Loop {
-    body: Op,
+    body: ImlOp,
 }
 
 impl Loop {
-    pub fn new(body: Op) -> Op {
+    pub fn new(body: ImlOp) -> ImlOp {
         Self { body }.into_op()
     }
 }
@@ -33,7 +33,7 @@ impl Runable for Loop {
         }
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
 

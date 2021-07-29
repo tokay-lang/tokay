@@ -1,8 +1,7 @@
 //! Tokay intermediate code representation
-use crate::vm::*;
 use crate::value::RefValue;
+pub use crate::vm::*;
 
-mod iml;
 mod iml_block;
 mod iml_expect;
 mod iml_if;
@@ -11,9 +10,9 @@ mod iml_not;
 mod iml_peek;
 mod iml_repeat;
 mod iml_sequence;
+mod op;
 mod parselet;
 
-pub use iml::*;
 pub use iml_block::*;
 pub use iml_expect::*;
 pub use iml_if::*;
@@ -22,6 +21,7 @@ pub use iml_not::*;
 pub use iml_peek::*;
 pub use iml_repeat::*;
 pub use iml_sequence::*;
+pub use op::*;
 pub use parselet::*;
 
 pub trait Runable: std::fmt::Debug + std::fmt::Display {
@@ -29,7 +29,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;
 
     /** Resolve any unresolved Usages. */
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>);
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>);
 
     /** Finalize program regarding grammar view flags;
     This function is called from top of each parselet to detect
@@ -41,10 +41,10 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
     ) -> Option<(bool, bool)>;
 
     /** Convert parser object into boxed dyn Parser Op */
-    fn into_op(self) -> Op
+    fn into_op(self) -> ImlOp
     where
         Self: Sized + 'static,
     {
-        Op::Runable(Box::new(self))
+        ImlOp::Runable(Box::new(self))
     }
 }

@@ -4,29 +4,55 @@ use super::*;
 
 #[derive(Debug)]
 pub struct If {
-    then: Op,
-    else_: Op,
+    peek: bool,
+    test: bool,
+    then: ImlOp,
+    else_: ImlOp,
 }
 
 impl If {
-    pub fn new(then: Op, else_: Op) -> Op {
-        Self { then, else_ }.into_op()
+    pub fn new(then: ImlOp, else_: ImlOp) -> ImlOp {
+        Self { peek: false, test: true, then, else_ }.into_op()
+    }
+
+    pub fn new_if_not(then: ImlOp, else_: ImlOp) -> ImlOp {
+        Self { peek: false, test: false, then, else_ }.into_op()
+    }
+
+    pub fn new_if_true(then: ImlOp, else_: ImlOp) -> ImlOp {
+        Self { peek: true, test: true, then, else_ }.into_op()
+    }
+
+    pub fn new_if_false(then: ImlOp, else_: ImlOp) -> ImlOp {
+        Self { peek: true, test: false, then, else_ }.into_op()
     }
 }
 
 impl Runable for If {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        if context.pop().borrow().is_true() {
+        if self.peek {
+            if context.peek().borrow().is_true() == self.test {
+                context.pop();
+                self.then.run(context)
+            } else{
+                match &self.else_ {
+                    ImlOp::Nop => Ok(Accept::Next),
+                    other => other.run(context),
+                }
+            }
+        }
+        else if context.pop().borrow().is_true() == self.test {
             self.then.run(context)
-        } else {
+        }
+        else {
             match &self.else_ {
-                Op::Nop => Ok(Accept::Next),
+                ImlOp::Nop => Ok(Accept::Next),
                 other => other.run(context),
             }
         }
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<Op>>) {
+    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.then.resolve(usages);
         self.else_.resolve(usages);
     }
