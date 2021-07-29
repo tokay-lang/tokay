@@ -1282,7 +1282,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     let condition = traverse_node_or_list(compiler, &children[0].borrow());
                     let then = traverse_node_or_list(compiler, &children[1].borrow());
-                    let eelse = if children.len() == 3 {
+                    let else_ = if children.len() == 3 {
                         Some(traverse_node_or_list(compiler, &children[2].borrow()))
                     } else {
                         None
@@ -1293,18 +1293,23 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     if let Ok(value) = condition.get_evaluable_value() {
                         if value.borrow().is_true() {
                             return then;
-                        } else if let Some(eelse) = eelse {
-                            return eelse;
+                        } else if let Some(else_) = else_ {
+                            return else_;
                         }
 
                         return AstResult::Value(Value::Void.into_refvalue());
                     }
 
                     ops.extend(condition.into_ops(compiler, false));
-                    Op::If(Box::new((
+
+                    If::new(
                         Op::from_vec(then.into_ops(compiler, true)),
-                        eelse.and_then(|eelse| Some(Op::from_vec(eelse.into_ops(compiler, true)))),
-                    )))
+                        if let Some(else_) = else_ {
+                            Op::from_vec(else_.into_ops(compiler, true))
+                        } else {
+                            Op::Nop
+                        },
+                    )
                 }
 
                 "for" => {
@@ -1336,7 +1341,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     compiler.pop_loop();
 
                     loop_ops.push(Op::Continue); // Avoid pushing sequence results
-                    ops.push(Op::Loop(Op::from_vec(loop_ops).into_box()));
+                    ops.push(Loop::new(Op::from_vec(loop_ops)));
                     return AstResult::Ops(ops);
                 }
 
@@ -1361,7 +1366,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     compiler.pop_loop();
 
                     ops.push(Op::Continue); // Avoid pushing sequence results
-                    Op::Loop(Op::from_vec(ops).into_box())
+                    Loop::new(Op::from_vec(ops))
                 }
 
                 _ => {

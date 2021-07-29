@@ -104,10 +104,6 @@ pub enum Op {
 
     IfTrue(Box<Op>),  // Logical and (&& operator)
     IfFalse(Box<Op>), // Logical or (|| operator)
-
-    // Flow
-    If(Box<(Op, Option<Op>)>),
-    Loop(Box<Op>),
 }
 
 impl Op {
@@ -576,35 +572,6 @@ impl Runable for Op {
                     Ok(Accept::Skip)
                 }
             }
-
-            Op::If(then_else) => {
-                if context.pop().borrow().is_true() {
-                    then_else.0.run(context)
-                } else if let Some(eelse) = &then_else.1 {
-                    eelse.run(context)
-                } else {
-                    Ok(Accept::Next)
-                }
-            }
-
-            Op::Loop(body) => {
-                let capture_start = context.runtime.stack.len();
-
-                loop {
-                    let ret = body.run(context);
-                    //println!("loop {:?}", ret);
-                    match ret {
-                        Ok(Accept::Next | Accept::Continue) => {
-                            context.runtime.stack.truncate(capture_start);
-                        }
-                        Ok(Accept::Break(Some(value))) => {
-                            break Ok(Accept::Push(Capture::Value(value, None, 10)))
-                        }
-                        Ok(Accept::Break(None)) => break Ok(Accept::Next),
-                        other => break other,
-                    }
-                }
-            }
         }
     }
 
@@ -612,11 +579,7 @@ impl Runable for Op {
         match self {
             Op::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
             Op::Runable(runable) => runable.resolve(usages),
-            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.resolve(usages),
-            Op::If(then_else) => {
-                then_else.0.resolve(usages);
-                then_else.1.as_mut().map(|eelse| eelse.resolve(usages));
-            }
+            Op::IfTrue(op) | Op::IfFalse(op) => op.resolve(usages),
             _ => {}
         }
     }
@@ -676,25 +639,7 @@ impl Runable for Op {
                 }
             }
 
-            Op::IfTrue(op) | Op::IfFalse(op) | Op::Loop(op) => op.finalize(statics, stack),
-
-            Op::If(then_else) => {
-                let then = then_else.0.finalize(statics, stack);
-
-                if let Some(eelse) = &mut then_else.1 {
-                    if let Some((else_leftrec, else_nullable)) = eelse.finalize(statics, stack) {
-                        if let Some((then_leftrec, then_nullable)) = then {
-                            Some((then_leftrec || else_leftrec, then_nullable || else_nullable))
-                        } else {
-                            Some((else_leftrec, else_nullable))
-                        }
-                    } else {
-                        then
-                    }
-                } else {
-                    then
-                }
-            }
+            Op::IfTrue(op) | Op::IfFalse(op) => op.finalize(statics, stack),
 
             _ => None,
         }
