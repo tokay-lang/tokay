@@ -1168,12 +1168,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     ops.extend(left.into_ops(compiler, false));
 
                     match parts[2] {
-                        "and" => {
-                            If::new_if_true(ImlOp::from_vec(right.into_ops(compiler, false)), ImlOp::Nop)
-                        }
-                        "or" => {
-                            If::new_if_false(ImlOp::from_vec(right.into_ops(compiler, false)), ImlOp::Nop)
-                        }
+                        "and" => If::new_if_true(
+                            ImlOp::from_vec(right.into_ops(compiler, false)),
+                            ImlOp::Nop,
+                        ),
+                        "or" => If::new_if_false(
+                            ImlOp::from_vec(right.into_ops(compiler, false)),
+                            ImlOp::Nop,
+                        ),
                         _ => {
                             ops.extend(right.into_ops(compiler, false));
                             match parts[2] {

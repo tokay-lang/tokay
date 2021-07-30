@@ -12,19 +12,43 @@ pub struct If {
 
 impl If {
     pub fn new(then: ImlOp, else_: ImlOp) -> ImlOp {
-        Self { peek: false, test: true, then, else_ }.into_op()
+        Self {
+            peek: false,
+            test: true,
+            then,
+            else_,
+        }
+        .into_op()
     }
 
     pub fn new_if_not(then: ImlOp, else_: ImlOp) -> ImlOp {
-        Self { peek: false, test: false, then, else_ }.into_op()
+        Self {
+            peek: false,
+            test: false,
+            then,
+            else_,
+        }
+        .into_op()
     }
 
     pub fn new_if_true(then: ImlOp, else_: ImlOp) -> ImlOp {
-        Self { peek: true, test: true, then, else_ }.into_op()
+        Self {
+            peek: true,
+            test: true,
+            then,
+            else_,
+        }
+        .into_op()
     }
 
     pub fn new_if_false(then: ImlOp, else_: ImlOp) -> ImlOp {
-        Self { peek: true, test: false, then, else_ }.into_op()
+        Self {
+            peek: true,
+            test: false,
+            then,
+            else_,
+        }
+        .into_op()
     }
 }
 
@@ -34,17 +58,15 @@ impl Runable for If {
             if context.peek().borrow().is_true() == self.test {
                 context.pop();
                 self.then.run(context)
-            } else{
+            } else {
                 match &self.else_ {
                     ImlOp::Nop => Ok(Accept::Next),
                     other => other.run(context),
                 }
             }
-        }
-        else if context.pop().borrow().is_true() == self.test {
+        } else if context.pop().borrow().is_true() == self.test {
             self.then.run(context)
-        }
-        else {
+        } else {
             match &self.else_ {
                 ImlOp::Nop => Ok(Accept::Next),
                 other => other.run(context),

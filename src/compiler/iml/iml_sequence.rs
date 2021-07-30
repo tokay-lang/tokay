@@ -137,6 +137,16 @@ impl Runable for Sequence {
             None
         }
     }
+
+    fn compile(&self) -> Vec<Op> {
+        let mut ret = Vec::new();
+
+        for item in self.items.iter() {
+            ret.extend(item.compile());
+        }
+
+        ret
+    }
 }
 
 impl std::fmt::Display for Sequence {

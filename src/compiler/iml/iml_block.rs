@@ -76,6 +76,24 @@ impl Runable for Block {
             None
         }
     }
+
+    fn compile(&self) -> Vec<Op> {
+        let mut ret = Vec::new();
+        let mut iter = self.items.iter();
+
+        while let Some(item) = iter.next() {
+            // Push a placeholder for Jump
+            let backpatch = ret.len();
+            ret.push(Op::Nop);
+
+            ret.extend(item.compile());
+
+            // Backpatch previous jump
+            ret[backpatch] = Op::Backtrack(ret.len())
+        }
+
+        ret
+    }
 }
 
 impl std::fmt::Display for Block {

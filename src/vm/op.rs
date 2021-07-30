@@ -11,10 +11,11 @@ Atomic operations.
 Specifies atomic level operations like running a parsable structure or running
 VM code.
 */
+#[derive(Debug, Clone)]
 pub enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging
-    Rust(fn(&mut Context) -> Result<Accept, Reject>),
+    Rust(Rust),          // Native rust callback
 
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
@@ -26,7 +27,7 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Jumps (UNDER DEVELOPMENT!)
-    Jump(usize), // Relative jump forward
+    Backtrack(usize), // Jump to address on reject
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -125,7 +126,7 @@ impl Op {
                 context.source_offset = Some(**offset);
                 Ok(Accept::Skip)
             }
-            Op::Rust(f) => f(context),
+            Op::Rust(f) => f.0(context),
 
             // Calls
             Op::CallOrCopy => {
@@ -187,7 +188,7 @@ impl Op {
             }
 
             // Jumps
-            Op::Jump(_) => unimplemented!("This is not intended to be run"),
+            Op::Backtrack(_) => unimplemented!(),
 
             // Execution
             Op::Skip => Err(Reject::Skip),
@@ -536,11 +537,11 @@ impl std::fmt::Display for Op {
     }
 }
 
-impl std::fmt::Debug for Op {
+#[derive(Clone)]
+pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
+
+impl std::fmt::Debug for Rust {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Op::Rust(_) => write!(f, "{{rust-function}}"),
-            op => write!(f, "{:?}", op),
-        }
+        write!(f, "{{rust-function}}")
     }
 }

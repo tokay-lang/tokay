@@ -5,9 +5,10 @@ use std::rc::Rc;
 
 use super::*;
 use crate::compiler::iml::Parselet;
+use crate::compiler::iml::Runable;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{RefValue, Value}; // todo: temporary!
+use crate::value::{RefValue, Value}; // todo: temporary! // todo: temporary!
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
@@ -44,6 +45,12 @@ impl Program {
         if let Some(main) = &self.main {
             let main = main.borrow();
             let res = main.run(runtime, runtime.stack.len(), None, true, 0);
+
+            // fixme: Test!
+            println!("--- iml ---");
+            println!("{:?}", main.body);
+            println!("--- compiled ---");
+            println!("{:?}", main.body.compile());
 
             let res = match res {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),

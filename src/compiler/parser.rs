@@ -57,14 +57,14 @@ impl Parser {
             ["t", (value "\t")],
             ["v", (value "\x0b")],
             [T_OctDigit, T_OctDigit, T_OctDigit,
-                (Op::Rust(|context| code_to_char(context, 0, 8)))],
+                (Op::Rust(Rust(|context| code_to_char(context, 0, 8))))],
             ["x", T_HexDigit, T_HexDigit,
-                (Op::Rust(|context| code_to_char(context, 1, 16)))],
+                (Op::Rust(Rust(|context| code_to_char(context, 1, 16))))],
             ["u", T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
-                (Op::Rust(|context| code_to_char(context, 1, 16)))],
+                (Op::Rust(Rust(|context| code_to_char(context, 1, 16))))],
             ["U", T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
                 T_HexDigit, T_HexDigit, T_HexDigit, T_HexDigit,
-                (Op::Rust(|context| code_to_char(context, 1, 16)))],
+                (Op::Rust(Rust(|context| code_to_char(context, 1, 16))))],
             Any
         }),
 

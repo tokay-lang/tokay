@@ -4,7 +4,7 @@ use crate::error::Error;
 /** Expecting parser.
 
 This parser expects its sub-parser to be accepted.
-On error, a helpul error message is raised as Reject::Error.
+On error, a helpful error message is raised as Reject::Error.
 */
 
 #[derive(Debug)]

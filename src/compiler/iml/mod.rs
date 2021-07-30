@@ -40,6 +40,12 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<(bool, bool)>;
 
+    /** Turn intermediate structure into Tokay VM code. */
+    fn compile(&self) -> Vec<Op> {
+        //unimplemented!(); //todo: remove
+        Vec::new()
+    }
+
     /** Convert parser object into boxed dyn Parser Op */
     fn into_op(self) -> ImlOp
     where

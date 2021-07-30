@@ -50,15 +50,14 @@ impl Runable for ImlOp {
         }
     }
 
-    /*
     fn compile(&self) -> Vec<Op> {
         match self {
+            ImlOp::Nop => Vec::new(),
             ImlOp::Usage(_) => panic!("Cannot compile Iml::Usage"),
             ImlOp::Runable(r) => r.compile(),
-            other => vec![*other]
+            ImlOp::Op(op) => vec![op.clone()],
         }
     }
-    */
 
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         match self {
