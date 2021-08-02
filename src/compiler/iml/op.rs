@@ -46,7 +46,7 @@ impl Runable for ImlOp {
                 self
             ),
             ImlOp::Runable(runable) => runable.run(context),
-            ImlOp::Op(op) => op.run(context),
+            ImlOp::Op(op) => Op::run(&[op], context),
         }
     }
 
