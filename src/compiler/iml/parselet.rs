@@ -262,7 +262,7 @@ impl Parselet {
                         }
 
                         // Clear input buffer
-                        context.runtime.reader.commit();
+                        //context.runtime.reader.commit();  //fixme new_vm!!!
 
                         // Clear memo table
                         context.runtime.memo.clear();
@@ -514,6 +514,37 @@ impl Parselet {
         }
 
         result
+    }
+
+    /* NEW VM */
+    pub fn run_new_vm(
+        &self,
+        runtime: &mut Runtime,
+        args: usize,
+        mut nargs: Option<Dict>,
+        main: bool,
+        depth: usize,
+    ) -> Result<Accept, Reject> {
+        let mut context = Context::new(
+            runtime,
+            self,
+            args,
+            if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
+            depth,
+        );
+
+        let ops = self.body.compile();
+
+        println!("--- compiled ---");
+
+        for (i, op) in ops.iter().enumerate() {
+            println!("{:03} {:?}", i, op);
+        }
+
+        let ret = Op::execute(&ops[..], &mut context);
+        println!("ret = {:?}", ret);
+
+        Ok(Accept::Next)
     }
 }
 

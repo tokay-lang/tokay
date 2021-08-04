@@ -43,14 +43,16 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = &self.main {
+            let start = runtime.reader.tell();
             let main = main.borrow();
             let res = main.run(runtime, runtime.stack.len(), None, true, 0);
 
-            // fixme: Test!
-            println!("--- iml ---");
-            println!("{:?}", main.body);
-            println!("--- compiled ---");
-            println!("{:?}", main.body.compile());
+            // fixme: Test entry point for new_vm compilation
+            if runtime.debug > 0 {
+                runtime.debug += 2;
+                runtime.reader.reset(start);
+                main.run_new_vm(runtime, runtime.stack.len(), None, true, 0);
+            }
 
             let res = match res {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),

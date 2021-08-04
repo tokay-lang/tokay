@@ -80,16 +80,27 @@ impl Runable for Block {
     fn compile(&self) -> Vec<Op> {
         let mut ret = Vec::new();
         let mut iter = self.items.iter();
+        let mut forwards = Vec::new();
 
         while let Some(item) = iter.next() {
-            // Push a placeholder for Jump
-            let backpatch = ret.len();
-            ret.push(Op::Nop);
+            let seq = item.compile();
 
-            ret.extend(item.compile());
+            if iter.len() > 0 {
+                // Create a fused block
+                ret.push(Op::Fuse(seq.len() + 1));
+                ret.extend(seq);
 
-            // Backpatch previous jump
-            ret[backpatch] = Op::Backtrack(ret.len())
+                forwards.push(ret.len());
+                ret.push(Op::Nop);  // Placeholder for Op::Forward()
+            }
+            else {
+                ret.extend(seq);
+            }
+        }
+
+        // Backpatch any forward placeholders by Op::Forward ops
+        for i in forwards.into_iter() {
+            ret[i] = Op::Forward(ret.len() - i);
         }
 
         ret
