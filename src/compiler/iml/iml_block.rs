@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use super::*;
 use crate::value::RefValue;
+
 
 /** Block parser.
 
@@ -80,27 +83,26 @@ impl Runable for Block {
     fn compile(&self) -> Vec<Op> {
         let mut ret = Vec::new();
         let mut iter = self.items.iter();
-        let mut forwards = Vec::new();
+
+        let mut fuses: HashMap<usize, usize> = HashMap::new();
 
         while let Some(item) = iter.next() {
             let seq = item.compile();
 
             if iter.len() > 0 {
                 // Create a fused block
-                ret.push(Op::Fuse(seq.len() + 1));
+                fuses.insert(ret.len(), seq.len());
+                ret.push(Op::Nop);
                 ret.extend(seq);
-
-                forwards.push(ret.len());
-                ret.push(Op::Nop);  // Placeholder for Op::Forward()
             }
             else {
                 ret.extend(seq);
             }
         }
 
-        // Backpatch any forward placeholders by Op::Forward ops
-        for i in forwards.into_iter() {
-            ret[i] = Op::Forward(ret.len() - i);
+        // Insert Op::Fused blocks with correct ranges
+        for (addr, abort) in fuses.into_iter() {
+            ret[addr] = Op::Fused(Box::new((abort, ret.len() - addr)));
         }
 
         ret

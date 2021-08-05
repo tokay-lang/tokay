@@ -1,6 +1,8 @@
 # VM
 
-## Block & Sequence
+Considerations about the new Tokay VM.
+
+## Block
 
 ```
 'a' 1
@@ -15,21 +17,18 @@ Fuse: On soft reject of an Op inside the fused area, goto relative continuation 
 Forward: Jump forward to relative offset, remove all fuses within.
 Backward: Jump backward to relative offset, remove all fuses within.
 
-000     Fuse(4)
+000     Fused(2, 12)
 001     CallStatic(0)  # 'a'
 002     Push1          # 1
-003     Forward(12)
-004     Fuse(4)
-005     CallStatic(1)  # 'b'
-006     LoadStatic(2)  # 2
-007     Forward(8)
-008     CallStatic(3)  # 'c'
-009         Fuse(4)
-010         CallStatic(4)  # 'd'
-011         LoadStatic(5)  # 3
-012         Forward(2)
-013         CallStatic(6)  # 'e'
-014         LoadStatic(7)  # 4
+003     Fused(2, 9)
+004     CallStatic(1)  # 'b'
+005     LoadStatic(2)  # 2
+006     CallStatic(3)  # 'c'
+007         Fused(2, 5)
+008         CallStatic(4)  # 'd'
+009         LoadStatic(5)  # 3
+010         CallStatic(6)  # 'e'
+011         LoadStatic(7)  # 4
 
 ```
 'a' if x next "true"
@@ -59,3 +58,5 @@ Backward: Jump backward to relative offset, remove all fuses within.
 ## Not
 
 ## Repeat
+
+## Sequence
