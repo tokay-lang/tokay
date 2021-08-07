@@ -1,11 +1,12 @@
 use super::*;
 use crate::value::RefValue;
 
-/** Sequence parser.
+/** Sequence.
 
-This parser collects a sequence of operations. According to these operation's
-semantics, or when an entire sequence was completely recognized, the sequence
-is getting accepted. Incomplete sequences are rejected, but might partly be
+This intermediate language construct collects a sequence of operations or other constructs.
+
+According to these operation's semantics, or when an entire sequence was completely recognized,
+the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
 processed, including data changes, which is a wanted behavior.
 */
 
@@ -143,6 +144,10 @@ impl Runable for Sequence {
 
         for item in self.items.iter() {
             ret.extend(item.compile());
+        }
+
+        if ret.len() > 1 {
+            ret.push(Op::Commit);
         }
 
         ret

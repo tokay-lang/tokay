@@ -26,8 +26,10 @@ pub enum Op {
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
-    // Jumps
-    Fused(Box<(usize, usize)>), // On operation soft reject within abort range, goto abort, otherwise goto succeed
+    // Flow
+    Fused(usize),    // Frame specified relative range, jump beyond on soft-reject
+    Commit,          // Commit current frame, collect values from the stack
+    Consumed(usize), // When consumed, go forward to relative address
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -71,9 +73,8 @@ pub enum Op {
     StoreCapture,
     StoreCaptureHold,
 
-    MakeAlias,             // Make key-value-Capture from last two stack items
-    MakeDict(usize),       // Make a Dict from specified amount of key-value-pairs
-    MakeCollection(usize), // Either make a List or Dict from specified amount of Captures
+    MakeAlias,       // Make key-value-Capture from last two stack items
+    MakeDict(usize), // Make a Dict from specified amount of key-value-pairs
 
     // Operations
     Drop, // drop TOS
@@ -172,12 +173,6 @@ impl Op {
                     Some(nargs.into_dict()),
                 )
                 //println!("CallStaticArg returns {:?}",
-            }
-
-            // Jumps
-            Op::Fused(_) => {
-                // See below...
-                unimplemented!();
             }
 
             // Execution
@@ -299,8 +294,7 @@ impl Op {
             Op::StoreFast(addr) => {
                 // todo: bounds checking?
                 let value = context.pop();
-                context.runtime.stack[context.stack_start + *addr] =
-                    Capture::Value(value, None, 0);
+                context.runtime.stack[context.stack_start + *addr] = Capture::Value(value, None, 0);
                 Ok(Accept::Next)
             }
 
@@ -353,10 +347,8 @@ impl Op {
                             Ok(Accept::Next)
                         } else {
                             let value = context.peek();
-                            context.set_capture_by_name(
-                                alias,
-                                value.borrow().clone().into_refvalue(),
-                            );
+                            context
+                                .set_capture_by_name(alias, value.borrow().clone().into_refvalue());
                             Ok(Accept::Skip)
                         }
                     }
@@ -375,11 +367,8 @@ impl Op {
                     }
 
                     empty => {
-                        *empty = Capture::Value(
-                            Value::Void.into_refvalue(),
-                            Some(name.to_string()),
-                            0,
-                        );
+                        *empty =
+                            Capture::Value(Value::Void.into_refvalue(), Some(name.to_string()), 0);
                     }
                 }
 
@@ -398,16 +387,6 @@ impl Op {
                 }
 
                 context.push(Value::Dict(Box::new(dict)).into_refvalue())
-            }
-
-            Op::MakeCollection(count) => {
-                if let Ok(Some(value)) =
-                    context.collect(context.runtime.stack.len() - count, false, false, false, 0)
-                {
-                    context.push(value)
-                } else {
-                    Ok(Accept::Next)
-                }
             }
 
             Op::Drop => {
@@ -527,54 +506,55 @@ impl Op {
                 *value = value.sub(&Value::Integer(1))?; // todo: perform dec by bit-shift
                 context.push(value.clone().into_refvalue())
             }
+
+            other => unimplemented!("{:?} is not implemented here", other),
         }
     }
 
     pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
-        #[derive(Debug)]
-        struct Fuse {
-            capture_start: usize,
-            reader_start: Offset,
-            until: usize,
-            succeed: usize
+        if ops.len() == 0 {
+            return Ok(Accept::Next);
         }
 
-        impl Fuse {
-            fn new(context: &Context, until: usize, succeed: usize) -> Fuse {
-                assert!(until < succeed);
-                Fuse {
+        // Frame ---------------------------------------------------------------
+        #[derive(Debug)]
+        struct Frame {
+            until: usize,
+            capture_start: usize,
+            reader_start: Offset,
+        }
+
+        impl Frame {
+            fn new(until: usize, context: &Context) -> Frame {
+                Frame {
+                    until,
                     capture_start: context.runtime.stack.len(),
                     reader_start: context.runtime.reader.tell(),
-                    until,
-                    succeed
                 }
+            }
+
+            fn reject(self, context: &mut Context) -> usize {
+                context.runtime.stack.truncate(self.capture_start);
+                context.runtime.reader.reset(self.reader_start);
+                self.until
             }
         }
 
-        if ops.len() == 0 {
-            return Ok(Accept::Skip);
-        }
+        // ---------------------------------------------------------------------
 
-        // Fuses
-        let mut fuses: Vec<Fuse> = vec![
-            Fuse::new(context, ops.len() - 1, ops.len())
-        ];
+        let mut ip = 0; // Instruction pointer
+        let mut frames: Vec<Frame> = Vec::new(); // Open frames
+        let mut frame = Frame::new(ops.len(), context); // Current frame
 
-        // Current fuse range for fast access;
-        // Must be updated whenever a fuse is added or removed
-        let mut fused = ops.len() - 1;
-
-        let mut ip = 0;  // Instruction pointer
-
-        loop {
+        while ip < ops.len() {
             let op = &ops[ip];
 
             if context.runtime.debug > 2 {
                 context.debug(&format!(
-                    "{:03}:{} @ {:04} (fused {})",
-                    ip, op,
+                    "[{}] {:03}:{}",
                     context.runtime.reader.tell().offset,
-                    fused
+                    ip,
+                    op
                 ));
 
                 if context.runtime.debug > 6 {
@@ -585,81 +565,87 @@ impl Op {
             }
 
             let state = match op {
-                Op::Fused(until_succeed) => {
-                    fused = ip + until_succeed.0;
-                    fuses.push(Fuse::new(context, fused, ip + until_succeed.1));
+                Op::Fused(until) => {
+                    frames.push(frame);
+                    frame = Frame::new(ip + *until, context);
                     Ok(Accept::Skip)
                 }
 
-                op => op.run(context)
+                Op::Commit => match context.collect(frame.capture_start, false, true, true, 0) {
+                    Err(capture) => Ok(Accept::Push(capture)),
+                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                    Ok(None) => Ok(Accept::Next),
+                },
+
+                Op::Consumed(goto) => {
+                    // Did you consume?
+                    if frame.reader_start != context.runtime.reader.tell() {
+                        // Ok then go ahead (ip is incremented below)
+                        ip += goto - 1;
+                    } else {
+                        frame.reject(context); // Reject current frame
+                        frame = frames.pop().unwrap(); // Consumed may not exist without further frames
+                    }
+
+                    // Clean any frames below
+                    if frame.until <= ip {
+                        while let Some(f) = frames.pop() {
+                            frame = f;
+                            if frame.until > ip {
+                                break;
+                            }
+                        }
+                    }
+
+                    Ok(Accept::Skip)
+                }
+
+                op => op.run(context),
             };
 
             match state {
-                Ok(accept) => {
-                    match accept {
-                        Accept::Next => context.runtime.stack.push(Capture::Empty),
-                        Accept::Skip => {},
-                        Accept::Push(capture) => context.runtime.stack.push(capture),
-                        other => break Ok(other)
-                    }
+                Ok(Accept::Skip) => {} // fixme: Accept::Skip should be removed
+                Ok(Accept::Next) => {
+                    // fixme: Accept::Next should not push something anymore
+                    context.runtime.stack.push(Capture::Empty);
+                }
+                Ok(Accept::Push(capture)) => {
+                    context.runtime.stack.push(capture);
+                }
+                Err(Reject::Next) if frames.len() > 0 => {
+                    ip = frame.reject(context);
+                    frame = frames.pop().unwrap();
 
-                    // When fused block is left, restore previous fuse.
-                    if ip == fused {
-                        let fuse = fuses.pop().unwrap();
-
-                        while let Some(fuse) = fuses.last() {
-                            fused = fuse.until;
-                            if ip < fused {
-                                break
+                    if frame.until <= ip {
+                        while let Some(f) = frames.pop() {
+                            frame = f;
+                            if frame.until > ip {
+                                break;
                             }
                         }
-
-                        if fuses.len() == 0 {
-                            break match context.collect(fuse.capture_start, false, true, true, 0) {
-                                Err(capture) => Ok(Accept::Push(capture)),
-                                Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
-                                Ok(None) => Ok(Accept::Next),
-                            }
-                        }
-
-                        // If input was consumed, succeed
-                        if fuse.reader_start == context.runtime.reader.tell() {
-                            println!("ip at end of fused area, but no input consumed");
-                            context.runtime.stack.truncate(fuse.capture_start);
-                            context.runtime.reader.reset(fuse.reader_start);
-                        }
-                        else {
-                            println!("ip at end of fused area, going to {}, new fused {}", fuse.succeed, fused);
-                            ip = fuse.succeed;
-                        }
                     }
+
+                    continue;
                 }
-
-                Err(Reject::Next) => {
-                    // When fused block soft-rejects, restore previous context
-                    let fuse = fuses.pop().unwrap();
-
-                    println!("fuse until {}", fuse.until);
-
-                    if let Some(fuse) = fuses.last() {
-                        fused = fuse.until;
-                    }
-                    else {
-                        break state
-                    }
-
-                    context.runtime.stack.truncate(fuse.capture_start);
-                    context.runtime.reader.reset(fuse.reader_start);
-                    ip = fuse.until + 1;
-
-                    assert!(fuses.len() > 0);
-                    continue
-                }
-
-                other => break other
+                state => return state,
             }
 
             ip += 1;
+        }
+
+        if frame.until <= ip {
+            while let Some(f) = frames.pop() {
+                frame = f;
+                if frame.until > ip {
+                    break;
+                }
+            }
+        }
+
+        assert!(frames.len() == 0, "There may only stay one frame");
+        match context.runtime.stack.len() - frame.capture_start {
+            0 => Ok(Accept::Next),
+            _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
         }
     }
 }
