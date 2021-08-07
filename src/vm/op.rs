@@ -27,9 +27,9 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Flow
-    Fused(usize),    // Frame specified relative range, jump beyond on soft-reject
-    Commit,          // Commit current frame, collect values from the stack
-    Consumed(usize), // When consumed, go forward to relative address
+    Fused(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
+    Commit,       // Collect values from the stack limited to current frame
+    Consumed(usize), // When current frame consumed input, go forward to relative address
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -538,13 +538,27 @@ impl Op {
                 context.runtime.reader.reset(self.reader_start);
                 self.until
             }
+
+            fn clear(self, frames: &mut Vec<Frame>, ip: usize) -> Frame {
+                if self.until > ip {
+                    return self;
+                }
+
+                while let Some(frame) = frames.pop() {
+                    if frame.until > ip {
+                        return frame;
+                    }
+                }
+
+                panic!("No more frames until {}", ip);
+            }
         }
 
         // ---------------------------------------------------------------------
 
         let mut ip = 0; // Instruction pointer
         let mut frames: Vec<Frame> = Vec::new(); // Open frames
-        let mut frame = Frame::new(ops.len(), context); // Current frame
+        let mut frame = Frame::new(ops.len() + 1, context); // Current frame
 
         while ip < ops.len() {
             let op = &ops[ip];
@@ -588,14 +602,7 @@ impl Op {
                     }
 
                     // Clean any frames below
-                    if frame.until <= ip {
-                        while let Some(f) = frames.pop() {
-                            frame = f;
-                            if frame.until > ip {
-                                break;
-                            }
-                        }
-                    }
+                    frame = frame.clear(&mut frames, ip);
 
                     Ok(Accept::Skip)
                 }
@@ -615,16 +622,7 @@ impl Op {
                 Err(Reject::Next) if frames.len() > 0 => {
                     ip = frame.reject(context);
                     frame = frames.pop().unwrap();
-
-                    if frame.until <= ip {
-                        while let Some(f) = frames.pop() {
-                            frame = f;
-                            if frame.until > ip {
-                                break;
-                            }
-                        }
-                    }
-
+                    frame = frame.clear(&mut frames, ip);
                     continue;
                 }
                 state => return state,
@@ -633,16 +631,8 @@ impl Op {
             ip += 1;
         }
 
-        if frame.until <= ip {
-            while let Some(f) = frames.pop() {
-                frame = f;
-                if frame.until > ip {
-                    break;
-                }
-            }
-        }
+        frame = frame.clear(&mut frames, ip);
 
-        assert!(frames.len() == 0, "There may only stay one frame");
         match context.runtime.stack.len() - frame.capture_start {
             0 => Ok(Accept::Next),
             _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
