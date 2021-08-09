@@ -50,11 +50,11 @@ impl Runable for ImlOp {
         }
     }
 
-    fn compile(&self) -> Vec<Op> {
+    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Usage(_) => panic!("Cannot compile Iml::Usage"),
-            ImlOp::Runable(r) => r.compile(),
+            ImlOp::Runable(r) => r.compile(parselet),
             ImlOp::Op(op) => vec![op.clone()],
         }
     }

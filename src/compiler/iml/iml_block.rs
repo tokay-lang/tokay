@@ -77,16 +77,16 @@ impl Runable for Block {
         }
     }
 
-    fn compile(&self) -> Vec<Op> {
+    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
         let mut ret = Vec::new();
         let mut iter = self.items.iter();
         let mut jumps = Vec::new();
 
         while let Some(item) = iter.next() {
-            let seq = item.compile();
+            let seq = item.compile(parselet);
 
-            if iter.len() > 0 {
-                ret.push(Op::Fused(seq.len() + 1 + 1));
+            if parselet.consuming && iter.len() > 0 {
+                ret.push(Op::OpenFrame(seq.len() + 1 + 1));
                 ret.extend(seq);
 
                 jumps.push(ret.len());
@@ -97,7 +97,7 @@ impl Runable for Block {
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::Consumed(ret.len() - addr);
+            ret[addr] = Op::CloseFrame(ret.len() - addr);
         }
 
         ret

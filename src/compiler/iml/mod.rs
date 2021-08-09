@@ -41,7 +41,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
     ) -> Option<(bool, bool)>;
 
     /** Turn intermediate structure into Tokay VM code. */
-    fn compile(&self) -> Vec<Op> {
+    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
         //unimplemented!(); //todo: remove
         Vec::new()
     }

@@ -139,15 +139,15 @@ impl Runable for Sequence {
         }
     }
 
-    fn compile(&self) -> Vec<Op> {
+    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
         let mut ret = Vec::new();
 
         for item in self.items.iter() {
-            ret.extend(item.compile());
+            ret.extend(item.compile(parselet));
         }
 
-        if ret.len() > 1 {
-            ret.push(Op::Commit);
+        if parselet.consuming && ret.len() > 1 {
+            ret.push(Op::CollectFrame);
         }
 
         ret

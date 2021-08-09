@@ -26,10 +26,10 @@ pub enum Op {
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
-    // Flow
-    Fused(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
-    Commit,       // Collect values from the stack limited to current frame
-    Consumed(usize), // When current frame consumed input, go forward to relative address
+    // Fused ranges represented by frames
+    OpenFrame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
+    CollectFrame,     // Collect values from the stack limited to current frame
+    CloseFrame(usize), // When current frame consumed input, go forward to relative address
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -525,6 +525,7 @@ impl Op {
         }
 
         impl Frame {
+            // Creates a new frame from context.
             fn new(until: usize, context: &Context) -> Frame {
                 Frame {
                     until,
@@ -533,12 +534,17 @@ impl Op {
                 }
             }
 
+            // Rejects the current frame, resets stack and reader and returns new ip.
             fn reject(self, context: &mut Context) -> usize {
                 context.runtime.stack.truncate(self.capture_start);
                 context.runtime.reader.reset(self.reader_start);
                 self.until
             }
 
+            // Pops any frame from frames until ip is inside of a valid frame.
+            // Returns next valid frame, or even self when it is still valid.
+            // As there must exists an overall outer frame, the function
+            // panics when all available frames are dropped.
             fn clear(self, frames: &mut Vec<Frame>, ip: usize) -> Frame {
                 if self.until > ip {
                     return self;
@@ -563,6 +569,7 @@ impl Op {
         while ip < ops.len() {
             let op = &ops[ip];
 
+            // Debug
             if context.runtime.debug > 2 {
                 context.debug(&format!(
                     "[{}] {:03}:{}",
@@ -578,20 +585,23 @@ impl Op {
                 }
             }
 
+            // Execute instruction
             let state = match op {
-                Op::Fused(until) => {
+                Op::OpenFrame(until) => {
                     frames.push(frame);
                     frame = Frame::new(ip + *until, context);
                     Ok(Accept::Skip)
                 }
 
-                Op::Commit => match context.collect(frame.capture_start, false, true, true, 0) {
-                    Err(capture) => Ok(Accept::Push(capture)),
-                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
-                    Ok(None) => Ok(Accept::Next),
-                },
+                Op::CollectFrame => {
+                    match context.collect(frame.capture_start, false, true, true, 0) {
+                        Err(capture) => Ok(Accept::Push(capture)),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                        Ok(None) => Ok(Accept::Next),
+                    }
+                }
 
-                Op::Consumed(goto) => {
+                Op::CloseFrame(goto) => {
                     // Did you consume?
                     if frame.reader_start != context.runtime.reader.tell() {
                         // Ok then go ahead (ip is incremented below)
@@ -607,7 +617,7 @@ impl Op {
                     Ok(Accept::Skip)
                 }
 
-                op => op.run(context),
+                op => op.run(context), // todo: move content of op::run() here when recursive interpreter is removed.
             };
 
             match state {

@@ -533,7 +533,7 @@ impl Parselet {
             depth,
         );
 
-        let ops = self.body.compile();
+        let ops = self.body.compile(&self);
 
         println!("--- compiled ---");
 
