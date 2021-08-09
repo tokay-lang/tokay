@@ -27,9 +27,9 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Fused ranges represented by frames
-    OpenFrame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
-    CollectFrame,     // Collect values from the stack limited to current frame
-    CloseFrame(usize), // When current frame consumed input, go forward to relative address
+    Frame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
+    Collect,     // Collect values from the stack limited to current frame
+    IfConsumedForward(usize), // When current frame consumed input, go forward to relative address
 
     // Interrupts
     Skip,       // Err(Reject::Skip)
@@ -112,7 +112,7 @@ impl Op {
             Op::Nop => Ok(Accept::Next),
             Op::Offset(offset) => {
                 context.source_offset = Some(**offset);
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
             Op::Rust(f) => f.0(context),
 
@@ -288,7 +288,7 @@ impl Op {
                 let value = context.peek();
                 context.runtime.stack[*addr] =
                     Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             Op::StoreFast(addr) => {
@@ -303,7 +303,7 @@ impl Op {
                 let value = context.peek();
                 context.runtime.stack[context.stack_start + *addr] =
                     Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             Op::StoreFastCapture(index) => {
@@ -317,7 +317,7 @@ impl Op {
                 let value = context.peek();
 
                 context.set_capture(*index, value.borrow().clone().into_refvalue());
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             Op::StoreCapture | Op::StoreCaptureHold => {
@@ -336,7 +336,7 @@ impl Op {
                                 index.to_addr(),
                                 value.borrow().clone().into_refvalue(),
                             );
-                            Ok(Accept::Skip)
+                            Ok(Accept::Hold)
                         }
                     }
 
@@ -349,7 +349,7 @@ impl Op {
                             let value = context.peek();
                             context
                                 .set_capture_by_name(alias, value.borrow().clone().into_refvalue());
-                            Ok(Accept::Skip)
+                            Ok(Accept::Hold)
                         }
                     }
 
@@ -372,7 +372,7 @@ impl Op {
                     }
                 }
 
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             Op::MakeDict(count) => {
@@ -391,7 +391,7 @@ impl Op {
 
             Op::Drop => {
                 context.pop();
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             Op::Dup => {
@@ -407,7 +407,7 @@ impl Op {
                 context.runtime.stack.push(a);
                 context.runtime.stack.push(b);
 
-                Ok(Accept::Skip)
+                Ok(Accept::Hold)
             }
 
             // Operations
@@ -540,24 +540,6 @@ impl Op {
                 context.runtime.reader.reset(self.reader_start);
                 self.until
             }
-
-            // Pops any frame from frames until ip is inside of a valid frame.
-            // Returns next valid frame, or even self when it is still valid.
-            // As there must exists an overall outer frame, the function
-            // panics when all available frames are dropped.
-            fn clear(self, frames: &mut Vec<Frame>, ip: usize) -> Frame {
-                if self.until > ip {
-                    return self;
-                }
-
-                while let Some(frame) = frames.pop() {
-                    if frame.until > ip {
-                        return frame;
-                    }
-                }
-
-                panic!("No more frames until {}", ip);
-            }
         }
 
         // ---------------------------------------------------------------------
@@ -571,12 +553,7 @@ impl Op {
 
             // Debug
             if context.runtime.debug > 2 {
-                context.debug(&format!(
-                    "[{}] {:03}:{}",
-                    context.runtime.reader.tell().offset,
-                    ip,
-                    op
-                ));
+                context.debug(&format!("{:03}:{}", ip, op));
 
                 if context.runtime.debug > 6 {
                     for i in 0..context.runtime.stack.len() {
@@ -587,61 +564,71 @@ impl Op {
 
             // Execute instruction
             let state = match op {
-                Op::OpenFrame(until) => {
+                Op::Frame(until) => {
                     frames.push(frame);
                     frame = Frame::new(ip + *until, context);
-                    Ok(Accept::Skip)
+                    ip += 1;
+                    Ok(Accept::Hold)
                 }
 
-                Op::CollectFrame => {
+                Op::Collect => {
                     match context.collect(frame.capture_start, false, true, true, 0) {
                         Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
                         Ok(None) => Ok(Accept::Next),
                     }
                 }
 
-                Op::CloseFrame(goto) => {
+                Op::IfConsumedForward(goto) => {
                     // Did you consume?
                     if frame.reader_start != context.runtime.reader.tell() {
                         // Ok then go ahead (ip is incremented below)
-                        ip += goto - 1;
+                        ip += goto;
+                        Ok(Accept::Hold)
                     } else {
-                        frame.reject(context); // Reject current frame
-                        frame = frames.pop().unwrap(); // Consumed may not exist without further frames
+                        Err(Reject::Next)
                     }
-
-                    // Clean any frames below
-                    frame = frame.clear(&mut frames, ip);
-
-                    Ok(Accept::Skip)
                 }
 
                 op => op.run(context), // todo: move content of op::run() here when recursive interpreter is removed.
             };
 
             match state {
-                Ok(Accept::Skip) => {} // fixme: Accept::Skip should be removed
+                Ok(Accept::Hold) => {}
                 Ok(Accept::Next) => {
-                    // fixme: Accept::Next should not push something anymore
                     context.runtime.stack.push(Capture::Empty);
+                    ip += 1;
                 }
                 Ok(Accept::Push(capture)) => {
                     context.runtime.stack.push(capture);
+                    ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => {
                     ip = frame.reject(context);
                     frame = frames.pop().unwrap();
-                    frame = frame.clear(&mut frames, ip);
-                    continue;
                 }
                 state => return state,
             }
 
-            ip += 1;
-        }
+            // Clean any invalidated frames
+            if ip > frame.until {
+                assert!(ip <= ops.len()); // ip may not be outside of
 
-        frame = frame.clear(&mut frames, ip);
+                // Pop any frame from frames until ip is within a valid frame.
+                // As there must exists an overall outer frame, it will panic when
+                // all available frames are being dropped.
+                frame = loop {
+                    if let Some(frame) = frames.pop() {
+                        if frame.until > ip {
+                            break frame;
+                        }
+                    }
+                    else {
+                        panic!("No more frames available for range {}", ip);
+                    }
+                };
+            }
+        }
 
         match context.runtime.stack.len() - frame.capture_start {
             0 => Ok(Accept::Next),

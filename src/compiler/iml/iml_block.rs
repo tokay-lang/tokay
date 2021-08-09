@@ -86,7 +86,7 @@ impl Runable for Block {
             let seq = item.compile(parselet);
 
             if parselet.consuming && iter.len() > 0 {
-                ret.push(Op::OpenFrame(seq.len() + 1 + 1));
+                ret.push(Op::Frame(seq.len() + 1 + 1));
                 ret.extend(seq);
 
                 jumps.push(ret.len());
@@ -97,7 +97,7 @@ impl Runable for Block {
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::CloseFrame(ret.len() - addr);
+            ret[addr] = Op::IfConsumedForward(ret.len() - addr);
         }
 
         ret

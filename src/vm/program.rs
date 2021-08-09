@@ -49,8 +49,9 @@ impl Program {
             // fixme: Test entry point for new_vm compilation
             if runtime.debug > 0 {
                 runtime.debug += 2;
+                runtime.new_vm = true;
                 runtime.reader.reset(start);
-                main.run_new_vm(runtime, runtime.stack.len(), None, true, 0);
+                main.run(runtime, runtime.stack.len(), None, true, 0);
             }
 
             let res = match res {

@@ -172,15 +172,31 @@ impl Parselet {
 
         let result = loop {
             let reader_start = context.runtime.reader.tell();
-            let mut result = match state {
+
+            let imlops = match state {
                 // begin
-                Some(true) => self.begin.run(context),
+                Some(true) => &self.begin,
 
                 // end
-                Some(false) => self.end.run(context),
+                Some(false) => &self.end,
 
                 // default
-                None => self.body.run(context),
+                None => &self.body,
+            };
+
+            // Use new VM concept and compile in-place?
+            let mut result = if context.runtime.new_vm && !matches!(imlops, ImlOp::Nop) {
+                let ops = imlops.compile(&self);
+
+                println!("--- compiled {} ---", self.name.as_deref().unwrap_or("(unnamed)"));
+                for (i, op) in ops.iter().enumerate() {
+                    println!("{:03} {:?}", i, op);
+                }
+
+                Op::execute(&ops[..], context)
+            }
+            else {
+                imlops.run(context)
             };
 
             // if main {
@@ -218,7 +234,7 @@ impl Parselet {
             match result {
                 Ok(accept) => {
                     match accept {
-                        Accept::Skip => break Some(Ok(Accept::Next)),
+                        Accept::Hold => break Some(Ok(Accept::Next)),
 
                         Accept::Return(value) => {
                             if let Some(value) = value {
@@ -362,10 +378,6 @@ impl Parselet {
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
             depth,
         );
-
-        if context.runtime.debug > 2 {
-            context.debug(self.name.as_deref().unwrap_or("(unnamed)"));
-        }
 
         if !main {
             // Check for provided argument count bounds first
@@ -514,37 +526,6 @@ impl Parselet {
         }
 
         result
-    }
-
-    /* NEW VM */
-    pub fn run_new_vm(
-        &self,
-        runtime: &mut Runtime,
-        args: usize,
-        mut nargs: Option<Dict>,
-        main: bool,
-        depth: usize,
-    ) -> Result<Accept, Reject> {
-        let mut context = Context::new(
-            runtime,
-            self,
-            args,
-            if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
-            depth,
-        );
-
-        let ops = self.body.compile(&self);
-
-        println!("--- compiled ---");
-
-        for (i, op) in ops.iter().enumerate() {
-            println!("{:03} {:?}", i, op);
-        }
-
-        let ret = Op::execute(&ops[..], &mut context);
-        println!("ret = {:?}", ret);
-
-        Ok(Accept::Next)
     }
 }
 

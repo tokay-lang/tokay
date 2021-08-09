@@ -51,7 +51,7 @@ impl Runable for Sequence {
 
                 Ok(Accept::Next) => context.runtime.stack.push(Capture::Empty),
 
-                Ok(Accept::Skip) => continue,
+                Ok(Accept::Hold) => continue,
 
                 Ok(Accept::Push(capture)) => context.runtime.stack.push(capture),
 
@@ -146,8 +146,9 @@ impl Runable for Sequence {
             ret.extend(item.compile(parselet));
         }
 
-        if parselet.consuming && ret.len() > 1 {
-            ret.push(Op::CollectFrame);
+        if ret.len() > 1 {
+            ret.insert(0, Op::Frame(ret.len() + 1));
+            ret.push(Op::Collect);
         }
 
         ret
