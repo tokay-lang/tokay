@@ -1,11 +1,10 @@
 use super::*;
 use crate::value::RefValue;
 
-/** Block parser.
+/** Block construct.
 
-A block parser defines either an alternation of sequences or a grouped sequence
-of VM instructions. The compiler has to guarantee for correct usage of the block
-parser.
+The block construct defines either an alternation of sequences or a grouped sequence
+of instructions. The compiler has to guarantee for correct usage of the block construct.
 */
 
 #[derive(Debug)]

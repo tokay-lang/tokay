@@ -46,20 +46,29 @@ impl Program {
             let main = main.borrow();
             let res = main.run(runtime, runtime.stack.len(), None, true, 0);
 
-            // fixme: Test entry point for new_vm compilation
-            if runtime.debug > 0 {
-                runtime.debug += 2;
-                runtime.new_vm = true;
-                runtime.reader.reset(start);
-                main.run(runtime, runtime.stack.len(), None, true, 0);
-            }
-
             let res = match res {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
             };
+
+            // fixme: Test entry point for new_vm compilation
+            if runtime.debug > 0 {
+                runtime.debug += 2;
+                runtime.new_vm = true;
+                runtime.reader.reset(start);
+                let res = main.run(runtime, runtime.stack.len(), None, true, 0);
+
+                let res = match res {
+                    Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
+                    Ok(_) => Ok(None),
+                    Err(Reject::Error(error)) => Err(*error),
+                    Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
+                };
+
+                println!("{:?}", res);
+            }
 
             res
         } else {

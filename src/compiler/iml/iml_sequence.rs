@@ -1,11 +1,12 @@
 use super::*;
 use crate::value::RefValue;
 
-/** Sequence.
+/** Sequence construct.
 
-This intermediate language construct collects a sequence of operations or other constructs.
+This intermediate language construct collects a sequence of operations or sequence of further
+constructs.
 
-According to these operation's semantics, or when an entire sequence was completely recognized,
+According to these operation's semantics, or when an entire sequence is completely recognized,
 the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
 processed, including data changes, which is a wanted behavior.
 */

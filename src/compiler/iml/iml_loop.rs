@@ -1,6 +1,6 @@
 use super::*;
 
-/** If-construct */
+/** Loop-construct */
 
 #[derive(Debug)]
 pub struct Loop {

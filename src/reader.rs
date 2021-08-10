@@ -96,7 +96,12 @@ impl Reader {
     }
 
     pub fn eof(&self) -> bool {
-        self.eof
+        if self.buffer[self.offset.offset..].chars().next().is_some() {
+            false
+        }
+        else {
+            self.eof
+        }
     }
 
     pub fn reset(&mut self, offset: Offset) {
