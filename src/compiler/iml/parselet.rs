@@ -31,7 +31,7 @@ pub struct Parselet {
     pub(crate) locals: usize, // Number of local variables present
     begin: ImlOp,            // Begin-operations
     end: ImlOp,              // End-operations
-    pub(crate) body: ImlOp,  // Operations
+    body: ImlOp,             // Operations
 }
 
 impl Parselet {
@@ -68,88 +68,18 @@ impl Parselet {
         Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
+    pub(in crate::compiler) fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.begin.resolve(usages);
         self.end.resolve(usages);
         self.body.resolve(usages);
     }
 
-    /**
-    Finalize the program by resolving any unresolved usages and
-    according to a grammar's point of view;
-    This closure algorithm runs until no more changes on any
-    parselet configuration occurs.
-
-    The algorithm detects correct flagging fore nullable and
-    left-recursive for any consuming parselet.
-
-    It requires all parselets consuming input to be known before
-    the finalization phase. Normally, this is already known due
-    to Tokays identifier classification.
-
-    Maybe there will be a better method for this detection in
-    future.
-    */
-    pub(crate) fn finalize(mut usages: Vec<Vec<ImlOp>>, statics: &Vec<RefValue>) -> usize {
-        let mut changes = true;
-        let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..statics.len() {
-                if let Value::Parselet(parselet) = &*statics[i].borrow() {
-                    let mut parselet = parselet.borrow_mut();
-
-                    if loops == 0 {
-                        parselet.resolve(&mut usages);
-                    }
-
-                    if !parselet.consuming {
-                        continue;
-                    }
-
-                    let mut stack = vec![(i, parselet.nullable)];
-                    if let Some((leftrec, nullable)) = parselet.body.finalize(statics, &mut stack) {
-                        if parselet.leftrec != leftrec {
-                            parselet.leftrec = leftrec;
-                            changes = true;
-                        }
-
-                        if parselet.nullable != nullable {
-                            parselet.nullable = nullable;
-                            changes = true;
-                        }
-
-                        if !parselet.consuming {
-                            parselet.consuming = true;
-                            changes = true;
-                        }
-                    }
-                }
-            }
-
-            loops += 1;
-        }
-
-        /*
-        for i in 0..statics.len() {
-            if let Value::Parselet(parselet) = &*statics[i].borrow() {
-                let parselet = parselet.borrow();
-                println!(
-                    "{} consuming={} leftrec={} nullable={}",
-                    parselet.name.as_deref().unwrap_or("(unnamed)"),
-                    parselet.consuming,
-                    parselet.leftrec,
-                    parselet.nullable
-                );
-            }
-        }
-
-        println!("Finalization finished after {} loops", loops);
-        */
-
-        loops
+    pub(in crate::compiler) fn finalize(
+        &mut self,
+        statics: &Vec<RefValue>,
+        stack: &mut Vec<(usize, bool)>,
+    ) -> Option<(bool, bool)> {
+        self.body.finalize(statics, stack)
     }
 
     // Checks if parselet is callable with or without arguments
@@ -188,14 +118,16 @@ impl Parselet {
             let mut result = if context.runtime.new_vm && !matches!(imlops, ImlOp::Nop) {
                 let ops = imlops.compile(&self);
 
-                println!("--- compiled {} ---", self.name.as_deref().unwrap_or("(unnamed)"));
+                println!(
+                    "--- compiled {} ---",
+                    self.name.as_deref().unwrap_or("(unnamed)")
+                );
                 for (i, op) in ops.iter().enumerate() {
                     println!("{:03} {:?}", i, op);
                 }
 
                 Op::execute(&ops[..], context)
-            }
-            else {
+            } else {
                 imlops.run(context)
             };
 

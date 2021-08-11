@@ -28,7 +28,7 @@ pub enum Op {
 
     // Fused ranges represented by frames
     Frame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
-    Collect,     // Collect values from the stack limited to current frame
+    Collect,      // Collect values from the stack limited to current frame
     IfConsumedForward(usize), // When current frame consumed input, go forward to relative address
 
     // Interrupts
@@ -571,13 +571,11 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
-                Op::Collect => {
-                    match context.collect(frame.capture_start, false, true, true, 0) {
-                        Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
-                        Ok(None) => Ok(Accept::Next),
-                    }
-                }
+                Op::Collect => match context.collect(frame.capture_start, false, true, true, 0) {
+                    Err(capture) => Ok(Accept::Push(capture)),
+                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
+                    Ok(None) => Ok(Accept::Next),
+                },
 
                 Op::IfConsumedForward(goto) => {
                     // Did you consume?
@@ -622,8 +620,7 @@ impl Op {
                         if frame.until > ip {
                             break frame;
                         }
-                    }
-                    else {
+                    } else {
                         panic!("No more frames available for range {}", ip);
                     }
                 };

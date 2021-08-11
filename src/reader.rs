@@ -98,8 +98,7 @@ impl Reader {
     pub fn eof(&self) -> bool {
         if self.buffer[self.offset.offset..].chars().next().is_some() {
             false
-        }
-        else {
+        } else {
             self.eof
         }
     }

@@ -84,7 +84,7 @@ impl Runable for ImlOp {
                                 }
 
                                 stack.push((*target, parselet.nullable));
-                                let ret = parselet.body.finalize(statics, stack);
+                                let ret = parselet.finalize(statics, stack);
                                 stack.pop();
 
                                 // --- Incomplete solution for the problem described in test/testindirectleftrec ---

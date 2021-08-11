@@ -82,12 +82,12 @@ pub enum Accept {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,              // soft-reject, skip to next sequence
-    Skip,              // hard-reject, silently drop current parselet
-    Return,            // hard-reject current parselet ('return'/'reject'-keyword)
-    Main,              // hard-reject current parselet and exit to main scope ('escape'-keyword)
+    Next,   // soft-reject, skip to next sequence
+    Skip,   // hard-reject, silently drop current parselet
+    Return, // hard-reject current parselet ('return'/'reject'-keyword)
+    Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
     Error(Box<Error>), //hard-reject with error message (runtime error)
-    // todo: Exit(u32) // stop entire program with exit code
+            // todo: Exit(u32) // stop entire program with exit code
 }
 
 impl From<Error> for Reject {
@@ -149,7 +149,8 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     /// Print debug output with context depth indention
     #[inline]
     pub fn debug(&self, msg: &str) {
-        println!("{}{}{:5} {}",
+        println!(
+            "{}{}{:5} {}",
             ".".repeat(self.depth),
             self.parselet.name.as_deref().unwrap_or("(unnamed)"),
             if self.parselet.consuming {
@@ -442,8 +443,8 @@ pub struct Runtime<'program, 'reader> {
 
     pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
-    pub debug: u8, // Debug level
-    pub new_vm: bool // Use new_vm
+    pub debug: u8,    // Debug level
+    pub new_vm: bool, // Use new_vm
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
@@ -458,7 +459,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             } else {
                 0
             },
-            new_vm: false
+            new_vm: false,
         }
     }
 

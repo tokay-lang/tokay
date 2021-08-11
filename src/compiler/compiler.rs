@@ -134,7 +134,7 @@ impl Compiler {
             self.statics.borrow_mut().drain(..).collect()
         };
 
-        let usages = self
+        let mut usages = self
             .usages
             .drain(..)
             .map(|usage| {
@@ -165,7 +165,76 @@ impl Compiler {
             })
             .collect();
 
-        Parselet::finalize(usages, &statics);
+        /*
+            Finalize the program by resolving any unresolved usages according to a grammar's
+            point of view; This closure algorithm runs until no more changes on any parselet
+            configuration occurs.
+
+            The algorithm detects correct flagging fore nullable and left-recursive for any
+            consuming parselet.
+
+            It requires all parselets consuming input to be known before the finalization phase.
+            Normally, this is already known due to Tokays identifier classification.
+
+            Maybe there will be a better method for this detection in future.
+        */
+        let mut changes = true;
+        let mut loops = 0;
+
+        while changes {
+            changes = false;
+
+            for i in 0..statics.len() {
+                if let Value::Parselet(parselet) = &*statics[i].borrow() {
+                    let mut parselet = parselet.borrow_mut();
+
+                    if loops == 0 {
+                        parselet.resolve(&mut usages);
+                    }
+
+                    if !parselet.consuming {
+                        continue;
+                    }
+
+                    let mut stack = vec![(i, parselet.nullable)];
+                    if let Some((leftrec, nullable)) = parselet.finalize(&statics, &mut stack) {
+                        if parselet.leftrec != leftrec {
+                            parselet.leftrec = leftrec;
+                            changes = true;
+                        }
+
+                        if parselet.nullable != nullable {
+                            parselet.nullable = nullable;
+                            changes = true;
+                        }
+
+                        if !parselet.consuming {
+                            parselet.consuming = true;
+                            changes = true;
+                        }
+                    }
+                }
+            }
+
+            loops += 1;
+        }
+
+        /*
+        for i in 0..statics.len() {
+            if let Value::Parselet(parselet) = &*statics[i].borrow() {
+                let parselet = parselet.borrow();
+                println!(
+                    "{} consuming={} leftrec={} nullable={}",
+                    parselet.name.as_deref().unwrap_or("(unnamed)"),
+                    parselet.consuming,
+                    parselet.leftrec,
+                    parselet.nullable
+                );
+            }
+        }
+
+        println!("Finalization finished after {} loops", loops);
+        */
 
         // Stop when any unresolved usages occured;
         // We do this here so that eventual undefined symbols are replaced by ImlOp::Nop,
