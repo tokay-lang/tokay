@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::*;
-use crate::compiler::iml::Parselet;
+use crate::compiler::iml::ImlParselet;
 use crate::error::Error;
 use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value}; // todo: temporary!
@@ -103,7 +103,7 @@ impl From<Error> for Reject {
 Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
-    pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
+    pub(crate) parselet: &'parselet ImlParselet, // Current parselet that is executed
     pub(crate) stack_start: usize,            // Stack start (including locals and parameters)
     pub(crate) capture_start: usize,          // Stack capturing start
     pub(crate) reader_start: Offset,          // Current reader offset
@@ -115,7 +115,7 @@ pub struct Context<'runtime, 'program, 'reader, 'parselet> {
 impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
     pub fn new(
         runtime: &'runtime mut Runtime<'program, 'reader>,
-        parselet: &'parselet Parselet,
+        parselet: &'parselet ImlParselet,
         take: usize,
         hold: usize,
         depth: usize,

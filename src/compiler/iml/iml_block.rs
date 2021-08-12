@@ -76,7 +76,7 @@ impl Runable for Block {
         }
     }
 
-    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = Vec::new();
         let mut iter = self.items.iter();
         let mut jumps = Vec::new();

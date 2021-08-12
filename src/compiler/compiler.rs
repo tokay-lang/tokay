@@ -221,7 +221,7 @@ impl Compiler {
 
         /*
         for i in 0..statics.len() {
-            if let Value::Parselet(parselet) = &*statics[i].borrow() {
+            if let Value::ImlParselet(parselet) = &*statics[i].borrow() {
                 let parselet = parselet.borrow();
                 println!(
                     "{} consuming={} leftrec={} nullable={}",
@@ -308,7 +308,7 @@ impl Compiler {
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: ImlOp,
-    ) -> Parselet {
+    ) -> ImlParselet {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
@@ -330,7 +330,7 @@ impl Compiler {
                 }
             }
 
-            let mut parselet = Parselet::new(
+            let mut parselet = ImlParselet::new(
                 name,
                 sig,
                 variables.len(),
@@ -457,7 +457,7 @@ impl Compiler {
 
         if name == "_" || name == "__" {
             // First of all, "__" is defined as `__ : Value+`...
-            let mut parselet = Parselet::new(
+            let mut parselet = ImlParselet::new(
                 Some("__".to_string()),
                 Vec::new(),
                 0,
@@ -476,7 +476,7 @@ impl Compiler {
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            let mut parselet = Parselet::new(
+            let mut parselet = ImlParselet::new(
                 Some(name.to_string()),
                 Vec::new(),
                 0,

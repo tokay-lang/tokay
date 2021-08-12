@@ -19,7 +19,7 @@ the generated parse tree automatically until no more input can be consumed.
 */
 
 #[derive(Debug)]
-pub struct Parselet {
+pub struct ImlParselet {
     pub(crate) leftrec: bool, // Indicator if parselet is left-recursive. Determined on finalization.
     pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
     pub(crate) consuming: bool, /* Indicator if parselet is consuming input.
@@ -34,7 +34,7 @@ pub struct Parselet {
     body: ImlOp,             // Operations
 }
 
-impl Parselet {
+impl ImlParselet {
     /// Creates a new parselet.
     pub fn new(
         name: Option<String>,
@@ -290,7 +290,7 @@ impl Parselet {
         depth: usize,
     ) -> Result<Accept, Reject> {
         // Check for a previously memoized result in memo table
-        let id = self as *const Parselet as usize;
+        let id = self as *const ImlParselet as usize;
 
         if !main && self.consuming {
             // Get unique parselet id from memory address
@@ -461,24 +461,24 @@ impl Parselet {
     }
 }
 
-impl std::cmp::PartialEq for Parselet {
+impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self as *const Parselet as usize == other as *const Parselet as usize
+        self as *const ImlParselet as usize == other as *const ImlParselet as usize
     }
 }
 
-impl std::hash::Hash for Parselet {
+impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Parselet as usize).hash(state);
+        (self as *const ImlParselet as usize).hash(state);
     }
 }
 
-impl std::cmp::PartialOrd for Parselet {
+impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const Parselet as usize;
-        let right = other as *const Parselet as usize;
+        let left = self as *const ImlParselet as usize;
+        let right = other as *const ImlParselet as usize;
 
         left.partial_cmp(&right)
     }

@@ -140,7 +140,7 @@ impl Runable for Sequence {
         }
     }
 
-    fn compile(&self, parselet: &Parselet) -> Vec<Op> {
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = Vec::new();
 
         for item in self.items.iter() {

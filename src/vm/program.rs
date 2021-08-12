@@ -4,7 +4,7 @@ use std::io::{self, BufReader};
 use std::rc::Rc;
 
 use super::*;
-use crate::compiler::iml::Parselet;
+use crate::compiler::iml::ImlParselet;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{RefValue, Value}; // todo: temporary! // todo: temporary!
@@ -15,7 +15,7 @@ A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
-    main: Option<Rc<RefCell<Parselet>>>, // The main parselet to run
+    main: Option<Rc<RefCell<ImlParselet>>>, // The main parselet to run
 }
 
 impl Program {

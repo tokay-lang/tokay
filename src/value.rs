@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
-use crate::compiler::iml::Parselet;
+use crate::compiler::iml::ImlParselet;
 use crate::error::Error;
 use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Reject}; // todo: temporary!
@@ -34,7 +34,7 @@ pub enum Value {
 
     // Callables
     Token(Box<Token>),                 // Token
-    Parselet(Rc<RefCell<Parselet>>),   // Parselet
+    Parselet(Rc<RefCell<ImlParselet>>),   // Parselet
     Builtin(&'static Builtin),         // Builtin
     Method(Box<(RefValue, RefValue)>), // Method
 }
@@ -320,7 +320,7 @@ impl Value {
                 if let Some(name) = p.name.as_ref() {
                     format!("<parselet {}>", name)
                 } else {
-                    format!("<parselet {}>", p as *const Parselet as usize)
+                    format!("<parselet {}>", p as *const ImlParselet as usize)
                 }
             }
             Self::Builtin(b) => format!("<builtin {}>", b.name),
