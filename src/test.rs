@@ -4,7 +4,6 @@ use crate::compiler::*;
 use crate::token::*;
 use crate::utils::*;
 use crate::value::*;
-use crate::vm::*;
 use crate::{tokay, value};
 
 //use std::env;

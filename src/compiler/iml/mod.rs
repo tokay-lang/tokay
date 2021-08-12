@@ -2,7 +2,7 @@
 use crate::value::RefValue;
 pub use crate::vm::*;
 
-mod iml_block;
+mod iml_alt;
 mod iml_expect;
 mod iml_if;
 mod iml_loop;
@@ -13,7 +13,7 @@ mod iml_sequence;
 mod op;
 mod parselet;
 
-pub use iml_block::*;
+pub use iml_alt::*;
 pub use iml_expect::*;
 pub use iml_if::*;
 pub use iml_loop::*;

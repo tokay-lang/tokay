@@ -714,7 +714,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 compiler.pop_block();
 
                 AstResult::Ops(if body.len() > 1 {
-                    vec![Block::new(body)]
+                    vec![Alternation::new(body)]
                 } else {
                     body
                 })
@@ -987,7 +987,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 match body.len() {
                     0 => Op::Nop.into(),
                     1 => body.into_iter().next().unwrap(),
-                    _ => Block::new(body),
+                    _ => Alternation::new(body),
                 },
             );
 

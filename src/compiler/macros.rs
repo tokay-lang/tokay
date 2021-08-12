@@ -75,7 +75,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = Block::new(
+            let body = Alternation::new(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -116,7 +116,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = Block::new(
+            let body = Alternation::new(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -173,7 +173,7 @@ macro_rules! tokay {
             ];
 
             Some(
-                Block::new(
+                Alternation::new(
                     items.into_iter()
                         .filter(|item| item.is_some())
                         .map(|item| item.unwrap())

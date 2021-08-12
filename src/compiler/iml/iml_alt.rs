@@ -1,24 +1,25 @@
 use super::*;
 use crate::value::RefValue;
 
-/** Block construct.
+/** Alternation construct.
 
-The block construct defines either an alternation of sequences or a grouped sequence
-of instructions. The compiler has to guarantee for correct usage of the block construct.
+The alternation construct defines either an alternation of sequences or a grouped sequence
+of instructions. An alternation is only performed when input is consumed, otherwise the
+alternation works similar to a sequence.
 */
 
 #[derive(Debug)]
-pub struct Block {
+pub struct Alternation {
     items: Vec<ImlOp>,
 }
 
-impl Block {
+impl Alternation {
     pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self { items: items }.into_op()
     }
 }
 
-impl Runable for Block {
+impl Runable for Alternation {
     fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
         let mut result = Ok(Accept::Next);
         let reader_start = context.runtime.reader.tell();
@@ -103,7 +104,7 @@ impl Runable for Block {
     }
 }
 
-impl std::fmt::Display for Block {
+impl std::fmt::Display for Alternation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{")?;
         for item in &self.items {
