@@ -111,7 +111,7 @@ impl Runable for Sequence {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         let mut leftrec = false;
         let mut nullable = true;
         let mut consumes = false;
@@ -121,9 +121,9 @@ impl Runable for Sequence {
                 break;
             }
 
-            if let Some((item_leftrec, item_nullable)) = item.finalize(statics, stack) {
-                leftrec |= item_leftrec;
-                nullable = item_nullable;
+            if let Some(consumable) = item.finalize(statics, stack) {
+                leftrec |= consumable.leftrec;
+                nullable = consumable.nullable;
                 consumes = true;
             }
         }
@@ -134,7 +134,7 @@ impl Runable for Sequence {
         }
 
         if consumes {
-            Some((leftrec, nullable))
+            Some(Consumable { leftrec, nullable })
         } else {
             None
         }

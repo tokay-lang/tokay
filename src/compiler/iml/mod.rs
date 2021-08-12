@@ -24,7 +24,15 @@ pub use iml_sequence::*;
 pub use op::*;
 pub use parselet::*;
 
-pub trait Runable: std::fmt::Debug + std::fmt::Display {
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub /* todo: (in crate::compiler) */ struct Consumable {
+    pub leftrec: bool,  // Flag if consumable is left-recursive
+    pub nullable: bool, // Flag if consumable is nullable
+}
+
+pub trait Runable: std::fmt::Debug + std::fmt::Display
+/* todo: (in crate::compiler) */ trait Runable: std::fmt::Debug + std::fmt::Display
+{
     // Run that runable...
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;
 
@@ -38,7 +46,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)>;
+    ) -> Option<Consumable>;
 
     /** Turn intermediate structure into Tokay VM code. */
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {

@@ -135,12 +135,15 @@ impl Runable for Repeat {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
-        if let Some((leftrec, nullable)) = self.body.finalize(statics, stack) {
+    ) -> Option<Consumable> {
+        if let Some(consumable) = self.body.finalize(statics, stack) {
             if self.min == 0 {
-                Some((leftrec, true))
+                Some(Consumable {
+                    leftrec: consumable.leftrec,
+                    nullable: true,
+                })
             } else {
-                Some((leftrec, nullable))
+                Some(consumable)
             }
         } else {
             None

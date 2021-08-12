@@ -33,10 +33,10 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),                 // Token
-    Parselet(Rc<RefCell<ImlParselet>>),   // Parselet
-    Builtin(&'static Builtin),         // Builtin
-    Method(Box<(RefValue, RefValue)>), // Method
+    Token(Box<Token>),                  // Token
+    Parselet(Rc<RefCell<ImlParselet>>), // Parselet
+    Builtin(&'static Builtin),          // Builtin
+    Method(Box<(RefValue, RefValue)>),  // Method
 }
 
 /** Value construction helper-macro
@@ -513,7 +513,13 @@ impl Value {
         match self {
             Value::Token(token) => token.is_nullable(),
             Value::Builtin(_) => false, // By definition, a built-in is never nullable
-            Value::Parselet(parselet) => parselet.borrow().nullable,
+            Value::Parselet(parselet) => {
+                if let Some(consuming) = &parselet.borrow().consuming {
+                    consuming.nullable
+                } else {
+                    false
+                }
+            }
             _ => true,
         }
     }
@@ -523,7 +529,7 @@ impl Value {
         match self {
             Value::Token(_) => true,
             Value::Builtin(builtin) => builtin.is_consumable(),
-            Value::Parselet(parselet) => parselet.borrow().consuming,
+            Value::Parselet(parselet) => parselet.borrow().consuming.is_some(),
             _ => false,
         }
     }

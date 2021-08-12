@@ -71,7 +71,7 @@ impl Runable for ImlOp {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         match self {
             ImlOp::Runable(runable) => runable.finalize(statics, stack),
             ImlOp::Op(Op::CallStatic(target)) => {
@@ -79,11 +79,18 @@ impl Runable for ImlOp {
                     Value::Parselet(parselet) => {
                         if stack.len() > 0 {
                             if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                if !parselet.consuming {
+                                if parselet.consuming.is_none() {
                                     return None;
                                 }
 
-                                stack.push((*target, parselet.nullable));
+                                stack.push((
+                                    *target,
+                                    if let Some(consuming) = parselet.consuming.as_ref() {
+                                        consuming.nullable
+                                    } else {
+                                        false
+                                    },
+                                ));
                                 let ret = parselet.finalize(statics, stack);
                                 stack.pop();
 
@@ -101,7 +108,10 @@ impl Runable for ImlOp {
                             } else {
                                 for i in 0..stack.len() {
                                     if *target == stack[i].0 {
-                                        return Some((i == 0, stack[i].1));
+                                        return Some(Consumable {
+                                            leftrec: i == 0,
+                                            nullable: stack[i].1,
+                                        });
                                     }
                                 }
 
@@ -114,7 +124,10 @@ impl Runable for ImlOp {
 
                     object => {
                         if object.is_consuming() {
-                            Some((false, object.is_nullable()))
+                            Some(Consumable {
+                                leftrec: false,
+                                nullable: object.is_nullable(),
+                            })
                         } else {
                             None
                         }

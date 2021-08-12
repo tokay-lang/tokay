@@ -56,22 +56,21 @@ impl Runable for Alternation {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
-        let mut any_leftrec = false;
-        let mut any_nullable = false;
+    ) -> Option<Consumable> {
+        let mut leftrec = false;
+        let mut nullable = false;
         let mut consumes = false;
 
         for alt in self.items.iter_mut() {
-            if let Some((leftrec, nullable)) = alt.finalize(statics, stack) {
-                any_leftrec |= leftrec;
-                any_nullable |= nullable;
-
+            if let Some(consumable) = alt.finalize(statics, stack) {
+                leftrec |= consumable.leftrec;
+                nullable |= consumable.nullable;
                 consumes = true;
             }
         }
 
         if consumes {
-            Some((any_leftrec, any_nullable))
+            Some(Consumable { leftrec, nullable })
         } else {
             None
         }
@@ -85,7 +84,7 @@ impl Runable for Alternation {
         while let Some(item) = iter.next() {
             let seq = item.compile(parselet);
 
-            if parselet.consuming && iter.len() > 0 {
+            if parselet.consuming.is_some() && iter.len() > 0 {
                 ret.push(Op::Frame(seq.len() + 1 + 1));
                 ret.extend(seq);
 

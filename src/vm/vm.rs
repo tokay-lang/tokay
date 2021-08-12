@@ -104,10 +104,10 @@ Via the context, most operations regarding capture storing and loading is perfor
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
     pub(crate) parselet: &'parselet ImlParselet, // Current parselet that is executed
-    pub(crate) stack_start: usize,            // Stack start (including locals and parameters)
-    pub(crate) capture_start: usize,          // Stack capturing start
-    pub(crate) reader_start: Offset,          // Current reader offset
-    pub(crate) source_offset: Option<Offset>, // Tokay source offset
+    pub(crate) stack_start: usize,               // Stack start (including locals and parameters)
+    pub(crate) capture_start: usize,             // Stack capturing start
+    pub(crate) reader_start: Offset,             // Current reader offset
+    pub(crate) source_offset: Option<Offset>,    // Tokay source offset
     hold: usize,             // Defines number of stack items to hold on context drop
     pub(crate) depth: usize, // Recursion depth
 }
@@ -153,7 +153,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             "{}{}{:5} {}",
             ".".repeat(self.depth),
             self.parselet.name.as_deref().unwrap_or("(unnamed)"),
-            if self.parselet.consuming {
+            if self.parselet.consuming.is_some() {
                 format!("@{: <4}", self.runtime.reader.tell().offset)
             } else {
                 "".to_string()

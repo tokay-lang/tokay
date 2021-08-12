@@ -36,7 +36,7 @@ impl Runable for Not {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
     }
 }

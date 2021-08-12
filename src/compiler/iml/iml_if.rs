@@ -83,14 +83,17 @@ impl Runable for If {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         let then = self.then.finalize(statics, stack);
 
-        if let Some((else_leftrec, else_nullable)) = self.else_.finalize(statics, stack) {
-            if let Some((then_leftrec, then_nullable)) = then {
-                Some((then_leftrec || else_leftrec, then_nullable || else_nullable))
+        if let Some(else_) = self.else_.finalize(statics, stack) {
+            if let Some(then) = then {
+                Some(Consumable {
+                    leftrec: then.leftrec || else_.leftrec,
+                    nullable: then.nullable || else_.nullable,
+                })
             } else {
-                Some((else_leftrec, else_nullable))
+                Some(else_)
             }
         } else {
             then

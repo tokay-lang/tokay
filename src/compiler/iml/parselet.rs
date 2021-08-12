@@ -20,11 +20,7 @@ the generated parse tree automatically until no more input can be consumed.
 
 #[derive(Debug)]
 pub struct ImlParselet {
-    pub(crate) leftrec: bool, // Indicator if parselet is left-recursive. Determined on finalization.
-    pub(crate) nullable: bool, // Indicator if parselet is nullable. Determined on finalization.
-    pub(crate) consuming: bool, /* Indicator if parselet is consuming input.
-                              This can both be set on creation and additionally is determined
-                              during finalization. */
+    pub(crate) consuming: Option<Consumable>, // Consumable state
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
     pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
@@ -51,9 +47,7 @@ impl ImlParselet {
 
         Self {
             name,
-            leftrec: false,
-            nullable: true,
-            consuming: false,
+            consuming: None,
             silent: false,
             signature,
             locals,
@@ -78,7 +72,7 @@ impl ImlParselet {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
     }
 
@@ -292,7 +286,7 @@ impl ImlParselet {
         // Check for a previously memoized result in memo table
         let id = self as *const ImlParselet as usize;
 
-        if !main && self.consuming {
+        if !main && self.consuming.is_some() {
             // Get unique parselet id from memory address
             let reader_start = runtime.reader.tell();
 
@@ -380,77 +374,75 @@ impl ImlParselet {
         //println!("remaining {:?}", nargs);
 
         // Check for an existing memo-entry, and return it in case of a match
-        if !main && self.consuming {
-            if self.leftrec {
-                /*
-                println!(
-                    "--- {} @ {} ---",
-                    self.name.as_deref().unwrap_or("(unnamed)"),
-                    context.reader_start.offset
-                );
-                */
+        if let (false, Some(Consumable { leftrec: true, .. })) = (main, self.consuming.as_ref()) {
+            /*
+            println!(
+                "--- {} @ {} ---",
+                self.name.as_deref().unwrap_or("(unnamed)"),
+                context.reader_start.offset
+            );
+            */
 
-                // Left-recursive parselets are called in a loop until no more input
-                // is consumed.
-                let mut reader_end = context.reader_start;
-                let mut result = Err(Reject::Next);
+            // Left-recursive parselets are called in a loop until no more input
+            // is consumed.
+            let mut reader_end = context.reader_start;
+            let mut result = Err(Reject::Next);
 
-                // Insert a fake memo entry to avoid endless recursion
+            // Insert a fake memo entry to avoid endless recursion
+            context.runtime.memo.insert(
+                (context.reader_start.offset, id),
+                (reader_end, result.clone()),
+            );
+
+            loop {
+                let loop_result = self._run(&mut context, main);
+
+                match loop_result {
+                    // Hard reject
+                    Err(Reject::Main) | Err(Reject::Error(_)) => {
+                        result = loop_result;
+                        break;
+                    }
+
+                    // Soft reject
+                    Err(_) => break,
+
+                    _ => {}
+                }
+
+                let loop_end = context.runtime.reader.tell();
+
+                // Stop when no more input was consumed
+                if loop_end.offset <= reader_end.offset {
+                    break;
+                }
+
+                result = loop_result;
+                reader_end = loop_end;
+
+                // Save intermediate result in memo table
                 context.runtime.memo.insert(
                     (context.reader_start.offset, id),
                     (reader_end, result.clone()),
                 );
 
-                loop {
-                    let loop_result = self._run(&mut context, main);
-
-                    match loop_result {
-                        // Hard reject
-                        Err(Reject::Main) | Err(Reject::Error(_)) => {
-                            result = loop_result;
-                            break;
-                        }
-
-                        // Soft reject
-                        Err(_) => break,
-
-                        _ => {}
-                    }
-
-                    let loop_end = context.runtime.reader.tell();
-
-                    // Stop when no more input was consumed
-                    if loop_end.offset <= reader_end.offset {
-                        break;
-                    }
-
-                    result = loop_result;
-                    reader_end = loop_end;
-
-                    // Save intermediate result in memo table
-                    context.runtime.memo.insert(
-                        (context.reader_start.offset, id),
-                        (reader_end, result.clone()),
-                    );
-
-                    // Reset reader & stack
-                    context.runtime.reader.reset(context.reader_start);
-                    context.runtime.stack.truncate(context.stack_start);
-                    context
-                        .runtime
-                        .stack
-                        .resize(context.capture_start + 1, Capture::Empty);
-                }
-
-                context.runtime.reader.reset(reader_end);
-
-                return result;
+                // Reset reader & stack
+                context.runtime.reader.reset(context.reader_start);
+                context.runtime.stack.truncate(context.stack_start);
+                context
+                    .runtime
+                    .stack
+                    .resize(context.capture_start + 1, Capture::Empty);
             }
+
+            context.runtime.reader.reset(reader_end);
+
+            return result;
         }
 
         let result = self._run(&mut context, main);
 
-        if !main && self.consuming {
+        if !main && self.consuming.is_some() {
             context.runtime.memo.insert(
                 (context.reader_start.offset, id),
                 (context.runtime.reader.tell(), result.clone()),

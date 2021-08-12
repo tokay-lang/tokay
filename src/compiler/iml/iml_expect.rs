@@ -44,7 +44,7 @@ impl Runable for Expect {
         &mut self,
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
-    ) -> Option<(bool, bool)> {
+    ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
     }
 }

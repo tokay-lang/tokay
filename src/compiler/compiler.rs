@@ -192,24 +192,15 @@ impl Compiler {
                         parselet.resolve(&mut usages);
                     }
 
-                    if !parselet.consuming {
+                    if parselet.consuming.is_none() {
                         continue;
                     }
 
-                    let mut stack = vec![(i, parselet.nullable)];
-                    if let Some((leftrec, nullable)) = parselet.finalize(&statics, &mut stack) {
-                        if parselet.leftrec != leftrec {
-                            parselet.leftrec = leftrec;
-                            changes = true;
-                        }
-
-                        if parselet.nullable != nullable {
-                            parselet.nullable = nullable;
-                            changes = true;
-                        }
-
-                        if !parselet.consuming {
-                            parselet.consuming = true;
+                    let consuming = parselet.consuming.clone().unwrap();
+                    let mut stack = vec![(i, consuming.nullable)];
+                    if let Some(consuming) = parselet.finalize(&statics, &mut stack) {
+                        if *parselet.consuming.as_ref().unwrap() < consuming {
+                            parselet.consuming = Some(consuming);
                             changes = true;
                         }
                     }
@@ -340,7 +331,14 @@ impl Compiler {
                 body,
             );
 
-            parselet.consuming = *consuming;
+            parselet.consuming = if *consuming {
+                Some(Consumable {
+                    leftrec: false,
+                    nullable: false,
+                })
+            } else {
+                None
+            };
 
             if self.scopes.len() == 0 && self.interactive {
                 self.scopes.push(scope);
@@ -467,7 +465,10 @@ impl Compiler {
                 Repeat::new(Op::CallStatic(self.define_static(value)).into(), 1, 0, true).into_op(),
             );
 
-            parselet.consuming = true;
+            parselet.consuming = Some(Consumable {
+                leftrec: false,
+                nullable: false,
+            });
             parselet.silent = true;
 
             value = parselet.into_value().into_refvalue();
@@ -486,7 +487,10 @@ impl Compiler {
                 Repeat::new(Op::CallStatic(self.define_static(value)).into(), 0, 1, true).into_op(),
             );
 
-            parselet.consuming = true;
+            parselet.consuming = Some(Consumable {
+                leftrec: false,
+                nullable: false,
+            });
             parselet.silent = true;
 
             value = parselet.into_value().into_refvalue();
