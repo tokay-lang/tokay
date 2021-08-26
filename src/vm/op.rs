@@ -29,23 +29,27 @@ pub enum Op {
     // Fused ranges represented by frames
     Frame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
     Collect,      // Collect values from the stack limited to current frame
-    IfConsumedForward(usize), // When current frame consumed input, go forward to relative address
+    ForwardIfConsumed(usize), // When current frame consumed input, go forward to relative address
+    ForwardIfTrue(usize), // Jump forward when TOS is true
+    ForwardIfFalse(usize), // Jump forward when TOS is false
+    Forward(usize), // jump forward
 
     // Interrupts
-    Skip,       // Err(Reject::Skip)
-    Next,       // Err(Reject::Next)
-    Push,       // Ok(Accept::Push)
-    Continue,   // Ok(Accept::Continue)
-    LoadPush,   // Ok(Accept::Push) with value
-    Break,      // Ok(Accept::Break)
-    LoadBreak,  // Ok(Accept::Break) with value
-    Accept,     // Ok(Accept::Return)
-    LoadAccept, // Ok(Accept::Return) with value
-    Repeat,     // Ok(Accept::Repeat)
-    LoadRepeat, // Ok(Accept::Repeat) with value
-    Reject,     // Ok(Err::Reject)
-    LoadExit,   // Exit with errorcode
-    Exit,       // Exit with 0
+    Skip,           // Err(Reject::Skip)
+    Next,           // Err(Reject::Next)
+    Push,           // Ok(Accept::Push)
+    Continue,       // Ok(Accept::Continue)
+    LoadPush,       // Ok(Accept::Push) with value
+    Break,          // Ok(Accept::Break)
+    LoadBreak,      // Ok(Accept::Break) with value
+    Accept,         // Ok(Accept::Return)
+    LoadAccept,     // Ok(Accept::Return) with value
+    Repeat,         // Ok(Accept::Repeat)
+    LoadRepeat,     // Ok(Accept::Repeat) with value
+    Reject,         // Ok(Err::Reject)
+    LoadExit,       // Exit with errorcode
+    Exit,           // Exit with 0
+    Expect(String), // Expect with error message
 
     // Constants
     LoadStatic(usize), // Load static from statics
@@ -77,9 +81,10 @@ pub enum Op {
     MakeDict(usize), // Make a Dict from specified amount of key-value-pairs
 
     // Operations
-    Drop, // drop TOS
-    Dup,  // duplicate TOS
-    Rot2, // rotate TOS by 2
+    Drop,  // drop TOS
+    Clone, // clone TOS
+    Dup,   // duplicate TOS
+    Rot2,  // rotate TOS by 2
 
     Add, // binary add
     Sub, // binary sub
@@ -87,7 +92,7 @@ pub enum Op {
     Div, // binary div
 
     Not, // unary not (! operator)
-    Neg, // unary negation (-x operator)
+    Neg, // unary negation (- operator)
 
     InlineAdd, // Inline add (+= operator)
     InlineSub, // Inline sub (-= operator)
@@ -394,6 +399,11 @@ impl Op {
                 Ok(Accept::Hold)
             }
 
+            Op::Clone => {
+                let value = context.peek();
+                context.push(value.clone())
+            }
+
             Op::Dup => {
                 let value = context.peek();
                 let value = value.borrow();
@@ -547,6 +557,7 @@ impl Op {
         let mut ip = 0; // Instruction pointer
         let mut frames: Vec<Frame> = Vec::new(); // Open frames
         let mut frame = Frame::new(ops.len() + 1, context); // Current frame
+        let mut state = Ok(Accept::Next);
 
         while ip < ops.len() {
             let op = &ops[ip];
@@ -563,7 +574,7 @@ impl Op {
             }
 
             // Execute instruction
-            let state = match op {
+            state = match op {
                 Op::Frame(until) => {
                     frames.push(frame);
                     frame = Frame::new(ip + *until, context);
@@ -577,7 +588,7 @@ impl Op {
                     Ok(None) => Ok(Accept::Next),
                 },
 
-                Op::IfConsumedForward(goto) => {
+                Op::ForwardIfConsumed(goto) => {
                     // Did you consume?
                     if frame.reader_start != context.runtime.reader.tell() {
                         // Ok then go ahead (ip is incremented below)
@@ -585,6 +596,39 @@ impl Op {
                         Ok(Accept::Hold)
                     } else {
                         Err(Reject::Next)
+                    }
+                }
+
+                Op::ForwardIfTrue(goto) => {
+                    if context.pop().borrow().is_true() {
+                        ip += goto;
+                    } else {
+                        ip += 1;
+                    }
+
+                    Ok(Accept::Hold)
+                }
+
+                Op::ForwardIfFalse(goto) => {
+                    if !context.pop().borrow().is_true() {
+                        ip += goto;
+                    } else {
+                        ip += 1;
+                    }
+
+                    Ok(Accept::Hold)
+                }
+
+                Op::Forward(goto) => {
+                    ip += goto;
+                    Ok(Accept::Hold)
+                }
+
+                Op::Expect(msg) => {
+                    if matches!(state, Err(Reject::Next)) {
+                        Error::new(Some(frame.reader_start), msg.clone()).into_reject()
+                    } else {
+                        state
                     }
                 }
 
@@ -597,15 +641,15 @@ impl Op {
                     context.runtime.stack.push(Capture::Empty);
                     ip += 1;
                 }
-                Ok(Accept::Push(capture)) => {
-                    context.runtime.stack.push(capture);
+                Ok(Accept::Push(ref capture)) => {
+                    context.runtime.stack.push(capture.clone());
                     ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => {
                     ip = frame.reject(context);
                     frame = frames.pop().unwrap();
                 }
-                state => return state,
+                _ => return state,
             }
 
             // Clean any invalidated frames

@@ -31,7 +31,7 @@ pub /* todo: (in crate::compiler) */ struct Consumable {
 }
 
 pub trait Runable: std::fmt::Debug + std::fmt::Display
-/* todo: (in crate::compiler) */ trait Runable: std::fmt::Debug + std::fmt::Display
+/* todo: (in crate::compiler) trait Runable: std::fmt::Debug + std::fmt::Display */
 {
     // Run that runable...
     fn run(&self, context: &mut Context) -> Result<Accept, Reject>;

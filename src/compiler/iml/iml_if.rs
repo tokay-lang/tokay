@@ -99,6 +99,40 @@ impl Runable for If {
             then
         }
     }
+
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+        let mut ret = Vec::new();
+
+        // Clone on peek
+        if self.peek {
+            ret.push(Op::Clone);
+        }
+
+        // Placeholder for jump
+        let cond = ret.len();
+        ret.push(Op::Nop);
+
+        // Then-part
+        ret.extend(self.then.compile(parselet));
+
+        if self.test {
+            ret[cond] = Op::ForwardIfFalse(ret.len());
+        } else {
+            ret[cond] = Op::ForwardIfTrue(ret.len())
+        }
+
+        // Else-part
+        if !matches!(self.else_, ImlOp::Nop) {
+            let jump = ret.len();
+
+            ret.push(Op::Nop); // Forward jump placeholder
+            self.else_.compile(parselet);
+
+            ret[jump] = Op::Forward(ret.len() - jump)
+        };
+
+        ret
+    }
 }
 
 impl std::fmt::Display for If {

@@ -5,7 +5,7 @@ use crate::value::RefValue;
 
 The alternation construct defines either an alternation of sequences or a grouped sequence
 of instructions. An alternation is only performed when input is consumed, otherwise the
-alternation works similar to a sequence.
+alternation works similar to a sequence of sequences.
 */
 
 #[derive(Debug)]
@@ -96,7 +96,7 @@ impl Runable for Alternation {
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::IfConsumedForward(ret.len() - addr);
+            ret[addr] = Op::ForwardIfConsumed(ret.len() - addr);
         }
 
         ret

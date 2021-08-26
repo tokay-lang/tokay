@@ -1,10 +1,10 @@
 use super::*;
 use crate::error::Error;
 
-/** Expecting parser.
+/** Expecting construct.
 
-This parser expects its sub-parser to be accepted.
-On error, a helpful error message is raised as Reject::Error.
+This constructs expects its body to be accepted.
+On failure, an error message is raised as Reject::Error.
 */
 
 #[derive(Debug)]
@@ -46,6 +46,16 @@ impl Runable for Expect {
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
+    }
+
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+        let mut ret = self.body.compile(parselet);
+        ret.push(Op::Expect(if let Some(msg) = &self.msg {
+            msg.clone()
+        } else {
+            format!("Expecting {}", self.body)
+        }));
+        ret
     }
 }
 
