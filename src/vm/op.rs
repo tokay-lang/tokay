@@ -653,7 +653,14 @@ impl Op {
                     state
                 }
 
-                op => op.run(context), // todo: move content of op::run() here when recursive interpreter is removed.
+                op => {
+                    // todo: move content of op::run() here when recursive interpreter is removed.
+                    // fixme: Accept::Hold has a different meaning here
+                    match op.run(context) {
+                        Ok(Accept::Hold) => Ok(Accept::Push(Capture::Empty)),
+                        state => state
+                    }
+                }
             };
 
             // Debug
@@ -663,10 +670,7 @@ impl Op {
 
             match state {
                 Ok(Accept::Hold) => {}
-                Ok(Accept::Next) => {
-                    context.runtime.stack.push(Capture::Empty);
-                    ip += 1;
-                }
+                Ok(Accept::Next) => ip += 1,
                 Ok(Accept::Push(ref capture)) => {
                     context.runtime.stack.push(capture.clone());
                     ip += 1;
