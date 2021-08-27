@@ -39,6 +39,17 @@ impl Runable for Not {
     ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
     }
+
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+        let mut ret = Vec::new();
+
+        ret.push(Op::Nop); // Frame placeholder
+        ret.extend(self.body.compile(parselet));
+        ret.push(Op::Invert);
+
+        ret[0] = Op::Segment(ret.len());
+        ret
+    }
 }
 
 impl std::fmt::Display for Not {

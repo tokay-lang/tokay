@@ -85,7 +85,7 @@ impl Runable for Alternation {
             let seq = item.compile(parselet);
 
             if parselet.consuming.is_some() && iter.len() > 0 {
-                ret.push(Op::Frame(seq.len() + 1 + 1));
+                ret.push(Op::Sequence(seq.len() + 1 + 1));
                 ret.extend(seq);
 
                 jumps.push(ret.len());

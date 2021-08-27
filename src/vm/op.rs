@@ -27,12 +27,13 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Fused ranges represented by frames
-    Frame(usize), // Insert fused frame of specified relative size, jump beyond on soft-reject
-    Collect,      // Collect values from the stack limited to current frame
+    Segment(usize),           // Start a segment frame of specified relative size
+    Sequence(usize), // Start sequence frame of specified relative size, jump beyond on soft-reject
+    Collect,         // Collect values from the stack limited to current frame
     ForwardIfConsumed(usize), // When current frame consumed input, go forward to relative address
     ForwardIfTrue(usize), // Jump forward when TOS is true
     ForwardIfFalse(usize), // Jump forward when TOS is false
-    Forward(usize), // jump forward
+    Forward(usize),  // jump forward
 
     // Interrupts
     Skip,           // Err(Reject::Skip)
@@ -50,6 +51,8 @@ pub enum Op {
     LoadExit,       // Exit with errorcode
     Exit,           // Exit with 0
     Expect(String), // Expect with error message
+    Invert,         // Discard current frame and invert current state
+    Discard,        // Discard current frame
 
     // Constants
     LoadStatic(usize), // Load static from statics
@@ -529,15 +532,17 @@ impl Op {
         // Frame ---------------------------------------------------------------
         #[derive(Debug)]
         struct Frame {
-            until: usize,
-            capture_start: usize,
-            reader_start: Offset,
+            is_seq: bool,         // sequence frame has a different aborting behavior
+            until: usize,         // address until the frame becomes invalid
+            capture_start: usize, // frame capture start
+            reader_start: Offset, // frame reader start
         }
 
         impl Frame {
             // Creates a new frame from context.
-            fn new(until: usize, context: &Context) -> Frame {
+            fn new(is_seq: bool, until: usize, context: &Context) -> Frame {
                 Frame {
+                    is_seq,
                     until,
                     capture_start: context.runtime.stack.len(),
                     reader_start: context.runtime.reader.tell(),
@@ -556,7 +561,7 @@ impl Op {
 
         let mut ip = 0; // Instruction pointer
         let mut frames: Vec<Frame> = Vec::new(); // Open frames
-        let mut frame = Frame::new(ops.len() + 1, context); // Current frame
+        let mut frame = Frame::new(false, ops.len() + 1, context); // Current frame
         let mut state = Ok(Accept::Next);
 
         while ip < ops.len() {
@@ -575,9 +580,9 @@ impl Op {
 
             // Execute instruction
             state = match op {
-                Op::Frame(until) => {
+                Op::Segment(until) | Op::Sequence(until) => {
                     frames.push(frame);
-                    frame = Frame::new(ip + *until, context);
+                    frame = Frame::new(matches!(op, Op::Sequence(_)), ip + *until, context);
                     ip += 1;
                     Ok(Accept::Hold)
                 }
@@ -632,8 +637,29 @@ impl Op {
                     }
                 }
 
+                Op::Invert => {
+                    frame = frames.pop().unwrap();
+
+                    match state {
+                        Err(Reject::Next) => Ok(Accept::Next),
+                        Ok(_) => Err(Reject::Next),
+                        _ => state,
+                    }
+                }
+
+                Op::Discard => {
+                    frame.reject(context);
+                    frame = frames.pop().unwrap();
+                    state
+                }
+
                 op => op.run(context), // todo: move content of op::run() here when recursive interpreter is removed.
             };
+
+            // Debug
+            if context.runtime.debug > 2 {
+                context.debug(&format!("state = {:?}", state));
+            }
 
             match state {
                 Ok(Accept::Hold) => {}
@@ -646,8 +672,12 @@ impl Op {
                     ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => {
-                    ip = frame.reject(context);
-                    frame = frames.pop().unwrap();
+                    if frame.is_seq {
+                        ip = frame.reject(context);
+                        frame = frames.pop().unwrap();
+                    } else {
+                        ip += 1;
+                    }
                 }
                 _ => return state,
             }

@@ -50,8 +50,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display
 
     /** Turn intermediate structure into Tokay VM code. */
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
-        //unimplemented!(); //todo: remove
-        Vec::new()
+        todo!();
     }
 
     /** Convert parser object into boxed dyn Parser Op */

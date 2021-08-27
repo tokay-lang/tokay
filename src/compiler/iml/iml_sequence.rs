@@ -148,7 +148,7 @@ impl Runable for Sequence {
         }
 
         if ret.len() > 1 {
-            ret.insert(0, Op::Frame(ret.len() + 1));
+            ret.insert(0, Op::Sequence(ret.len() + 1));
             ret.push(Op::Collect);
         }
 
