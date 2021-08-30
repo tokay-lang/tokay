@@ -27,10 +27,10 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Fused ranges represented by frames
-    Segment(usize),           // Start a segment frame of specified relative size
+    Segment(usize),        // Start a segment frame of specified relative size
     Sequence(usize), // Start sequence frame of specified relative size, jump beyond on soft-reject
     Collect,         // Collect values from the stack limited to current frame
-    ForwardIfConsumed(usize), // When current frame consumed input, go forward to relative address
+    Consumed,        // Push true when input was consumed within current frame
     ForwardIfTrue(usize), // Jump forward when TOS is true
     ForwardIfFalse(usize), // Jump forward when TOS is false
     Forward(usize),  // jump forward
@@ -593,15 +593,14 @@ impl Op {
                     Ok(None) => Ok(Accept::Next),
                 },
 
-                Op::ForwardIfConsumed(goto) => {
-                    // Did you consume?
+                Op::Consumed => {
                     if frame.reader_start != context.runtime.reader.tell() {
-                        // Ok then go ahead (ip is incremented below)
-                        ip += goto;
-                        Ok(Accept::Hold)
+                        context.push(Value::True.into_refvalue())?;
                     } else {
-                        Err(Reject::Next)
+                        context.push(Value::False.into_refvalue())?;
                     }
+
+                    Ok(Accept::Next)
                 }
 
                 Op::ForwardIfTrue(goto) => {
@@ -658,7 +657,7 @@ impl Op {
                     // fixme: Accept::Hold has a different meaning here
                     match op.run(context) {
                         Ok(Accept::Hold) => Ok(Accept::Push(Capture::Empty)),
-                        state => state
+                        state => state,
                     }
                 }
             };

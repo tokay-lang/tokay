@@ -87,6 +87,7 @@ impl Runable for Alternation {
             if parselet.consuming.is_some() && iter.len() > 0 {
                 ret.push(Op::Sequence(seq.len() + 1 + 1));
                 ret.extend(seq);
+                ret.push(Op::Consumed);
 
                 jumps.push(ret.len());
                 ret.push(Op::Nop); // Placeholder to backpatch forward jump
@@ -96,7 +97,7 @@ impl Runable for Alternation {
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::ForwardIfConsumed(ret.len() - addr);
+            ret[addr] = Op::ForwardIfTrue(ret.len() - addr);
         }
 
         ret
