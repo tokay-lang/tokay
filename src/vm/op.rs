@@ -27,13 +27,15 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Fused ranges represented by frames
-    Segment(usize),        // Start a segment frame of specified relative size
+    Segment(usize),  // Start a segment frame of specified relative size
     Sequence(usize), // Start sequence frame of specified relative size, jump beyond on soft-reject
     Collect,         // Collect values from the stack limited to current frame
     Consumed,        // Push true when input was consumed within current frame
-    ForwardIfTrue(usize), // Jump forward when TOS is true
+
+    ForwardIfTrue(usize),  // Jump forward when TOS is true
     ForwardIfFalse(usize), // Jump forward when TOS is false
-    Forward(usize),  // jump forward
+    Forward(usize),        // jump forward
+    Backward(usize),        // jump backward
 
     // Interrupts
     Skip,           // Err(Reject::Skip)
@@ -595,9 +597,9 @@ impl Op {
 
                 Op::Consumed => {
                     if frame.reader_start != context.runtime.reader.tell() {
-                        context.push(Value::True.into_refvalue())?;
+                        context.runtime.stack.push(Capture::Value(Value::True.into_refvalue(), None, 10));
                     } else {
-                        context.push(Value::False.into_refvalue())?;
+                        context.runtime.stack.push(Capture::Value(Value::False.into_refvalue(), None, 10));
                     }
 
                     Ok(Accept::Next)
@@ -625,6 +627,11 @@ impl Op {
 
                 Op::Forward(goto) => {
                     ip += goto;
+                    Ok(Accept::Hold)
+                }
+
+                Op::Backward(goto) => {
+                    ip -= goto;
                     Ok(Accept::Hold)
                 }
 
@@ -704,10 +711,19 @@ impl Op {
             }
         }
 
-        match context.runtime.stack.len() - frame.capture_start {
-            0 => Ok(Accept::Next),
-            _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
+        if matches!(state, Ok(Accept::Next)) {
+            state = match context.runtime.stack.len() - frame.capture_start {
+                0 => Ok(Accept::Next),
+                _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
+            }
         }
+
+        // Debug
+        if context.runtime.debug > 2 {
+            context.debug(&format!("returns {:?}", state));
+        }
+
+        state
     }
 }
 

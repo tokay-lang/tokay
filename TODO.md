@@ -63,6 +63,7 @@ Syntax is under careful consideration.
 
 ## Compiler
 
+- [ ] Replace `Repeat`-construct by built-in generic `Repeat`-parselet; The (incomplete) Rust implementation can be entirely removed afterwards.
 - [ ] Parser improvements
   - [x] Unescaping of character-class items
   - [ ] Use built-in tokens like Integer or Float on appropriate positions

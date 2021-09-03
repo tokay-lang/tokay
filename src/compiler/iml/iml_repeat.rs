@@ -149,6 +149,49 @@ impl Runable for Repeat {
             None
         }
     }
+
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+        let mut ret = self.body.compile(parselet);
+
+        match (self.min, self.max) {
+            (0, 0) | (1, 0) => {
+                let start = if self.min == 1 {
+                    let copy = ret.clone();
+
+                    ret.push(Op::Consumed);
+                    ret.push(Op::Nop);  // placeholder for Op::ForwardIfFalse
+                    let start = ret.len();
+
+                    ret.extend(copy);
+                    start
+                } else {
+                    0
+                };
+
+                // Kleene
+                ret.push(Op::Consumed);
+                ret.push(Op::ForwardIfFalse(2));
+                ret.push(Op::Backward(ret.len() - start));
+                ret.push(Op::Collect);
+                ret.insert(0, Op::Segment(ret.len() + 1));
+
+                if start > 0 {
+                    ret[start] = Op::ForwardIfFalse(ret.len() - start);
+                }
+            }
+            (0, 1) => {
+                // Optional
+                ret.push(Op::Collect);
+                ret.insert(0, Op::Sequence(ret.len() + 1));
+            }
+            (1, 1) => {},
+            (_, _) => unimplemented!(
+                "Repeat construct with min/max configuration > 1 not implemented yet"
+            ),
+        };
+
+        ret
+    }
 }
 
 impl std::fmt::Display for Repeat {
