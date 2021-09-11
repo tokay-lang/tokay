@@ -159,7 +159,7 @@ impl Runable for Repeat {
                     let copy = ret.clone();
 
                     ret.push(Op::Consumed);
-                    ret.push(Op::Nop);  // placeholder for Op::ForwardIfFalse
+                    ret.push(Op::Nop); // placeholder for Op::ForwardIfFalse
                     let start = ret.len();
 
                     ret.extend(copy);
@@ -173,7 +173,7 @@ impl Runable for Repeat {
                 ret.push(Op::ForwardIfFalse(2));
                 ret.push(Op::Backward(ret.len() - start));
                 ret.push(Op::Collect);
-                ret.insert(0, Op::Segment(ret.len() + 1));
+                ret.insert(0, Op::Capture(ret.len() + 1));
 
                 if start > 0 {
                     ret[start] = Op::ForwardIfFalse(ret.len() - start);
@@ -182,9 +182,9 @@ impl Runable for Repeat {
             (0, 1) => {
                 // Optional
                 ret.push(Op::Collect);
-                ret.insert(0, Op::Sequence(ret.len() + 1));
+                ret.insert(0, Op::Capture(ret.len() + 1));
             }
-            (1, 1) => {},
+            (1, 1) => {}
             (_, _) => unimplemented!(
                 "Repeat construct with min/max configuration > 1 not implemented yet"
             ),

@@ -47,7 +47,7 @@ impl Runable for Peek {
         ret.extend(self.body.compile(parselet));
         ret.push(Op::Discard);
 
-        ret[0] = Op::Segment(ret.len());
+        ret[0] = Op::Capture(ret.len());
         ret
     }
 }

@@ -26,16 +26,22 @@ pub enum Op {
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
-    // Fused ranges represented by frames
-    Segment(usize),  // Start a segment frame of specified relative size
-    Sequence(usize), // Start sequence frame of specified relative size, jump beyond on soft-reject
-    Collect,         // Collect values from the stack limited to current frame
-    Consumed,        // Push true when input was consumed within current frame
+    // Stack frame handling
+    TryCapture(usize), // Start frame with escape address and automatic stack/input rejection
+    Capture(usize),    // Start frame with optional escape address and manual intervention
+    Commit,            // Commit frame and leave stack as it is
+    Collect,           // Commit frame and collect stack values
+    Discard,           // Discard frame (used by 'peek')
+    Invert,            // Discard frame and invert state (used by 'not')
+    Consumed,          // Push true when input was consumed within current frame
 
+    // Conditional jumps
     ForwardIfTrue(usize),  // Jump forward when TOS is true
     ForwardIfFalse(usize), // Jump forward when TOS is false
-    Forward(usize),        // jump forward
-    Backward(usize),        // jump backward
+
+    // Direct jumps
+    Forward(usize),  // Jump forward
+    Backward(usize), // Jump backward
 
     // Interrupts
     Skip,           // Err(Reject::Skip)
@@ -53,8 +59,6 @@ pub enum Op {
     LoadExit,       // Exit with errorcode
     Exit,           // Exit with 0
     Expect(String), // Expect with error message
-    Invert,         // Discard current frame and invert current state
-    Discard,        // Discard current frame
 
     // Constants
     LoadStatic(usize), // Load static from statics
@@ -534,28 +538,21 @@ impl Op {
         // Frame ---------------------------------------------------------------
         #[derive(Debug)]
         struct Frame {
-            is_seq: bool,         // sequence frame has a different aborting behavior
-            until: usize,         // address until the frame becomes invalid
-            capture_start: usize, // frame capture start
-            reader_start: Offset, // frame reader start
+            escape: Option<usize>,
+            restore: bool,
+            capture_start: usize, // capture start
+            reader_start: Offset, // reader start
         }
 
         impl Frame {
             // Creates a new frame from context.
-            fn new(is_seq: bool, until: usize, context: &Context) -> Frame {
+            fn new(escape: Option<usize>, restore: bool, context: &Context) -> Frame {
                 Frame {
-                    is_seq,
-                    until,
+                    escape,
+                    restore,
                     capture_start: context.runtime.stack.len(),
                     reader_start: context.runtime.reader.tell(),
                 }
-            }
-
-            // Rejects the current frame, resets stack and reader and returns new ip.
-            fn reject(self, context: &mut Context) -> usize {
-                context.runtime.stack.truncate(self.capture_start);
-                context.runtime.reader.reset(self.reader_start);
-                self.until
             }
         }
 
@@ -563,7 +560,7 @@ impl Op {
 
         let mut ip = 0; // Instruction pointer
         let mut frames: Vec<Frame> = Vec::new(); // Open frames
-        let mut frame = Frame::new(false, ops.len() + 1, context); // Current frame
+        let mut frame = Frame::new(None, false, context); // Main frame
         let mut state = Ok(Accept::Next);
 
         while ip < ops.len() {
@@ -582,24 +579,71 @@ impl Op {
 
             // Execute instruction
             state = match op {
-                Op::Segment(until) | Op::Sequence(until) => {
+                Op::Capture(escape) => {
                     frames.push(frame);
-                    frame = Frame::new(matches!(op, Op::Sequence(_)), ip + *until, context);
-                    ip += 1;
-                    Ok(Accept::Hold)
+                    frame = Frame::new(
+                        if *escape == 0 {
+                            None
+                        } else {
+                            Some(ip + *escape)
+                        },
+                        false,
+                        context,
+                    );
+                    Ok(Accept::Next)
                 }
 
-                Op::Collect => match context.collect(frame.capture_start, false, true, true, 0) {
-                    Err(capture) => Ok(Accept::Push(capture)),
-                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
-                    Ok(None) => Ok(Accept::Next),
-                },
+                Op::TryCapture(escape) => {
+                    assert!(*escape > 0);
+                    frames.push(frame);
+                    frame = Frame::new(Some(ip + *escape), true, context);
+                    Ok(Accept::Next)
+                }
+
+                Op::Commit => {
+                    frame = frames.pop().unwrap();
+                    Ok(Accept::Next)
+                }
+
+                Op::Collect => {
+                    let ret = match context.collect(frame.capture_start, false, true, true, 0) {
+                        Err(capture) => Ok(Accept::Push(capture)),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
+                        Ok(None) => Ok(Accept::Next),
+                    };
+
+                    frame = frames.pop().unwrap();
+                    ret
+                }
+
+                Op::Discard => {
+                    frame = frames.pop().unwrap();
+                    state
+                }
+
+                Op::Invert => {
+                    frame = frames.pop().unwrap();
+
+                    match state {
+                        Err(Reject::Next) => Ok(Accept::Next),
+                        Ok(_) => Err(Reject::Next),
+                        _ => state,
+                    }
+                }
 
                 Op::Consumed => {
                     if frame.reader_start != context.runtime.reader.tell() {
-                        context.runtime.stack.push(Capture::Value(Value::True.into_refvalue(), None, 10));
+                        context.runtime.stack.push(Capture::Value(
+                            Value::True.into_refvalue(),
+                            None,
+                            10,
+                        ));
                     } else {
-                        context.runtime.stack.push(Capture::Value(Value::False.into_refvalue(), None, 10));
+                        context.runtime.stack.push(Capture::Value(
+                            Value::False.into_refvalue(),
+                            None,
+                            10,
+                        ));
                     }
 
                     Ok(Accept::Next)
@@ -643,22 +687,6 @@ impl Op {
                     }
                 }
 
-                Op::Invert => {
-                    frame = frames.pop().unwrap();
-
-                    match state {
-                        Err(Reject::Next) => Ok(Accept::Next),
-                        Ok(_) => Err(Reject::Next),
-                        _ => state,
-                    }
-                }
-
-                Op::Discard => {
-                    frame.reject(context);
-                    frame = frames.pop().unwrap();
-                    state
-                }
-
                 op => {
                     // todo: move content of op::run() here when recursive interpreter is removed.
                     // fixme: Accept::Hold has a different meaning here
@@ -682,35 +710,24 @@ impl Op {
                     ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => {
-                    if frame.is_seq {
-                        ip = frame.reject(context);
-                        frame = frames.pop().unwrap();
+                    if let Some(escape) = frame.escape {
+                        ip = escape;
                     } else {
                         ip += 1;
                     }
+
+                    if frame.restore {
+                        context.runtime.stack.truncate(frame.capture_start);
+                        context.runtime.reader.reset(frame.reader_start);
+                    }
+
+                    frame = frames.pop().unwrap();
                 }
                 _ => return state,
             }
-
-            // Clean any invalidated frames
-            if ip > frame.until {
-                assert!(ip <= ops.len()); // ip may not be outside of
-
-                // Pop any frame from frames until ip is within a valid frame.
-                // As there must exists an overall outer frame, it will panic when
-                // all available frames are being dropped.
-                frame = loop {
-                    if let Some(frame) = frames.pop() {
-                        if frame.until > ip {
-                            break frame;
-                        }
-                    } else {
-                        panic!("No more frames available for range {}", ip);
-                    }
-                };
-            }
         }
 
+        // Take last remaining value as result (if some)
         if matches!(state, Ok(Accept::Next)) {
             state = match context.runtime.stack.len() - frame.capture_start {
                 0 => Ok(Accept::Next),
