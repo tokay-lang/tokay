@@ -67,7 +67,7 @@ impl Program {
                     Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
                 };
 
-                println!("{:?}", res);
+                return res;
             }
 
             res

@@ -134,7 +134,7 @@ impl ImlParselet {
                 as possible. This is only the case when input is consumed.
             */
             if main {
-                //println!("main result(1) = {:?}", result);
+                //println!("main result(1) = {:#?}", result);
                 result = match result {
                     Ok(Accept::Next) => Ok(Accept::Repeat(None)),
 
@@ -149,7 +149,7 @@ impl ImlParselet {
                     })),
                     result => result,
                 };
-                //println!("main result(2) = {:?}", result);
+                //println!("main result(2) = {:#?}", result);
             }
 
             // if main {

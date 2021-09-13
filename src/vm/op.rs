@@ -608,7 +608,11 @@ impl Op {
                 Op::Collect => {
                     let ret = match context.collect(frame.capture_start, false, true, true, 0) {
                         Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 10))),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(
+                            value,
+                            None,
+                            if frame.restore { 10 } else { 5 }, // Severity is currently based on the frame type
+                        ))),
                         Ok(None) => Ok(Accept::Next),
                     };
 
@@ -699,7 +703,7 @@ impl Op {
 
             // Debug
             if context.runtime.debug > 2 {
-                context.debug(&format!("state = {:?}", state));
+                context.debug(&format!("state = {:#?}", state));
             }
 
             match state {
@@ -719,9 +723,8 @@ impl Op {
                     if frame.restore {
                         context.runtime.stack.truncate(frame.capture_start);
                         context.runtime.reader.reset(frame.reader_start);
+                        frame = frames.pop().unwrap();
                     }
-
-                    frame = frames.pop().unwrap();
                 }
                 _ => return state,
             }
@@ -737,7 +740,7 @@ impl Op {
 
         // Debug
         if context.runtime.debug > 2 {
-            context.debug(&format!("returns {:?}", state));
+            context.debug(&format!("returns {:#?}", state));
         }
 
         state

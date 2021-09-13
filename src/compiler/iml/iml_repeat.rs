@@ -154,35 +154,28 @@ impl Runable for Repeat {
         let mut ret = self.body.compile(parselet);
 
         match (self.min, self.max) {
-            (0, 0) | (1, 0) => {
-                let start = if self.min == 1 {
-                    let copy = ret.clone();
-
-                    ret.push(Op::Consumed);
-                    ret.push(Op::Nop); // placeholder for Op::ForwardIfFalse
-                    let start = ret.len();
-
-                    ret.extend(copy);
-                    start
-                } else {
-                    0
-                };
-
+            (0, 0) => {
                 // Kleene
-                ret.push(Op::Consumed);
-                ret.push(Op::ForwardIfFalse(2));
-                ret.push(Op::Backward(ret.len() - start));
+                ret.insert(0, Op::Capture(ret.len() + 2));
+                ret.push(Op::Backward(ret.len() - 1));
                 ret.push(Op::Collect);
-                ret.insert(0, Op::Capture(ret.len() + 1));
+            }
+            (1, 0) => {
+                // Positive
+                let mut repeat = ret.clone();
 
-                if start > 0 {
-                    ret[start] = Op::ForwardIfFalse(ret.len() - start);
-                }
+                repeat.insert(0, Op::Capture(repeat.len() + 2));
+                repeat.push(Op::Backward(repeat.len() - 1));
+                repeat.push(Op::Commit);
+
+                ret.extend(repeat);
+                ret.insert(0, Op::Capture(ret.len() + 2));
+                ret.push(Op::Collect);
             }
             (0, 1) => {
                 // Optional
-                ret.push(Op::Collect);
                 ret.insert(0, Op::Capture(ret.len() + 1));
+                ret.push(Op::Commit);
             }
             (1, 1) => {}
             (_, _) => unimplemented!(
