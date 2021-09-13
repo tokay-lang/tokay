@@ -116,9 +116,9 @@ impl Runable for If {
         ret.extend(self.then.compile(parselet));
 
         if self.test {
-            ret[cond] = Op::ForwardIfFalse(ret.len());
+            ret[cond] = Op::ForwardIfFalse(ret.len() + 1);
         } else {
-            ret[cond] = Op::ForwardIfTrue(ret.len())
+            ret[cond] = Op::ForwardIfTrue(ret.len() + 1)
         }
 
         // Else-part
@@ -126,7 +126,7 @@ impl Runable for If {
             let jump = ret.len();
 
             ret.push(Op::Nop); // Forward jump placeholder
-            self.else_.compile(parselet);
+            ret.extend(self.else_.compile(parselet));
 
             ret[jump] = Op::Forward(ret.len() - jump)
         };
