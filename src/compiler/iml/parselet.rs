@@ -204,7 +204,7 @@ impl ImlParselet {
                         }
 
                         // Clear input buffer
-                        //context.runtime.reader.commit();  //fixme new_vm!!!
+                        context.runtime.reader.commit();
 
                         // Clear memo table
                         context.runtime.memo.clear();

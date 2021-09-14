@@ -459,7 +459,11 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
             } else {
                 0
             },
-            new_vm: false,
+            new_vm: if let Ok(newvm) = std::env::var("TOKAY_VM") {
+                newvm.parse::<u8>().unwrap_or_default() != 0
+            } else {
+                false
+            },
         }
     }
 

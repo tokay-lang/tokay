@@ -441,6 +441,8 @@ impl Parser {
             runtime.debug = 0;
         }
 
+        runtime.new_vm = false; // don't parse with new VM for now!
+
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
                 let ast = Value::from_ref(ast).unwrap();

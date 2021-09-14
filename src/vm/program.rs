@@ -44,31 +44,12 @@ impl Program {
         if let Some(main) = &self.main {
             let start = runtime.reader.tell();
             let main = main.borrow();
-            let res = main.run(runtime, runtime.stack.len(), None, true, 0);
-
-            let res = match res {
+            let res = match main.run(runtime, runtime.stack.len(), None, true, 0) {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
             };
-
-            // fixme: Test entry point for new_vm compilation
-            if runtime.debug > 0 {
-                runtime.debug += 2;
-                runtime.new_vm = true;
-                runtime.reader.reset(start);
-                let res = main.run(runtime, runtime.stack.len(), None, true, 0);
-
-                let res = match res {
-                    Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
-                    Ok(_) => Ok(None),
-                    Err(Reject::Error(error)) => Err(*error),
-                    Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
-                };
-
-                return res;
-            }
 
             res
         } else {
