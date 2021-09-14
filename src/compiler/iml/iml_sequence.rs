@@ -13,16 +13,14 @@ processed, including data changes, which is a wanted behavior.
 
 #[derive(Debug)]
 pub struct Sequence {
-    leftrec: bool,
-    nullable: bool,
+    pub(crate) consuming: Option<Consumable>, // Consumable state
     items: Vec<ImlOp>,
 }
 
 impl Sequence {
     pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self {
-            leftrec: false,
-            nullable: true,
+            consuming: None,
             items,
         }
         .into_op()
@@ -128,9 +126,9 @@ impl Runable for Sequence {
             }
         }
 
-        if stack.len() == 1 {
-            self.leftrec = leftrec;
-            self.nullable = nullable;
+        // Hold meta information about consuming state.
+        if stack.len() == 1 && consumes {
+            self.consuming = Some(Consumable { leftrec, nullable });
         }
 
         if consumes {
@@ -147,7 +145,13 @@ impl Runable for Sequence {
             ret.extend(item.compile(parselet));
         }
 
-        if ret.len() > 1 {
+        if ret.len() > 1
+            // Don't fuse anything which is directly stored.
+            && !matches!(
+                ret.last().unwrap(),
+                Op::StoreGlobal(_) | Op::StoreFast(_) | Op::StoreFastCapture(_)
+            )
+        {
             ret.insert(0, Op::TryCapture(ret.len() + 2));
             ret.push(Op::Collect);
         }
