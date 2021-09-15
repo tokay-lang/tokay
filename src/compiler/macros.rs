@@ -18,6 +18,7 @@ macro_rules! tokay {
         {
             let mut compiler = Compiler::new();
             compiler.debug = 0;  // unset debug always
+            compiler.vm = false; // fixme: currently never compile to VM code
 
             compiler.push_parselet();  // Main
             compiler.mark_consuming();

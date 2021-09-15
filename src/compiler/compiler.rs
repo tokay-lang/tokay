@@ -45,9 +45,10 @@ The compiler can be set into an interactive mode so that statics, variables and 
 won't be removed and can be accessed later on. This is useful in REPL mode.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>, //Tokay parser
-    pub debug: u8,
-    pub interactive: bool,
+    parser: Option<parser::Parser>,             // Internal Tokay parser
+    pub debug: u8,                              // Compiler debug mode
+    pub interactive: bool,                      // Enable interactive mode (e.g. for REPL)
+    pub vm: bool,                               // Compile into VM code
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     pub(super) scopes: Vec<Scope>,              // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
@@ -63,6 +64,11 @@ impl Compiler {
                 level.parse::<u8>().unwrap_or_default()
             } else {
                 0
+            },
+            vm: if let Ok(use_vm) = std::env::var("TOKAY_VM") {
+                use_vm.parse::<u8>().unwrap_or_default() > 0
+            } else {
+                false
             },
             interactive: false,
             statics: RefCell::new(Vec::new()),
@@ -128,7 +134,7 @@ impl Compiler {
         // Close all scopes except main
         assert!(self.scopes.len() == 0 || (self.scopes.len() == 1 && self.interactive));
 
-        let statics: Vec<RefValue> = if self.interactive {
+        let mut statics: Vec<RefValue> = if self.interactive {
             self.statics.borrow().clone()
         } else {
             self.statics.borrow_mut().drain(..).collect()
@@ -185,7 +191,7 @@ impl Compiler {
             changes = false;
 
             for i in 0..statics.len() {
-                if let Value::Parselet(parselet) = &*statics[i].borrow() {
+                if let Value::ImlParselet(parselet) = &*statics[i].borrow() {
                     let mut parselet = parselet.borrow_mut();
 
                     if loops == 0 {
@@ -232,6 +238,37 @@ impl Compiler {
         // and later don't throw other errors especially when in interactive mode.
         if errors.len() > 0 {
             return Err(errors);
+        }
+
+        // When compiling to VM code, the ImlParselet statics have to be replaced by
+        // their Parselet counterparts created from the ImlParselets.
+        // This is currently a bit ugly, but allows for a functioning version supporting
+        // both worlds of execution.
+        if self.vm {
+            let mut new_statics = Vec::new();
+
+            while statics.len() > 0 {
+                let value = statics.remove(0);
+
+                {
+                    let value = &*value.borrow();
+
+                    if let Value::ImlParselet(iml_parselet) = value {
+                        new_statics.push(
+                            iml_parselet
+                                .borrow()
+                                .into_parselet()
+                                .into_value()
+                                .into_refvalue(),
+                        );
+                        continue;
+                    }
+                }
+
+                new_statics.push(value);
+            }
+
+            statics = new_statics;
         }
 
         // Make program from statics

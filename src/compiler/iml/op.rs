@@ -76,7 +76,7 @@ impl Runable for ImlOp {
             ImlOp::Runable(runable) => runable.finalize(statics, stack),
             ImlOp::Op(Op::CallStatic(target)) => {
                 match &*statics[*target].borrow() {
-                    Value::Parselet(parselet) => {
+                    Value::ImlParselet(parselet) => {
                         if stack.len() > 0 {
                             if let Ok(mut parselet) = parselet.try_borrow_mut() {
                                 if parselet.consuming.is_none() {

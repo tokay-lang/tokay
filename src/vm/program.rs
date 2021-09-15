@@ -1,10 +1,7 @@
-use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, BufReader};
-use std::rc::Rc;
 
 use super::*;
-use crate::compiler::iml::ImlParselet;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{RefValue, Value}; // todo: temporary! // todo: temporary!
@@ -15,7 +12,7 @@ A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
-    main: Option<Rc<RefCell<ImlParselet>>>, // The main parselet to run
+    main: Option<usize>,               // The main parselet to run
 }
 
 impl Program {
@@ -25,8 +22,11 @@ impl Program {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
-            if let Value::Parselet(p) = &*statics[i].borrow() {
-                main = Some(p.clone());
+            if matches!(
+                &*statics[i].borrow(),
+                Value::ImlParselet(_) | Value::Parselet(_)
+            ) {
+                main = Some(i);
                 break;
             }
         }
@@ -41,17 +41,23 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        if let Some(main) = &self.main {
-            let start = runtime.reader.tell();
-            let main = main.borrow();
-            let res = match main.run(runtime, runtime.stack.len(), None, true, 0) {
+        if let Some(main) = self.main {
+            match match &*self.statics[main].borrow() {
+                Value::ImlParselet(main) => {
+                    main.borrow()
+                        .run(runtime, runtime.stack.len(), None, true, 0)
+                }
+                Value::Parselet(main) => {
+                    main.borrow()
+                        .run(runtime, runtime.stack.len(), None, true, 0)
+                }
+                _ => panic!(),
+            } {
                 Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
-            };
-
-            res
+            }
         } else {
             Ok(None)
         }

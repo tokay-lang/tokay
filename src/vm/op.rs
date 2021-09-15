@@ -579,6 +579,11 @@ impl Op {
 
             // Execute instruction
             state = match op {
+                Op::Offset(offset) => {
+                    context.source_offset = Some(**offset);
+                    Ok(Accept::Next)
+                }
+
                 Op::Capture(escape) => {
                     frames.push(frame);
                     frame = Frame::new(

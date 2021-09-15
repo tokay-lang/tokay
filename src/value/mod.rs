@@ -1,14 +1,16 @@
 //! Tokay value and object representation
+mod parselet;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
-use crate::compiler::iml::ImlParselet;
+use crate::compiler::iml::ImlParselet; // fixme: temporary!
 use crate::error::Error;
 use crate::token::Token;
-use crate::vm::{Accept, Capture, Context, Reject}; // todo: temporary!
+use crate::vm::{Accept, Capture, Context, Reject};
+pub use parselet::Parselet;
 
 pub type RefValue = Rc<RefCell<Value>>;
 pub type List = Vec<RefValue>;
@@ -33,10 +35,11 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),                  // Token
-    Parselet(Rc<RefCell<ImlParselet>>), // Parselet
-    Builtin(&'static Builtin),          // Builtin
-    Method(Box<(RefValue, RefValue)>),  // Method
+    Token(Box<Token>),                     // Token
+    ImlParselet(Rc<RefCell<ImlParselet>>), // ImlParselet is TEMPORARY!
+    Parselet(Rc<RefCell<Parselet>>),       // Parselet
+    Builtin(&'static Builtin),             // Builtin
+    Method(Box<(RefValue, RefValue)>),     // Method
 }
 
 /** Value construction helper-macro
@@ -190,7 +193,7 @@ impl Value {
             Self::String(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
-            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,
+            Self::Builtin(_) | Self::ImlParselet(_) | Self::Parselet(_) | Self::Addr(_) => true,
             _ => false,
         }
     }
@@ -315,12 +318,21 @@ impl Value {
                 ret.push(')');
                 ret
             }
+            // fixme: temporary!
+            Self::ImlParselet(p) => {
+                let p = &*p.borrow();
+                if let Some(name) = p.name.as_ref() {
+                    format!("<IMLparselet {}>", name)
+                } else {
+                    format!("<IMLparselet {}>", p as *const ImlParselet as usize)
+                }
+            }
             Self::Parselet(p) => {
                 let p = &*p.borrow();
                 if let Some(name) = p.name.as_ref() {
                     format!("<parselet {}>", name)
                 } else {
-                    format!("<parselet {}>", p as *const ImlParselet as usize)
+                    format!("<parselet {}>", p as *const Parselet as usize)
                 }
             }
             Self::Builtin(b) => format!("<builtin {}>", b.name),
@@ -502,6 +514,7 @@ impl Value {
         match self {
             Value::Token(_) => !with_arguments,
             Value::Builtin(_) => true,
+            Value::ImlParselet(parselet) => parselet.borrow().is_callable(with_arguments), // fixme: temporary!
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
             Value::Method(method) => method.1.borrow().is_callable(with_arguments),
             _ => false,
@@ -513,6 +526,14 @@ impl Value {
         match self {
             Value::Token(token) => token.is_nullable(),
             Value::Builtin(_) => false, // By definition, a built-in is never nullable
+            // fixme: temporary!
+            Value::ImlParselet(parselet) => {
+                if let Some(consuming) = &parselet.borrow().consuming {
+                    consuming.nullable
+                } else {
+                    false
+                }
+            }
             Value::Parselet(parselet) => {
                 if let Some(consuming) = &parselet.borrow().consuming {
                     consuming.nullable
@@ -529,6 +550,7 @@ impl Value {
         match self {
             Value::Token(_) => true,
             Value::Builtin(builtin) => builtin.is_consumable(),
+            Value::ImlParselet(parselet) => parselet.borrow().consuming.is_some(), // fixme: temporary!
             Value::Parselet(parselet) => parselet.borrow().consuming.is_some(),
             _ => false,
         }
@@ -547,6 +569,12 @@ impl Value {
                 token.read(context.runtime.reader)
             }
             Value::Builtin(builtin) => builtin.call(context, args, nargs),
+            // fixme: TEMPORARY!!!
+            Value::ImlParselet(parselet) => {
+                parselet
+                    .borrow()
+                    .run(context.runtime, args, nargs, false, context.depth + 1)
+            }
             Value::Parselet(parselet) => {
                 parselet
                     .borrow()

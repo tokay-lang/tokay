@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
+use crate::compiler::iml::Consumable;
 use crate::error::Error;
-use crate::value::{Dict, Parselet, Value};
+use crate::vm::*;
 
 /** Parselet is the conceptual building block of a Tokay program.
 
@@ -19,26 +20,26 @@ the generated parse tree automatically until no more input can be consumed.
 */
 
 #[derive(Debug)]
-pub struct ImlParselet {
+pub struct Parselet {
     pub(crate) consuming: Option<Consumable>, // Consumable state
     pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
     pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
     pub(crate) locals: usize, // Number of local variables present
-    begin: ImlOp,            // Begin-operations
-    end: ImlOp,              // End-operations
-    body: ImlOp,             // Operations
+    begin: Vec<Op>,          // Begin-operations
+    end: Vec<Op>,            // End-operations
+    body: Vec<Op>,           // Operations
 }
 
-impl ImlParselet {
+impl Parselet {
     /// Creates a new parselet.
     pub fn new(
         name: Option<String>,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
-        begin: ImlOp,
-        end: ImlOp,
-        body: ImlOp,
+        begin: Vec<Op>,
+        end: Vec<Op>,
+        body: Vec<Op>,
     ) -> Self {
         assert!(
             signature.len() <= locals,
@@ -59,37 +60,7 @@ impl ImlParselet {
 
     /// Turns parselet into a Value
     pub fn into_value(self) -> Value {
-        Value::ImlParselet(Rc::new(RefCell::new(self)))
-    }
-
-    // Turns an ImlParselet in to a parselet
-    pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
-        let begin = self.begin.compile(&self);
-        let end = self.end.compile(&self);
-        let body = self.body.compile(&self);
-
-        Parselet::new(
-            self.name.clone(),
-            self.signature.clone(),
-            self.locals,
-            begin,
-            end,
-            body,
-        )
-    }
-
-    pub(in crate::compiler) fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        self.begin.resolve(usages);
-        self.end.resolve(usages);
-        self.body.resolve(usages);
-    }
-
-    pub(in crate::compiler) fn finalize(
-        &mut self,
-        statics: &Vec<RefValue>,
-        stack: &mut Vec<(usize, bool)>,
-    ) -> Option<Consumable> {
-        self.body.finalize(statics, stack)
+        Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
     // Checks if parselet is callable with or without arguments
@@ -102,9 +73,9 @@ impl ImlParselet {
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
-        let mut first = !matches!(self.begin, ImlOp::Nop);
+        let mut first = self.begin.len() > 0;
         let mut results = Vec::new();
-        let mut state = if let ImlOp::Nop = self.begin {
+        let mut state = if self.begin.len() == 0 {
             None
         } else {
             Some(true)
@@ -113,7 +84,7 @@ impl ImlParselet {
         let result = loop {
             let reader_start = context.runtime.reader.tell();
 
-            let imlops = match state {
+            let ops = match state {
                 // begin
                 Some(true) => &self.begin,
 
@@ -124,7 +95,7 @@ impl ImlParselet {
                 None => &self.body,
             };
 
-            let mut result = imlops.run(context);
+            let mut result = Op::execute(ops, context);
 
             // if main {
             //     println!("state = {:?} result = {:?}", state, result);
@@ -285,7 +256,7 @@ impl ImlParselet {
         depth: usize,
     ) -> Result<Accept, Reject> {
         // Check for a previously memoized result in memo table
-        let id = self as *const ImlParselet as usize;
+        let id = self as *const Parselet as usize;
 
         if !main && self.consuming.is_some() {
             // Get unique parselet id from memory address
@@ -456,24 +427,24 @@ impl ImlParselet {
     }
 }
 
-impl std::cmp::PartialEq for ImlParselet {
+impl std::cmp::PartialEq for Parselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self as *const ImlParselet as usize == other as *const ImlParselet as usize
+        self as *const Parselet as usize == other as *const Parselet as usize
     }
 }
 
-impl std::hash::Hash for ImlParselet {
+impl std::hash::Hash for Parselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const ImlParselet as usize).hash(state);
+        (self as *const Parselet as usize).hash(state);
     }
 }
 
-impl std::cmp::PartialOrd for ImlParselet {
+impl std::cmp::PartialOrd for Parselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const ImlParselet as usize;
-        let right = other as *const ImlParselet as usize;
+        let left = self as *const Parselet as usize;
+        let right = other as *const Parselet as usize;
 
         left.partial_cmp(&right)
     }

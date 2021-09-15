@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::*;
-use crate::compiler::iml::ImlParselet;
+use crate::compiler::iml::Consumable; // fixme: I AM TEMPORAL, CPT JANEWAY!
 use crate::error::Error;
 use crate::reader::{Offset, Range, Reader};
 use crate::value::{Dict, List, RefValue, Value}; // todo: temporary!
@@ -103,19 +103,24 @@ impl From<Error> for Reject {
 Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
-    pub(crate) parselet: &'parselet ImlParselet, // Current parselet that is executed
-    pub(crate) stack_start: usize,               // Stack start (including locals and parameters)
-    pub(crate) capture_start: usize,             // Stack capturing start
-    pub(crate) reader_start: Offset,             // Current reader offset
-    pub(crate) source_offset: Option<Offset>,    // Tokay source offset
-    hold: usize,             // Defines number of stack items to hold on context drop
-    pub(crate) depth: usize, // Recursion depth
+    //pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
+    pub(crate) parselet_name: &'parselet Option<String>, // fixme: I AM TEMPORARY!!
+    pub(crate) parselet_consuming: &'parselet Option<Consumable>, // fixme: I AM TEMPORARY!!
+    pub(crate) stack_start: usize, // Stack start (including locals and parameters)
+    pub(crate) capture_start: usize, // Stack capturing start
+    pub(crate) reader_start: Offset, // Current reader offset
+    pub(crate) source_offset: Option<Offset>, // Tokay source offset
+    hold: usize,                   // Defines number of stack items to hold on context drop
+    pub(crate) depth: usize,       // Recursion depth
 }
 
 impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
     pub fn new(
         runtime: &'runtime mut Runtime<'program, 'reader>,
-        parselet: &'parselet ImlParselet,
+        //parselet: &'parselet Parselet,
+        parselet_name: &'parselet Option<String>, // fixme: YES I AM TEMPORARY!!
+        parselet_consuming: &'parselet Option<Consumable>, // fixme: YES I AM TEMPORARY!!
+        locals: usize,
         take: usize,
         hold: usize,
         depth: usize,
@@ -132,14 +137,16 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         runtime
             .stack
-            .resize(stack_start + parselet.locals + 1, Capture::Empty);
+            .resize(stack_start + locals + 1, Capture::Empty);
 
         Self {
             stack_start,
-            capture_start: stack_start + parselet.locals,
+            capture_start: stack_start + locals,
             reader_start: runtime.reader.tell(),
             runtime,
-            parselet,
+            //parselet,
+            parselet_name,      // fixme: YES, JA, YO MAN: I AM TEMPORARY!!!
+            parselet_consuming, // fixme: YES, JA, YO MAN: I AM TEMPORARY EITHER!!!
             source_offset: None,
             hold,
             depth,
@@ -152,8 +159,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         println!(
             "{}{}{:5} {}",
             ".".repeat(self.depth),
-            self.parselet.name.as_deref().unwrap_or("(unnamed)"),
-            if self.parselet.consuming.is_some() {
+            //self.parselet.name.as_deref().unwrap_or("(unnamed)"), // fixme: TEMPORAL!
+            self.parselet_name.as_deref().unwrap_or("(unnamed)"),
+            //if self.parselet.consuming.is_some() {
+            if self.parselet_consuming.is_some() {
                 format!("@{: <4}", self.runtime.reader.tell().offset)
             } else {
                 "".to_string()
@@ -443,8 +452,7 @@ pub struct Runtime<'program, 'reader> {
 
     pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
     pub(crate) stack: Vec<Capture>,
-    pub debug: u8,    // Debug level
-    pub new_vm: bool, // Use new_vm
+    pub debug: u8, // Debug level
 }
 
 impl<'program, 'reader> Runtime<'program, 'reader> {
@@ -458,11 +466,6 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
                 level.parse::<u8>().unwrap_or_default()
             } else {
                 0
-            },
-            new_vm: if let Ok(newvm) = std::env::var("TOKAY_VM") {
-                newvm.parse::<u8>().unwrap_or_default() != 0
-            } else {
-                false
             },
         }
     }
