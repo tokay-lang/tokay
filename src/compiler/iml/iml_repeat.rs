@@ -158,7 +158,7 @@ impl Runable for Repeat {
                 // Kleene
                 ret.insert(0, Op::Capture(ret.len() + 2));
                 ret.push(Op::Backward(ret.len() - 1));
-                ret.push(Op::Collect);
+                ret.push(Op::Collect); // fixme: The recursive implementation only collects >0 severity here!
             }
             (1, 0) => {
                 // Positive
@@ -170,12 +170,12 @@ impl Runable for Repeat {
 
                 ret.extend(repeat);
                 ret.insert(0, Op::Capture(ret.len() + 2));
-                ret.push(Op::Collect);
+                ret.push(Op::Collect); // fixme: The recursive implementation only collects >0 severity here!
             }
             (0, 1) => {
                 // Optional
                 ret.insert(0, Op::Capture(ret.len() + 1));
-                ret.push(Op::Commit);
+                ret.push(Op::Commit); // fixme: The recursive implementation only collects >0 severity here!
             }
             (1, 1) => {}
             (_, _) => unimplemented!(

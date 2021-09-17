@@ -82,22 +82,25 @@ impl Runable for Alternation {
         let mut jumps = Vec::new();
 
         while let Some(item) = iter.next() {
-            let seq = item.compile(parselet);
+            let mut alt = item.compile(parselet);
 
-            if parselet.consuming.is_some() && iter.len() > 0 {
-                ret.push(Op::TryCapture(seq.len() + 1 + 1));
-                ret.extend(seq);
-                ret.push(Op::Consumed);
+            if iter.len() > 0 && alt.len() > 0 {
+                // Patch branch with extended TryCapture
+                if let Op::TryCapture(goto) = alt.first_mut().unwrap() {
+                    *goto += 1;
+                }
+
+                ret.extend(alt);
 
                 jumps.push(ret.len());
                 ret.push(Op::Nop); // Placeholder to backpatch forward jump
             } else {
-                ret.extend(seq);
+                ret.extend(alt);
             }
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::ForwardIfTrue(ret.len() - addr);
+            ret[addr] = Op::ForwardIfConsumedOrDiscard(ret.len() - addr);
         }
 
         ret

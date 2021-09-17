@@ -108,28 +108,27 @@ impl Runable for If {
             ret.push(Op::Clone);
         }
 
-        // Placeholder for jump
-        let cond = ret.len();
-        ret.push(Op::Nop);
-
         // Then-part
-        ret.extend(self.then.compile(parselet));
+        let then = self.then.compile(parselet);
 
         if self.test {
-            ret[cond] = Op::ForwardIfFalse(ret.len() + 1);
+            ret.push(Op::ForwardIfFalse(then.len() + 2));
         } else {
-            ret[cond] = Op::ForwardIfTrue(ret.len() + 1)
+            ret.push(Op::ForwardIfTrue(then.len() + 2));
         }
 
+        ret.extend(then);
+
         // Else-part
-        if !matches!(self.else_, ImlOp::Nop) {
-            let jump = ret.len();
-
-            ret.push(Op::Nop); // Forward jump placeholder
-            ret.extend(self.else_.compile(parselet));
-
-            ret[jump] = Op::Forward(ret.len() - jump)
+        let else_ = self.else_.compile(parselet);
+        let else_ = if else_.len() == 0 {
+            vec![Op::PushVoid]
+        } else {
+            else_
         };
+
+        ret.push(Op::Forward(else_.len() + 1));
+        ret.extend(else_);
 
         ret
     }

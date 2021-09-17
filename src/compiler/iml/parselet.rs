@@ -68,14 +68,20 @@ impl ImlParselet {
         let end = self.end.compile(&self);
         let body = self.body.compile(&self);
 
-        Parselet::new(
+        let mut parselet = Parselet::new(
             self.name.clone(),
             self.signature.clone(),
             self.locals,
             begin,
             end,
             body,
-        )
+        );
+
+        // fixme: the following attributes must be passed differently.
+        parselet.consuming = self.consuming.clone();
+        parselet.silent = self.silent;
+
+        parselet
     }
 
     pub(in crate::compiler) fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {

@@ -33,11 +33,11 @@ pub enum Op {
     Collect,           // Commit frame and collect stack values
     Discard,           // Discard frame (used by 'peek')
     Invert,            // Discard frame and invert state (used by 'not')
-    Consumed,          // Push true when input was consumed within current frame
 
     // Conditional jumps
-    ForwardIfTrue(usize),  // Jump forward when TOS is true
-    ForwardIfFalse(usize), // Jump forward when TOS is false
+    ForwardIfTrue(usize),              // Jump forward when TOS is true
+    ForwardIfFalse(usize),             // Jump forward when TOS is false
+    ForwardIfConsumedOrDiscard(usize), // Jump forward when context consumed input, otherwise reset context
 
     // Direct jumps
     Forward(usize),  // Jump forward
@@ -122,6 +122,19 @@ pub enum Op {
 impl Op {
     // Current recursive run function, that will be removed soon.
     pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
+        /*
+        // Debug
+        if context.runtime.debug > 2 {
+            context.debug(&format!("REC:{}", self));
+
+            if context.runtime.debug > 3 {
+                for i in 0..context.runtime.stack.len() {
+                    context.debug(&format!(" {}: {:?}", i, context.runtime.stack[i]));
+                }
+            }
+        }
+        */
+
         match self {
             Op::Nop => Ok(Accept::Next),
             Op::Offset(offset) => {
@@ -535,6 +548,17 @@ impl Op {
             return Ok(Accept::Next);
         }
 
+        fn dump(ops: &[Op], context: &Context, ip: usize) {
+            for (i, op) in ops.iter().enumerate() {
+                context.debug(&format!(
+                    "{}{:03} {:?}",
+                    if i == ip { ">" } else { " " },
+                    i,
+                    op
+                ));
+            }
+        }
+
         // Frame ---------------------------------------------------------------
         #[derive(Debug)]
         struct Frame {
@@ -567,12 +591,13 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.runtime.debug > 2 {
-                context.debug(&format!("{:03}:{}", ip, op));
+            if context.runtime.debug > 3 {
+                //context.debug(&format!("{:03}:{}", ip, op));
+                dump(ops, context, ip);
 
-                if context.runtime.debug > 6 {
+                if context.runtime.debug > 4 {
                     for i in 0..context.runtime.stack.len() {
-                        context.debug(&format!(" {}: {:?}", i, context.runtime.stack[i]));
+                        context.debug(&format!(" S{:02} {:?}", i, context.runtime.stack[i]));
                     }
                 }
             }
@@ -613,11 +638,7 @@ impl Op {
                 Op::Collect => {
                     let ret = match context.collect(frame.capture_start, false, true, true, 0) {
                         Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(
-                            value,
-                            None,
-                            if frame.restore { 10 } else { 5 }, // Severity is currently based on the frame type
-                        ))),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
                         Ok(None) => Ok(Accept::Next),
                     };
 
@@ -640,24 +661,6 @@ impl Op {
                     }
                 }
 
-                Op::Consumed => {
-                    if frame.reader_start != context.runtime.reader.tell() {
-                        context.runtime.stack.push(Capture::Value(
-                            Value::True.into_refvalue(),
-                            None,
-                            10,
-                        ));
-                    } else {
-                        context.runtime.stack.push(Capture::Value(
-                            Value::False.into_refvalue(),
-                            None,
-                            10,
-                        ));
-                    }
-
-                    Ok(Accept::Next)
-                }
-
                 Op::ForwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip += goto;
@@ -672,6 +675,18 @@ impl Op {
                     if !context.pop().borrow().is_true() {
                         ip += goto;
                     } else {
+                        ip += 1;
+                    }
+
+                    Ok(Accept::Hold)
+                }
+
+                Op::ForwardIfConsumedOrDiscard(goto) => {
+                    if frame.reader_start != context.runtime.reader.tell() {
+                        ip += goto;
+                    } else {
+                        context.runtime.stack.truncate(frame.capture_start);
+                        context.runtime.reader.reset(frame.reader_start);
                         ip += 1;
                     }
 
@@ -700,15 +715,16 @@ impl Op {
                     // todo: move content of op::run() here when recursive interpreter is removed.
                     // fixme: Accept::Hold has a different meaning here
                     match op.run(context) {
-                        Ok(Accept::Hold) => Ok(Accept::Push(Capture::Empty)),
+                        Ok(Accept::Hold) => Ok(Accept::Next),
+                        Ok(Accept::Next) => Ok(Accept::Push(Capture::Empty)),
                         state => state,
                     }
                 }
             };
 
             // Debug
-            if context.runtime.debug > 2 {
-                context.debug(&format!("state = {:#?}", state));
+            if context.runtime.debug > 3 {
+                context.debug(&format!("state = {:?}", state));
             }
 
             match state {
@@ -736,16 +752,14 @@ impl Op {
         }
 
         // Take last remaining value as result (if some)
-        if matches!(state, Ok(Accept::Next)) {
-            state = match context.runtime.stack.len() - frame.capture_start {
-                0 => Ok(Accept::Next),
-                _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
-            }
-        }
+        state = match context.runtime.stack.len() - frame.capture_start {
+            0 => Ok(Accept::Next),
+            _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
+        };
 
         // Debug
         if context.runtime.debug > 2 {
-            context.debug(&format!("returns {:#?}", state));
+            context.debug(&format!("returns {:?}", state));
         }
 
         state

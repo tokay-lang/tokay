@@ -13,6 +13,7 @@ use crate::value::RefValue;
 use crate::vm::Runtime;
 
 // Helper enum to allow for different input types
+#[derive(Debug)]
 pub enum Stream {
     String(String),
     File(File),

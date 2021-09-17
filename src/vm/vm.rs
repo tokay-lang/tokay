@@ -310,7 +310,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 .collect()
         };
 
-        if self.runtime.debug > 3 {
+        if self.runtime.debug > 5 {
             self.debug(&format!(
                 "collect captures = {} single = {}, severity = {}",
                 captures.len(),
@@ -379,7 +379,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             };
         }
 
-        if self.runtime.debug > 3 {
+        if self.runtime.debug > 6 {
             println!("list = {:?}", list);
             println!("dict = {:?}", dict);
         }

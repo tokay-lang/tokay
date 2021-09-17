@@ -145,13 +145,7 @@ impl Runable for Sequence {
             ret.extend(item.compile(parselet));
         }
 
-        if ret.len() > 1
-            // Don't fuse anything which is directly stored.
-            && !matches!(
-                ret.last().unwrap(),
-                Op::StoreGlobal(_) | Op::StoreFast(_) | Op::StoreFastCapture(_)
-            )
-        {
+        if ret.len() > 1 {
             ret.insert(0, Op::TryCapture(ret.len() + 2));
             ret.push(Op::Collect);
         }
