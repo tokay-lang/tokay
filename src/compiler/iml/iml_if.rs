@@ -117,18 +117,24 @@ impl Runable for If {
             ret.push(Op::ForwardIfTrue(then.len() + 2));
         }
 
+        if self.peek {
+            ret.push(Op::Drop)
+        }
+
         ret.extend(then);
 
-        // Else-part
-        let else_ = self.else_.compile(parselet);
-        let else_ = if else_.len() == 0 {
-            vec![Op::PushVoid]
-        } else {
-            else_
-        };
+        if !self.peek {
+            // Else-part
+            let else_ = self.else_.compile(parselet);
+            let else_ = if else_.len() == 0 {
+                vec![Op::PushVoid]
+            } else {
+                else_
+            };
 
-        ret.push(Op::Forward(else_.len() + 1));
-        ret.extend(else_);
+            ret.push(Op::Forward(else_.len() + 1));
+            ret.extend(else_);
+        }
 
         ret
     }
