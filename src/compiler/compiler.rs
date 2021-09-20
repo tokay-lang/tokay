@@ -498,8 +498,8 @@ impl Compiler {
                 0,
                 ImlOp::Nop,
                 ImlOp::Nop,
-                // becomes silent `Value+`
-                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 1, 0, true).into_op(),
+                // becomes `Value+`
+                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 1, 0).into_op(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -520,8 +520,8 @@ impl Compiler {
                 0,
                 ImlOp::Nop,
                 ImlOp::Nop,
-                // becomes silent `Value?`
-                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 0, 1, true).into_op(),
+                // becomes `Value?`
+                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 0, 1).into_op(),
             );
 
             parselet.consuming = Some(Consumable {

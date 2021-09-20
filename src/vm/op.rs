@@ -752,10 +752,12 @@ impl Op {
         }
 
         // Take last remaining value as result (if some)
-        state = match context.runtime.stack.len() - frame.capture_start {
-            0 => Ok(Accept::Next),
-            _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
-        };
+        if let Ok(_) = state {
+            state = match context.runtime.stack.len() - frame.capture_start {
+                0 => Ok(Accept::Next),
+                _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
+            };
+        }
 
         // Debug
         if context.runtime.debug > 2 {

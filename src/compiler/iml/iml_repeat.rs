@@ -14,44 +14,25 @@ pub struct Repeat {
     body: ImlOp,
     min: usize,
     max: usize,
-    silent: bool,
 }
 
 impl Repeat {
-    pub fn new(body: ImlOp, min: usize, max: usize, silent: bool) -> ImlOp {
+    pub fn new(body: ImlOp, min: usize, max: usize) -> ImlOp {
         assert!(max == 0 || max >= min);
 
-        Self {
-            body,
-            min,
-            max,
-            silent,
-        }
-        .into_op()
+        Self { body, min, max }.into_op()
     }
 
     pub fn kleene(body: ImlOp) -> ImlOp {
-        Self::new(body, 0, 0, false)
+        Self::new(body, 0, 0)
     }
 
     pub fn positive(body: ImlOp) -> ImlOp {
-        Self::new(body, 1, 0, false)
+        Self::new(body, 1, 0)
     }
 
     pub fn optional(body: ImlOp) -> ImlOp {
-        Self::new(body, 0, 1, false)
-    }
-
-    pub fn kleene_silent(body: ImlOp) -> ImlOp {
-        Self::new(body, 0, 0, true)
-    }
-
-    pub fn positive_silent(body: ImlOp) -> ImlOp {
-        Self::new(body, 1, 0, true)
-    }
-
-    pub fn optional_silent(body: ImlOp) -> ImlOp {
-        Self::new(body, 0, 1, true)
+        Self::new(body, 0, 1)
     }
 }
 
@@ -89,10 +70,7 @@ impl Runable for Repeat {
 
                 Ok(Accept::Push(capture)) => {
                     count += 1;
-
-                    if !self.silent {
-                        context.runtime.stack.push(capture)
-                    }
+                    context.runtime.stack.push(capture)
                 }
 
                 Ok(accept) => return Ok(accept),
@@ -107,8 +85,6 @@ impl Runable for Repeat {
             context.runtime.stack.truncate(capture_start);
             context.runtime.reader.reset(reader_start);
             Err(Reject::Next)
-        } else if self.silent {
-            Ok(Accept::Next)
         } else {
             match context.collect(capture_start, false, true, true, 1) {
                 Err(capture) => Ok(Accept::Push(capture)),
