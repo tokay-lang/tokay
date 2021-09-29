@@ -1,3 +1,6 @@
+use std::io;
+use std::io::prelude::*;
+
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
@@ -27,17 +30,20 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Stack frame handling
-    TryCapture(usize), // Start frame with escape address and automatic stack/input rejection
-    Capture(usize),    // Start frame with optional escape address and manual intervention
-    Commit,            // Commit frame and leave stack as it is
-    Collect,           // Commit frame and collect stack values
-    Discard,           // Discard frame (used by 'peek')
-    Invert,            // Discard frame and invert state (used by 'not')
+    FusedCapture(usize), // Start frame with escape address and automatic stack/input reset
+    Capture(usize),      // Start frame with optional escape address and manual intervention
+    Commit,              // Commit frame and leave stack as it is
+    Collect,             // Commit frame and collect stack values
+    Reset,               // Reset frame stack and reader
+    Discard,             // Discard frame (used by 'peek')
+    Invert,              // Discard frame and invert state (used by 'not')
+    Consumed,            // Push true if input has been consumed in current frame, false otherwise
 
     // Conditional jumps
-    ForwardIfTrue(usize),              // Jump forward when TOS is true
-    ForwardIfFalse(usize),             // Jump forward when TOS is false
-    ForwardIfConsumedOrDiscard(usize), // Jump forward when context consumed input, otherwise reset context
+    ForwardIfTrue(usize),   // Jump forward when TOS is true
+    ForwardIfFalse(usize),  // Jump forward when TOS is false
+    BackwardIfTrue(usize),  // Jump backward when TOS is true
+    BackwardIfFalse(usize), // Jump backward when TOS is false
 
     // Direct jumps
     Forward(usize),  // Jump forward
@@ -593,12 +599,25 @@ impl Op {
             // Debug
             if context.runtime.debug > 3 {
                 //context.debug(&format!("{:03}:{}", ip, op));
+                context.debug("--- Code ---");
                 dump(ops, context, ip);
 
                 if context.runtime.debug > 4 {
+                    context.debug("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
-                        context.debug(&format!(" S{:02} {:?}", i, context.runtime.stack[i]));
+                        context.debug(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
                     }
+
+                    context.debug("--- Frames ---");
+                    for i in 0..frames.len() {
+                        context.debug(&format!(" {:03} {:?}", i, frames[i]));
+                    }
+
+                    context.debug(&format!(" {:03} {:?}", frames.len(), frame));
+                }
+
+                if context.runtime.debug > 5 {
+                    let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }
 
@@ -623,7 +642,7 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::TryCapture(escape) => {
+                Op::FusedCapture(escape) => {
                     assert!(*escape > 0);
                     frames.push(frame);
                     frame = Frame::new(Some(ip + *escape), true, context);
@@ -661,6 +680,23 @@ impl Op {
                     }
                 }
 
+                Op::Reset => {
+                    context.runtime.stack.truncate(frame.capture_start);
+                    context.runtime.reader.reset(frame.reader_start);
+
+                    Ok(Accept::Next)
+                }
+
+                Op::Consumed => {
+                    context.runtime.stack.push(Capture::Value(
+                        Value::from_bool(frame.reader_start != context.runtime.reader.tell())
+                            .into_refvalue(),
+                        None,
+                        10,
+                    ));
+                    Ok(Accept::Next)
+                }
+
                 Op::ForwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip += goto;
@@ -681,12 +717,20 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
-                Op::ForwardIfConsumedOrDiscard(goto) => {
-                    if frame.reader_start != context.runtime.reader.tell() {
-                        ip += goto;
+                Op::BackwardIfTrue(goto) => {
+                    if context.pop().borrow().is_true() {
+                        ip -= goto;
                     } else {
-                        context.runtime.stack.truncate(frame.capture_start);
-                        context.runtime.reader.reset(frame.reader_start);
+                        ip += 1;
+                    }
+
+                    Ok(Accept::Hold)
+                }
+
+                Op::BackwardIfFalse(goto) => {
+                    if !context.pop().borrow().is_true() {
+                        ip -= goto;
+                    } else {
                         ip += 1;
                     }
 

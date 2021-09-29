@@ -478,6 +478,34 @@ fn token_modifiers() {
     // Built-in token
     assert_eq!(compile_and_run("Integer", s), Ok(Some(value![[123, 456]])));
 
+    // Parsing with sequences and modifiers
+
+    // TOKAY_VM=1 TOKAY_DEBUG=6 cargo +1.53 run -- "''a'' {''b'' ''c''}* ''d''" -- "abcbcd"
+    assert_eq!(
+        compile_and_run("''a'' {''b'' ''c''}* ''d''", "abcbcd"),
+        Ok(Some(value![["a", [["b", "c"], ["b", "c"]], "d"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("''a'' {''b'' ''c''}+ ''d''", "abcbcd"),
+        Ok(Some(value![["a", [["b", "c"], ["b", "c"]], "d"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("''a'' {''b'' ''c''}* ''d''", "ad"),
+        Ok(Some(value![["a", "d"]]))
+    );
+
+    assert_eq!(
+        compile_and_run("''a'' {''b'' ''c''}+ ''d''", "ad"),
+        Ok(None)
+    );
+
+    assert_eq!(
+        compile_and_run("{ Word { ',' _ }? }+", "Hello,   World,  Beta,  Test"),
+        Ok(Some(value![["Hello", "World", "Beta", "Test"]]))
+    );
+
     // todo: more token tests, please!
 }
 

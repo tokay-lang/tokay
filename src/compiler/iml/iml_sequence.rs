@@ -146,7 +146,7 @@ impl Runable for Sequence {
         }
 
         if ret.len() > 1 {
-            ret.insert(0, Op::TryCapture(ret.len() + 2));
+            ret.insert(0, Op::FusedCapture(ret.len() + 2));
             ret.push(Op::Collect);
         }
 

@@ -131,22 +131,46 @@ impl Runable for Repeat {
 
         match (self.min, self.max) {
             (0, 0) => {
-                // Kleene
-                ret.insert(0, Op::Capture(ret.len() + 2));
-                ret.push(Op::Backward(ret.len() - 1));
-                ret.push(Op::Collect); // fixme: The recursive implementation only collects >0 severity here!
+                // Patch extended FusedCapture to escape behind Backward jump.
+                if let Op::FusedCapture(goto) = ret.first_mut().unwrap() {
+                    *goto += 1;
+                    ret.push(Op::Backward(ret.len()));
+                } else {
+                    ret.insert(0, Op::FusedCapture(ret.len() + 3));
+                    ret.push(Op::Commit);
+                    ret.push(Op::Backward(ret.len()));
+                }
+
+                // Surround the result of the repetition by additional frame
+                ret.insert(0, Op::Capture(0));
+                ret.push(Op::Collect);
             }
             (1, 0) => {
                 // Positive
+
+                // First of all, create a copy of the body for repetition.
                 let mut repeat = ret.clone();
 
-                repeat.insert(0, Op::Capture(repeat.len() + 2));
-                repeat.push(Op::Backward(repeat.len() - 1));
-                repeat.push(Op::Commit);
+                // Patch extended FusedCapture to escape behind Backward jump.
+                if let Op::FusedCapture(goto) = repeat.first_mut().unwrap() {
+                    *goto += 1;
+                    repeat.push(Op::Backward(repeat.len()));
+                } else {
+                    repeat.insert(0, Op::FusedCapture(repeat.len() + 3));
+                    repeat.push(Op::Commit);
+                    repeat.push(Op::Backward(repeat.len()));
+                }
+
+                // Patch possible FusedCapture to end of entire block.
+                if let Op::FusedCapture(goto) = ret.first_mut().unwrap() {
+                    *goto += repeat.len() + 3;
+                }
 
                 ret.extend(repeat);
-                ret.insert(0, Op::Capture(ret.len() + 2));
-                ret.push(Op::Collect); // fixme: The recursive implementation only collects >0 severity here!
+
+                // Surround the result of the repetition by additional frame
+                ret.insert(0, Op::FusedCapture(ret.len() + 2));
+                ret.push(Op::Collect);
             }
             (0, 1) => {
                 // Optional

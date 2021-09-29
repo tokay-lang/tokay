@@ -174,6 +174,15 @@ impl Value {
         }
     }
 
+    // Create a Value from a bool
+    pub fn from_bool(b: bool) -> Value {
+        if b {
+            Value::True
+        } else {
+            Value::False
+        }
+    }
+
     /** Create an Ok(Accept::Push) from a value. This function is a shortcut. **/
     pub fn into_accept_push_capture(self) -> Result<Accept, Reject> {
         Ok(Accept::Push(Capture::Value(self.into_refvalue(), None, 10)))
