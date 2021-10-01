@@ -655,14 +655,11 @@ impl Op {
                 }
 
                 Op::Collect => {
-                    let ret = match context.collect(frame.capture_start, false, true, true, 0) {
+                    match context.collect(frame.capture_start, false, true, true, 0) {
                         Err(capture) => Ok(Accept::Push(capture)),
                         Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
                         Ok(None) => Ok(Accept::Next),
-                    };
-
-                    frame = frames.pop().unwrap();
-                    ret
+                    }
                 }
 
                 Op::Discard => {
@@ -791,7 +788,11 @@ impl Op {
                         frame = frames.pop().unwrap();
                     }
                 }
-                _ => return state,
+                _ => {
+                    context.runtime.stack.truncate(frame.capture_start);
+                    context.runtime.reader.reset(frame.reader_start);
+                    return state
+                }
             }
         }
 

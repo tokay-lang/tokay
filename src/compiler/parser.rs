@@ -34,6 +34,7 @@ impl Parser {
         (T_EOL = {  // end-of-line
             ["\n", _, (Op::Skip)],
             [";", _, (Op::Skip)],
+            ["|", _, (Op::Skip)],
             [(token (Token::EOF)), (Op::Skip)],
             [(peek "}"), (Op::Skip)]
         }),

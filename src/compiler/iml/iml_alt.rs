@@ -84,8 +84,11 @@ impl Runable for Alternation {
         while let Some(item) = iter.next() {
             let alt = item.compile(parselet);
 
-            if iter.len() > 0 && alt.len() > 0 {
+            if iter.len() > 0 {
+                ret.push(Op::FusedCapture(alt.len() + 6));
                 ret.extend(alt);
+                ret.push(Op::Collect);
+                ret.push(Op::Commit);
 
                 ret.extend(vec![
                     Op::Consumed, // todo: his can be slightly modified in case the parselet does not consume anything.
@@ -96,13 +99,9 @@ impl Runable for Alternation {
                 jumps.push(ret.len() - 2);
 
                 let len = ret.len();
-
-                // Patch branch with extended FusedCapture to jump beyond this alternative
-                if let Op::FusedCapture(goto) = ret.first_mut().unwrap() {
-                    *goto = len;
-                }
             } else {
                 ret.extend(alt);
+                ret.push(Op::Collect);
             }
         }
 
