@@ -85,9 +85,8 @@ impl Runable for Alternation {
             let alt = item.compile(parselet);
 
             if iter.len() > 0 {
-                ret.push(Op::FusedCapture(alt.len() + 6));
+                ret.push(Op::FusedCapture(alt.len() + 5));
                 ret.extend(alt);
-                ret.push(Op::Collect);
                 ret.push(Op::Commit);
 
                 ret.extend(vec![
@@ -101,7 +100,6 @@ impl Runable for Alternation {
                 let len = ret.len();
             } else {
                 ret.extend(alt);
-                ret.push(Op::Collect);
             }
         }
 

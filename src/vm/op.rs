@@ -651,7 +651,8 @@ impl Op {
 
                 Op::Commit => {
                     frame = frames.pop().unwrap();
-                    Ok(Accept::Next)
+                    ip += 1;
+                    state
                 }
 
                 Op::Collect => {

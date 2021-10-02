@@ -146,7 +146,7 @@ impl Runable for Repeat {
                 // First of all, create a copy of the body for repetition.
                 let mut repeat = ret.clone();
 
-                repeat.insert(0, Op::FusedCapture(repeat.len() + 3));
+                repeat.insert(0, Op::Capture(repeat.len() + 3));
                 repeat.push(Op::Commit);
                 repeat.push(Op::Backward(repeat.len()));
 
@@ -158,7 +158,7 @@ impl Runable for Repeat {
                 ret.extend(repeat);
 
                 // Surround the result of the repetition by additional frame
-                ret.insert(0, Op::FusedCapture(ret.len() + 3));
+                ret.insert(0, Op::Capture(ret.len() + 3));
                 ret.push(Op::Collect);
                 ret.push(Op::Commit);
             }

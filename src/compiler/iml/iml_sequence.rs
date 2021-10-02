@@ -145,6 +145,12 @@ impl Runable for Sequence {
             ret.extend(item.compile(parselet));
         }
 
+        if ret.len() > 1 {
+            ret.insert(0, Op::Capture(ret.len() + 3));
+            ret.push(Op::Collect);
+            ret.push(Op::Commit);
+        }
+
         ret
     }
 }
