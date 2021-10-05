@@ -32,7 +32,7 @@ pub enum Op {
     // Stack frame handling
     Capture,     // Start new capture
     Commit,      // Commit capture
-    Discard,     // Discard capture
+    Reset,       // Reset capture
     Collect,     // Collect stack values from current capture
     Fuse(usize), // Set frame fuse to forward address
     Consumed,
@@ -639,11 +639,9 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Discard => {
+                Op::Reset => {
                     context.runtime.stack.truncate(frame.capture_start);
                     context.runtime.reader.reset(frame.reader_start);
-
-                    frame = frames.pop().unwrap();
                     Ok(Accept::Next)
                 }
 

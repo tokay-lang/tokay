@@ -87,7 +87,7 @@ impl Runable for Alternation {
             if iter.len() > 0 {
                 ret.push(Op::Fuse(alt.len() + 4));
                 ret.extend(alt);
-                ret.extend(vec![Op::Consumed, Op::Nop, Op::Discard]);
+                ret.extend(vec![Op::Consumed, Op::Nop, Op::Reset]);
 
                 jumps.push(ret.len() - 2);
 
