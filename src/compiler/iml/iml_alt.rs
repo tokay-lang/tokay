@@ -85,15 +85,9 @@ impl Runable for Alternation {
             let alt = item.compile(parselet);
 
             if iter.len() > 0 {
-                ret.push(Op::FusedCapture(alt.len() + 5));
+                ret.push(Op::Fuse(alt.len() + 4));
                 ret.extend(alt);
-                ret.push(Op::Commit);
-
-                ret.extend(vec![
-                    Op::Consumed, // todo: his can be slightly modified in case the parselet does not consume anything.
-                    Op::Nop,      // Placeholder for ForwardIfTrue
-                    Op::Reset,
-                ]);
+                ret.extend(vec![Op::Consumed, Op::Nop, Op::Discard]);
 
                 jumps.push(ret.len() - 2);
 
@@ -105,6 +99,11 @@ impl Runable for Alternation {
 
         while let Some(addr) = jumps.pop() {
             ret[addr] = Op::ForwardIfTrue(ret.len() - addr);
+        }
+
+        if self.items.len() > 1 {
+            ret.insert(0, Op::Capture);
+            ret.push(Op::Commit);
         }
 
         ret

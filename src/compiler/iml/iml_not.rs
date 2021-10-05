@@ -45,9 +45,9 @@ impl Runable for Not {
 
         ret.push(Op::Nop); // Frame placeholder
         ret.extend(self.body.compile(parselet));
-        ret.push(Op::Invert);
+        //ret.push(Op::Invert);
 
-        ret[0] = Op::Capture(ret.len());
+        //ret[0] = Op::Capture(ret.len());
         ret
     }
 }

@@ -129,14 +129,16 @@ impl Runable for Repeat {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = self.body.compile(parselet);
 
+        /*
+
         match (self.min, self.max) {
             (0, 0) => {
-                ret.insert(0, Op::FusedCapture(ret.len() + 3));
+                ret.insert(0, Op::Capture(ret.len() + 3));
                 ret.push(Op::Commit);
                 ret.push(Op::Backward(ret.len()));
 
                 // Surround the result of the repetition by additional frame
-                ret.insert(0, Op::Capture(0));
+                ret.insert(0, Op::Capture(ret.len() + 3));
                 ret.push(Op::Collect);
                 ret.push(Op::Commit);
             }
@@ -172,6 +174,7 @@ impl Runable for Repeat {
                 "Repeat construct with min/max configuration > 1 not implemented yet"
             ),
         };
+        */
 
         ret
     }

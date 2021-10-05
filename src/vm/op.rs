@@ -30,14 +30,15 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Stack frame handling
-    FusedCapture(usize), // Start frame with escape address and automatic stack/input reset
-    Capture(usize),      // Start frame with optional escape address and manual intervention
-    Commit,              // Commit frame and leave stack as it is
-    Collect,             // Commit frame and collect stack values
-    Reset,               // Reset frame stack and reader
-    Discard,             // Discard frame (used by 'peek')
-    Invert,              // Discard frame and invert state (used by 'not')
-    Consumed,            // Push true if input has been consumed in current frame, false otherwise
+    Capture,     // Start new capture
+    Commit,      // Commit capture
+    Discard,     // Discard capture
+    Collect,     // Collect stack values from current capture
+    Fuse(usize), // Set frame fuse to forward address
+    Consumed,
+    //Abort(usize),       // Set rejecting frame fuse to address
+    //Fused(usize),        // Fuse next instruction, close frame and jump forward
+    //Invert,              // Discard frame and invert state (used by 'not')
 
     // Conditional jumps
     ForwardIfTrue(usize),   // Jump forward when TOS is true
@@ -568,18 +569,16 @@ impl Op {
         // Frame ---------------------------------------------------------------
         #[derive(Debug)]
         struct Frame {
-            escape: Option<usize>,
-            restore: bool,
+            fuse: Option<usize>,  // fuse
             capture_start: usize, // capture start
             reader_start: Offset, // reader start
         }
 
         impl Frame {
             // Creates a new frame from context.
-            fn new(escape: Option<usize>, restore: bool, context: &Context) -> Frame {
+            fn new(context: &Context) -> Frame {
                 Frame {
-                    escape,
-                    restore,
+                    fuse: None,
                     capture_start: context.runtime.stack.len(),
                     reader_start: context.runtime.reader.tell(),
                 }
@@ -590,7 +589,7 @@ impl Op {
 
         let mut ip = 0; // Instruction pointer
         let mut frames: Vec<Frame> = Vec::new(); // Open frames
-        let mut frame = Frame::new(None, false, context); // Main frame
+        let mut frame = Frame::new(context); // Main capture
         let mut state = Ok(Accept::Next);
 
         while ip < ops.len() {
@@ -628,41 +627,48 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Capture(escape) => {
+                Op::Capture => {
                     frames.push(frame);
-                    frame = Frame::new(
-                        if *escape == 0 {
-                            None
-                        } else {
-                            Some(ip + *escape)
-                        },
-                        false,
-                        context,
-                    );
-                    Ok(Accept::Next)
-                }
+                    frame = Frame::new(context);
 
-                Op::FusedCapture(escape) => {
-                    assert!(*escape > 0);
-                    frames.push(frame);
-                    frame = Frame::new(Some(ip + *escape), true, context);
                     Ok(Accept::Next)
                 }
 
                 Op::Commit => {
                     frame = frames.pop().unwrap();
-                    ip += 1;
-                    state
+                    Ok(Accept::Next)
                 }
 
-                Op::Collect => {
-                    match context.collect(frame.capture_start, false, true, true, 0) {
-                        Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
-                        Ok(None) => Ok(Accept::Next),
-                    }
+                Op::Discard => {
+                    context.runtime.stack.truncate(frame.capture_start);
+                    context.runtime.reader.reset(frame.reader_start);
+
+                    frame = frames.pop().unwrap();
+                    Ok(Accept::Next)
                 }
 
+                Op::Collect => match context.collect(frame.capture_start, false, true, true, 0) {
+                    Err(capture) => Ok(Accept::Push(capture)),
+                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                    Ok(None) => Ok(Accept::Next),
+                },
+
+                Op::Consumed => {
+                    context.runtime.stack.push(Capture::Value(
+                        Value::from_bool(frame.reader_start != context.runtime.reader.tell())
+                            .into_refvalue(),
+                        None,
+                        10,
+                    ));
+                    Ok(Accept::Next)
+                }
+
+                Op::Fuse(addr) => {
+                    frame.fuse = Some(ip + *addr);
+                    Ok(Accept::Next)
+                }
+
+                /*
                 Op::Discard => {
                     frame = frames.pop().unwrap();
                     state
@@ -677,24 +683,7 @@ impl Op {
                         _ => state,
                     }
                 }
-
-                Op::Reset => {
-                    context.runtime.stack.truncate(frame.capture_start);
-                    context.runtime.reader.reset(frame.reader_start);
-
-                    Ok(Accept::Next)
-                }
-
-                Op::Consumed => {
-                    context.runtime.stack.push(Capture::Value(
-                        Value::from_bool(frame.reader_start != context.runtime.reader.tell())
-                            .into_refvalue(),
-                        None,
-                        10,
-                    ));
-                    Ok(Accept::Next)
-                }
-
+                */
                 Op::ForwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip += goto;
@@ -777,22 +766,26 @@ impl Op {
                     ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => {
-                    if let Some(escape) = frame.escape {
-                        ip = escape;
-                    } else {
-                        ip += 1;
-                    }
-
-                    if frame.restore {
+                    loop {
                         context.runtime.stack.truncate(frame.capture_start);
                         context.runtime.reader.reset(frame.reader_start);
+
+                        if matches!(frame.fuse, Some(fuse) if fuse > ip) {
+                            ip = frame.fuse.unwrap();
+                            break;
+                        }
+
+                        if frames.len() == 0 {
+                            return Err(Reject::Next);
+                        }
+
                         frame = frames.pop().unwrap();
                     }
                 }
                 _ => {
                     context.runtime.stack.truncate(frame.capture_start);
                     context.runtime.reader.reset(frame.reader_start);
-                    return state
+                    return state;
                 }
             }
         }

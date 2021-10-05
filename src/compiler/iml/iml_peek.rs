@@ -45,9 +45,9 @@ impl Runable for Peek {
 
         ret.push(Op::Nop); // Frame placeholder
         ret.extend(self.body.compile(parselet));
-        ret.push(Op::Discard);
+        //ret.push(Op::Discard);
 
-        ret[0] = Op::Capture(ret.len());
+        //ret[0] = Op::Capture(ret.len());
         ret
     }
 }
