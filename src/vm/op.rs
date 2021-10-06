@@ -34,17 +34,17 @@ pub enum Op {
     Commit,      // Commit capture
     Reset,       // Reset capture
     Collect,     // Collect stack values from current capture
-    Fuse(usize), // Set frame fuse to forward address
-    Consumed,
+    Fuse(usize), // Set frame fuse to forward address,
     //Abort(usize),       // Set rejecting frame fuse to address
     //Fused(usize),        // Fuse next instruction, close frame and jump forward
     //Invert,              // Discard frame and invert state (used by 'not')
 
     // Conditional jumps
-    ForwardIfTrue(usize),   // Jump forward when TOS is true
-    ForwardIfFalse(usize),  // Jump forward when TOS is false
-    BackwardIfTrue(usize),  // Jump backward when TOS is true
-    BackwardIfFalse(usize), // Jump backward when TOS is false
+    ForwardIfTrue(usize),            // Jump forward when TOS is true
+    ForwardIfFalse(usize),           // Jump forward when TOS is false
+    ForwardIfConsumedOrReset(usize), // Jump forward when frame consumed input, otherwise reset frame
+    BackwardIfTrue(usize),           // Jump backward when TOS is true
+    BackwardIfFalse(usize),          // Jump backward when TOS is false
 
     // Direct jumps
     Forward(usize),  // Jump forward
@@ -651,14 +651,16 @@ impl Op {
                     Ok(None) => Ok(Accept::Next),
                 },
 
-                Op::Consumed => {
-                    context.runtime.stack.push(Capture::Value(
-                        Value::from_bool(frame.reader_start != context.runtime.reader.tell())
-                            .into_refvalue(),
-                        None,
-                        10,
-                    ));
-                    Ok(Accept::Next)
+                Op::ForwardIfConsumedOrReset(goto) => {
+                    if frame.reader_start != context.runtime.reader.tell() {
+                        ip += goto;
+                        Ok(Accept::Hold)
+                    } else {
+                        context.runtime.stack.truncate(frame.capture_start);
+                        context.runtime.reader.reset(frame.reader_start);
+
+                        Ok(Accept::Next)
+                    }
                 }
 
                 Op::Fuse(addr) => {
@@ -763,23 +765,21 @@ impl Op {
                     context.runtime.stack.push(capture.clone());
                     ip += 1;
                 }
-                Err(Reject::Next) if frames.len() > 0 => {
-                    loop {
-                        context.runtime.stack.truncate(frame.capture_start);
-                        context.runtime.reader.reset(frame.reader_start);
+                Err(Reject::Next) if frames.len() > 0 => loop {
+                    context.runtime.stack.truncate(frame.capture_start);
+                    context.runtime.reader.reset(frame.reader_start);
 
-                        if matches!(frame.fuse, Some(fuse) if fuse > ip) {
-                            ip = frame.fuse.unwrap();
-                            break;
-                        }
-
-                        if frames.len() == 0 {
-                            return Err(Reject::Next);
-                        }
-
-                        frame = frames.pop().unwrap();
+                    if matches!(frame.fuse, Some(fuse) if fuse > ip) {
+                        ip = frame.fuse.unwrap();
+                        break;
                     }
-                }
+
+                    if frames.len() == 0 {
+                        return Err(Reject::Next);
+                    }
+
+                    frame = frames.pop().unwrap();
+                },
                 _ => {
                     context.runtime.stack.truncate(frame.capture_start);
                     context.runtime.reader.reset(frame.reader_start);
