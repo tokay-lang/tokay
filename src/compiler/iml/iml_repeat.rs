@@ -145,13 +145,12 @@ impl Runable for Repeat {
                     Op::Commit,
                     Op::Backward(body_len + 1),
                     Op::Close,
-                    Op::Collect,
+                    Op::Collect(1),
                     Op::Close,
                 ]);
             }
             (1, 0) => {
                 // Positive
-
                 ret.push(Op::Capture); // The overall capture
                 ret.extend(body.clone()); // here comes the body for the first time
                 ret.extend(vec![
@@ -163,7 +162,7 @@ impl Runable for Repeat {
                     Op::Commit,
                     Op::Backward(body_len + 1),
                     Op::Close,
-                    Op::Collect,
+                    Op::Collect(1),
                     Op::Close,
                 ]);
             }

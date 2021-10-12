@@ -30,15 +30,12 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Stack frame handling
-    Capture,     // Start new capture
-    Commit,      // Commit capture
-    Reset,       // Reset capture
-    Close,       // Close capture
-    Collect,     // Collect stack values from current capture
-    Fuse(usize), // Set capture fuse to forward address
-    Alt(usize),  // Set capture fuse to forward address with capture reset
-    //Abort(usize),       // Set rejecting frame fuse to address
-    //Fused(usize),        // Fuse next instruction, close frame and jump forward
+    Capture,        // Start new capture
+    Commit,         // Commit capture
+    Reset,          // Reset capture
+    Close,          // Close capture
+    Collect(usize), // Collect stack values from current capture
+    Fuse(usize),    // Set capture fuse to forward address
     //Invert,              // Discard frame and invert state (used by 'not')
 
     // Conditional jumps
@@ -71,7 +68,7 @@ pub enum Op {
     Expect(String), // Expect with error message
 
     // Constants
-    LoadStatic(usize), // Load static from statics
+    LoadStatic(usize), // Push a constant from the statics
     Push0,             // Push Integer(0)
     Push1,             // Push Integer(1)
     PushVoid,          // Push Void
@@ -654,11 +651,13 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Collect => match context.collect(frame.capture_start, false, true, true, 0) {
-                    Err(capture) => Ok(Accept::Push(capture)),
-                    Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
-                    Ok(None) => Ok(Accept::Next),
-                },
+                Op::Collect(severity) => {
+                    match context.collect(frame.capture_start, false, true, true, *severity as u8) {
+                        Err(capture) => Ok(Accept::Push(capture)),
+                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
+                        Ok(None) => Ok(Accept::Next),
+                    }
+                }
 
                 Op::Fuse(addr) => {
                     frame.fuse = Some(ip + *addr);
