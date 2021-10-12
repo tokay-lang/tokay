@@ -127,51 +127,53 @@ impl Runable for Repeat {
     }
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
-        let mut body = self.body.compile(parselet);
+        let body = self.body.compile(parselet);
+        let body_len = body.len();
+
         let mut ret = Vec::new();
 
         match (self.min, self.max) {
             (0, 0) => {
-                // Surround the result of the repetition by additional frame
-                ret.extend(vec![Op::Capture, Op::Capture, Op::Fuse(body.len() + 3)]);
-                ret.extend(body);
+                // Kleene
+                ret.extend(vec![
+                    Op::Capture,            // The overall capture
+                    Op::Capture,            // The fused capture for repetition
+                    Op::Fuse(body_len + 3), // The fuse!
+                ]);
+                ret.extend(body); // here comes the body
                 ret.extend(vec![
                     Op::Commit,
-                    Op::Backward(ret.len() - 2),
+                    Op::Backward(body_len + 1),
                     Op::Close,
                     Op::Collect,
                     Op::Close,
                 ]);
             }
-            /*
             (1, 0) => {
                 // Positive
 
-                // First of all, create a copy of the body for repetition.
-                let mut repeat = ret.clone();
-
-                repeat.insert(0, Op::Capture(repeat.len() + 3));
-                repeat.push(Op::Commit);
-                repeat.push(Op::Backward(repeat.len()));
-
-                // Patch possible FusedCapture to end of entire block.
-                if let Op::FusedCapture(goto) = ret.first_mut().unwrap() {
-                    *goto += repeat.len() + 3;
-                }
-
-                ret.extend(repeat);
-
-                // Surround the result of the repetition by additional frame
-                ret.insert(0, Op::Capture(ret.len() + 3));
-                ret.push(Op::Collect);
-                ret.push(Op::Commit);
+                ret.push(Op::Capture); // The overall capture
+                ret.extend(body.clone()); // here comes the body for the first time
+                ret.extend(vec![
+                    Op::Capture,            // The fused capture for repetition
+                    Op::Fuse(body_len + 3), // The fuse!
+                ]);
+                ret.extend(body); // here comes the body inside the repetition
+                ret.extend(vec![
+                    Op::Commit,
+                    Op::Backward(body_len + 1),
+                    Op::Close,
+                    Op::Collect,
+                    Op::Close,
+                ]);
             }
             (0, 1) => {
                 // Optional
-                ret.insert(0, Op::Capture(ret.len() + 1));
-                ret.push(Op::Commit); // fixme: The recursive implementation only collects >0 severity here!
+                ret.push(Op::Capture);
+                ret.push(Op::Fuse(body_len + 1));
+                ret.extend(body);
+                ret.push(Op::Close); // fixme: The recursive implementation only collects >0 severity here!
             }
-            */
             (1, 1) => {}
             (_, _) => unimplemented!(
                 "Repeat construct with min/max configuration > 1 not implemented yet"
