@@ -33,18 +33,21 @@ pub enum Op {
     Capture,     // Start new capture
     Commit,      // Commit capture
     Reset,       // Reset capture
+    Close,       // Close capture
     Collect,     // Collect stack values from current capture
-    Fuse(usize), // Set frame fuse to forward address,
+    Fuse(usize), // Set capture fuse to forward address
+    Alt(usize),  // Set capture fuse to forward address with capture reset
     //Abort(usize),       // Set rejecting frame fuse to address
     //Fused(usize),        // Fuse next instruction, close frame and jump forward
     //Invert,              // Discard frame and invert state (used by 'not')
 
     // Conditional jumps
-    ForwardIfTrue(usize),            // Jump forward when TOS is true
-    ForwardIfFalse(usize),           // Jump forward when TOS is false
-    ForwardIfConsumedOrReset(usize), // Jump forward when frame consumed input, otherwise reset frame
-    BackwardIfTrue(usize),           // Jump backward when TOS is true
-    BackwardIfFalse(usize),          // Jump backward when TOS is false
+    ForwardIfTrue(usize),      // Jump forward when TOS is true
+    ForwardIfFalse(usize),     // Jump forward when TOS is false
+    ForwardIfConsumed(usize),  // Jump forward when frame consumed input
+    BackwardIfTrue(usize),     // Jump backward when TOS is true
+    BackwardIfFalse(usize),    // Jump backward when TOS is false
+    BackwardIfConsumed(usize), // Jump backward when frame consumed input
 
     // Direct jumps
     Forward(usize),  // Jump forward
@@ -635,6 +638,12 @@ impl Op {
                 }
 
                 Op::Commit => {
+                    frame.capture_start = context.runtime.stack.len();
+                    frame.reader_start = context.runtime.reader.tell();
+                    Ok(Accept::Next)
+                }
+
+                Op::Close => {
                     frame = frames.pop().unwrap();
                     Ok(Accept::Next)
                 }
@@ -650,18 +659,6 @@ impl Op {
                     Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
                     Ok(None) => Ok(Accept::Next),
                 },
-
-                Op::ForwardIfConsumedOrReset(goto) => {
-                    if frame.reader_start != context.runtime.reader.tell() {
-                        ip += goto;
-                        Ok(Accept::Hold)
-                    } else {
-                        context.runtime.stack.truncate(frame.capture_start);
-                        context.runtime.reader.reset(frame.reader_start);
-
-                        Ok(Accept::Next)
-                    }
-                }
 
                 Op::Fuse(addr) => {
                     frame.fuse = Some(ip + *addr);
@@ -704,6 +701,15 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
+                Op::ForwardIfConsumed(goto) => {
+                    if frame.reader_start != context.runtime.reader.tell() {
+                        ip += goto;
+                        Ok(Accept::Hold)
+                    } else {
+                        Ok(Accept::Next)
+                    }
+                }
+
                 Op::BackwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip -= goto;
@@ -722,6 +728,15 @@ impl Op {
                     }
 
                     Ok(Accept::Hold)
+                }
+
+                Op::BackwardIfConsumed(goto) => {
+                    if frame.reader_start != context.runtime.reader.tell() {
+                        ip -= goto;
+                        Ok(Accept::Hold)
+                    } else {
+                        Ok(Accept::Next)
+                    }
                 }
 
                 Op::Forward(goto) => {
@@ -769,9 +784,11 @@ impl Op {
                     context.runtime.stack.truncate(frame.capture_start);
                     context.runtime.reader.reset(frame.reader_start);
 
-                    if matches!(frame.fuse, Some(fuse) if fuse > ip) {
-                        ip = frame.fuse.unwrap();
-                        break;
+                    if let Some(fuse) = frame.fuse {
+                        if fuse > ip {
+                            ip = fuse;
+                            break;
+                        }
                     }
 
                     if frames.len() == 0 {

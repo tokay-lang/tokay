@@ -127,21 +127,23 @@ impl Runable for Repeat {
     }
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
-        let mut ret = self.body.compile(parselet);
-
-        /*
+        let mut body = self.body.compile(parselet);
+        let mut ret = Vec::new();
 
         match (self.min, self.max) {
             (0, 0) => {
-                ret.insert(0, Op::Capture(ret.len() + 3));
-                ret.push(Op::Commit);
-                ret.push(Op::Backward(ret.len()));
-
                 // Surround the result of the repetition by additional frame
-                ret.insert(0, Op::Capture(ret.len() + 3));
-                ret.push(Op::Collect);
-                ret.push(Op::Commit);
+                ret.extend(vec![Op::Capture, Op::Capture, Op::Fuse(body.len() + 3)]);
+                ret.extend(body);
+                ret.extend(vec![
+                    Op::Commit,
+                    Op::Backward(ret.len() - 2),
+                    Op::Close,
+                    Op::Collect,
+                    Op::Close,
+                ]);
             }
+            /*
             (1, 0) => {
                 // Positive
 
@@ -169,12 +171,12 @@ impl Runable for Repeat {
                 ret.insert(0, Op::Capture(ret.len() + 1));
                 ret.push(Op::Commit); // fixme: The recursive implementation only collects >0 severity here!
             }
+            */
             (1, 1) => {}
             (_, _) => unimplemented!(
                 "Repeat construct with min/max configuration > 1 not implemented yet"
             ),
         };
-        */
 
         ret
     }

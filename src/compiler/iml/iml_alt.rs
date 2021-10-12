@@ -85,11 +85,12 @@ impl Runable for Alternation {
             let alt = item.compile(parselet);
 
             if iter.len() > 0 {
-                ret.push(Op::Fuse(alt.len() + 2));
+                ret.push(Op::Fuse(alt.len() + 3));
                 ret.extend(alt);
                 ret.push(Op::Nop);
+                ret.push(Op::Reset);
 
-                jumps.push(ret.len() - 1);
+                jumps.push(ret.len() - 2);
 
                 let len = ret.len();
             } else {
@@ -98,12 +99,12 @@ impl Runable for Alternation {
         }
 
         while let Some(addr) = jumps.pop() {
-            ret[addr] = Op::ForwardIfConsumedOrReset(ret.len() - addr);
+            ret[addr] = Op::ForwardIfConsumed(ret.len() - addr);
         }
 
         if self.items.len() > 1 {
             ret.insert(0, Op::Capture);
-            ret.push(Op::Commit);
+            ret.push(Op::Close);
         }
 
         ret

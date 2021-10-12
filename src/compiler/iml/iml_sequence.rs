@@ -148,7 +148,7 @@ impl Runable for Sequence {
         if ret.len() > 1 {
             ret.insert(0, Op::Capture);
             ret.push(Op::Collect);
-            ret.push(Op::Commit);
+            ret.push(Op::Close);
         }
 
         ret
