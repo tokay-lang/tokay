@@ -43,11 +43,13 @@ impl Runable for Not {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = Vec::new();
 
-        ret.push(Op::Nop); // Frame placeholder
-        ret.extend(self.body.compile(parselet));
-        //ret.push(Op::Invert);
+        let body = self.body.compile(parselet);
 
-        //ret[0] = Op::Capture(ret.len());
+        ret.push(Op::Capture);
+        ret.push(Op::Fuse(body.len() + 2));
+        ret.extend(body);
+        ret.push(Op::Reject);
+
         ret
     }
 }

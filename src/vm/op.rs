@@ -797,8 +797,6 @@ impl Op {
                     frame = frames.pop().unwrap();
                 },
                 _ => {
-                    context.runtime.stack.truncate(frame.capture_start);
-                    context.runtime.reader.reset(frame.reader_start);
                     return state;
                 }
             }
