@@ -596,11 +596,14 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.runtime.debug > 3 {
-                //context.debug(&format!("{:03}:{}", ip, op));
+            if context.runtime.debug == 2 {
+                context.debug(&format!("{:03}:{}", ip, op));
+            } else if context.runtime.debug > 3 {
+                // Dump entire code
                 context.debug("--- Code ---");
                 dump(ops, context, ip);
 
+                // Dump stack and frames
                 if context.runtime.debug > 4 {
                     context.debug("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
@@ -615,6 +618,7 @@ impl Op {
                     context.debug(&format!(" {:03} {:?}", frames.len(), frame));
                 }
 
+                // Step-by-step
                 if context.runtime.debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
@@ -756,6 +760,66 @@ impl Op {
                     }
                 }
 
+                // Calls
+                Op::CallOrCopy => {
+                    let value = context.pop();
+                    let value = value.borrow();
+
+                    if value.is_callable(false) {
+                        // Call the value without parameters
+                        value.call(context, 0, None)
+                    } else {
+                        // Push a copy of the value
+                        context.push(value.clone().into_refvalue())
+                    }
+                }
+
+                Op::Call => {
+                    let target = context.pop();
+                    let target = target.borrow();
+                    target.call(context, 0, None)
+                }
+
+                Op::CallArg(args) => {
+                    let target = context.pop();
+                    let target = target.borrow();
+                    target.call(context, *args, None)
+                }
+
+                Op::CallArgNamed(args) => {
+                    let target = context.pop();
+                    let target = target.borrow();
+
+                    let nargs = Value::from_ref(context.pop()).unwrap();
+                    target.call(context, *args, Some(nargs.into_dict()))
+                    //println!("CallArgNamed returns {:?}", ret);
+                }
+
+                Op::CallStatic(addr) => context.runtime.program.statics[*addr]
+                    .borrow()
+                    .call(context, 0, None),
+
+                Op::CallStaticArg(addr_args) => {
+                    context.runtime.program.statics[addr_args.0].borrow().call(
+                        context,
+                        addr_args.1,
+                        None,
+                    )
+                    //println!("CallStaticArg returns {:?}", ret);
+                }
+
+                Op::CallStaticArgNamed(addr_args) => {
+                    let nargs = Value::from_ref(context.pop()).unwrap();
+
+                    context.runtime.program.statics[addr_args.0].borrow().call(
+                        context,
+                        addr_args.1,
+                        Some(nargs.into_dict()),
+                    )
+                    //println!("CallStaticArg returns {:?}",
+                }
+
+                // Fallback
                 op => {
                     // todo: move content of op::run() here when recursive interpreter is removed.
                     // fixme: Accept::Hold has a different meaning here

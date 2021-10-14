@@ -143,7 +143,7 @@ impl Runable for Repeat {
                 ret.extend(body); // here comes the body
                 ret.extend(vec![
                     Op::Commit,
-                    Op::Backward(body_len + 1),
+                    Op::BackwardIfConsumed(body_len + 1),
                     Op::Close,
                     Op::Collect(1),
                     Op::Close,
@@ -160,7 +160,7 @@ impl Runable for Repeat {
                 ret.extend(body); // here comes the body inside the repetition
                 ret.extend(vec![
                     Op::Commit,
-                    Op::Backward(body_len + 1),
+                    Op::BackwardIfConsumed(body_len + 1),
                     Op::Close,
                     Op::Collect(1),
                     Op::Close,

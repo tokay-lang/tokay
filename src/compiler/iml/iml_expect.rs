@@ -50,11 +50,13 @@ impl Runable for Expect {
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = self.body.compile(parselet);
+        /*
         ret.push(Op::Expect(if let Some(msg) = &self.msg {
             msg.clone()
         } else {
             format!("Expecting {}", self.body)
         }));
+        */
         ret
     }
 }

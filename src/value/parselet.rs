@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
+use crate::compiler::ast;
 use crate::compiler::iml::Consumable;
 use crate::error::Error;
 use crate::vm::*;
@@ -347,8 +348,10 @@ impl Parselet {
 
         //println!("remaining {:?}", nargs);
 
-        // Check for an existing memo-entry, and return it in case of a match
-        if let (false, Some(Consumable { leftrec: true, .. })) = (main, self.consuming.as_ref()) {
+        // Perform left-recursive execution
+        let result = if let (false, Some(Consumable { leftrec: true, .. })) =
+            (main, self.consuming.as_ref())
+        {
             /*
             println!(
                 "--- {} @ {} ---",
@@ -411,16 +414,36 @@ impl Parselet {
 
             context.runtime.reader.reset(reader_end);
 
-            return result;
-        }
+            result
+        } else {
+            let result = self._run(&mut context, main);
 
-        let result = self._run(&mut context, main);
+            if !main && self.consuming.is_some() {
+                context.runtime.memo.insert(
+                    (context.reader_start.offset, id),
+                    (context.runtime.reader.tell(), result.clone()),
+                );
+            }
 
-        if !main && self.consuming.is_some() {
-            context.runtime.memo.insert(
-                (context.reader_start.offset, id),
-                (context.runtime.reader.tell(), result.clone()),
-            );
+            result
+        };
+
+        if context.runtime.debug > 1 {
+            loop {
+                if let Ok(Accept::Push(Capture::Value(ref value, ..))) = result {
+                    let value = value.borrow();
+                    if let Some(d) = value.get_dict() {
+                        if d.get("emit").is_some() {
+                            context.debug("=> AST");
+                            ast::print(&value);
+                            break;
+                        }
+                    }
+                }
+
+                context.debug(&format!("=> {:?}", result));
+                break;
+            }
         }
 
         result
