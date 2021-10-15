@@ -51,21 +51,21 @@ pub enum Op {
     Backward(usize), // Jump backward
 
     // Interrupts
-    Skip,           // Err(Reject::Skip)
-    Next,           // Err(Reject::Next)
-    Push,           // Ok(Accept::Push)
-    Continue,       // Ok(Accept::Continue)
-    LoadPush,       // Ok(Accept::Push) with value
-    Break,          // Ok(Accept::Break)
-    LoadBreak,      // Ok(Accept::Break) with value
-    Accept,         // Ok(Accept::Return)
-    LoadAccept,     // Ok(Accept::Return) with value
-    Repeat,         // Ok(Accept::Repeat)
-    LoadRepeat,     // Ok(Accept::Repeat) with value
-    Reject,         // Ok(Err::Reject)
-    LoadExit,       // Exit with errorcode
-    Exit,           // Exit with 0
-    Expect(String), // Expect with error message
+    Skip,                  // Err(Reject::Skip)
+    Next,                  // Err(Reject::Next)
+    Push,                  // Ok(Accept::Push)
+    Continue,              // Ok(Accept::Continue)
+    LoadPush,              // Ok(Accept::Push) with value
+    Break,                 // Ok(Accept::Break)
+    LoadBreak,             // Ok(Accept::Break) with value
+    Accept,                // Ok(Accept::Return)
+    LoadAccept,            // Ok(Accept::Return) with value
+    Repeat,                // Ok(Accept::Repeat)
+    LoadRepeat,            // Ok(Accept::Repeat) with value
+    Reject,                // Ok(Err::Reject)
+    LoadExit,              // Exit with errorcode
+    Exit,                  // Exit with 0
+    Error(Option<String>), // Error with optional error message (otherwise its expected on stack)
 
     // Constants
     LoadStatic(usize), // Push a constant from the statics
@@ -752,11 +752,12 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
-                Op::Expect(msg) => {
-                    if matches!(state, Err(Reject::Next)) {
+                Op::Error(msg) => {
+                    if let Some(msg) = msg {
                         Error::new(Some(frame.reader_start), msg.clone()).into_reject()
                     } else {
-                        state
+                        Error::new(Some(frame.reader_start), context.pop().borrow().to_string())
+                            .into_reject()
                     }
                 }
 
