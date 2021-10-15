@@ -138,14 +138,16 @@ impl Runable for Repeat {
                 ret.extend(vec![
                     Op::Capture,            // The overall capture
                     Op::Capture,            // The fused capture for repetition
-                    Op::Fuse(body_len + 3), // The fuse!
+                    Op::Fuse(body_len + 5), // The fuse!
                 ]);
                 ret.extend(body); // here comes the body
                 ret.extend(vec![
+                    Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
+                    Op::Forward(3),           // otherwise leave the loop
                     Op::Commit,
-                    Op::BackwardIfConsumed(body_len + 1),
+                    Op::Backward(body_len + 3), // repeat the body
                     Op::Close,
-                    Op::Collect(1),
+                    Op::Collect(1), // collect only values with severity > 0
                     Op::Close,
                 ]);
             }
@@ -154,24 +156,29 @@ impl Runable for Repeat {
                 ret.push(Op::Capture); // The overall capture
                 ret.extend(body.clone()); // here comes the body for the first time
                 ret.extend(vec![
-                    Op::Capture,            // The fused capture for repetition
-                    Op::Fuse(body_len + 3), // The fuse!
+                    Op::ForwardIfConsumed(2), // If nothing was consumed, then...
+                    Op::Next,                 //...reject
+                    Op::Capture,              // The fused capture for repetition
+                    Op::Fuse(body_len + 5),   // The fuse!
                 ]);
-                ret.extend(body); // here comes the body inside the repetition
+                ret.extend(body); // here comes the body again inside the repetition
                 ret.extend(vec![
+                    Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
+                    Op::Forward(3),           // otherwise leave the loop
                     Op::Commit,
-                    Op::BackwardIfConsumed(body_len + 1),
+                    Op::Backward(body_len + 3), // repeat the body
                     Op::Close,
-                    Op::Collect(1),
+                    Op::Collect(1), // collect only values with severity > 0
                     Op::Close,
                 ]);
             }
             (0, 1) => {
                 // Optional
                 ret.push(Op::Capture);
-                ret.push(Op::Fuse(body_len + 1));
+                ret.push(Op::Fuse(body_len + 2));
                 ret.extend(body);
-                ret.push(Op::Close); // fixme: The recursive implementation only collects >0 severity here!
+                ret.push(Op::Collect(1)); // collect only values with severity > 0
+                ret.push(Op::Close);
             }
             (1, 1) => {}
             (_, _) => unimplemented!(

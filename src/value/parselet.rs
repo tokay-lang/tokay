@@ -82,6 +82,17 @@ impl Parselet {
             Some(true)
         };
 
+        // Debugging
+        let mut debug = context.runtime.debug;
+        if debug < 3 {
+            if let (Ok(inspect), Some(name)) = (std::env::var("TOKAY_INSPECT"), self.name.as_ref())
+            {
+                if inspect.find(name).is_some() {
+                    debug = 6;
+                }
+            }
+        }
+
         let result = loop {
             let reader_start = context.runtime.reader.tell();
 
@@ -96,7 +107,7 @@ impl Parselet {
                 None => &self.body,
             };
 
-            let mut result = Op::execute(ops, context);
+            let mut result = Op::execute(ops, context, debug);
 
             // if main {
             //     println!("state = {:?} result = {:?}", state, result);

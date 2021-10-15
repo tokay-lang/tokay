@@ -550,7 +550,7 @@ impl Op {
         }
     }
 
-    pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
+    pub fn execute(ops: &[Op], context: &mut Context, debug: u8) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
         }
@@ -596,15 +596,15 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.runtime.debug == 2 {
+            if debug == 3 {
                 context.debug(&format!("{:03}:{}", ip, op));
-            } else if context.runtime.debug > 3 {
+            } else if debug > 3 {
                 // Dump entire code
                 context.debug("--- Code ---");
                 dump(ops, context, ip);
 
                 // Dump stack and frames
-                if context.runtime.debug > 4 {
+                if debug > 4 {
                     context.debug("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
                         context.debug(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
@@ -619,7 +619,7 @@ impl Op {
                 }
 
                 // Step-by-step
-                if context.runtime.debug > 5 {
+                if debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }

@@ -428,6 +428,15 @@ impl Parser {
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 
+        /*
+        (Sequence = {
+            [(pos [[T_Integer, _], (opt [",", _])]), (call ast[(value "sequence")])]
+        }),
+
+        [Sequence,
+            (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
+            (call ast[(value "main")])]
+        */
         // ----------------------------------------------------------------------------
                     }))
     }

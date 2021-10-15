@@ -91,8 +91,6 @@ impl Runable for Alternation {
                 ret.push(Op::Reset);
 
                 jumps.push(ret.len() - 2);
-
-                let len = ret.len();
             } else {
                 ret.extend(alt);
             }
