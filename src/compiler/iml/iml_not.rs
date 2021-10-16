@@ -48,7 +48,7 @@ impl Runable for Not {
         ret.push(Op::Capture);
         ret.push(Op::Fuse(body.len() + 2));
         ret.extend(body);
-        ret.push(Op::Reject);
+        ret.push(Op::Next);
 
         ret
     }
