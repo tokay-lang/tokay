@@ -46,8 +46,9 @@ impl Runable for Not {
         let body = self.body.compile(parselet);
 
         ret.push(Op::Capture);
-        ret.push(Op::Fuse(body.len() + 2));
+        ret.push(Op::Fuse(body.len() + 3));
         ret.extend(body);
+        ret.push(Op::Close);
         ret.push(Op::Next);
 
         ret
