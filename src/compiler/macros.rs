@@ -91,7 +91,7 @@ macro_rules! tokay {
                 body
             );
 
-            parselet.silent = true;  // mark as silent parselet
+            parselet.severity = 0;  // mark as silent parselet
             $compiler.set_constant("_", parselet.into_value().into_refvalue());
 
             //println!("assign _ = {}", stringify!($item));

@@ -23,13 +23,13 @@ the generated parse tree automatically until no more input can be consumed.
 #[derive(Debug)]
 pub struct Parselet {
     pub(crate) consuming: Option<Consumable>, // Consumable state
-    pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
-    pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
-    signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    pub(crate) locals: usize, // Number of local variables present
-    begin: Vec<Op>,          // Begin-operations
-    end: Vec<Op>,            // End-operations
-    body: Vec<Op>,           // Operations
+    pub(crate) severity: u8,                  // Capture push severity
+    pub(crate) name: Option<String>,          // Parselet's name from source (for debugging)
+    signature: Vec<(String, Option<usize>)>,  // Argument signature with default arguments
+    pub(crate) locals: usize,                 // Number of local variables present
+    begin: Vec<Op>,                           // Begin-operations
+    end: Vec<Op>,                             // End-operations
+    body: Vec<Op>,                            // Operations
 }
 
 impl Parselet {
@@ -50,7 +50,7 @@ impl Parselet {
         Self {
             name,
             consuming: None,
-            silent: false,
+            severity: 5,
             signature,
             locals,
             begin,
@@ -148,11 +148,11 @@ impl Parselet {
 
                         Accept::Return(value) => {
                             if let Some(value) = value {
-                                if !self.silent {
-                                    break Some(Ok(Accept::Push(Capture::Value(value, None, 5))));
-                                } else {
-                                    break Some(Ok(Accept::Push(Capture::Empty)));
-                                }
+                                break Some(Ok(Accept::Push(Capture::Value(
+                                    value,
+                                    None,
+                                    self.severity,
+                                ))));
                             } else {
                                 break Some(Ok(Accept::Push(Capture::Empty)));
                             }
@@ -164,8 +164,9 @@ impl Parselet {
                             }
                         }
 
-                        Accept::Push(_) if self.silent => {
-                            break Some(Ok(Accept::Push(Capture::Empty)))
+                        Accept::Push(mut capture) if capture.get_severity() > self.severity => {
+                            capture.set_severity(self.severity);
+                            break Some(Ok(Accept::Push(capture)));
                         }
 
                         Accept::Break(_) | Accept::Continue => unreachable!(), // not allowed here
@@ -236,23 +237,26 @@ impl Parselet {
             first = false;
         };
 
-        result.unwrap_or_else(|| {
-            if results.len() > 1 {
-                Ok(Accept::Push(Capture::Value(
-                    Value::List(Box::new(results)).into_refvalue(),
-                    None,
-                    5,
-                )))
-            } else if results.len() == 1 {
-                Ok(Accept::Push(Capture::Value(
-                    results.pop().unwrap(),
-                    None,
-                    5,
-                )))
-            } else {
-                Ok(Accept::Next)
+        match result {
+            Some(result) if !matches!(result, Ok(Accept::Next)) => result,
+            _ => {
+                if results.len() > 1 {
+                    Ok(Accept::Push(Capture::Value(
+                        Value::List(Box::new(results)).into_refvalue(),
+                        None,
+                        self.severity,
+                    )))
+                } else if results.len() == 1 {
+                    Ok(Accept::Push(Capture::Value(
+                        results.pop().unwrap(),
+                        None,
+                        self.severity,
+                    )))
+                } else {
+                    Ok(Accept::Push(Capture::Empty))
+                }
             }
-        })
+        }
     }
 
     /** Run parselet on a given runtime.

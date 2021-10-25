@@ -506,7 +506,7 @@ impl Compiler {
                 leftrec: false,
                 nullable: false,
             });
-            parselet.silent = true;
+            parselet.severity = 0;
 
             value = parselet.into_value().into_refvalue();
 
@@ -528,7 +528,7 @@ impl Compiler {
                 leftrec: false,
                 nullable: false,
             });
-            parselet.silent = true;
+            parselet.severity = 0;
 
             value = parselet.into_value().into_refvalue();
 

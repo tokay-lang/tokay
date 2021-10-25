@@ -21,13 +21,13 @@ the generated parse tree automatically until no more input can be consumed.
 #[derive(Debug)]
 pub struct ImlParselet {
     pub(crate) consuming: Option<Consumable>, // Consumable state
-    pub(crate) silent: bool, // Indicator if parselet is silent. Results are discarded.
-    pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
-    signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    pub(crate) locals: usize, // Number of local variables present
-    begin: ImlOp,            // Begin-operations
-    end: ImlOp,              // End-operations
-    body: ImlOp,             // Operations
+    pub(crate) severity: u8,                  // Capture push severity
+    pub(crate) name: Option<String>,          // Parselet's name from source (for debugging)
+    signature: Vec<(String, Option<usize>)>,  // Argument signature with default arguments
+    pub(crate) locals: usize,                 // Number of local variables present
+    begin: ImlOp,                             // Begin-operations
+    end: ImlOp,                               // End-operations
+    body: ImlOp,                              // Operations
 }
 
 impl ImlParselet {
@@ -48,7 +48,7 @@ impl ImlParselet {
         Self {
             name,
             consuming: None,
-            silent: false,
+            severity: 5,
             signature,
             locals,
             begin,
@@ -79,7 +79,7 @@ impl ImlParselet {
 
         // fixme: the following attributes must be passed differently.
         parselet.consuming = self.consuming.clone();
-        parselet.silent = self.silent;
+        parselet.severity = self.severity;
 
         parselet
     }
@@ -171,11 +171,11 @@ impl ImlParselet {
 
                         Accept::Return(value) => {
                             if let Some(value) = value {
-                                if !self.silent {
-                                    break Some(Ok(Accept::Push(Capture::Value(value, None, 5))));
-                                } else {
-                                    break Some(Ok(Accept::Push(Capture::Empty)));
-                                }
+                                break Some(Ok(Accept::Push(Capture::Value(
+                                    value,
+                                    None,
+                                    self.severity,
+                                ))));
                             } else {
                                 break Some(Ok(Accept::Push(Capture::Empty)));
                             }
@@ -187,8 +187,9 @@ impl ImlParselet {
                             }
                         }
 
-                        Accept::Push(_) if self.silent => {
-                            break Some(Ok(Accept::Push(Capture::Empty)))
+                        Accept::Push(mut capture) if capture.get_severity() > self.severity => {
+                            capture.set_severity(self.severity);
+                            break Some(Ok(Accept::Push(capture)));
                         }
 
                         Accept::Break(_) | Accept::Continue => unreachable!(), // not allowed here
@@ -264,13 +265,13 @@ impl ImlParselet {
                 Ok(Accept::Push(Capture::Value(
                     Value::List(Box::new(results)).into_refvalue(),
                     None,
-                    5,
+                    self.severity,
                 )))
             } else if results.len() == 1 {
                 Ok(Accept::Push(Capture::Value(
                     results.pop().unwrap(),
                     None,
-                    5,
+                    self.severity,
                 )))
             } else {
                 Ok(Accept::Next)

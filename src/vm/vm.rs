@@ -51,6 +51,22 @@ impl Capture {
         }
     }
 
+    pub fn get_severity(&self) -> u8 {
+        match self {
+            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) => *severity,
+            _ => 0,
+        }
+    }
+
+    pub fn set_severity(&mut self, new_severity: u8) {
+        match self {
+            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) => {
+                *severity = new_severity
+            }
+            _ => {}
+        }
+    }
+
     // Degrades a capture to a severity to a capture with zero severity.
     // This is done when a capture is read.
     pub fn degrade(&mut self) {

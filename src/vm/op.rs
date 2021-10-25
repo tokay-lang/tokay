@@ -845,8 +845,9 @@ impl Op {
             match state {
                 Ok(Accept::Hold) => {}
                 Ok(Accept::Next) => ip += 1,
-                Ok(Accept::Push(ref capture)) => {
-                    context.runtime.stack.push(capture.clone());
+                Ok(Accept::Push(capture)) => {
+                    context.runtime.stack.push(capture);
+                    state = Ok(Accept::Next);
                     ip += 1;
                 }
                 Err(Reject::Next) if frames.len() > 0 => loop {
