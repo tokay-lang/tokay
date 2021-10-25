@@ -387,8 +387,8 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])],
-            ["{", _, (kle [T_EOL, _]), (expect "}"), (call ast[(value "value_void")])]
+            ["{", _, (kle [T_EOL, _]), "}", (call ast[(value "value_void")])],
+            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])]
         }),
 
         // Sequences
@@ -428,15 +428,35 @@ impl Parser {
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 
+        // --- Test Environment -----------------------------------------------
+
         /*
-        (Sequence = {
-            [(pos [[T_Integer, _], (opt [",", _])]), (call ast[(value "sequence")])]
+        (T_EOL = {  // end-of-line
+            [";", (Op::Skip)],
+            [(token (Token::EOF)), (Op::Skip)],
+            [(peek "}"), (Op::Skip)]
         }),
 
-        [Sequence,
+        (T_Integer = {
+            // todo: implement as built-in Parselet
+            [(token (Token::Chars(ccl!['0' => '9']))), (call ast[(value "value_integer")])]
+        }),
+
+        (Instruction = {
+            T_Integer,
+            [T_EOL, (Op::Skip)]
+        }),
+
+        (Block = {
+            ["{", (pos Instruction), (expect "}"), (call ast[(value "block")])],
+            ["{", (kle T_EOL), (expect "}"), (call ast[(value "value_void")])]
+        }),
+
+        [Block,
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
         */
+
         // ----------------------------------------------------------------------------
                     }))
     }

@@ -57,7 +57,17 @@ impl Runable for Repeat {
         loop {
             let loop_start = context.runtime.reader.tell();
 
-            match self.body.run(context) {
+            if context.runtime.debug > 3 {
+                context.debug(&format!("Repeat {} {{", count));
+            }
+
+            let ret = self.body.run(context);
+
+            if context.runtime.debug > 3 {
+                context.debug(&format!("}} {:?}", ret));
+            }
+
+            match ret {
                 Err(Reject::Next) => break,
 
                 Err(reject) => {
@@ -68,13 +78,12 @@ impl Runable for Repeat {
 
                 Ok(Accept::Next) => {}
 
-                Ok(Accept::Push(capture)) => {
-                    count += 1;
-                    context.runtime.stack.push(capture)
-                }
+                Ok(Accept::Push(capture)) => context.runtime.stack.push(capture),
 
                 Ok(accept) => return Ok(accept),
             }
+
+            count += 1;
 
             if (self.max > 0 && count == self.max) || loop_start == context.runtime.reader.tell() {
                 break;
