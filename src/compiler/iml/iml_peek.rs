@@ -43,7 +43,7 @@ impl Runable for Peek {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = Vec::new();
 
-        ret.push(Op::Capture);
+        ret.push(Op::Frame(0));
         ret.extend(self.body.compile(parselet));
         ret.push(Op::Reset);
         ret.push(Op::Close);

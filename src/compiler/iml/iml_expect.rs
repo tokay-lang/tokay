@@ -51,7 +51,7 @@ impl Runable for Expect {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let body = self.body.compile(parselet);
 
-        let mut ret = vec![Op::Capture, Op::Fuse(body.len() + 2)];
+        let mut ret = vec![Op::Frame(body.len() + 2)];
 
         ret.extend(body);
 

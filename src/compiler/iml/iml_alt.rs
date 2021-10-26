@@ -101,7 +101,7 @@ impl Runable for Alternation {
         }
 
         if self.items.len() > 1 {
-            ret.insert(0, Op::Capture);
+            ret.insert(0, Op::Frame(0));
             ret.push(Op::Close);
         }
 

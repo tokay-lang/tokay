@@ -145,9 +145,8 @@ impl Runable for Repeat {
             (0, 0) => {
                 // Kleene
                 ret.extend(vec![
-                    Op::Capture,            // The overall capture
-                    Op::Capture,            // The fused capture for repetition
-                    Op::Fuse(body_len + 5), // The fuse!
+                    Op::Frame(0),            // The overall capture
+                    Op::Frame(body_len + 5), // The fused capture for repetition
                 ]);
                 ret.extend(body); // here comes the body
                 ret.extend(vec![
@@ -162,13 +161,12 @@ impl Runable for Repeat {
             }
             (1, 0) => {
                 // Positive
-                ret.push(Op::Capture); // The overall capture
+                ret.push(Op::Frame(0)); // The overall capture
                 ret.extend(body.clone()); // here comes the body for the first time
                 ret.extend(vec![
                     Op::ForwardIfConsumed(2), // If nothing was consumed, then...
                     Op::Next,                 //...reject
-                    Op::Capture,              // The fused capture for repetition
-                    Op::Fuse(body_len + 5),   // The fuse!
+                    Op::Frame(body_len + 5),  // The fused capture for repetition
                 ]);
                 ret.extend(body); // here comes the body again inside the repetition
                 ret.extend(vec![
@@ -183,8 +181,7 @@ impl Runable for Repeat {
             }
             (0, 1) => {
                 // Optional
-                ret.push(Op::Capture);
-                ret.push(Op::Fuse(body_len + 2));
+                ret.push(Op::Frame(body_len + 2));
                 ret.extend(body);
                 ret.push(Op::Collect(1)); // collect only values with severity > 0
                 ret.push(Op::Close);

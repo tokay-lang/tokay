@@ -30,13 +30,12 @@ pub enum Op {
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
     // Stack frame handling
-    Capture,        // Start new capture
-    Commit,         // Commit capture
-    Reset,          // Reset capture
-    Close,          // Close capture
-    Collect(usize), // Collect stack values from current capture
-    Fuse(usize),    // Set capture fuse to forward address
-    //Invert,              // Discard frame and invert state (used by 'not')
+    Frame(usize),   // Start new frame with optional forward fuse
+    Commit,         // Commit frame
+    Reset,          // Reset frame
+    Close,          // Close frame
+    Collect(usize), // Collect stack values from current frame
+    Fuse(usize),    // Set frame fuse to forward address
 
     // Conditional jumps
     ForwardIfTrue(usize),      // Jump forward when TOS is true
@@ -636,9 +635,13 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Capture => {
+                Op::Frame(fuse) => {
                     frames.push(frame);
                     frame = Frame::new(context);
+
+                    if *fuse > 0 {
+                        frame.fuse = Some(ip + *fuse);
+                    }
 
                     Ok(Accept::Next)
                 }
@@ -673,22 +676,6 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                /*
-                Op::Discard => {
-                    frame = frames.pop().unwrap();
-                    state
-                }
-
-                Op::Invert => {
-                    frame = frames.pop().unwrap();
-
-                    match state {
-                        Err(Reject::Next) => Ok(Accept::Next),
-                        Ok(_) => Err(Reject::Next),
-                        _ => state,
-                    }
-                }
-                */
                 Op::ForwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip += goto;
