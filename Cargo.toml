@@ -6,7 +6,7 @@ authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
 repository = "https://github.com/phorward/tokay/"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [features]
 default = ["static_expression_evaluation"]
