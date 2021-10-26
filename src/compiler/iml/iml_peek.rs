@@ -21,13 +21,6 @@ impl Peek {
 }
 
 impl Runable for Peek {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        let reader_start = context.runtime.reader.tell();
-        let ret = self.body.run(context);
-        context.runtime.reader.reset(reader_start);
-        ret
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

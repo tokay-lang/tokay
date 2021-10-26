@@ -216,19 +216,15 @@ impl Op {
             // Execution
             Op::Skip => Err(Reject::Skip),
             Op::Next => Err(Reject::Next),
-            Op::Continue => Ok(Accept::Continue),
+            Op::Continue => unimplemented!(),
 
             Op::Push => Ok(Accept::Push(Capture::Empty)),
             Op::LoadPush => {
                 let value = context.pop();
                 Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
             }
-
-            Op::Break => Ok(Accept::Break(None)),
-            Op::LoadBreak => {
-                let value = context.pop();
-                Ok(Accept::Break(Some(value)))
-            }
+            Op::Break => unimplemented!(),
+            Op::LoadBreak => unimplemented!(),
 
             Op::Accept => Ok(Accept::Return(None)),
             Op::LoadAccept => {

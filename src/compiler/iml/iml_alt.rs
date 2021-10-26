@@ -20,32 +20,6 @@ impl Alternation {
 }
 
 impl Runable for Alternation {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        let mut result = Ok(Accept::Next);
-        let reader_start = context.runtime.reader.tell();
-
-        for alt in self.items.iter() {
-            result = alt.run(context);
-
-            // Generally break on anything which is not Next.
-            if !matches!(&result, Ok(Accept::Next) | Err(Reject::Next)) {
-                // Push only accepts when input was consumed, otherwise the
-                // push value is just discarded, except for the last item
-                // being executed.
-                if let Ok(Accept::Push(_)) = result {
-                    // No consuming, no breaking!
-                    if reader_start == context.runtime.reader.tell() {
-                        continue;
-                    }
-                }
-
-                break;
-            }
-        }
-
-        result
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         for alt in self.items.iter_mut() {
             alt.resolve(usages);

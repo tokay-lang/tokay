@@ -38,18 +38,6 @@ impl ImlOp {
 }
 
 impl Runable for ImlOp {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        match self {
-            ImlOp::Nop => Ok(Accept::Next),
-            ImlOp::Usage(_) => panic!(
-                "{:?} can't be run; Trying to run an unresolved program?",
-                self
-            ),
-            ImlOp::Runable(runable) => runable.run(context),
-            ImlOp::Op(op) => op.run(context),
-        }
-    }
-
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         match self {
             ImlOp::Nop => Vec::new(),

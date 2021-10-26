@@ -14,25 +14,6 @@ impl Loop {
 }
 
 impl Runable for Loop {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        let capture_start = context.runtime.stack.len();
-
-        loop {
-            let ret = self.body.run(context);
-            //println!("loop {:?}", ret);
-            match ret {
-                Ok(Accept::Next | Accept::Continue) => {
-                    context.runtime.stack.truncate(capture_start);
-                }
-                Ok(Accept::Break(Some(value))) => {
-                    break Ok(Accept::Push(Capture::Value(value, None, 10)))
-                }
-                Ok(Accept::Break(None)) => break Ok(Accept::Next),
-                other => break other,
-            }
-        }
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

@@ -18,16 +18,6 @@ impl Not {
 }
 
 impl Runable for Not {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        let res = match self.body.run(context) {
-            Ok(_) => Err(Reject::Next),
-            Err(Reject::Error(err)) => Err(Reject::Error(err)),
-            Err(_) => Ok(Accept::Next),
-        };
-
-        res
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

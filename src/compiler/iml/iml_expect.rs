@@ -1,5 +1,4 @@
 use super::*;
-use crate::error::Error;
 
 /** Expecting construct.
 
@@ -20,22 +19,6 @@ impl Expect {
 }
 
 impl Runable for Expect {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        self.body.run(context).or_else(|reject| {
-            if let Reject::Next = reject {
-                let start = context.runtime.reader.tell();
-
-                if let Some(msg) = &self.msg {
-                    Error::new(Some(start), msg.clone()).into_reject()
-                } else {
-                    Error::new(Some(start), format!("Expecting {}", self.body)).into_reject()
-                }
-            } else {
-                Err(reject)
-            }
-        })
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

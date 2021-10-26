@@ -43,10 +43,6 @@ impl Program {
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = self.main {
             match match &*self.statics[main].borrow() {
-                Value::ImlParselet(main) => {
-                    main.borrow()
-                        .run(runtime, runtime.stack.len(), None, true, 0)
-                }
                 Value::Parselet(main) => {
                     main.borrow()
                         .run(runtime, runtime.stack.len(), None, true, 0)

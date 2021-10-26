@@ -169,8 +169,6 @@ impl Parselet {
                             break Some(Ok(Accept::Push(capture)));
                         }
 
-                        Accept::Break(_) | Accept::Continue => unreachable!(), // not allowed here
-
                         accept => {
                             if results.len() > 0 {
                                 break None;

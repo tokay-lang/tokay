@@ -53,27 +53,6 @@ impl If {
 }
 
 impl Runable for If {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        if self.peek {
-            if context.peek().borrow().is_true() == self.test {
-                context.pop();
-                self.then.run(context)
-            } else {
-                match &self.else_ {
-                    ImlOp::Nop => Ok(Accept::Next),
-                    other => other.run(context),
-                }
-            }
-        } else if context.pop().borrow().is_true() == self.test {
-            self.then.run(context)
-        } else {
-            match &self.else_ {
-                ImlOp::Nop => Ok(Accept::Next),
-                other => other.run(context),
-            }
-        }
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.then.resolve(usages);
         self.else_.resolve(usages);

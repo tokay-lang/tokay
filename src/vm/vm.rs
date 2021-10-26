@@ -84,11 +84,9 @@ impl Capture {
 /// Representing the Ok-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Accept {
-    Next,                     // soft-accept, push void, run next
-    Hold,                     // soft-accept, push nothing, run next
+    Next,                     // soft-accept, run next instructions at incremented ip
+    Hold,                     // soft-accept, run next instruction at current ip
     Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
-    Break(Option<RefValue>), // soft-accept, break a loop with optional push value ('break'-keyword)
-    Continue,                // soft-accept, continue a loop ('continue'-keyword)
     Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
     Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
 }

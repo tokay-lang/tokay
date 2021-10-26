@@ -480,7 +480,6 @@ fn token_modifiers() {
 
     // Parsing with sequences and modifiers
 
-    // TOKAY_VM=1 TOKAY_DEBUG=6 cargo +1.53 run -- "''a'' {''b'' ''c''}* ''d''" -- "abcbcd"
     assert_eq!(
         compile_and_run("''a'' {''b'' ''c''}* ''d''", "abcbcd"),
         Ok(Some(value![["a", [["b", "c"], ["b", "c"]], "d"]]))

@@ -28,48 +28,6 @@ impl Sequence {
 }
 
 impl Runable for Sequence {
-    fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        // Empty sequence?
-        if self.items.len() == 0 {
-            return Ok(Accept::Next);
-        }
-
-        // Remember capturing positions
-        let capture_start = context.runtime.stack.len();
-        let reader_start = context.runtime.reader.tell();
-
-        // Iterate over sequence
-        for item in &self.items {
-            match item.run(context) {
-                Err(Reject::Skip) => return Err(Reject::Skip),
-                Err(reject) => {
-                    context.runtime.stack.truncate(capture_start);
-                    context.runtime.reader.reset(reader_start);
-                    return Err(reject);
-                }
-
-                Ok(Accept::Next) => context.runtime.stack.push(Capture::Empty),
-
-                Ok(Accept::Hold) => continue,
-
-                Ok(Accept::Push(capture)) => context.runtime.stack.push(capture),
-
-                other => return other,
-            }
-        }
-
-        /*
-            When no explicit Return is performed, first try to collect any
-            non-silent captures.
-        */
-
-        match context.collect(capture_start, false, true, true, 0) {
-            Err(capture) => Ok(Accept::Push(capture)),
-            Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, 5))),
-            Ok(None) => Ok(Accept::Next),
-        }
-    }
-
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         /*
             Sequences are *the* special case for symbol resolving.

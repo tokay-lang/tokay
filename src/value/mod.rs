@@ -580,9 +580,7 @@ impl Value {
             Value::Builtin(builtin) => builtin.call(context, args, nargs),
             // fixme: TEMPORARY!!!
             Value::ImlParselet(parselet) => {
-                parselet
-                    .borrow()
-                    .run(context.runtime, args, nargs, false, context.depth + 1)
+                unreachable!("ImlParselet cannot be called anymore!")
             }
             Value::Parselet(parselet) => {
                 parselet

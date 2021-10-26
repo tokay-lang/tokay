@@ -48,7 +48,6 @@ pub struct Compiler {
     parser: Option<parser::Parser>,             // Internal Tokay parser
     pub debug: u8,                              // Compiler debug mode
     pub interactive: bool,                      // Enable interactive mode (e.g. for REPL)
-    pub vm: bool,                               // Compile into VM code
     pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
     pub(super) scopes: Vec<Scope>,              // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
@@ -64,11 +63,6 @@ impl Compiler {
                 level.parse::<u8>().unwrap_or_default()
             } else {
                 0
-            },
-            vm: if let Ok(use_vm) = std::env::var("TOKAY_VM") {
-                use_vm.parse::<u8>().unwrap_or_default() > 0
-            } else {
-                false
             },
             interactive: false,
             statics: RefCell::new(Vec::new()),
@@ -240,36 +234,34 @@ impl Compiler {
             return Err(errors);
         }
 
-        // When compiling to VM code, the ImlParselet statics have to be replaced by
-        // their Parselet counterparts created from the ImlParselets.
+        // The ImlParselet statics have to be replaced by their Parselet counterparts
+        // created from the ImlParselets.
         // This is currently a bit ugly, but allows for a functioning version supporting
         // both worlds of execution.
-        if self.vm {
-            let mut new_statics = Vec::new();
+        let mut new_statics = Vec::new();
 
-            while statics.len() > 0 {
-                let value = statics.remove(0);
+        while statics.len() > 0 {
+            let value = statics.remove(0);
 
-                {
-                    let value = &*value.borrow();
+            {
+                let value = &*value.borrow();
 
-                    if let Value::ImlParselet(iml_parselet) = value {
-                        new_statics.push(
-                            iml_parselet
-                                .borrow()
-                                .into_parselet()
-                                .into_value()
-                                .into_refvalue(),
-                        );
-                        continue;
-                    }
+                if let Value::ImlParselet(iml_parselet) = value {
+                    new_statics.push(
+                        iml_parselet
+                            .borrow()
+                            .into_parselet()
+                            .into_value()
+                            .into_refvalue(),
+                    );
+                    continue;
                 }
-
-                new_statics.push(value);
             }
 
-            statics = new_statics;
+            new_statics.push(value);
         }
+
+        statics = new_statics;
 
         // Make program from statics
         Ok(Program::new(statics))
