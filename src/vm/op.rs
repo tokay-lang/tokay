@@ -53,10 +53,7 @@ pub enum Op {
     Skip,                  // Err(Reject::Skip)
     Next,                  // Err(Reject::Next)
     Push,                  // Ok(Accept::Push)
-    Continue,              // Ok(Accept::Continue)
     LoadPush,              // Ok(Accept::Push) with value
-    Break,                 // Ok(Accept::Break)
-    LoadBreak,             // Ok(Accept::Break) with value
     Accept,                // Ok(Accept::Return)
     LoadAccept,            // Ok(Accept::Return) with value
     Repeat,                // Ok(Accept::Repeat)
@@ -198,15 +195,12 @@ impl Op {
             // Execution
             Op::Skip => Err(Reject::Skip),
             Op::Next => Err(Reject::Next),
-            Op::Continue => unimplemented!(),
 
             Op::Push => Ok(Accept::Push(Capture::Empty)),
             Op::LoadPush => {
                 let value = context.pop();
                 Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
             }
-            Op::Break => unimplemented!(),
-            Op::LoadBreak => unimplemented!(),
 
             Op::Accept => Ok(Accept::Return(None)),
             Op::LoadAccept => {

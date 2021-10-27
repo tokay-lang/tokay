@@ -1018,7 +1018,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                         match parts[1] {
                             "accept" => Op::LoadAccept.into(),
-                            "break" => Op::LoadBreak.into(),
+                            "break" => Op::Forward(0).into(),
                             "exit" => Op::LoadExit.into(),
                             "push" => Op::LoadPush.into(),
                             "repeat" => Op::LoadRepeat.into(),
@@ -1027,7 +1027,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     } else {
                         match parts[1] {
                             "accept" => Op::Accept.into(),
-                            "break" => Op::Break.into(),
+                            "break" => Op::Forward(0).into(),
                             "exit" => Op::Exit.into(),
                             "push" => Op::Push.into(),
                             "repeat" => Op::Repeat.into(),
@@ -1044,7 +1044,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         ));
                     }
 
-                    Op::Continue.into()
+                    Op::Backward(0).into()
                 }
                 "next" => Op::Next.into(),
                 "nop" => Op::Nop.into(),
@@ -1345,14 +1345,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                             // 2nd child is abort condition
                             if i == 1 {
-                                loop_ops.push(If::new_if_not(Op::Break.into(), ImlOp::Nop));
+                                loop_ops.push(If::new_if_not(Op::Forward(0).into(), ImlOp::Nop));
                             }
                         }
                     }
 
                     compiler.pop_loop();
 
-                    loop_ops.push(Op::Continue.into()); // Avoid pushing sequence results
+                    loop_ops.push(Op::Reset.into()); // Avoid pushing sequence results
+                    loop_ops.push(Op::Backward(0).into()); // perform a continue
+
                     ops.push(Loop::new(ImlOp::from_vec(loop_ops)));
                     return AstResult::Ops(ops);
                 }
@@ -1368,7 +1370,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     // In case the node has two children, the first child is the condition
                     if children.len() == 2 {
-                        ops.push(If::new_if_not(Op::Break.into(), ImlOp::Nop));
+                        ops.push(If::new_if_not(Op::Forward(0).into(), ImlOp::Nop));
 
                         ops.extend(
                             traverse_node_or_list(compiler, &children[1].borrow())
@@ -1378,7 +1380,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                     compiler.pop_loop();
 
-                    ops.push(Op::Continue.into()); // Avoid pushing sequence results
+                    ops.push(Op::Reset.into()); // Avoid pushing sequence results
+                    ops.push(Op::Backward(0).into()); // perform a continue
+
                     Loop::new(ImlOp::from_vec(ops))
                 }
 

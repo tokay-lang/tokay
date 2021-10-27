@@ -25,6 +25,28 @@ impl Runable for Loop {
     ) -> Option<Consumable> {
         self.body.finalize(statics, stack)
     }
+
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+        let mut ret = Vec::new();
+
+        ret.push(Op::Frame(0));
+
+        // compile body and fix wildcard forward- and backward-calls.
+        let body = self.body.compile(parselet);
+        let body_len = body.len();
+
+        for (i, op) in body.into_iter().enumerate() {
+            ret.push(match op {
+                Op::Forward(0) => Op::Forward(body_len - i - 1),
+                Op::Backward(0) => Op::Backward(i - 1),
+                op => op,
+            })
+        }
+
+        ret.push(Op::Close);
+
+        ret
+    }
 }
 
 impl std::fmt::Display for Loop {
