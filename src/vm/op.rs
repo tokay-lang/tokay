@@ -128,24 +128,6 @@ pub enum Op {
 impl Op {
     // Current recursive run function, that will be removed soon.
     pub fn run(&self, context: &mut Context) -> Result<Accept, Reject> {
-        // Debug
-        if context.runtime.debug > 2 {
-            context.debug(&format!("{}", self));
-
-            /*
-            if context.runtime.debug > 4 {
-                for i in 0..context.runtime.stack.len() {
-                    context.debug(&format!(" {}: {:?}", i, context.runtime.stack[i]));
-                }
-            }
-            */
-
-            // Step-by-step
-            if context.runtime.debug > 5 {
-                let _ = io::stdin().read(&mut [0u8]).unwrap();
-            }
-        }
-
         match self {
             Op::Nop => Ok(Accept::Next),
             Op::Offset(offset) => {

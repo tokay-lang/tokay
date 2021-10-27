@@ -90,29 +90,34 @@ impl Runable for If {
         // Then-part
         let then = self.then.compile(parselet);
 
-        if self.test {
-            ret.push(Op::ForwardIfFalse(then.len() + 2));
-        } else {
-            ret.push(Op::ForwardIfTrue(then.len() + 2));
-        }
+        let backpatch = ret.len();
+        ret.push(Op::Nop);
 
         if self.peek {
             ret.push(Op::Drop)
         }
 
+        let mut jump = then.len() + 1;
         ret.extend(then);
 
         if !self.peek {
             // Else-part
             let else_ = self.else_.compile(parselet);
-            let else_ = if else_.len() == 0 {
-                vec![Op::PushVoid]
-            } else {
-                else_
-            };
 
-            ret.push(Op::Forward(else_.len() + 1));
-            ret.extend(else_);
+            if !else_.is_empty() {
+                ret.push(Op::Forward(else_.len() + 1));
+                jump += 1;
+                ret.extend(else_);
+            }
+        } else {
+            jump += 1;
+        }
+
+        // Insert the final condition and its failure target.
+        if self.test {
+            ret[backpatch] = Op::ForwardIfFalse(jump);
+        } else {
+            ret[backpatch] = Op::ForwardIfTrue(jump);
         }
 
         ret

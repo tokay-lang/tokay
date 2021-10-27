@@ -1170,11 +1170,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     match parts[2] {
                         "and" => If::new_if_true(
                             ImlOp::from_vec(right.into_ops(compiler, false)),
-                            ImlOp::Nop,
+                            Op::PushVoid.into(),
                         ),
                         "or" => If::new_if_false(
                             ImlOp::from_vec(right.into_ops(compiler, false)),
-                            ImlOp::Nop,
+                            Op::PushVoid.into(),
                         ),
                         _ => {
                             ops.extend(right.into_ops(compiler, false));
@@ -1319,7 +1319,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         if let Some(else_) = else_ {
                             ImlOp::from_vec(else_.into_ops(compiler, true))
                         } else {
-                            ImlOp::Nop
+                            Op::PushVoid.into()
                         },
                     )
                 }
