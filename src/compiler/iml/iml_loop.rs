@@ -4,17 +4,26 @@ use super::*;
 
 #[derive(Debug)]
 pub struct Loop {
+    init: ImlOp,
+    condition: ImlOp,
     body: ImlOp,
 }
 
 impl Loop {
-    pub fn new(body: ImlOp) -> ImlOp {
-        Self { body }.into_op()
+    pub fn new(init: ImlOp, condition: ImlOp, body: ImlOp) -> ImlOp {
+        Self {
+            init,
+            condition,
+            body,
+        }
+        .into_op()
     }
 }
 
 impl Runable for Loop {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
+        self.init.resolve(usages);
+        self.condition.resolve(usages);
         self.body.resolve(usages);
     }
 
@@ -23,27 +32,27 @@ impl Runable for Loop {
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
+        self.init.finalize(statics, stack); // todo: incomplete as result is thrown away.
+        self.condition.finalize(statics, stack); // todo: incomplete as result is thrown away.
         self.body.finalize(statics, stack)
     }
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         let mut ret = Vec::new();
 
-        ret.push(Op::Frame(0));
+        ret.extend(self.init.compile(parselet));
 
-        // compile body and fix wildcard forward- and backward-calls.
-        let body = self.body.compile(parselet);
-        let body_len = body.len();
-
-        for (i, op) in body.into_iter().enumerate() {
-            ret.push(match op {
-                Op::Forward(0) => Op::Forward(body_len - i - 1),
-                Op::Backward(0) => Op::Backward(i - 1),
-                op => op,
-            })
+        let mut body = self.condition.compile(parselet);
+        if !body.is_empty() {
+            body.push(Op::ForwardIfTrue(2));
+            body.push(Op::Break);
         }
 
-        ret.push(Op::Close);
+        body.extend(self.body.compile(parselet));
+
+        ret.push(Op::Loop(body.len() + 2));
+        ret.extend(body);
+        ret.push(Op::Continue);
 
         ret
     }

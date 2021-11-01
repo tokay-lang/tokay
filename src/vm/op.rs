@@ -29,13 +29,19 @@ pub enum Op {
     CallStaticArg(Box<(usize, usize)>), // Call static element with sequential parameters
     CallStaticArgNamed(Box<(usize, usize)>), // Call static element with sequential and named parameters
 
-    // Stack frame handling
+    // Capture frames
     Frame(usize),   // Start new frame with optional forward fuse
     Commit,         // Commit frame
     Reset,          // Reset frame
     Close,          // Close frame
     Collect(usize), // Collect stack values from current frame
     Fuse(usize),    // Set frame fuse to forward address
+
+    // Loop frames
+    Loop(usize), // Loop frame
+    Break,       // Ok(Accept::Break)
+    LoadBreak,   // Ok(Accept::Break) with value
+    Continue,    // Ok(Accept::Continue)
 
     // Conditional jumps
     ForwardIfTrue(usize),      // Jump forward when TOS is true
@@ -564,7 +570,9 @@ impl Op {
         // ---------------------------------------------------------------------
 
         let mut ip = 0; // Instruction pointer
-        let mut frames: Vec<Frame> = Vec::new(); // Open frames
+        let mut frames: Vec<Frame> = Vec::new(); // Frames
+        let mut loops: Vec<(usize, usize, usize)> = Vec::new(); // Loops
+
         let mut frame = Frame::new(context); // Main capture
         let mut state = Ok(Accept::Next);
 
@@ -607,6 +615,7 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                // Frames
                 Op::Frame(fuse) => {
                     frames.push(frame);
                     frame = Frame::new(context);
@@ -648,6 +657,56 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                // Loops
+                Op::Loop(size) => {
+                    frames.push(frame);
+                    frame = Frame::new(context);
+                    loops.push((frames.len(), ip, ip + *size));
+                    Ok(Accept::Next)
+                }
+
+                Op::Continue => {
+                    let current = loops.last().unwrap();
+
+                    // Discard all open frames inside current loop.
+                    while frames.len() > current.0 {
+                        frame = frames.pop().unwrap();
+                    }
+
+                    context.runtime.stack.truncate(frame.capture_start);
+
+                    // Jump to loop start.
+                    ip = current.1;
+                    Ok(Accept::Next)
+                }
+
+                Op::Break | Op::LoadBreak => {
+                    let current = loops.pop().unwrap();
+
+                    // Save value?
+                    let value = if matches!(op, Op::LoadBreak) {
+                        Some(context.pop())
+                    } else {
+                        None
+                    };
+
+                    // Discard all open frames inside current loop.
+                    while frames.len() >= current.0 {
+                        frame = frames.pop().unwrap();
+                        context.runtime.stack.truncate(frame.capture_start);
+                    }
+
+                    // Jump behind loop
+                    ip = current.2;
+
+                    Ok(if let Some(value) = value {
+                        Accept::Push(Capture::Value(value, None, 10))
+                    } else {
+                        Accept::Next
+                    })
+                }
+
+                // Conditional jumps
                 Op::ForwardIfTrue(goto) => {
                     if context.pop().borrow().is_true() {
                         ip += goto;
@@ -798,7 +857,7 @@ impl Op {
 
             // Debug
             if context.runtime.debug > 3 {
-                context.debug(&format!("state = {:?}", state));
+                context.debug(&format!("ip = {} state = {:?}", ip, state));
             }
 
             match state {

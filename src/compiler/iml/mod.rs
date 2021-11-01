@@ -46,9 +46,7 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display
     ) -> Option<Consumable>;
 
     /** Turn intermediate structure into Tokay VM code. */
-    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
-        todo!();
-    }
+    fn compile(&self, parselet: &ImlParselet) -> Vec<Op>;
 
     /** Convert parser object into boxed dyn Parser Op */
     fn into_op(self) -> ImlOp
