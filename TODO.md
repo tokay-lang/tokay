@@ -2,26 +2,23 @@
 
 This is a recently updated brainstorming and todo scribble file.
 
-## Pritority
+## General
 
 - [ ] Generic parselets
   - [ ] `Until<P, Escape=Void>`, e.g. `print(Until<EOF>)`
   - [ ] `Not<P>`
   - [ ] `Peek<P>`
   - [ ] `Repeat<P, min:1, max:0>`
-- [ ] Implement loops
+- [ ] Loops
   - [x] `for` construct
   - [ ] `for...in` construct
   - [x] `loop` construct
   - [x] Implement `break` and `continue`
-- [ ] Implement the escape keyword
 - [ ] Implementation of a module system
   - [ ] Import constants from other module
   - [ ] Run other module as separate programs and work on resulting values
-  - [ ] Pass string to separate tokay process (`tokay`-keyword, `@>` operator?)
-
-## General
-
+  - [ ] Pass string into separate tokay process (`tokay`-keyword, `@>` operator?)
+- [ ] `escape`-keyword
 - [x] Row & column number recording in Reader/Range by working with an Offset data structure rather than usize to allow further tracking, e.g. of row + col numbers
 - [ ] Grammar view
   - [ ] Perform left-recursion detection on begin and end also?
@@ -29,11 +26,10 @@ This is a recently updated brainstorming and todo scribble file.
 - [ ] Values
   - [ ] Dict should use **indexmap** crate (https://github.com/bluss/indexmap)
   - [ ] Locked objects (this is required to disallow modification of Dict and List constants)
-  - [ ] Object method interface, e.g. `(1 2 3).len()`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
+  - [x] Object method interface, e.g. `(1 2 3).len`, `(1 2 3).pop()`, `(a => 32).insert("b", 64)`
   - [x] Integer division `1/6` returns 0, but should return float. `1./6` correctly returns 0.16666666666666666
   - [ ] Use string arithmetics for something like 123 ^ 3000 later on, which cannot be handled by i64.
     - [ ] Use external crate **num_bigint** for integers instead of i64
-  - [ ] `Op::Repeat(min=1, max=0)` needs some more clarity what is being accepted, especially when no input is consumed
 
 ## Syntax
 
@@ -45,7 +41,8 @@ Syntax is under careful consideration.
   - [ ] `**` and `**=` (powers)?
   - [ ] `//` and `//=` (integer division)?
 - [ ] Definition of Regex tokens `/Hel+o Wo?rld/` (not now, see https://github.com/phorward/tokay/issues/1)
-- [ ] Implement `ls -ltra` backticks (`) for shell command values
+- Shell command integration
+  - [ ] Implement `ls -ltra` backticks (`) for shell command values
   - [ ] Operators `|>` and `<|` for shell command read/write?
 - [ ] *deref-Operator to avoid automatic calling values when they are directly callable
 - [ ] Parselets should allow for *args and **nargs catchall
@@ -67,6 +64,7 @@ Syntax is under careful consideration.
 - [ ] Parser improvements
   - [x] Unescaping of character-class items
   - [ ] Use built-in tokens like Integer or Float on appropriate positions
+- [ ] Avoid building ImlOp::Sequences from sequences of operations which aren't a sequence at all
 
 ## REPL
 
