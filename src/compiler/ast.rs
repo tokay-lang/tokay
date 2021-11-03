@@ -1047,7 +1047,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     Op::Continue.into()
                 }
                 "next" => Op::Next.into(),
-                "nop" => Op::Nop.into(),
+                "nop" => ImlOp::Nop,
                 "reject" => Op::Reject.into(),
 
                 "binary" => {

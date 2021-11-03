@@ -4,6 +4,7 @@ use super::*;
 
 #[derive(Debug)]
 pub struct Loop {
+    consuming: Option<Consumable>, // Consumable state
     init: ImlOp,
     condition: ImlOp,
     body: ImlOp,
@@ -12,6 +13,7 @@ pub struct Loop {
 impl Loop {
     pub fn new(init: ImlOp, condition: ImlOp, body: ImlOp) -> ImlOp {
         Self {
+            consuming: None,
             init,
             condition,
             body,
@@ -32,9 +34,28 @@ impl Runable for Loop {
         statics: &Vec<RefValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        self.init.finalize(statics, stack); // todo: incomplete as result is thrown away.
-        self.condition.finalize(statics, stack); // todo: incomplete as result is thrown away.
-        self.body.finalize(statics, stack)
+        let mut ret: Option<Consumable> = None;
+
+        for part in [
+            self.init.finalize(statics, stack),
+            self.condition.finalize(statics, stack),
+            self.body.finalize(statics, stack),
+        ] {
+            if let Some(part) = part {
+                ret = if let Some(ret) = ret {
+                    Some(Consumable {
+                        leftrec: ret.leftrec || part.leftrec,
+                        nullable: ret.nullable || part.nullable,
+                    })
+                } else {
+                    Some(part)
+                }
+            }
+        }
+
+        self.consuming = ret.clone();
+
+        ret
     }
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
@@ -50,9 +71,19 @@ impl Runable for Loop {
 
         body.extend(self.body.compile(parselet));
 
-        ret.push(Op::Loop(body.len() + 2));
+        ret.push(Op::Loop(
+            body.len() + if self.consuming.is_some() { 3 } else { 2 },
+        ));
+        if self.consuming.is_some() {
+            ret.push(Op::Fuse(body.len() + 2));
+        }
+
         ret.extend(body);
         ret.push(Op::Continue);
+
+        if self.consuming.is_some() {
+            ret.push(Op::Break);
+        }
 
         ret
     }

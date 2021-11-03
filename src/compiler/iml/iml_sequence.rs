@@ -13,7 +13,7 @@ processed, including data changes, which is a wanted behavior.
 
 #[derive(Debug)]
 pub struct Sequence {
-    pub(crate) consuming: Option<Consumable>, // Consumable state
+    consuming: Option<Consumable>, // Consumable state
     items: Vec<ImlOp>,
 }
 
