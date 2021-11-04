@@ -8,6 +8,7 @@ pub enum ImlOp {
     Nop,
     Usage(usize),                      // (yet) unresolved usage
     Compileable(Box<dyn Compileable>), // Compileable item
+    Ops(Vec<ImlOp>),                   // Sequence of ImlOps
     Op(Op),                            // VM Operation
 }
 
@@ -16,7 +17,7 @@ impl ImlOp {
         match ops.len() {
             0 => ImlOp::Nop,
             1 => ops.into_iter().next().unwrap(),
-            _ => Sequence::new(ops),
+            _ => ImlOp::Ops(ops),
         }
     }
 
@@ -41,8 +42,17 @@ impl Compileable for ImlOp {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         match self {
             ImlOp::Nop => Vec::new(),
-            ImlOp::Usage(_) => panic!("Cannot compile Iml::Usage"),
-            ImlOp::Compileable(r) => r.compile(parselet),
+            ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
+            ImlOp::Compileable(compileable) => compileable.compile(parselet),
+            ImlOp::Ops(ops) => {
+                let mut ret = Vec::new();
+
+                for op in ops.into_iter() {
+                    ret.extend(op.compile(parselet));
+                }
+
+                ret
+            }
             ImlOp::Op(op) => vec![op.clone()],
         }
     }
@@ -50,7 +60,8 @@ impl Compileable for ImlOp {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         match self {
             ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
-            ImlOp::Compileable(runable) => runable.resolve(usages),
+            ImlOp::Compileable(compileable) => compileable.resolve(usages),
+            ImlOp::Ops(ops) => ops.iter_mut().map(|op| op.resolve(usages)).collect(),
             _ => {}
         }
     }
@@ -62,6 +73,24 @@ impl Compileable for ImlOp {
     ) -> Option<Consumable> {
         match self {
             ImlOp::Compileable(runable) => runable.finalize(statics, stack),
+            ImlOp::Ops(ops) => {
+                let mut ret: Option<Consumable> = None;
+
+                for op in ops.iter_mut() {
+                    if let Some(part) = op.finalize(statics, stack) {
+                        ret = if let Some(ret) = ret {
+                            Some(Consumable {
+                                leftrec: ret.leftrec || part.leftrec,
+                                nullable: ret.nullable || part.nullable,
+                            })
+                        } else {
+                            Some(part)
+                        }
+                    }
+                }
+
+                ret
+            }
             ImlOp::Op(Op::CallStatic(target)) => {
                 match &*statics[*target].borrow() {
                     Value::ImlParselet(parselet) => {

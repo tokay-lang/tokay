@@ -63,7 +63,7 @@ Syntax is under careful consideration.
 - [ ] Parser improvements
   - [x] Unescaping of character-class items
   - [ ] Use built-in tokens like Integer or Float on appropriate positions (T_Integer, T_Float...)
-- [ ] Avoid building ImlOp::Sequences from sequences of operations which aren't a sequence at all
+- [x] Avoid building ImlOp::Sequences from sequences of operations which aren't a sequence at all (ImlOp::Ops)
 - [ ] Introduce Compile-time values, also to implement generic parselets
 - [ ] Replace `Repeat`-construct by built-in generic `Repeat`-parselet; The (incomplete) Rust implementation can be entirely removed afterwards.
 
