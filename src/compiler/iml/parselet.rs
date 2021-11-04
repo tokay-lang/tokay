@@ -63,24 +63,16 @@ impl ImlParselet {
 
     // Turns an ImlParselet in to a parselet
     pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
-        let begin = self.begin.compile(&self);
-        let end = self.end.compile(&self);
-        let body = self.body.compile(&self);
-
-        let mut parselet = Parselet::new(
+        Parselet::new(
             self.name.clone(),
+            self.consuming.clone(),
+            self.severity,
             self.signature.clone(),
             self.locals,
-            begin,
-            end,
-            body,
-        );
-
-        // fixme: the following attributes must be passed differently.
-        parselet.consuming = self.consuming.clone();
-        parselet.severity = self.severity;
-
-        parselet
+            self.begin.compile(&self),
+            self.end.compile(&self),
+            self.body.compile(&self),
+        )
     }
 
     pub(in crate::compiler) fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {

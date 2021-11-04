@@ -22,20 +22,22 @@ the generated parse tree automatically until no more input can be consumed.
 
 #[derive(Debug)]
 pub struct Parselet {
-    pub(crate) consuming: Option<Consumable>, // Consumable state
-    pub(crate) severity: u8,                  // Capture push severity
-    pub(crate) name: Option<String>,          // Parselet's name from source (for debugging)
-    signature: Vec<(String, Option<usize>)>,  // Argument signature with default arguments
-    pub(crate) locals: usize,                 // Number of local variables present
-    begin: Vec<Op>,                           // Begin-operations
-    end: Vec<Op>,                             // End-operations
-    body: Vec<Op>,                            // Operations
+    pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
+    pub(crate) consuming: Option<Consumable>, // Indicator for consuming & left-recursion
+    pub(crate) severity: u8,         // Capture push severity
+    signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
+    pub(crate) locals: usize,        // Number of local variables present
+    begin: Vec<Op>,                  // Begin-operations
+    end: Vec<Op>,                    // End-operations
+    body: Vec<Op>,                   // Operations
 }
 
 impl Parselet {
     /// Creates a new parselet.
     pub fn new(
         name: Option<String>,
+        consuming: Option<Consumable>,
+        severity: u8,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
         begin: Vec<Op>,
@@ -49,8 +51,8 @@ impl Parselet {
 
         Self {
             name,
-            consuming: None,
-            severity: 5,
+            consuming,
+            severity,
             signature,
             locals,
             begin,
@@ -272,7 +274,8 @@ impl Parselet {
         // Check for a previously memoized result in memo table
         let id = self as *const Parselet as usize;
 
-        if !main && self.consuming.is_some() {
+        // When parselet is consuming, try to read previous result from cache.
+        if self.consuming.is_some() {
             // Get unique parselet id from memory address
             let reader_start = runtime.reader.tell();
 
@@ -285,8 +288,7 @@ impl Parselet {
         // If not, start a new context.
         let mut context = Context::new(
             runtime,
-            &self.name,      // fixme: TEMP TEMP TEMP
-            &self.consuming, // fixme: TEMP TEMP TEMP
+            &self,
             self.locals,
             args,
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
@@ -362,9 +364,7 @@ impl Parselet {
         //println!("remaining {:?}", nargs);
 
         // Perform left-recursive execution
-        let result = if let (false, Some(Consumable { leftrec: true, .. })) =
-            (main, self.consuming.as_ref())
-        {
+        let result = if let Some(Consumable { leftrec: true, .. }) = self.consuming.as_ref() {
             /*
             println!(
                 "--- {} @ {} ---",

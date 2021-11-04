@@ -2,10 +2,9 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::*;
-use crate::compiler::iml::Consumable; // fixme: I AM TEMPORAL, CPT JANEWAY!
 use crate::error::Error;
 use crate::reader::{Offset, Range, Reader};
-use crate::value::{Dict, List, RefValue, Value}; // todo: temporary!
+use crate::value::{Dict, List, Parselet, RefValue, Value};
 
 // --- Capture -----------------------------------------------------------------
 
@@ -117,23 +116,19 @@ impl From<Error> for Reject {
 Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
-    //pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
-    pub(crate) parselet_name: &'parselet Option<String>, // fixme: I AM TEMPORARY!!
-    pub(crate) parselet_consuming: &'parselet Option<Consumable>, // fixme: I AM TEMPORARY!!
-    pub(crate) stack_start: usize, // Stack start (including locals and parameters)
-    pub(crate) capture_start: usize, // Stack capturing start
-    pub(crate) reader_start: Offset, // Current reader offset
+    pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
+    pub(crate) stack_start: usize,            // Stack start (including locals and parameters)
+    pub(crate) capture_start: usize,          // Stack capturing start
+    pub(crate) reader_start: Offset,          // Current reader offset
     pub(crate) source_offset: Option<Offset>, // Tokay source offset
-    hold: usize,                   // Defines number of stack items to hold on context drop
-    pub(crate) depth: usize,       // Recursion depth
+    hold: usize,             // Defines number of stack items to hold on context drop
+    pub(crate) depth: usize, // Recursion depth
 }
 
 impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
     pub fn new(
         runtime: &'runtime mut Runtime<'program, 'reader>,
-        //parselet: &'parselet Parselet,
-        parselet_name: &'parselet Option<String>, // fixme: YES I AM TEMPORARY!!
-        parselet_consuming: &'parselet Option<Consumable>, // fixme: YES I AM TEMPORARY!!
+        parselet: &'parselet Parselet,
         locals: usize,
         take: usize,
         hold: usize,
@@ -158,9 +153,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             capture_start: stack_start + locals,
             reader_start: runtime.reader.tell(),
             runtime,
-            //parselet,
-            parselet_name,      // fixme: YES, JA, YO MAN: I AM TEMPORARY!!!
-            parselet_consuming, // fixme: YES, JA, YO MAN: I AM TEMPORARY EITHER!!!
+            parselet,
             source_offset: None,
             hold,
             depth,
@@ -174,9 +167,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             "{}{}{:5} {}",
             ".".repeat(self.depth),
             //self.parselet.name.as_deref().unwrap_or("(unnamed)"), // fixme: TEMPORAL!
-            self.parselet_name.as_deref().unwrap_or("(unnamed)"),
+            self.parselet.name.as_deref().unwrap_or("(unnamed)"),
             //if self.parselet.consuming.is_some() {
-            if self.parselet_consuming.is_some() {
+            if self.parselet.consuming.is_some() {
                 format!("@{: <4}", self.runtime.reader.tell().offset)
             } else {
                 "".to_string()
