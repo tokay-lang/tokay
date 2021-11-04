@@ -22,7 +22,7 @@ impl Loop {
     }
 }
 
-impl Runable for Loop {
+impl Compileable for Loop {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.init.resolve(usages);
         self.condition.resolve(usages);

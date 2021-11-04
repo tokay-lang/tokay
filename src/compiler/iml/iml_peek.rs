@@ -20,7 +20,7 @@ impl Peek {
     }
 }
 
-impl Runable for Peek {
+impl Compileable for Peek {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

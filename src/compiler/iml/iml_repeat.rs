@@ -36,7 +36,7 @@ impl Repeat {
     }
 }
 
-impl Runable for Repeat {
+impl Compileable for Repeat {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

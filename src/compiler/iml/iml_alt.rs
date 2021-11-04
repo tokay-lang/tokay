@@ -19,7 +19,7 @@ impl Alternation {
     }
 }
 
-impl Runable for Alternation {
+impl Compileable for Alternation {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         for alt in self.items.iter_mut() {
             alt.resolve(usages);

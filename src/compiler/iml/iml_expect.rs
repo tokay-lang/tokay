@@ -18,7 +18,7 @@ impl Expect {
     }
 }
 
-impl Runable for Expect {
+impl Compileable for Expect {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

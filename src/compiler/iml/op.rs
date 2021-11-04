@@ -6,9 +6,9 @@ use crate::value::{RefValue, Value};
 #[derive(Debug)]
 pub enum ImlOp {
     Nop,
-    Usage(usize),              // (yet) unresolved usage
-    Runable(Box<dyn Runable>), // Runable item
-    Op(Op),                    // VM Operation
+    Usage(usize),                      // (yet) unresolved usage
+    Compileable(Box<dyn Compileable>), // Compileable item
+    Op(Op),                            // VM Operation
 }
 
 impl ImlOp {
@@ -37,12 +37,12 @@ impl ImlOp {
     }
 }
 
-impl Runable for ImlOp {
+impl Compileable for ImlOp {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Usage(_) => panic!("Cannot compile Iml::Usage"),
-            ImlOp::Runable(r) => r.compile(parselet),
+            ImlOp::Compileable(r) => r.compile(parselet),
             ImlOp::Op(op) => vec![op.clone()],
         }
     }
@@ -50,7 +50,7 @@ impl Runable for ImlOp {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         match self {
             ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
-            ImlOp::Runable(runable) => runable.resolve(usages),
+            ImlOp::Compileable(runable) => runable.resolve(usages),
             _ => {}
         }
     }
@@ -61,7 +61,7 @@ impl Runable for ImlOp {
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Runable(runable) => runable.finalize(statics, stack),
+            ImlOp::Compileable(runable) => runable.finalize(statics, stack),
             ImlOp::Op(Op::CallStatic(target)) => {
                 match &*statics[*target].borrow() {
                     Value::ImlParselet(parselet) => {
@@ -131,7 +131,7 @@ impl Runable for ImlOp {
 impl std::fmt::Display for ImlOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ImlOp::Runable(p) => write!(f, "{}", p),
+            ImlOp::Compileable(p) => write!(f, "{}", p),
             op => write!(f, "Op {:?}", op),
         }
     }

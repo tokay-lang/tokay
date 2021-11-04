@@ -30,8 +30,8 @@ pub /* todo: (in crate::compiler) */ struct Consumable {
     pub nullable: bool, // Flag if consumable is nullable
 }
 
-pub trait Runable: std::fmt::Debug + std::fmt::Display
-/* todo: (in crate::compiler) trait Runable: std::fmt::Debug + std::fmt::Display */
+pub trait Compileable: std::fmt::Debug + std::fmt::Display
+/* todo: (in crate::compiler) trait Compileable: std::fmt::Debug + std::fmt::Display */
 {
     /** Resolve any unresolved Usages. */
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>);
@@ -53,6 +53,6 @@ pub trait Runable: std::fmt::Debug + std::fmt::Display
     where
         Self: Sized + 'static,
     {
-        ImlOp::Runable(Box::new(self))
+        ImlOp::Compileable(Box::new(self))
     }
 }

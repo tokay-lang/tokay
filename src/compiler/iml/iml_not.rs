@@ -17,7 +17,7 @@ impl Not {
     }
 }
 
-impl Runable for Not {
+impl Compileable for Not {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }

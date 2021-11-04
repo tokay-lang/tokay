@@ -52,7 +52,7 @@ impl If {
     }
 }
 
-impl Runable for If {
+impl Compileable for If {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.then.resolve(usages);
         self.else_.resolve(usages);

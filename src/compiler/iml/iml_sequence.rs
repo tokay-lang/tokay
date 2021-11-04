@@ -27,7 +27,7 @@ impl Sequence {
     }
 }
 
-impl Runable for Sequence {
+impl Compileable for Sequence {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         /*
             Sequences are *the* special case for symbol resolving.
