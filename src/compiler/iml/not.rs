@@ -1,6 +1,6 @@
 use super::*;
 
-/** Negate parser.
+/** Negated parser.
 
 This parser runs its sub-parser and returns its negated result, so that an accept becomes
 rejected and vice-versa.

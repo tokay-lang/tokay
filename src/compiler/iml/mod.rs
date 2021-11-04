@@ -2,27 +2,27 @@
 use crate::value::RefValue;
 pub use crate::vm::*;
 
-mod iml_alt;
-mod iml_expect;
-mod iml_if;
-mod iml_loop;
-mod iml_not;
-mod iml_peek;
-mod iml_repeat;
-mod iml_sequence;
+mod alt;
+mod expect;
+mod if_;
+mod loop_;
+mod not;
 mod op;
 mod parselet;
+mod peek;
+mod repeat;
+mod sequence;
 
-pub use iml_alt::*;
-pub use iml_expect::*;
-pub use iml_if::*;
-pub use iml_loop::*;
-pub use iml_not::*;
-pub use iml_peek::*;
-pub use iml_repeat::*;
-pub use iml_sequence::*;
+pub use alt::*;
+pub use expect::*;
+pub use if_::*;
+pub use loop_::*;
+pub use not::*;
 pub use op::*;
 pub use parselet::*;
+pub use peek::*;
+pub use repeat::*;
+pub use sequence::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub /* todo: (in crate::compiler) */ struct Consumable {
