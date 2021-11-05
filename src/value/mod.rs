@@ -578,10 +578,6 @@ impl Value {
                 token.read(context.runtime.reader)
             }
             Value::Builtin(builtin) => builtin.call(context, args, nargs),
-            // fixme: TEMPORARY!!!
-            Value::ImlParselet(parselet) => {
-                unreachable!("ImlParselet cannot be called anymore!")
-            }
             Value::Parselet(parselet) => {
                 parselet
                     .borrow()
