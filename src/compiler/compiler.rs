@@ -1,6 +1,5 @@
 //! Tokay compiler interface
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::BufReader;
 
@@ -45,13 +44,13 @@ The compiler can be set into an interactive mode so that statics, variables and 
 won't be removed and can be accessed later on. This is useful in REPL mode.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,             // Internal Tokay parser
-    pub debug: u8,                              // Compiler debug mode
-    pub interactive: bool,                      // Enable interactive mode (e.g. for REPL)
-    pub(super) statics: RefCell<Vec<RefValue>>, // Static values and parselets collected during compile
-    pub(super) scopes: Vec<Scope>,              // Current compilation scopes
+    parser: Option<parser::Parser>,    // Internal Tokay parser
+    pub debug: u8,                     // Compiler debug mode
+    pub interactive: bool,             // Enable interactive mode (e.g. for REPL)
+    pub(super) statics: Vec<RefValue>, // Static values and parselets collected during compile
+    pub(super) scopes: Vec<Scope>,     // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
-    pub(super) errors: Vec<Error>,              // Collected errors during compilation
+    pub(super) errors: Vec<Error>,     // Collected errors during compilation
 }
 
 impl Compiler {
@@ -65,7 +64,7 @@ impl Compiler {
                 0
             },
             interactive: false,
-            statics: RefCell::new(Vec::new()),
+            statics: Vec::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
@@ -129,9 +128,9 @@ impl Compiler {
         assert!(self.scopes.len() == 0 || (self.scopes.len() == 1 && self.interactive));
 
         let mut statics: Vec<RefValue> = if self.interactive {
-            self.statics.borrow().clone()
+            self.statics.clone()
         } else {
-            self.statics.borrow_mut().drain(..).collect()
+            self.statics.drain(..).collect()
         };
 
         let mut usages = self
@@ -583,23 +582,19 @@ impl Compiler {
 
     /** Defines a new static value inside the program.
     Statics are only inserted once when they already exist. */
-    pub(crate) fn define_static(&self, value: RefValue) -> usize {
-        let mut statics = self.statics.borrow_mut();
-
+    pub(crate) fn define_static(&mut self, value: RefValue) -> usize {
         // Check if there exists already a static equivalent to new_value
         // fixme: A HashTab might be more faster here...
         {
-            let value = value.borrow();
-
-            for (i, known) in statics.iter().enumerate() {
-                if *known.borrow() == *value {
+            for (i, known) in self.statics.iter().enumerate() {
+                if *known == value {
                     return i; // Reuse existing value address
                 }
             }
         }
 
         // Save value as new
-        statics.push(value);
-        statics.len() - 1
+        self.statics.push(value);
+        self.statics.len() - 1
     }
 }
