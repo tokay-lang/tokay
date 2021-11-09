@@ -18,7 +18,6 @@ macro_rules! tokay {
         {
             let mut compiler = Compiler::new();
             compiler.debug = 0;  // unset debug always
-            //compiler.vm = false; // if enabled, don't use new VM attempt for processing
 
             compiler.push_parselet();  // Main
             compiler.mark_consuming();
@@ -31,7 +30,7 @@ macro_rules! tokay {
                 main.unwrap_or(ImlOp::Nop)
             ).into_value().into_refvalue();
 
-            compiler.define_static(parselet);
+            compiler.define_static(parselet);  // Define main parselet
 
             match compiler.to_program() {
                 Ok(program) => {
@@ -83,8 +82,6 @@ macro_rules! tokay {
                     .collect()
             );
 
-            //let body = Repeat::new(body, 0, 0, true);  //this became obsolete by the compiler!
-
             let mut parselet = $compiler.pop_parselet(
                 Some("_".to_string()),
                 Vec::new(),
@@ -130,7 +127,6 @@ macro_rules! tokay {
                 body
             ).into_value().into_refvalue();
 
-            $compiler.define_static(parselet.clone());
             $compiler.set_constant(&name, parselet);
 
             None
