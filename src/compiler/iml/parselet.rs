@@ -1,36 +1,22 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+//! Intermediate representation of a parselet
 
 use super::*;
 use crate::value::{Parselet, Value};
 
-/** Parselet is the conceptual building block of a Tokay program.
-
-A parselet is like a function in ordinary programming languages, with the
-exception that it can either be a snippet of parsing instructions combined with
-semantic code, or just an ordinary function consisting of code and returning
-values. The destinction if a parselet represents just a function or a parselet is
-done by the consuming-flag, which is determined by use of static tokens, parselets
-and consuming builtins.
-
-Parselets support static program constructs being left-recursive, and extend
-the generated parse tree automatically until no more input can be consumed.
-*/
-
 #[derive(Debug)]
 pub struct ImlParselet {
-    pub(crate) consuming: Option<Consumable>, // Consumable state
-    pub(crate) severity: u8,                  // Capture push severity
-    pub(crate) name: Option<String>,          // Parselet's name from source (for debugging)
-    signature: Vec<(String, Option<usize>)>,  // Argument signature with default arguments
-    pub(crate) locals: usize,                 // Number of local variables present
-    begin: ImlOp,                             // Begin-operations
-    end: ImlOp,                               // End-operations
-    body: ImlOp,                              // Operations
+    pub consuming: Option<Consumable>,           // Consumable state
+    pub severity: u8,                            // Capture push severity
+    pub name: Option<String>,                    // Parselet's name from source (for debugging)
+    pub signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
+    locals: usize,                               // Number of local variables present
+    begin: ImlOp,                                // Begin-operations
+    end: ImlOp,                                  // End-operations
+    body: ImlOp,                                 // Operations
 }
 
 impl ImlParselet {
-    /// Creates a new parselet.
+    /// Creates a new intermediate parselet.
     pub fn new(
         name: Option<String>,
         signature: Vec<(String, Option<usize>)>,
@@ -56,16 +42,15 @@ impl ImlParselet {
         }
     }
 
-    /// Turns parselet into a Value
-    pub fn into_value(self) -> Value {
-        Value::ImlParselet(Rc::new(RefCell::new(self)))
-    }
-
     // Turns an ImlParselet in to a parselet
     pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
         Parselet::new(
             self.name.clone(),
-            self.consuming.clone(),
+            if let Some(Consumable { leftrec, .. }) = self.consuming {
+                Some(leftrec)
+            } else {
+                None
+            },
             self.severity,
             self.signature.clone(),
             self.locals,
@@ -75,26 +60,18 @@ impl ImlParselet {
         )
     }
 
-    pub(in crate::compiler) fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
+    pub fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.begin.resolve(usages);
         self.end.resolve(usages);
         self.body.resolve(usages);
     }
 
-    pub(in crate::compiler) fn finalize(
+    pub fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        self.body.finalize(statics, stack)
-    }
-
-    // Checks if parselet is callable with or without arguments
-    pub(crate) fn is_callable(&self, with_arguments: bool) -> bool {
-        // Either without arguments and signature is empty or all arguments have default values
-        (!with_arguments && (self.signature.len() == 0 || self.signature.iter().all(|arg| arg.1.is_some())))
-        // or with arguments and signature exists
-            || (with_arguments && self.signature.len() > 0)
+        self.body.finalize(values, stack)
     }
 }
 

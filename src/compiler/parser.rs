@@ -473,8 +473,6 @@ impl Parser {
 
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
-                let ast = Value::from_ref(ast).unwrap();
-
                 if ast.get_dict().is_some() {
                     Ok(ast)
                 } else {

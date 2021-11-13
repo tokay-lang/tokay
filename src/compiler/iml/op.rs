@@ -1,5 +1,4 @@
 use super::*;
-use crate::value::{RefValue, Value};
 
 /** Intermediate code representation. */
 
@@ -68,16 +67,16 @@ impl Compileable for ImlOp {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Compileable(runable) => runable.finalize(statics, stack),
+            ImlOp::Compileable(runable) => runable.finalize(values, stack),
             ImlOp::Ops(ops) => {
                 let mut ret: Option<Consumable> = None;
 
                 for op in ops.iter_mut() {
-                    if let Some(part) = op.finalize(statics, stack) {
+                    if let Some(part) = op.finalize(values, stack) {
                         ret = if let Some(ret) = ret {
                             Some(Consumable {
                                 leftrec: ret.leftrec || part.leftrec,
@@ -92,8 +91,8 @@ impl Compileable for ImlOp {
                 ret
             }
             ImlOp::Op(Op::CallStatic(target)) => {
-                match &*statics[*target].borrow() {
-                    Value::ImlParselet(parselet) => {
+                match &values[*target] {
+                    ImlValue::Parselet(parselet) => {
                         if stack.len() > 0 {
                             if let Ok(mut parselet) = parselet.try_borrow_mut() {
                                 if parselet.consuming.is_none() {
@@ -108,7 +107,7 @@ impl Compileable for ImlOp {
                                         false
                                     },
                                 ));
-                                let ret = parselet.finalize(statics, stack);
+                                let ret = parselet.finalize(values, stack);
                                 stack.pop();
 
                                 // --- Incomplete solution for the problem described in test/testindirectleftrec ---

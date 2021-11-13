@@ -1,5 +1,4 @@
 //! Tokay compiler interface
-
 use std::collections::HashMap;
 use std::io::BufReader;
 
@@ -8,7 +7,7 @@ use crate::builtin;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::token;
-use crate::value::{RefValue, Value};
+use crate::value::Value;
 use crate::vm::*;
 
 /** Compiler symbolic scope.
@@ -22,7 +21,7 @@ pub(crate) enum Scope {
     Parselet {
         // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, RefValue>, // Constants symbol table
+        constants: HashMap<String, ImlValue>, // Constants symbol table
         variables: HashMap<String, usize>, // Variable symbol table
         begin: Vec<ImlOp>,  // Begin operations
         end: Vec<ImlOp>,    // End operations
@@ -31,7 +30,7 @@ pub(crate) enum Scope {
     Block {
         // block level (constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, RefValue>, // Constants symbol table
+        constants: HashMap<String, ImlValue>, // Constants symbol table
     },
     Loop, // loop level (allows use of break & continue)
 }
@@ -44,13 +43,13 @@ The compiler can be set into an interactive mode so that statics, variables and 
 won't be removed and can be accessed later on. This is useful in REPL mode.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,    // Internal Tokay parser
-    pub debug: u8,                     // Compiler debug mode
-    pub interactive: bool,             // Enable interactive mode (e.g. for REPL)
-    pub(super) statics: Vec<RefValue>, // Static values and parselets collected during compile
-    pub(super) scopes: Vec<Scope>,     // Current compilation scopes
+    parser: Option<parser::Parser>,   // Internal Tokay parser
+    pub debug: u8,                    // Compiler debug mode
+    pub interactive: bool,            // Enable interactive mode (e.g. for REPL)
+    pub(super) values: Vec<ImlValue>, // Constant values and parselets created during compile
+    pub(super) scopes: Vec<Scope>,    // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
-    pub(super) errors: Vec<Error>,     // Collected errors during compilation
+    pub(super) errors: Vec<Error>,    // Collected errors during compilation
 }
 
 impl Compiler {
@@ -64,7 +63,7 @@ impl Compiler {
                 0
             },
             interactive: false,
-            statics: Vec::new(),
+            values: Vec::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
@@ -122,17 +121,13 @@ impl Compiler {
 
     /** Converts the compiled information into a Program. */
     pub(crate) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
+        // Collect additional errors
         let mut errors: Vec<Error> = self.errors.drain(..).collect();
 
         // Close all scopes except main
         assert!(self.scopes.len() == 0 || (self.scopes.len() == 1 && self.interactive));
 
-        let mut statics: Vec<RefValue> = if self.interactive {
-            self.statics.clone()
-        } else {
-            self.statics.drain(..).collect()
-        };
-
+        // Check and report any unresolved usages
         let mut usages = self
             .usages
             .drain(..)
@@ -164,6 +159,13 @@ impl Compiler {
             })
             .collect();
 
+        // Obtain intermediate values collected during compilation
+        let values = if self.interactive {
+            self.values.clone()
+        } else {
+            self.values.drain(..).collect()
+        };
+
         /*
             Finalize the program by resolving any unresolved usages according to a grammar's
             point of view; This closure algorithm runs until no more changes on any parselet
@@ -183,21 +185,24 @@ impl Compiler {
         while changes {
             changes = false;
 
-            for i in 0..statics.len() {
-                if let Value::ImlParselet(parselet) = &*statics[i].borrow() {
+            for i in 0..values.len() {
+                if let ImlValue::Parselet(parselet) = &values[i] {
                     let mut parselet = parselet.borrow_mut();
 
+                    // Resolve usages
                     if loops == 0 {
                         parselet.resolve(&mut usages);
                     }
 
+                    // Don't finalize any non-consuming parselet
                     if parselet.consuming.is_none() {
                         continue;
                     }
 
+                    // Finalize according to grammar view, find left-recursions
                     let consuming = parselet.consuming.clone().unwrap();
                     let mut stack = vec![(i, consuming.nullable)];
-                    if let Some(consuming) = parselet.finalize(&statics, &mut stack) {
+                    if let Some(consuming) = parselet.finalize(&values, &mut stack) {
                         if *parselet.consuming.as_ref().unwrap() < consuming {
                             parselet.consuming = Some(consuming);
                             changes = true;
@@ -210,15 +215,14 @@ impl Compiler {
         }
 
         /*
-        for i in 0..statics.len() {
-            if let Value::ImlParselet(parselet) = &*statics[i].borrow() {
+        for i in 0..values.len() {
+            if let ImlValue::Parselet(parselet) = &values[i] {
                 let parselet = parselet.borrow();
+
                 println!(
-                    "{} consuming={} leftrec={} nullable={}",
+                    "{} consuming={:?}",
                     parselet.name.as_deref().unwrap_or("(unnamed)"),
-                    parselet.consuming,
-                    parselet.leftrec,
-                    parselet.nullable
+                    parselet.consuming
                 );
             }
         }
@@ -233,37 +237,16 @@ impl Compiler {
             return Err(errors);
         }
 
-        // The ImlParselet statics have to be replaced by their Parselet counterparts
-        // created from the ImlParselets.
-        // This is currently a bit ugly, but allows for a functioning version supporting
-        // both worlds of execution.
-        let mut new_statics = Vec::new();
-
-        while statics.len() > 0 {
-            let value = statics.remove(0);
-
-            {
-                let value = &*value.borrow();
-
-                if let Value::ImlParselet(iml_parselet) = value {
-                    new_statics.push(
-                        iml_parselet
-                            .borrow()
-                            .into_parselet()
-                            .into_value()
-                            .into_refvalue(),
-                    );
-                    continue;
-                }
-            }
-
-            new_statics.push(value);
-        }
-
-        statics = new_statics;
-
-        // Make program from statics
-        Ok(Program::new(statics))
+        // Compile values into program
+        Ok(Program::new(
+            values
+                .into_iter()
+                .map(|value| match value {
+                    ImlValue::Parselet(parselet) => parselet.borrow().into_parselet().into_value(),
+                    ImlValue::Value(value) => value,
+                })
+                .collect(),
+        ))
     }
 
     /// Resolves usages from current scope
@@ -467,7 +450,7 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub(crate) fn set_constant(&mut self, name: &str, mut value: RefValue) {
+    pub(crate) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
         /*
             Special meaning for whitespace constants names "_" and "__".
 
@@ -490,7 +473,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value+`
-                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 1, 0).into_op(),
+                Repeat::new(Op::CallStatic(self.define_value(value)).into(), 1, 0).into_op(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -499,7 +482,7 @@ impl Compiler {
             });
             parselet.severity = 0;
 
-            value = parselet.into_value().into_refvalue();
+            value = parselet.into();
 
             // Insert "__" as new constant
             secondary = Some(("__", value.clone()));
@@ -512,7 +495,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value?`
-                Repeat::new(Op::CallStatic(self.define_static(value)).into(), 0, 1).into_op(),
+                Repeat::new(Op::CallStatic(self.define_value(value)).into(), 0, 1).into_op(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -521,7 +504,7 @@ impl Compiler {
             });
             parselet.severity = 0;
 
-            value = parselet.into_value().into_refvalue();
+            value = parselet.into();
 
             // Insert "_" afterwards
         }
@@ -543,7 +526,7 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope,
     a builtin or special. */
-    pub(crate) fn get_constant(&mut self, name: &str) -> Option<RefValue> {
+    pub(crate) fn get_constant(&mut self, name: &str) -> Option<ImlValue> {
         // Check for constant in available scopes
         for scope in &self.scopes {
             if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
@@ -555,38 +538,32 @@ impl Compiler {
 
         // When not found, check for a builtin function
         if let Some(builtin) = builtin::get(name) {
-            return Some(Value::Builtin(builtin).into_refvalue());
+            return Some(Value::Builtin(builtin).into());
         }
 
         // Builtin constants are defined on demand as fallback
         if name == "_" || name == "__" {
             // Fallback for "_" defines parselet `_ : Whitespace?`
-            self.set_constant(
-                "_",
-                token::get("Whitespaces")
-                    .unwrap()
-                    .into_value()
-                    .into_refvalue(),
-            );
+            self.set_constant("_", token::get("Whitespaces").unwrap().into_value().into());
 
             return Some(self.get_constant(name).unwrap());
         }
 
         // Check for built-in token
         if let Some(value) = token::get(name) {
-            return Some(value.into_value().into_refvalue());
+            return Some(value.into_value().into());
         }
 
         None
     }
 
-    /** Defines a new static value inside the program.
-    Statics are only inserted once when they already exist. */
-    pub(crate) fn define_static(&mut self, value: RefValue) -> usize {
-        // Check if there exists already a static equivalent to new_value
-        // fixme: A HashTab might be more faster here...
+    /** Defines a new constant value for compilation.
+    Constants are only being inserted once when they already exist. */
+    pub(crate) fn define_value(&mut self, value: ImlValue) -> usize {
+        // Check if there exists already a n equivalent constant
+        // fixme: A HashTab might be faster here...
         {
-            for (i, known) in self.statics.iter().enumerate() {
+            for (i, known) in self.values.iter().enumerate() {
                 if *known == value {
                     return i; // Reuse existing value address
                 }
@@ -594,7 +571,7 @@ impl Compiler {
         }
 
         // Save value as new
-        self.statics.push(value);
-        self.statics.len() - 1
+        self.values.push(value);
+        self.values.len() - 1
     }
 }

@@ -1,5 +1,4 @@
 use super::*;
-use crate::value::RefValue;
 
 /** Sequence construct.
 
@@ -65,7 +64,7 @@ impl Compileable for Sequence {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         let mut leftrec = false;
@@ -77,7 +76,7 @@ impl Compileable for Sequence {
                 break;
             }
 
-            if let Some(consumable) = item.finalize(statics, stack) {
+            if let Some(consumable) = item.finalize(values, stack) {
                 leftrec |= consumable.leftrec;
                 nullable = consumable.nullable;
                 consumes = true;

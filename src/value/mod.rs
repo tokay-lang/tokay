@@ -6,7 +6,6 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
-use crate::compiler::iml::ImlParselet; // fixme: temporary!
 use crate::error::Error;
 use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Reject};
@@ -35,11 +34,10 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),                     // Token
-    ImlParselet(Rc<RefCell<ImlParselet>>), // ImlParselet is TEMPORARY!
-    Parselet(Rc<RefCell<Parselet>>),       // Parselet
-    Builtin(&'static Builtin),             // Builtin
-    Method(Box<(RefValue, RefValue)>),     // Method
+    Token(Box<Token>),                 // Token
+    Parselet(Rc<RefCell<Parselet>>),   // Parselet
+    Builtin(&'static Builtin),         // Builtin
+    Method(Box<(RefValue, RefValue)>), // Method
 }
 
 /** Value construction helper-macro
@@ -62,16 +60,16 @@ macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {
         {
             let mut dict = Dict::new();
-            $( dict.insert($key.to_string(), value!($value)); )*
-            Value::Dict(Box::new(dict)).into_refvalue()
+            $( dict.insert($key.to_string(), value!($value).into_refvalue()); )*
+            Value::Dict(Box::new(dict))
         }
     };
 
     ( [ $($value:tt),* ] ) => {
         {
             let mut list = List::new();
-            $( list.push(value!($value)); )*
-            Value::List(Box::new(list)).into_refvalue()
+            $( list.push(value!($value).into_refvalue()); )*
+            Value::List(Box::new(list))
         }
     };
 
@@ -79,39 +77,39 @@ macro_rules! value {
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<bool>()
         {
             if *value {
-                Value::True.into_refvalue()
+                Value::True
             }
             else {
-                Value::False.into_refvalue()
+                Value::False
             }
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f32>()
         {
-            Value::Float(*value as f64).into_refvalue()
+            Value::Float(*value as f64)
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f64>()
         {
-            Value::Float(*value).into_refvalue()
+            Value::Float(*value)
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i32>()
         {
-            Value::Integer(*value as i64).into_refvalue()
+            Value::Integer(*value as i64)
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i64>()
         {
-            Value::Integer(*value).into_refvalue()
+            Value::Integer(*value)
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<usize>()
         {
-            Value::Addr(*value).into_refvalue()
+            Value::Addr(*value)
         }
         else {
-            Value::String($value.to_string()).into_refvalue()
+            Value::String($value.to_string())
         }
     }
 }
@@ -202,7 +200,7 @@ impl Value {
             Self::String(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
-            Self::Builtin(_) | Self::ImlParselet(_) | Self::Parselet(_) | Self::Addr(_) => true,
+            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,
             _ => false,
         }
     }
@@ -326,15 +324,6 @@ impl Value {
                 }
                 ret.push(')');
                 ret
-            }
-            // fixme: temporary!
-            Self::ImlParselet(p) => {
-                let p = &*p.borrow();
-                if let Some(name) = p.name.as_ref() {
-                    format!("<IMLparselet {}>", name)
-                } else {
-                    format!("<IMLparselet {}>", p as *const ImlParselet as usize)
-                }
             }
             Self::Parselet(p) => {
                 let p = &*p.borrow();
@@ -523,34 +512,9 @@ impl Value {
         match self {
             Value::Token(_) => !with_arguments,
             Value::Builtin(_) => true,
-            Value::ImlParselet(parselet) => parselet.borrow().is_callable(with_arguments), // fixme: temporary!
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
             Value::Method(method) => method.1.borrow().is_callable(with_arguments),
             _ => false,
-        }
-    }
-
-    /// Check whether a value is nullable in meaning of a grammar view
-    pub fn is_nullable(&self) -> bool {
-        match self {
-            Value::Token(token) => token.is_nullable(),
-            Value::Builtin(_) => false, // By definition, a built-in is never nullable
-            // fixme: temporary!
-            Value::ImlParselet(parselet) => {
-                if let Some(consuming) = &parselet.borrow().consuming {
-                    consuming.nullable
-                } else {
-                    false
-                }
-            }
-            Value::Parselet(parselet) => {
-                if let Some(consuming) = &parselet.borrow().consuming {
-                    consuming.nullable
-                } else {
-                    false
-                }
-            }
-            _ => true,
         }
     }
 
@@ -559,7 +523,6 @@ impl Value {
         match self {
             Value::Token(_) => true,
             Value::Builtin(builtin) => builtin.is_consumable(),
-            Value::ImlParselet(parselet) => parselet.borrow().consuming.is_some(), // fixme: temporary!
             Value::Parselet(parselet) => parselet.borrow().consuming.is_some(),
             _ => false,
         }

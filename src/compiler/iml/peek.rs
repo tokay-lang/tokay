@@ -27,10 +27,10 @@ impl Compileable for Peek {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        self.body.finalize(statics, stack)
+        self.body.finalize(values, stack)
     }
 
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {

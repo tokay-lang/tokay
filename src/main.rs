@@ -101,7 +101,7 @@ fn main() {
                             print!("\n")
                         }
                     }
-                    Ok(Some(value)) => println!("{}", value.borrow()),
+                    Ok(Some(value)) => println!("{}", value),
                     Err(error) => eprintln!("{}", error),
                 }
             }

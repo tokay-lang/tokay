@@ -16,22 +16,25 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(statics: Vec<RefValue>) -> Self {
+    pub fn new(statics: Vec<Value>) -> Self {
         let mut main = None;
 
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
-            if matches!(
-                &*statics[i].borrow(),
-                Value::ImlParselet(_) | Value::Parselet(_)
-            ) {
+            if matches!(statics[i], Value::Parselet(_)) {
                 main = Some(i);
                 break;
             }
         }
 
-        Self { statics, main }
+        Self {
+            statics: statics
+                .into_iter()
+                .map(|value| value.into_refvalue())
+                .collect(),
+            main,
+        }
     }
 
     pub fn dump(&self) {
@@ -40,7 +43,7 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
+    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<Value>, Error> {
         if let Some(main) = self.main {
             match match &*self.statics[main].borrow() {
                 Value::Parselet(main) => {
@@ -49,7 +52,10 @@ impl Program {
                 }
                 _ => panic!(),
             } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value)),
+                Ok(Accept::Push(Capture::Value(value, ..))) => match Value::from_ref(value) {
+                    Ok(value) => Ok(Some(value)),
+                    Err(value) => Ok(Some(value.borrow().clone())),
+                },
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
@@ -59,24 +65,24 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
+    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<Value>, Error> {
         let mut runtime = Runtime::new(&self, &mut reader);
         self.run(&mut runtime)
     }
 
-    pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
+    pub fn run_from_str(&self, src: &'static str) -> Result<Option<Value>, Error> {
         self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
         )))))
     }
 
-    pub fn run_from_string(&self, src: String) -> Result<Option<RefValue>, Error> {
+    pub fn run_from_string(&self, src: String) -> Result<Option<Value>, Error> {
         self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
         )))))
     }
 
-    pub fn run_from_file(&self, filename: &str) -> Result<Option<RefValue>, Error> {
+    pub fn run_from_file(&self, filename: &str) -> Result<Option<Value>, Error> {
         if filename == "-" {
             self.run_from_reader(Reader::new(Box::new(BufReader::new(io::stdin()))))
         } else if let Ok(file) = File::open(filename) {

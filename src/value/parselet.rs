@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use super::*;
 use crate::compiler::ast;
-use crate::compiler::iml::Consumable;
 use crate::error::Error;
 use crate::vm::*;
 
@@ -23,7 +22,7 @@ the generated parse tree automatically until no more input can be consumed.
 #[derive(Debug)]
 pub struct Parselet {
     pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
-    pub(crate) consuming: Option<Consumable>, // Indicator for consuming & left-recursion
+    pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
     pub(crate) severity: u8,         // Capture push severity
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
     pub(crate) locals: usize,        // Number of local variables present
@@ -36,7 +35,7 @@ impl Parselet {
     /// Creates a new parselet.
     pub fn new(
         name: Option<String>,
-        consuming: Option<Consumable>,
+        consuming: Option<bool>,
         severity: u8,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
@@ -364,7 +363,7 @@ impl Parselet {
         //println!("remaining {:?}", nargs);
 
         // Perform left-recursive execution
-        let result = if let Some(Consumable { leftrec: true, .. }) = self.consuming.as_ref() {
+        let result = if let Some(true) = self.consuming {
             /*
             println!(
                 "--- {} @ {} ---",

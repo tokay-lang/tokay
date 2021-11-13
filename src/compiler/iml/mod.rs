@@ -1,5 +1,4 @@
 //! Tokay intermediate code representation
-use crate::value::RefValue;
 pub use crate::vm::*;
 
 mod alt;
@@ -12,6 +11,7 @@ mod parselet;
 mod peek;
 mod repeat;
 mod sequence;
+mod value;
 
 pub use alt::*;
 pub use expect::*;
@@ -23,9 +23,10 @@ pub use parselet::*;
 pub use peek::*;
 pub use repeat::*;
 pub use sequence::*;
+pub(super) use value::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub /* todo: (in crate::compiler) */ struct Consumable {
+pub struct Consumable {
     pub leftrec: bool,  // Flag if consumable is left-recursive
     pub nullable: bool, // Flag if consumable is nullable
 }
@@ -41,7 +42,7 @@ pub trait Compileable: std::fmt::Debug + std::fmt::Display
     both left-recursive and nullable behaviors. */
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable>;
 

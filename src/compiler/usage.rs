@@ -33,7 +33,7 @@ impl Usage {
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    return Some(vec![Op::LoadStatic(compiler.define_static(value)).into()]);
+                    return Some(vec![Op::LoadStatic(compiler.define_value(value)).into()]);
                 } else if let Some(addr) = compiler.get_local(&name) {
                     return Some(vec![Op::LoadFast(addr).into()]);
                 } else if let Some(addr) = compiler.get_global(&name) {
@@ -43,10 +43,10 @@ impl Usage {
 
             Usage::CallOrCopy { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    if value.borrow().is_callable(false) {
-                        return Some(vec![Op::CallStatic(compiler.define_static(value)).into()]);
+                    if value.is_callable(false) {
+                        return Some(vec![Op::CallStatic(compiler.define_value(value)).into()]);
                     } else {
-                        return Some(vec![Op::LoadStatic(compiler.define_static(value)).into()]);
+                        return Some(vec![Op::LoadStatic(compiler.define_value(value)).into()]);
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     return Some(vec![Op::LoadFast(addr).into(), Op::CallOrCopy.into()]);
@@ -63,8 +63,8 @@ impl Usage {
             } => {
                 // Resolve constants
                 if let Some(value) = compiler.get_constant(&name) {
-                    if value.borrow().is_callable(*args > 0 || *nargs > 0) {
-                        let addr = compiler.define_static(value);
+                    if value.is_callable(*args > 0 || *nargs > 0) {
+                        let addr = compiler.define_value(value);
 
                         if *args == 0 && *nargs == 0 {
                             return Some(vec![Op::CallStatic(addr).into()]);

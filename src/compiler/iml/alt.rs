@@ -1,5 +1,4 @@
 use super::*;
-use crate::value::RefValue;
 
 /** Alternation construct.
 
@@ -28,7 +27,7 @@ impl Compileable for Alternation {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         let mut leftrec = false;
@@ -36,7 +35,7 @@ impl Compileable for Alternation {
         let mut consumes = false;
 
         for alt in self.items.iter_mut() {
-            if let Some(consumable) = alt.finalize(statics, stack) {
+            if let Some(consumable) = alt.finalize(values, stack) {
                 leftrec |= consumable.leftrec;
                 nullable |= consumable.nullable;
                 consumes = true;

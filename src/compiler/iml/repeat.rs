@@ -1,5 +1,4 @@
 use super::*;
-use crate::value::RefValue;
 
 /** Repeating parser.
 
@@ -43,10 +42,10 @@ impl Compileable for Repeat {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        if let Some(consumable) = self.body.finalize(statics, stack) {
+        if let Some(consumable) = self.body.finalize(values, stack) {
             if self.min == 0 {
                 Some(Consumable {
                     leftrec: consumable.leftrec,

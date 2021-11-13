@@ -21,16 +21,6 @@ impl If {
         .into_op()
     }
 
-    pub fn new_if_not(then: ImlOp, else_: ImlOp) -> ImlOp {
-        Self {
-            peek: false,
-            test: false,
-            then,
-            else_,
-        }
-        .into_op()
-    }
-
     pub fn new_if_true(then: ImlOp, else_: ImlOp) -> ImlOp {
         Self {
             peek: true,
@@ -60,12 +50,12 @@ impl Compileable for If {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        let then = self.then.finalize(statics, stack);
+        let then = self.then.finalize(values, stack);
 
-        if let Some(else_) = self.else_.finalize(statics, stack) {
+        if let Some(else_) = self.else_.finalize(values, stack) {
             if let Some(then) = then {
                 Some(Consumable {
                     leftrec: then.leftrec || else_.leftrec,

@@ -103,7 +103,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                                     print!("\n")
                                 }
                             }
-                            Ok(Some(value)) => println!("{}", value.borrow()),
+                            Ok(Some(value)) => println!("{}", value),
                             Err(error) => println!("{}", error),
                         }
 

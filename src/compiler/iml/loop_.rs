@@ -31,15 +31,15 @@ impl Compileable for Loop {
 
     fn finalize(
         &mut self,
-        statics: &Vec<RefValue>,
+        values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         let mut ret: Option<Consumable> = None;
 
         for part in [
-            self.init.finalize(statics, stack),
-            self.condition.finalize(statics, stack),
-            self.body.finalize(statics, stack),
+            self.init.finalize(values, stack),
+            self.condition.finalize(values, stack),
+            self.body.finalize(values, stack),
         ] {
             if let Some(part) = part {
                 ret = if let Some(ret) = ret {

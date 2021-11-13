@@ -28,9 +28,9 @@ macro_rules! tokay {
                 Some("__main__".to_string()),
                 Vec::new(),
                 main.unwrap_or(ImlOp::Nop)
-            ).into_value().into_refvalue();
+            );
 
-            compiler.define_static(parselet);  // Define main parselet
+            compiler.define_value(parselet.into());  // Define main parselet
 
             match compiler.to_program() {
                 Ok(program) => {
@@ -89,7 +89,7 @@ macro_rules! tokay {
             );
 
             parselet.severity = 0;  // mark as silent parselet
-            $compiler.set_constant("_", parselet.into_value().into_refvalue());
+            $compiler.set_constant("_", parselet.into());
 
             //println!("assign _ = {}", stringify!($item));
             None
@@ -125,9 +125,9 @@ macro_rules! tokay {
                 Some(stringify!($name).to_string()),
                 Vec::new(),
                 body
-            ).into_value().into_refvalue();
+            );
 
-            $compiler.set_constant(&name, parselet);
+            $compiler.set_constant(&name, parselet.into());
 
             None
         }
@@ -221,13 +221,13 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::from(Op::LoadStatic($compiler.define_static(value!($value)))))
+        Some(ImlOp::from(Op::LoadStatic($compiler.define_value(value!($value).into()))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
         {
-            Some(ImlOp::from(Op::CallStatic($compiler.define_static($token.into_value().into_refvalue()))))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_value($token.into_value().into()))))
         }
     };
 
@@ -289,7 +289,7 @@ macro_rules! tokay {
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = Token::Match($literal.to_string()).into_value();
-            Some(ImlOp::from(Op::CallStatic($compiler.define_static(token.into_refvalue()))))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
         }
     };
 
@@ -297,7 +297,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = Token::Touch($literal.to_string()).into_value();
-            Some(ImlOp::from(Op::CallStatic($compiler.define_static(token.into_refvalue()))))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
         }
     };
 

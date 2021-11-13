@@ -2,13 +2,15 @@
 
 pub(crate) mod ast;
 mod compiler;
-pub mod iml;
+mod iml;
 mod macros;
 mod parser;
+#[cfg(test)]
+mod test;
 mod usage;
 
 pub use compiler::*;
-pub use iml::*;
+use iml::*;
 pub use macros::*;
 pub use parser::*;
 pub use usage::*;
