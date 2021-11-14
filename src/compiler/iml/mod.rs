@@ -10,6 +10,7 @@ mod op;
 mod parselet;
 mod peek;
 mod repeat;
+mod result;
 mod sequence;
 mod value;
 
@@ -22,6 +23,7 @@ pub use op::*;
 pub use parselet::*;
 pub use peek::*;
 pub use repeat::*;
+pub(super) use result::*;
 pub use sequence::*;
 pub(super) use value::*;
 

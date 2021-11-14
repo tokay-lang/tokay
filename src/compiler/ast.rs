@@ -66,88 +66,6 @@ impl BorrowByIdx for List {
     }
 }
 
-/** AST traversal result.
-
-This enum is used to allow either for a value or ops created during the AST traversal in the compiler.
-*/
-#[derive(Debug)]
-enum AstResult {
-    Empty,
-    Value(ImlValue),
-    Identifier(String, Option<Offset>),
-    Ops(Vec<ImlOp>),
-}
-
-impl AstResult {
-    /** Turns a traversal result into a vector of operations;
-
-    In case the result is a Value, it can either be called when calling with 0 arguments is possible,
-    which is specified by the call flag.
-    */
-    fn into_ops(self, compiler: &mut Compiler, call: bool) -> Vec<ImlOp> {
-        match self {
-            AstResult::Empty => Vec::new(),
-            AstResult::Value(value) => {
-                vec![ImlOp::Op(if call && value.is_callable(false) {
-                    if let ImlValue::Value(Value::Token(_)) = value {
-                        compiler.mark_consuming();
-                    }
-
-                    Op::CallStatic(compiler.define_value(value))
-                } else {
-                    // void, true, false, etc. can be directly pushed
-                    match value {
-                        ImlValue::Value(Value::Integer(0)) => Op::Push0,
-                        ImlValue::Value(Value::Integer(1)) => Op::Push1,
-                        ImlValue::Value(Value::Void) => Op::PushVoid,
-                        ImlValue::Value(Value::Null) => Op::PushNull,
-                        ImlValue::Value(Value::True) => Op::PushTrue,
-                        ImlValue::Value(Value::False) => Op::PushFalse,
-                        _ => Op::LoadStatic(compiler.define_value(value.clone())),
-                    }
-                })]
-            }
-            AstResult::Identifier(name, offset) => {
-                // In case there is a use of a known constant,
-                // directly return its value as AstResult.
-                if let Some(value) = compiler.get_constant(&name) {
-                    AstResult::Value(value).into_ops(compiler, call)
-                } else {
-                    let usage = if call {
-                        Usage::CallOrCopy { name, offset }
-                    } else {
-                        Usage::Load { name, offset }
-                    };
-
-                    usage.resolve_or_dispose(compiler)
-                }
-            }
-            AstResult::Ops(ops) => {
-                // Filter any Op::Nop from the ops.
-                ops.into_iter()
-                    .filter(|op| !matches!(op, ImlOp::Nop))
-                    .collect()
-            }
-        }
-    }
-
-    /** Returns a value to operate with or evaluate during compile-time.
-
-    The function will only return Ok(Value) when static_expression_evaluation-feature
-    is enabled, the AstResult contains a value and this value is NOT a callable! */
-    fn get_evaluable_value(&self) -> Result<Value, ()> {
-        if cfg!(feature = "static_expression_evaluation") {
-            if let AstResult::Value(ImlValue::Value(value)) = self {
-                if !value.is_callable(false) {
-                    return Ok(value.clone());
-                }
-            }
-        }
-
-        Err(())
-    }
-}
-
 /// Checks whether identifier's name is the name of a reserved word.
 fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
@@ -167,27 +85,27 @@ pub(super) fn traverse(compiler: &mut Compiler, ast: &Value) {
 }
 
 // Traverse either a node or a list from the AST
-fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> AstResult {
+fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> ImlResult {
     if let Some(list) = ast.get_list() {
         let mut ops = Vec::new();
 
         for item in list.iter() {
             match traverse_node_or_list(compiler, &item.borrow()) {
-                AstResult::Empty => {}
-                AstResult::Ops(oplist) => ops.extend(oplist),
+                ImlResult::Empty => {}
+                ImlResult::Ops(oplist) => ops.extend(oplist),
                 _ => unreachable!("{:#?} cannot be handled", list),
             }
         }
 
         if ops.len() > 0 {
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         } else {
-            AstResult::Empty
+            ImlResult::Empty
         }
     } else if let Some(dict) = ast.get_dict() {
         traverse_node(compiler, dict)
     } else {
-        AstResult::Value(ast.clone().into())
+        ImlResult::Value(ast.clone().into())
     }
 }
 
@@ -403,14 +321,14 @@ The name attribute is optional and can be used to assign an identifier to parsel
 fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> ImlValue {
     compiler.push_parselet(); // yep, we push a parselet scope here...
 
-    // ... because when case AstResult::Ops is returned here,
+    // ... because when case ImlResult::Ops is returned here,
     // it would be nice to have it in a separate scope.
     match traverse_node(compiler, node) {
-        AstResult::Empty => {
+        ImlResult::Empty => {
             compiler.pop_parselet(None, Vec::new(), ImlOp::from(Op::Nop));
             Value::Void.into()
         }
-        AstResult::Value(value) => {
+        ImlResult::Value(value) => {
             compiler.pop_parselet(None, Vec::new(), ImlOp::from(Op::Nop));
 
             if let Some(lvalue) = lvalue {
@@ -424,7 +342,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
         }
         other => {
             let ops = match other {
-                AstResult::Ops(ops) => ops,
+                ImlResult::Ops(ops) => ops,
                 other => other.into_ops(compiler, false),
             };
 
@@ -445,7 +363,7 @@ fn traverse_node_lvalue(
     node: &Dict,
     store: bool,
     hold: bool,
-) -> AstResult {
+) -> ImlResult {
     let children = node.borrow_by_key("children").to_list();
 
     let mut ops: Vec<ImlOp> = Vec::new();
@@ -592,11 +510,11 @@ fn traverse_node_lvalue(
         }
     }
 
-    AstResult::Ops(ops)
+    ImlResult::Ops(ops)
 }
 
 // Main traversal function, running recursively through the AST
-fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
+fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
     // Normal node processing...
     let emit = node.borrow_by_key("emit");
     let emit = emit.get_string().unwrap();
@@ -619,7 +537,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             ops.extend(left.into_ops(compiler, true));
             ops.push(Op::MakeAlias.into());
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // assign ---------------------------------------------------------
@@ -660,7 +578,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 );
             }
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // attribute ------------------------------------------------------
@@ -675,7 +593,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             );
             ops.push(Op::LoadAttr.into()); // todo: this can probably evaluated during compile-time
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
         // begin ----------------------------------------------------------
         "begin" | "end" => {
@@ -695,7 +613,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 ));
             }
 
-            AstResult::Empty
+            ImlResult::Empty
         }
 
         // block ----------------------------------------------------------
@@ -706,13 +624,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     traverse_node_or_list(compiler, &children.borrow()).into_ops(compiler, true);
                 compiler.pop_block();
 
-                AstResult::Ops(if body.len() > 1 {
+                ImlResult::Ops(if body.len() > 1 {
                     vec![Alternation::new(body)]
                 } else {
                     body
                 })
             } else {
-                AstResult::Empty
+                ImlResult::Empty
             }
         }
 
@@ -791,7 +709,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             // Perform static call or resolved rvalue call
             let callee = traverse_node_or_list(compiler, &children[0].borrow());
 
-            if let AstResult::Identifier(ident, offset) = callee {
+            if let ImlResult::Identifier(ident, offset) = callee {
                 if utils::identifier_is_consumable(&ident) {
                     compiler.mark_consuming();
                 }
@@ -817,7 +735,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 }
             }
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // capture --------------------------------------------------------
@@ -826,7 +744,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
             let mut ops = traverse_node_or_list(compiler, &children).into_ops(compiler, false);
             ops.push(Op::LoadCapture.into());
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         "capture_index" => {
@@ -834,7 +752,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
             let children = children.get_dict().unwrap();
             let index = traverse_node_value(compiler, children).unwrap();
-            AstResult::Ops(vec![Op::LoadFastCapture(index.to_addr()).into()])
+            ImlResult::Ops(vec![Op::LoadFastCapture(index.to_addr()).into()])
         }
 
         // constant -------------------------------------------------------
@@ -854,7 +772,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 }
 
                 compiler.errors.push(error);
-                return AstResult::Empty;
+                return ImlResult::Empty;
             }
 
             // Distinguish between pure values or an expression
@@ -889,7 +807,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             // Try to resolve usage of newly introduced constant in current scope
             compiler.resolve();
 
-            AstResult::Empty
+            ImlResult::Empty
         }
 
         // identifier -----------------------------------------------------
@@ -903,9 +821,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 }
 
                 compiler.errors.push(error);
-                AstResult::Empty
+                ImlResult::Empty
             } else {
-                AstResult::Identifier(name, traverse_node_offset(node))
+                ImlResult::Identifier(name, traverse_node_offset(node))
             }
         }
 
@@ -914,7 +832,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
                 .into_ops(compiler, true);
             ops.push(Op::LoadIndex.into()); // todo: in case value is an integer, use LoadFastIndex
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // inplace --------------------------------------------------------
@@ -957,7 +875,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                 _ => unreachable!(),
             }
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // main -----------------------------------------------------------
@@ -983,7 +901,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             );
 
             compiler.define_value(main.into());
-            AstResult::Empty
+            ImlResult::Empty
         }
 
         // operator ------------------------------------------------------
@@ -1064,7 +982,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                 unimplemented!("op_binary_{}", parts[2]);
                             }
                         } {
-                            return AstResult::Value(value.into());
+                            return ImlResult::Value(value.into());
                         }
                     }
 
@@ -1101,7 +1019,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                 unimplemented!("op_unary_{}", parts[2]);
                             }
                         } {
-                            return AstResult::Value(value.into());
+                            return ImlResult::Value(value.into());
                         }
                     }
 
@@ -1134,7 +1052,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return AstResult::Value(
+                        return ImlResult::Value(
                             if match parts[2] {
                                 "equal" => left == right,
                                 "unequal" => left != right,
@@ -1191,7 +1109,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                     let res = traverse_node(compiler, children);
 
                     // Special operations for Token::Char
-                    if let AstResult::Value(value) = &res {
+                    if let ImlResult::Value(value) = &res {
                         if !value.is_consuming() {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
@@ -1210,14 +1128,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                     // mod_pos on Token::Char becomes Token::Chars
                                     "pos" | "kle" => {
                                         let chars =
-                                            AstResult::Value(Token::Chars(ccl).into_value().into());
+                                            ImlResult::Value(Token::Chars(ccl).into_value().into());
 
                                         if parts[2] == "pos" {
                                             return chars;
                                         }
 
                                         // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                        return AstResult::Ops(vec![ImlOp::from_vec(
+                                        return ImlResult::Ops(vec![ImlOp::from_vec(
                                             chars.into_ops(compiler, true),
                                         )
                                         .into_optional()]);
@@ -1225,7 +1143,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
 
                                     // mod_not on Token::Char becomes negated Token::Char
                                     "not" => {
-                                        return AstResult::Value(
+                                        return ImlResult::Value(
                                             Token::Char(ccl.negate()).into_value().into(),
                                         );
                                     }
@@ -1249,7 +1167,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                                     "opt" => "?",
                                     other => other
                                 },
-                                if matches!(res, AstResult::Value(_)) {
+                                if matches!(res, ImlResult::Value(_)) {
                                     "value"
                                 }
                                 else {
@@ -1297,7 +1215,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                             return else_;
                         }
 
-                        return AstResult::Value(Value::Void.into());
+                        return ImlResult::Value(Value::Void.into());
                     }
 
                     ops.extend(condition.into_ops(compiler, false));
@@ -1380,7 +1298,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             };
             ops.push(op);
 
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // rvalue ---------------------------------------------------------
@@ -1397,7 +1315,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             }
 
             assert!(ops.len() > 0);
-            AstResult::Ops(ops)
+            ImlResult::Ops(ops)
         }
 
         // sequence  ------------------------------------------------------
@@ -1412,17 +1330,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             }
 
             if ops.len() == 1 {
-                AstResult::Ops(ops)
+                ImlResult::Ops(ops)
             } else if ops.len() > 0 {
-                AstResult::Ops(vec![Sequence::new(ops)])
+                ImlResult::Ops(vec![Sequence::new(ops)])
             } else {
-                AstResult::Empty
+                ImlResult::Empty
             }
         }
 
         // value ---------------------------------------------------------
         value if value.starts_with("value_") => {
-            AstResult::Value(traverse_node_value(compiler, node).into())
+            ImlResult::Value(traverse_node_value(compiler, node).into())
         }
 
         // ---------------------------------------------------------------
