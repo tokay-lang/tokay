@@ -3,14 +3,14 @@ use super::*;
 /** Loop-construct */
 
 #[derive(Debug)]
-pub struct Loop {
+pub struct ImlLoop {
     consuming: Option<Consumable>, // Consumable state
     init: ImlOp,
     condition: ImlOp,
     body: ImlOp,
 }
 
-impl Loop {
+impl ImlLoop {
     pub fn new(init: ImlOp, condition: ImlOp, body: ImlOp) -> ImlOp {
         Self {
             consuming: None,
@@ -22,7 +22,7 @@ impl Loop {
     }
 }
 
-impl Compileable for Loop {
+impl Compileable for ImlLoop {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.init.resolve(usages);
         self.condition.resolve(usages);
@@ -89,7 +89,7 @@ impl Compileable for Loop {
     }
 }
 
-impl std::fmt::Display for Loop {
+impl std::fmt::Display for ImlLoop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "loop {}", self.body)
     }

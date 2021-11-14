@@ -75,7 +75,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = Alternation::new(
+            let body = ImlAlternation::new(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -114,7 +114,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = Alternation::new(
+            let body = ImlAlternation::new(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -133,7 +133,7 @@ macro_rules! tokay {
         }
     };
 
-    // Sequence
+    // ImlSequence
     ( $compiler:expr, [ $( $item:tt ),* ] ) => {
         {
             //println!("sequence");
@@ -144,7 +144,7 @@ macro_rules! tokay {
             ];
 
             Some(
-                Sequence::new(
+                ImlSequence::new(
                     items.into_iter()
                         .filter(|item| item.is_some())
                         .map(|item| item.unwrap())
@@ -170,7 +170,7 @@ macro_rules! tokay {
             ];
 
             Some(
-                Alternation::new(
+                ImlAlternation::new(
                     items.into_iter()
                         .filter(|item| item.is_some())
                         .map(|item| item.unwrap())
@@ -195,28 +195,28 @@ macro_rules! tokay {
         Some(tokay!($compiler, $item).unwrap().into_optional())
     };
 
-    // Not
+    // ImlNot
     ( $compiler:expr, (not $item:tt) ) => {
-        Some(Not::new(tokay!($compiler, $item).unwrap()))
+        Some(ImlNot::new(tokay!($compiler, $item).unwrap()))
     };
 
-    // Peek
+    // ImlPeek
     ( $compiler:expr, (peek $item:tt) ) => {
-        Some(Peek::new(tokay!($compiler, $item).unwrap()))
+        Some(ImlPeek::new(tokay!($compiler, $item).unwrap()))
     };
 
-    // Expect
+    // ImlExpect
     ( $compiler:expr, (expect $item:tt) ) => {
         {
             let mut msg = "Expecting ".to_string();
             msg.push_str(stringify!($item));
-            Some(Expect::new(tokay!($compiler, $item).unwrap(), Some(msg)))
+            Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some(msg)))
         }
     };
 
-    // Expect with literal
+    // ImlExpect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(Expect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
+        Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
     };
 
     // Value

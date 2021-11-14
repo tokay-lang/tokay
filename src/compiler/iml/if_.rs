@@ -1,16 +1,16 @@
 use super::*;
 
-/** If-construct */
+/** Conditional branch. */
 
 #[derive(Debug)]
-pub struct If {
+pub struct ImlIf {
     peek: bool,
     test: bool,
     then: ImlOp,
     else_: ImlOp,
 }
 
-impl If {
+impl ImlIf {
     pub fn new(then: ImlOp, else_: ImlOp) -> ImlOp {
         Self {
             peek: false,
@@ -42,7 +42,7 @@ impl If {
     }
 }
 
-impl Compileable for If {
+impl Compileable for ImlIf {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.then.resolve(usages);
         self.else_.resolve(usages);
@@ -114,7 +114,7 @@ impl Compileable for If {
     }
 }
 
-impl std::fmt::Display for If {
+impl std::fmt::Display for ImlIf {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "if {} else {}", self.then, self.else_)
     }

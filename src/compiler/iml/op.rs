@@ -7,7 +7,7 @@ pub enum ImlOp {
     Nop,
     Usage(usize),                      // (yet) unresolved usage
     Compileable(Box<dyn Compileable>), // Compileable item
-    Ops(Vec<ImlOp>),                   // Sequence of ImlOps
+    Ops(Vec<ImlOp>),                   // ImlSequence of ImlOps
     Op(Op),                            // VM Operation
 }
 
@@ -21,15 +21,15 @@ impl ImlOp {
     }
 
     pub fn into_kleene(self) -> Self {
-        Repeat::kleene(self)
+        ImlRepeat::kleene(self)
     }
 
     pub fn into_positive(self) -> Self {
-        Repeat::positive(self)
+        ImlRepeat::positive(self)
     }
 
     pub fn into_optional(self) -> Self {
-        Repeat::optional(self)
+        ImlRepeat::optional(self)
     }
 }
 
@@ -107,7 +107,7 @@ impl Compileable for ImlOp {
                                 stack.pop();
 
                                 // --- Incomplete solution for the problem described in test/testindirectleftrec ---
-                                // If left-recursion detected and called parselet is already
+                                // ImlIf left-recursion detected and called parselet is already
                                 // left-recursive, thread currently analyzed parselet as
                                 // not left-recursive here!
                                 /*

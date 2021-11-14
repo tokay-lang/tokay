@@ -32,7 +32,7 @@ pub(super) enum Scope {
         usage_start: usize, // Begin of usages to resolve until when scope is closed
         constants: HashMap<String, ImlValue>, // Constants symbol table
     },
-    Loop, // loop level (allows use of break & continue)
+    ImlLoop, // loop level (allows use of break & continue)
 }
 
 /** Tokay compiler instance
@@ -301,7 +301,7 @@ impl Compiler {
 
     /// Push a loop scope
     pub(super) fn push_loop(&mut self) {
-        self.scopes.insert(0, Scope::Loop);
+        self.scopes.insert(0, Scope::ImlLoop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
@@ -328,7 +328,7 @@ impl Compiler {
                 match ops.len() {
                     0 => ImlOp::Nop,
                     1 => ops.into_iter().next().unwrap(),
-                    _ => Alternation::new(ops).into_op(),
+                    _ => ImlAlternation::new(ops).into_op(),
                 }
             }
 
@@ -370,7 +370,7 @@ impl Compiler {
 
     /// Drops a loop scope.
     pub(super) fn pop_loop(&mut self) {
-        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
+        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::ImlLoop));
         self.scopes.remove(0);
     }
 
@@ -391,7 +391,7 @@ impl Compiler {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
-                Scope::Loop => return true,
+                Scope::ImlLoop => return true,
                 _ => {}
             }
         }
@@ -473,7 +473,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value+`
-                Repeat::new(Op::CallStatic(self.define_value(value)).into(), 1, 0).into_op(),
+                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 1, 0).into_op(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -495,7 +495,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value?`
-                Repeat::new(Op::CallStatic(self.define_value(value)).into(), 0, 1).into_op(),
+                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 0, 1).into_op(),
             );
 
             parselet.consuming = Some(Consumable {

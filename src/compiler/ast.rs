@@ -625,7 +625,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 compiler.pop_block();
 
                 ImlResult::Ops(if body.len() > 1 {
-                    vec![Alternation::new(body)]
+                    vec![ImlAlternation::new(body)]
                 } else {
                     body
                 })
@@ -896,7 +896,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 match body.len() {
                     0 => Op::Nop.into(),
                     1 => body.into_iter().next().unwrap(),
-                    _ => Alternation::new(body),
+                    _ => ImlAlternation::new(body),
                 },
             );
 
@@ -1077,11 +1077,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     ops.extend(left.into_ops(compiler, false));
 
                     match parts[2] {
-                        "and" => If::new_if_true(
+                        "and" => ImlIf::new_if_true(
                             ImlOp::from_vec(right.into_ops(compiler, false)),
                             Op::PushVoid.into(),
                         ),
-                        "or" => If::new_if_false(
+                        "or" => ImlIf::new_if_false(
                             ImlOp::from_vec(right.into_ops(compiler, false)),
                             Op::PushVoid.into(),
                         ),
@@ -1187,9 +1187,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         "pos" => op.into_positive(),
                         "kle" => op.into_kleene(),
                         "opt" => op.into_optional(),
-                        "peek" => Peek::new(op),
-                        "expect" => Expect::new(op, None),
-                        "not" => Not::new(op),
+                        "peek" => ImlPeek::new(op),
+                        "expect" => ImlExpect::new(op, None),
+                        "not" => ImlNot::new(op),
                         _ => unreachable!(),
                     }
                 }
@@ -1220,7 +1220,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                     ops.extend(condition.into_ops(compiler, false));
 
-                    If::new(
+                    ImlIf::new(
                         ImlOp::from_vec(then.into_ops(compiler, true)),
                         if let Some(else_) = else_ {
                             ImlOp::from_vec(else_.into_ops(compiler, true))
@@ -1251,7 +1251,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                     compiler.pop_loop();
 
-                    Loop::new(
+                    ImlLoop::new(
                         ImlOp::from_vec(initial),
                         ImlOp::from_vec(condition),
                         ImlOp::from_vec(body),
@@ -1265,7 +1265,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     compiler.push_loop();
 
                     let ret = match children.len() {
-                        1 => Loop::new(
+                        1 => ImlLoop::new(
                             ImlOp::Nop,
                             ImlOp::Nop,
                             ImlOp::from_vec(
@@ -1273,7 +1273,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                                     .into_ops(compiler, true),
                             ),
                         ),
-                        2 => Loop::new(
+                        2 => ImlLoop::new(
                             ImlOp::Nop,
                             ImlOp::from_vec(
                                 traverse_node_or_list(compiler, &children[0].borrow())
@@ -1332,7 +1332,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             if ops.len() == 1 {
                 ImlResult::Ops(ops)
             } else if ops.len() > 0 {
-                ImlResult::Ops(vec![Sequence::new(ops)])
+                ImlResult::Ops(vec![ImlSequence::new(ops)])
             } else {
                 ImlResult::Empty
             }

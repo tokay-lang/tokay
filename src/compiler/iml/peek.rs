@@ -1,6 +1,6 @@
 use super::*;
 
-/** Peeking parser.
+/** Peek parser.
 
 This parser runs its sub-parser and returns its result, but resets the reading-context
 afterwards. It can be used to look ahead parsing constructs, but leaving the rest of the
@@ -10,17 +10,17 @@ Due to Tokays memoizing features, the parsing will only be done once, and is rem
 */
 
 #[derive(Debug)]
-pub struct Peek {
+pub struct ImlPeek {
     body: ImlOp,
 }
 
-impl Peek {
+impl ImlPeek {
     pub fn new(body: ImlOp) -> ImlOp {
         Self { body }.into_op()
     }
 }
 
-impl Compileable for Peek {
+impl Compileable for ImlPeek {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
@@ -45,7 +45,7 @@ impl Compileable for Peek {
     }
 }
 
-impl std::fmt::Display for Peek {
+impl std::fmt::Display for ImlPeek {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "peek {}", self.body)
     }

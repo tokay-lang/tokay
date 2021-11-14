@@ -8,17 +8,17 @@ alternation works similar to a sequence of sequences.
 */
 
 #[derive(Debug)]
-pub struct Alternation {
+pub struct ImlAlternation {
     items: Vec<ImlOp>,
 }
 
-impl Alternation {
+impl ImlAlternation {
     pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self { items: items }.into_op()
     }
 }
 
-impl Compileable for Alternation {
+impl Compileable for ImlAlternation {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         for alt in self.items.iter_mut() {
             alt.resolve(usages);
@@ -82,7 +82,7 @@ impl Compileable for Alternation {
     }
 }
 
-impl std::fmt::Display for Alternation {
+impl std::fmt::Display for ImlAlternation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{")?;
         for item in &self.items {

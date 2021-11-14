@@ -399,22 +399,22 @@ impl Parser {
             Statement
         }),
 
-        (Sequence = {
+        (ImlSequence = {
             [(pos [SequenceItem, (opt [",", _])]), (call ast[(value "sequence")])]
         }),
 
         (SequenceOrExpression = {
             [Expression, (peek T_EOL)],
-            Sequence
+            ImlSequence
         }),
 
         (Instruction = {
-            ["begin", ___, Sequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", ___, Sequence, (expect T_EOL), (call ast[(value "end")])],
+            ["begin", ___, ImlSequence, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", ___, ImlSequence, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],
-            Sequence,
+            ImlSequence,
             [T_EOL, (Op::Skip)]
         }),
 

@@ -7,17 +7,17 @@ rejected and vice-versa.
 */
 
 #[derive(Debug)]
-pub struct Not {
+pub struct ImlNot {
     body: ImlOp,
 }
 
-impl Not {
+impl ImlNot {
     pub fn new(body: ImlOp) -> ImlOp {
         Self { body }.into_op()
     }
 }
 
-impl Compileable for Not {
+impl Compileable for ImlNot {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
@@ -44,7 +44,7 @@ impl Compileable for Not {
     }
 }
 
-impl std::fmt::Display for Not {
+impl std::fmt::Display for ImlNot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "not {}", self.body)
     }

@@ -33,9 +33,7 @@ pub struct Consumable {
     pub nullable: bool, // Flag if consumable is nullable
 }
 
-pub trait Compileable: std::fmt::Debug + std::fmt::Display
-/* todo: (in crate::compiler) trait Compileable: std::fmt::Debug + std::fmt::Display */
-{
+pub trait Compileable: std::fmt::Debug + std::fmt::Display {
     /** Resolve any unresolved Usages. */
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>);
 

@@ -9,13 +9,13 @@ leaning parse trees.
 */
 
 #[derive(Debug)]
-pub struct Repeat {
+pub struct ImlRepeat {
     body: ImlOp,
     min: usize,
     max: usize,
 }
 
-impl Repeat {
+impl ImlRepeat {
     pub fn new(body: ImlOp, min: usize, max: usize) -> ImlOp {
         assert!(max == 0 || max >= min);
 
@@ -35,7 +35,7 @@ impl Repeat {
     }
 }
 
-impl Compileable for Repeat {
+impl Compileable for ImlRepeat {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
@@ -88,7 +88,7 @@ impl Compileable for Repeat {
                 ret.push(Op::Frame(0)); // The overall capture
                 ret.extend(body.clone()); // here comes the body for the first time
                 ret.extend(vec![
-                    Op::ForwardIfConsumed(2), // If nothing was consumed, then...
+                    Op::ForwardIfConsumed(2), // ImlIf nothing was consumed, then...
                     Op::Next,                 //...reject
                     Op::Frame(body_len + 5),  // The fused capture for repetition
                 ]);
@@ -112,7 +112,7 @@ impl Compileable for Repeat {
             }
             (1, 1) => {}
             (_, _) => unimplemented!(
-                "Repeat construct with min/max configuration > 1 not implemented yet"
+                "ImlRepeat construct with min/max configuration > 1 not implemented yet"
             ),
         };
 
@@ -120,7 +120,7 @@ impl Compileable for Repeat {
     }
 }
 
-impl std::fmt::Display for Repeat {
+impl std::fmt::Display for ImlRepeat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match (self.min, self.max) {
             (0, 1) => write!(f, "opt {}", self.body),

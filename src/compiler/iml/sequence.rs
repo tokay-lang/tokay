@@ -11,12 +11,12 @@ processed, including data changes, which is a wanted behavior.
 */
 
 #[derive(Debug)]
-pub struct Sequence {
+pub struct ImlSequence {
     consuming: Option<Consumable>, // Consumable state
     items: Vec<ImlOp>,
 }
 
-impl Sequence {
+impl ImlSequence {
     pub fn new(items: Vec<ImlOp>) -> ImlOp {
         Self {
             consuming: None,
@@ -26,7 +26,7 @@ impl Sequence {
     }
 }
 
-impl Compileable for Sequence {
+impl Compileable for ImlSequence {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         /*
             Sequences are *the* special case for symbol resolving.
@@ -112,7 +112,7 @@ impl Compileable for Sequence {
     }
 }
 
-impl std::fmt::Display for Sequence {
+impl std::fmt::Display for ImlSequence {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "(")?;
         for item in &self.items {

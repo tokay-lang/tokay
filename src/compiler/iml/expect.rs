@@ -7,18 +7,18 @@ On failure, an error message is raised as Reject::Error.
 */
 
 #[derive(Debug)]
-pub struct Expect {
+pub struct ImlExpect {
     body: ImlOp,
     msg: Option<String>,
 }
 
-impl Expect {
+impl ImlExpect {
     pub fn new(body: ImlOp, msg: Option<String>) -> ImlOp {
         Self { body, msg }.into_op()
     }
 }
 
-impl Compileable for Expect {
+impl Compileable for ImlExpect {
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.body.resolve(usages);
     }
@@ -52,7 +52,7 @@ impl Compileable for Expect {
     }
 }
 
-impl std::fmt::Display for Expect {
+impl std::fmt::Display for ImlExpect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "expect {}", self.body)
     }
