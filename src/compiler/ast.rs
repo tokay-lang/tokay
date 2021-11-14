@@ -8,10 +8,11 @@ use crate::ccl::Ccl;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::token::Token;
+use crate::utils;
 use crate::value::{Dict, List, Value};
 
 // Helper trait for Dict
-pub trait BorrowByKey {
+trait BorrowByKey {
     fn borrow_by_key(&self, key: &str) -> Ref<Value>;
     fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value>;
 }
@@ -29,7 +30,7 @@ impl BorrowByKey for Dict {
 }
 
 // Helper trait for List
-pub trait BorrowByIdx {
+trait BorrowByIdx {
     fn borrow_by_idx(&self, idx: usize) -> Ref<Value>;
     fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value>;
 
@@ -148,7 +149,7 @@ impl AstResult {
 }
 
 /// Checks whether identifier's name is the name of a reserved word.
-pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
+fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "accept" | "begin" | "else" | "end" | "exit" | "expect" | "false" | "for" | "if" | "in"
         | "loop" | "next" | "not" | "null" | "peek" | "push" | "reject" | "repeat" | "return"
@@ -158,12 +159,6 @@ pub(crate) fn identifier_is_valid(ident: &str) -> Result<(), Error> {
         )),
         _ => Ok(()),
     }
-}
-
-/// Checks whether identifier's name defines a consumable.
-pub(crate) fn identifier_is_consumable(ident: &str) -> bool {
-    let ch = ident.chars().next().unwrap();
-    ch.is_uppercase() || ch == '_'
 }
 
 /// AST traversal entry
@@ -538,7 +533,7 @@ fn traverse_node_lvalue(
                     }
 
                     // Check if identifier is not defining a consumable
-                    if identifier_is_consumable(name) {
+                    if utils::identifier_is_consumable(name) {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
                             format!(
@@ -797,7 +792,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let callee = traverse_node_or_list(compiler, &children[0].borrow());
 
             if let AstResult::Identifier(ident, offset) = callee {
-                if identifier_is_consumable(&ident) {
+                if utils::identifier_is_consumable(&ident) {
                     compiler.mark_consuming();
                 }
 
@@ -869,7 +864,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
             let value = traverse_node_static(compiler, Some(&ident), value);
 
             if value.is_consuming() {
-                if !identifier_is_consumable(ident) {
+                if !utils::identifier_is_consumable(ident) {
                     compiler.errors.push(Error::new(
                         traverse_node_offset(node),
                         format!(
@@ -878,7 +873,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> AstResult {
                         )
                     ));
                 }
-            } else if identifier_is_consumable(ident) {
+            } else if utils::identifier_is_consumable(ident) {
                 compiler.errors.push(Error::new(
                     traverse_node_offset(node),
                     format!(

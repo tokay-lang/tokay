@@ -29,7 +29,7 @@ pub enum Usage {
 }
 
 impl Usage {
-    pub(super) fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<ImlOp>> {
+    pub fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<ImlOp>> {
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {

@@ -101,7 +101,7 @@ macro_rules! tokay {
         {
             let name = stringify!($name).to_string();
 
-            if !ast::identifier_is_consumable(&name) {
+            if !crate::utils::identifier_is_consumable(&name) {
                 panic!("Parselet identifier must begin with an upper-case letter or underscore!");
             }
 

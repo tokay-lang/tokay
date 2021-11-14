@@ -15,7 +15,7 @@ pub struct Builtin {
 impl Builtin {
     /// Check if builtin is consuming
     pub fn is_consumable(&self) -> bool {
-        compiler::ast::identifier_is_consumable(self.name)
+        crate::utils::identifier_is_consumable(self.name)
     }
 
     /// Call self

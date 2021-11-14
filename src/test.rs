@@ -1,8 +1,8 @@
 //! Unit tests
 
 use crate::utils::*;
-use crate::value::*;
 use crate::value;
+use crate::value::*;
 
 //use std::env;
 use std::fs::File;

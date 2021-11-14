@@ -17,7 +17,7 @@ Parselets introduce new variable scopes.
 Loops introduce a new loop scope.
 */
 #[derive(Debug)]
-pub(crate) enum Scope {
+pub(super) enum Scope {
     Parselet {
         // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
@@ -120,7 +120,7 @@ impl Compiler {
     }
 
     /** Converts the compiled information into a Program. */
-    pub(crate) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
+    pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
         // Collect additional errors
         let mut errors: Vec<Error> = self.errors.drain(..).collect();
 
@@ -274,7 +274,7 @@ impl Compiler {
     }
 
     /// Push a parselet scope
-    pub(crate) fn push_parselet(&mut self) {
+    pub(super) fn push_parselet(&mut self) {
         self.scopes.insert(
             0,
             Scope::Parselet {
@@ -289,7 +289,7 @@ impl Compiler {
     }
 
     /// Push a block scope
-    pub(crate) fn push_block(&mut self) {
+    pub(super) fn push_block(&mut self) {
         self.scopes.insert(
             0,
             Scope::Block {
@@ -300,12 +300,12 @@ impl Compiler {
     }
 
     /// Push a loop scope
-    pub(crate) fn push_loop(&mut self) {
+    pub(super) fn push_loop(&mut self) {
         self.scopes.insert(0, Scope::Loop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(crate) fn pop_parselet(
+    pub(super) fn pop_parselet(
         &mut self,
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
@@ -362,20 +362,20 @@ impl Compiler {
     }
 
     /// Drops a block scope.
-    pub(crate) fn pop_block(&mut self) {
+    pub(super) fn pop_block(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
         self.resolve();
         self.scopes.remove(0);
     }
 
     /// Drops a loop scope.
-    pub(crate) fn pop_loop(&mut self) {
+    pub(super) fn pop_loop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
         self.scopes.remove(0);
     }
 
     /// Marks the nearest parselet scope as consuming
-    pub(crate) fn mark_consuming(&mut self) {
+    pub(super) fn mark_consuming(&mut self) {
         for scope in &mut self.scopes {
             if let Scope::Parselet { consuming, .. } = scope {
                 *consuming = true;
@@ -387,7 +387,7 @@ impl Compiler {
     }
 
     /// Check if there's a loop
-    pub(crate) fn check_loop(&mut self) -> bool {
+    pub(super) fn check_loop(&mut self) -> bool {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
@@ -402,7 +402,7 @@ impl Compiler {
     /** Retrieves the address of a local variable under a given name.
 
     Returns None when the variable does not exist. */
-    pub(crate) fn get_local(&self, name: &str) -> Option<usize> {
+    pub(super) fn get_local(&self, name: &str) -> Option<usize> {
         // Retrieve local variables from next parselet scope owning variables, except global scope!
         for scope in &self.scopes[..self.scopes.len() - 1] {
             // Check for scope with variables
@@ -419,7 +419,7 @@ impl Compiler {
     }
 
     /** Insert new local variable under given name in current scope. */
-    pub(crate) fn new_local(&mut self, name: &str) -> usize {
+    pub(super) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet { variables, .. } = scope {
@@ -437,7 +437,7 @@ impl Compiler {
     }
 
     /** Retrieve address of a global variable. */
-    pub(crate) fn get_global(&self, name: &str) -> Option<usize> {
+    pub(super) fn get_global(&self, name: &str) -> Option<usize> {
         if let Scope::Parselet { variables, .. } = self.scopes.last().unwrap() {
             if let Some(addr) = variables.get(name) {
                 return Some(*addr);
@@ -450,7 +450,7 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub(crate) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
+    pub(super) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
         /*
             Special meaning for whitespace constants names "_" and "__".
 
@@ -526,7 +526,7 @@ impl Compiler {
 
     /** Get constant value, either from current or preceding scope,
     a builtin or special. */
-    pub(crate) fn get_constant(&mut self, name: &str) -> Option<ImlValue> {
+    pub(super) fn get_constant(&mut self, name: &str) -> Option<ImlValue> {
         // Check for constant in available scopes
         for scope in &self.scopes {
             if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
@@ -559,7 +559,7 @@ impl Compiler {
 
     /** Defines a new constant value for compilation.
     Constants are only being inserted once when they already exist. */
-    pub(crate) fn define_value(&mut self, value: ImlValue) -> usize {
+    pub(super) fn define_value(&mut self, value: ImlValue) -> usize {
         // Check if there exists already a n equivalent constant
         // fixme: A HashTab might be faster here...
         {

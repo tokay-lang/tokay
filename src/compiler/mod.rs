@@ -11,6 +11,5 @@ mod usage;
 
 pub use compiler::*;
 use iml::*;
-pub use macros::*;
-pub use parser::*;
-pub use usage::*;
+use parser::*;
+use usage::*;

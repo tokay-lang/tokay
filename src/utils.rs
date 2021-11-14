@@ -20,3 +20,9 @@ pub fn compile_and_run(src: &str, input: &'static str) -> Result<Option<Value>, 
             .join("\n")),
     }
 }
+
+/// Checks if an identifier defines a Tokay consumable.
+pub(crate) fn identifier_is_consumable(ident: &str) -> bool {
+    let ch = ident.chars().next().unwrap();
+    ch.is_uppercase() || ch == '_'
+}
