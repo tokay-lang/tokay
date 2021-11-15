@@ -6,9 +6,11 @@ An imperative, procedural programming language dedicated to parsing and other te
 
 ## About
 
-Tokay is a programming language designed for ad-hoc parsing. It is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy and design principles. It might also be useful as a general purpose scripting language, but mainly focuses on processing textual input and work on trees with information extracted from this input.
+Tokay is a programming language designed for ad-hoc parsing.
 
-The language was designed to quickly create solutions in text processing problems, which can be just simple pattern matching but even major things. Therefore Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, including interpreters or compilers. For example, Tokay's own language parser is implemented in Tokay itself.
+The language was designed to quickly create solutions in text processing problems, which can be just simple data extraction, but also parsing any structured data somehow. Therefore, Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, interpreters or compilers. Tokay's own language parser is implemented in Tokay itself, for example.
+
+Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy and design principles. It might also serve as a general purpose scripting language, but it mainly focuses on processing textual input and work on trees with information extracted from this input.
 
 Tokay is a very young project and gains much potential. [Volunteers are welcome!](#contribute)
 
@@ -21,27 +23,27 @@ Tokay is a very young project and gains much potential. [Volunteers are welcome!
 - Implements a memoizing packrat parsing algorithm internally
 - Robust due to its implementation in only safe [Rust](https://rust-lang.org)
 - Enabling awk-style one-liners in combination with other tools
-- Generic functions and parselets (*coming soon)
-- Import system to create modularized programs (*coming soon)
-- Embedded interoperability with other programs (*coming soon)
+- Generic functions and parselets (*planned)
+- Import system to create modularized programs (*planned)
+- Embedded interoperability with other programs (*planned)
 
 **Tokay is still in alpha-state; There are plenty of bugs and incomplete features. Please help to improve it!**
 
 ## Examples
 
-This is how Tokay greets the world
+Tokay's implementation of "Hello World":
 
 ```tokay
 print("Hello World")
 ```
 
-but Tokay can also greet any wor(l)ds fed to it, like so
+Tokay can also greet any wor(l)ds fed to it:
 
 ```tokay
 world => Word   print("Hello " + $world)
 ```
 
-With its automated abstract-syntax tree construction, Tokay is designed as a language for implementing ad-hoc parsers. The next example directly implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
+By its automatic abstract-syntax tree construction, Tokay is designed as a language for implementing ad-hoc parsers. The next example implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
 
 ```tokay
 Factor : @{
@@ -82,15 +84,15 @@ The full documentation of the language is currently work-in-progress, and can be
 
 ## Contribute
 
-Contributions of any kind, might it be code, bug reports + fixes, documentation, support or advertising are always welcome!
+Contributions of any kind, might it be code, bug reports and fixes, documentation, support or advertising are always welcome!
 
-Take a look into the [TODO.md](TODO.md), the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things to be improved.
+Take a look into the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved.
 
-Feel free to [contact me](https://phorward.info) on any questions, or directly file [an issue here](https://github.com/phorward/tokay/issues/new).
+Feel free to [contact me](https://phorward.info) on any questions, or directly [file an issue here](https://github.com/phorward/tokay/issues/new).
 
-Tokay is my first project I've started in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
+Tokay is my first Rust project I've started, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
 
-If you want to create a pull request, ensure that `cargo run` and `cargo test` (currently: `RUST_MIN_STACK=8388608 cargo test`) run without errors. When new features where added, don't miss to write some unit tests for them. Run `cargo fmt` before your finally commit.
+If you want to create a pull request, ensure that `cargo run` and `cargo test` run without errors. When new features where added, don't miss to write some unit tests for them. Run `cargo fmt` before your finally commit.
 
 ## Logo
 
@@ -100,5 +102,5 @@ The Tokay logo and icon was designed by [Timmytiefkuehl](https://github.com/timm
 
 ## License
 
-Tokay and its documentation is free software under the MIT license.
+Tokay is free software under the MIT license.<br>
 Please see the LICENSE file for more details.

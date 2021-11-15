@@ -1,7 +1,7 @@
 //! Intermediate representation of a parselet
 
 use super::*;
-use crate::value::{Parselet, Value};
+use crate::value::Parselet;
 
 #[derive(Debug)]
 pub struct ImlParselet {

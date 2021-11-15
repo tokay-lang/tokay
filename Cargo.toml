@@ -9,7 +9,7 @@ license = "MIT"
 edition = "2021"
 
 [features]
-#default = ["static_expression_evaluation"]
+default = ["static_expression_evaluation"]
 static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
 
 [dependencies]
