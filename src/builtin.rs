@@ -170,7 +170,7 @@ inventory::submit! {
             let value = match &args[1] {
                 Some(value) => Some(value.clone()),
                 None => context
-                    .collect(context.capture_start + 1, false, true, false, 0)
+                    .collect(context.capture_start, false, true, false, 0)
                     .unwrap_or(None),
             };
 

@@ -171,7 +171,6 @@ impl Op {
         let mut loops: Vec<(usize, usize, usize)> = Vec::new(); // Loops
 
         let mut frame = Frame::new(context); // Main capture
-        frame.capture_start += 1; // Initial frame should skip $0
         let mut state = Ok(Accept::Next);
 
         while ip < ops.len() {
@@ -821,7 +820,7 @@ impl Op {
 
         // Take last remaining captured value as result, if available
         if let Ok(Accept::Next) = state {
-            if context.runtime.stack.len() > context.capture_start + 1 {
+            if context.runtime.stack.len() > context.capture_start {
                 state = Ok(Accept::Push(context.runtime.stack.pop().unwrap()));
             }
         }

@@ -457,6 +457,18 @@ impl Parser {
             (call ast[(value "main")])]
         */
 
+        /*
+        (T_Float = {
+            // todo: implement as built-in Parselet
+            [(token (Token::Chars(ccl!['0' => '9']))), ".", (opt (token (Token::Chars(ccl!['0' => '9'])))),
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
+            [(opt (token (Token::Chars(ccl!['0' => '9'])))), ".", (token (Token::Chars(ccl!['0' => '9']))),
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
+        }),
+
+        T_Float
+        */
+
         // ----------------------------------------------------------------------------
                     }))
     }
