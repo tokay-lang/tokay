@@ -170,7 +170,7 @@ inventory::submit! {
             let value = match &args[1] {
                 Some(value) => Some(value.clone()),
                 None => context
-                    .collect(context.capture_start, false, true, false, 0)
+                    .collect(context.capture_start + 1, false, true, false, 0)
                     .unwrap_or(None),
             };
 
@@ -213,9 +213,13 @@ inventory::submit! {
                 Value::Addr(current.col as usize).into_refvalue(),
             );
 
-            Ok(Accept::Return(Some(
-                Value::Dict(Box::new(ret)).into_refvalue(),
-            )))
+            Ok(Accept::Push(
+                Capture::Value(
+                    Value::Dict(Box::new(ret)).into_refvalue(),
+                    None,
+                    10
+                )
+            ))
         },
     }
 }

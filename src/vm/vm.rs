@@ -137,11 +137,11 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         let stack_start = runtime.stack.len() - take;
 
         /*
-        println!("---");
+        println!("--- {:?} ---", parselet.name);
         println!("stack = {:#?}", runtime.stack);
         println!("stack = {:?}", runtime.stack.len());
         println!("start = {:?}", stack_start);
-        println!("resize = {:?}", stack_start + preserve + 1);
+        println!("resize = {:?}", stack_start + locals + 1);
         */
 
         runtime
@@ -302,6 +302,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         mut inherit: bool,
         severity: u8,
     ) -> Result<Option<RefValue>, Capture> {
+        if capture_start >= self.runtime.stack.len() {
+            return Ok(None);
+        }
+
         // Eiter copy or drain captures from stack
         let captures: Vec<Capture> = if copy {
             Vec::from_iter(
