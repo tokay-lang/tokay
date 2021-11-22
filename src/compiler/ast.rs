@@ -382,6 +382,8 @@ fn traverse_node_lvalue(
         let emit = item.borrow_by_key("emit");
         let emit = emit.get_string().unwrap();
 
+        let store = if i < children.len() - 1 { false } else { store };
+
         match emit {
             capture if capture.starts_with("capture") => {
                 let children = item.borrow_by_key("children");
@@ -461,8 +463,6 @@ fn traverse_node_lvalue(
                     break;
                 }
 
-                let store = if i < children.len() - 1 { false } else { store };
-
                 /* Generates code for a symbol store, which means:
 
                     1. look-up local variable, and store into
@@ -509,7 +509,16 @@ fn traverse_node_lvalue(
                     traverse_node_or_list(compiler, &item.borrow_by_key("children"))
                         .into_ops(compiler, true),
                 );
-                ops.push(Op::StoreIndex.into()); // todo: in case value is an integer, use LoadFastIndex
+
+                if store {
+                    if hold {
+                        ops.push(Op::StoreIndexHold.into()); // todo: in case value is an integer, use LoadFastIndexHold
+                    } else {
+                        ops.push(Op::StoreIndex.into()); // todo: in case value is an integer, use LoadFastIndex
+                    }
+                } else {
+                    ops.push(Op::LoadIndex.into())
+                }
             }
 
             other => {

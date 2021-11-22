@@ -95,6 +95,7 @@ pub enum Op {
     StoreCapture,
     StoreCaptureHold,
     StoreIndex,
+    StoreIndexHold,
 
     MakeAlias,       // Make key-value-Capture from last two stack items
     MakeDict(usize), // Make a Dict from specified amount of key-value-pairs
@@ -623,17 +624,22 @@ impl Op {
                     }
                 }
 
-                Op::StoreIndex => {
+                Op::StoreIndex | Op::StoreIndexHold => {
                     let index = context.pop();
                     let index = index.borrow();
                     let target = context.pop();
-                    let mut target = target.borrow_mut();
                     let value = context.pop();
 
-                    if let Err(msg) = target.set_index(&index, value) {
+                    let mut obj = target.borrow_mut();
+
+                    if let Err(msg) = obj.set_index(&index, value) {
                         Error::new(None, msg).into_reject()
                     } else {
-                        Ok(Accept::Next)
+                        if matches!(op, Op::StoreIndexHold) {
+                            context.push(target.clone())
+                        } else {
+                            Ok(Accept::Next)
+                        }
                     }
                 }
 
