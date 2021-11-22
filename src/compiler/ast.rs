@@ -90,11 +90,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> ImlResult {
         let mut ops = Vec::new();
 
         for item in list.iter() {
-            match traverse_node_or_list(compiler, &item.borrow()) {
-                ImlResult::Empty => {}
-                ImlResult::Ops(oplist) => ops.extend(oplist),
-                _ => unreachable!("{:#?} cannot be handled", list),
-            }
+            ops.extend(traverse_node_or_list(compiler, &item.borrow()).into_ops(compiler, false));
         }
 
         if ops.len() > 0 {
@@ -125,6 +121,13 @@ fn traverse_node_offset(node: &Dict) -> Option<Offset> {
         Some(Offset { offset, row, col })
     } else {
         None
+    }
+}
+
+// Append offset to ops
+fn insert_offset(ops: &mut Vec<ImlOp>, node: &Dict) {
+    if let Some(offset) = traverse_node_offset(node) {
+        ops.push(Op::Offset(Box::new(offset)).into());
     }
 }
 
@@ -364,6 +367,10 @@ fn traverse_node_lvalue(
     store: bool,
     hold: bool,
 ) -> ImlResult {
+    let emit = node.borrow_by_key("emit");
+    let emit = emit.get_string().unwrap();
+    assert!(emit == "lvalue");
+
     let children = node.borrow_by_key("children").to_list();
 
     let mut ops: Vec<ImlOp> = Vec::new();
@@ -431,77 +438,78 @@ fn traverse_node_lvalue(
                     break;
                 }
 
-                if i < children.len() - 1 {
-                    ops.extend(
-                        Usage::Load {
-                            name: name.to_string(),
-                            offset: traverse_node_offset(item),
-                        }
-                        .resolve_or_dispose(compiler),
-                    )
-                } else {
-                    // Check if identifier is valid
-                    if let Err(mut error) = identifier_is_valid(name) {
-                        if let Some(offset) = traverse_node_offset(node) {
-                            error.patch_offset(offset);
-                        }
-
-                        compiler.errors.push(error);
-                        break;
+                // Check if identifier is valid
+                if let Err(mut error) = identifier_is_valid(name) {
+                    if let Some(offset) = traverse_node_offset(node) {
+                        error.patch_offset(offset);
                     }
 
-                    // Check if identifier is not defining a consumable
-                    if utils::identifier_is_consumable(name) {
-                        compiler.errors.push(Error::new(
-                            traverse_node_offset(node),
-                            format!(
-                                "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
-                                name, name.to_lowercase()
-                            ),
-                        ));
+                    compiler.errors.push(error);
+                    break;
+                }
 
-                        break;
-                    }
+                // Check if identifier is not defining a consumable
+                if utils::identifier_is_consumable(name) {
+                    compiler.errors.push(Error::new(
+                        traverse_node_offset(node),
+                        format!(
+                            "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                            name, name.to_lowercase()
+                        ),
+                    ));
 
-                    /* Generates code for a symbol store, which means:
+                    break;
+                }
 
-                        1. look-up local variable, and store into
-                        2. look-up global variable, and store into
-                        3. create local variable, and store into
-                    */
-                    if let Some(addr) = compiler.get_local(name) {
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreFastHold(addr).into())
-                            } else {
-                                ops.push(Op::StoreFast(addr).into())
-                            }
+                let store = if i < children.len() - 1 { false } else { store };
+
+                /* Generates code for a symbol store, which means:
+
+                    1. look-up local variable, and store into
+                    2. look-up global variable, and store into
+                    3. create local variable, and store into
+                */
+                if let Some(addr) = compiler.get_local(name) {
+                    if store {
+                        if hold {
+                            ops.push(Op::StoreFastHold(addr).into())
                         } else {
-                            ops.push(Op::LoadFast(addr).into())
-                        }
-                    } else if let Some(addr) = compiler.get_global(name) {
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreGlobalHold(addr).into())
-                            } else {
-                                ops.push(Op::StoreGlobal(addr).into())
-                            }
-                        } else {
-                            ops.push(Op::LoadGlobal(addr).into())
+                            ops.push(Op::StoreFast(addr).into())
                         }
                     } else {
-                        let addr = compiler.new_local(name);
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreFastHold(addr).into())
-                            } else {
-                                ops.push(Op::StoreFast(addr).into())
-                            }
+                        ops.push(Op::LoadFast(addr).into())
+                    }
+                } else if let Some(addr) = compiler.get_global(name) {
+                    if store {
+                        if hold {
+                            ops.push(Op::StoreGlobalHold(addr).into())
                         } else {
-                            ops.push(Op::LoadFast(addr).into())
+                            ops.push(Op::StoreGlobal(addr).into())
                         }
+                    } else {
+                        ops.push(Op::LoadGlobal(addr).into())
+                    }
+                } else {
+                    let addr = compiler.new_local(name);
+                    if store {
+                        if hold {
+                            ops.push(Op::StoreFastHold(addr).into())
+                        } else {
+                            ops.push(Op::StoreFast(addr).into())
+                        }
+                    } else {
+                        ops.push(Op::LoadFast(addr).into())
                     }
                 }
+            }
+
+            // index ----------------------------------------------------------
+            "index" => {
+                ops.extend(
+                    traverse_node_or_list(compiler, &item.borrow_by_key("children"))
+                        .into_ops(compiler, true),
+                );
+                ops.push(Op::StoreIndex.into()); // todo: in case value is an integer, use LoadFastIndex
             }
 
             other => {
@@ -583,16 +591,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // attribute ------------------------------------------------------
         "attribute" => {
-            let children = node.borrow_by_key("children");
-            let (rvalue, ident) = children.get_list().unwrap().borrow_first_2();
+            let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
+                .into_ops(compiler, true);
 
-            let mut ops = traverse_node_or_list(compiler, &rvalue).into_ops(compiler, true);
-
-            ops.extend(
-                traverse_node(compiler, ident.get_dict().unwrap()).into_ops(compiler, false),
-            );
-            ops.push(Op::LoadAttr.into()); // todo: this can probably evaluated during compile-time
-
+            insert_offset(&mut ops, node);
+            ops.push(Op::LoadAttr.into());
             ImlResult::Ops(ops)
         }
         // begin ----------------------------------------------------------
@@ -702,9 +705,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             }
 
             // Push call position here
-            if let Some(offset) = traverse_node_offset(node) {
-                ops.push(Op::Offset(Box::new(offset)).into());
-            }
+            insert_offset(&mut ops, node);
 
             // Perform static call or resolved rvalue call
             let callee = traverse_node_or_list(compiler, &children[0].borrow());
@@ -831,6 +832,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
         "index" => {
             let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
                 .into_ops(compiler, true);
+
+            insert_offset(&mut ops, node);
             ops.push(Op::LoadIndex.into()); // todo: in case value is an integer, use LoadFastIndex
             ImlResult::Ops(ops)
         }
@@ -987,9 +990,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     }
 
                     // Push operation position here
-                    if let Some(offset) = traverse_node_offset(node) {
-                        ops.push(Op::Offset(Box::new(offset)).into());
-                    }
+                    insert_offset(&mut ops, node);
 
                     // Otherwise, generate operational code
                     ops.extend(left.into_ops(compiler, true));
@@ -1024,9 +1025,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     }
 
                     // Push operation position here
-                    if let Some(offset) = traverse_node_offset(node) {
-                        ops.push(Op::Offset(Box::new(offset)).into());
-                    }
+                    insert_offset(&mut ops, node);
 
                     ops.extend(res.into_ops(compiler, true));
 

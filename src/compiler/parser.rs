@@ -159,6 +159,10 @@ impl Parser {
             ["[", _, Expression, "]", _, (call ast[(value "index")])]
         }),
 
+        (Attribute = {
+            [".", _, T_Alias, (call ast[(value "attribute")])]
+        }),
+
         (Capture = {
             ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
@@ -172,9 +176,10 @@ impl Parser {
         }),
 
         (Lvalue = {
-            //[Lvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
-            //[Lvalue, (pos Subscript)],
-            [Variable, (call ast[(value "lvalue")])]
+            [Variable, _, (kle {
+                // Attribute,  // Attribute assignment not required for now.
+                Subscript
+            }), (call ast[(value "lvalue")])]
         }),
 
         (Load = {
@@ -283,10 +288,12 @@ impl Parser {
         }),
 
         (Rvalue = {
-            [Rvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
-            [Rvalue, (pos Subscript), (call ast[(value "rvalue")])],
             [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"), _,
                 (call ast[(value "call")])],
+            [Rvalue, (kle {
+                Attribute,
+                Subscript
+            }), (call ast[(value "rvalue")])],
             Atomic
         }),
 

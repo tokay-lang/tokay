@@ -1,7 +1,7 @@
 //! Tokay built-in functions and parselets
 use crate::compiler;
 use crate::error::Error;
-use crate::value::{Dict, RefValue, Value};
+use crate::value::{Dict, List, RefValue, Value};
 use crate::vm::{Accept, Capture, Context, Reject};
 
 // Abstraction of a built-in function
@@ -261,6 +261,22 @@ inventory::submit! {
 
 inventory::submit! {
     Builtin {
+        name: "dict",
+        required: 0,
+        signature: "",
+        func: |_context, _args| {
+            // fixme: Incomplete, concept missing.
+            Ok(Accept::Push(Capture::Value(
+                Value::Dict(Box::new(Dict::new())).into_refvalue(),
+                None,
+                10,
+            )))
+        },
+    }
+}
+
+inventory::submit! {
+    Builtin {
         name: "error",
         required: 1,
         signature: "msg collect",
@@ -287,6 +303,22 @@ inventory::submit! {
             }
 
             Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
+        },
+    }
+}
+
+inventory::submit! {
+    Builtin {
+        name: "list",
+        required: 0,
+        signature: "",
+        func: |_context, _args| {
+            // fixme: Incomplete, concept missing.
+            Ok(Accept::Push(Capture::Value(
+                Value::List(Box::new(List::new())).into_refvalue(),
+                None,
+                10,
+            )))
         },
     }
 }
