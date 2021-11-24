@@ -16,4 +16,4 @@ static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 dur
 clap = { version = "2", features = ["yaml"] }
 rustyline = "8.2.0"
 inventory = "0.1"
-charclass = { git = "https://github.com/phorward/charclass" }
+charclass = "0.1"
