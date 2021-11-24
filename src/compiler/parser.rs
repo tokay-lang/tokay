@@ -1,10 +1,11 @@
 //! Parser and grammar for Tokay, implemented using Tokay itself.
+use charclass::charclass;
 
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{Token, Value};
-use crate::{ccl, tokay, value};
+use crate::{tokay, value};
 
 /**
 Implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
@@ -22,12 +23,12 @@ impl Parser {
 
         (_ = {  // true whitespace
             [" "],
-            ["#", (token (Token::Chars(ccl!['\n'].negate())))],
+            ["#", (token (Token::Chars(charclass!['\n'].negate())))],
             ["\\", "\n"]
         }),
 
         (___ = {  // check for non-trailing identifier
-            [(peek (not (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))))), _]
+            [(peek (not (token (Token::Char(charclass!['A' => 'Z', 'a' => 'z'] + charclass!['_']))))), _]
         }),
 
         (T_EOL = {  // end-of-line
@@ -41,11 +42,11 @@ impl Parser {
         // Escape sequences
 
         (T_OctDigit = {  // T_OctDigit is used by T_EscapeSequence
-            (token (Token::Char(ccl!['0' => '7'])))
+            (token (Token::Char(charclass!['0' => '7'])))
         }),
 
         (T_HexDigit = {    // T_HexDigit is used by T_EscapeSequence
-            (token (Token::Char(ccl!['0' => '9', 'A' => 'F', 'a' => 'f'])))
+            (token (Token::Char(charclass!['0' => '9', 'A' => 'F', 'a' => 'f'])))
         }),
 
         (T_EscapeSequence = {   // Parsing escape sequences
@@ -72,24 +73,24 @@ impl Parser {
 
         (T_Identifier = {  // any identifier
             [
-                (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))),
-                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
+                (token (Token::Char(charclass!['A' => 'Z', 'a' => 'z'] + charclass!['_']))),
+                (opt (token (Token::Chars(charclass!['A' => 'Z', 'a' => 'z', '0' => '9'] + charclass!['_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
         (T_Consumable = {  // consumable identifier
             [
-                (token (Token::Char(ccl!['A' => 'Z'] + ccl!['_']))),
-                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
+                (token (Token::Char(charclass!['A' => 'Z'] + charclass!['_']))),
+                (opt (token (Token::Chars(charclass!['A' => 'Z', 'a' => 'z', '0' => '9'] + charclass!['_'])))),
                 (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
             ]
         }),
 
         (T_Alias = {  // T_Alias is an identifier treated as string value
             [
-                (token (Token::Char(ccl!['A' => 'Z', 'a' => 'z'] + ccl!['_']))),
-                (opt (token (Token::Chars(ccl!['A' => 'Z', 'a' => 'z', '0' => '9'] + ccl!['_'])))),
+                (token (Token::Char(charclass!['A' => 'Z', 'a' => 'z'] + charclass!['_']))),
+                (opt (token (Token::Chars(charclass!['A' => 'Z', 'a' => 'z', '0' => '9'] + charclass!['_'])))),
                 (call ast[(value "value_string"), (Op::LoadFastCapture(0))])
             ]
         }),
@@ -99,7 +100,7 @@ impl Parser {
                 "\"",  // a string
                 (kle {
                     ["\\", T_EscapeSequence],
-                    [(token (Token::Chars(ccl!['\\', '\"'].negate())))],
+                    [(token (Token::Chars(charclass!['\\', '\"'].negate())))],
                     [EOF, (call error[(value "Unclosed string, expecting '\"'")])]
                 }),
                 (call str_join[(value ""), (Op::LoadFastCapture(2))]),
@@ -112,7 +113,7 @@ impl Parser {
                 "\'",  // a touch
                 (kle {
                     ["\\", T_EscapeSequence],
-                    [(token (Token::Chars(ccl!['\\', '\''].negate())))],
+                    [(token (Token::Chars(charclass!['\\', '\''].negate())))],
                     [EOF, (call error[(value "Unclosed match, expecting '\''")])]
                 }),
                 (call str_join[(value ""), (Op::LoadFastCapture(2))]),
@@ -122,14 +123,14 @@ impl Parser {
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0' => '9']))), (call ast[(value "value_integer")])]
+            [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
         }),
 
         (T_Float = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0' => '9']))), ".", (opt (token (Token::Chars(ccl!['0' => '9'])))),
+            [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(opt (token (Token::Chars(ccl!['0' => '9'])))), ".", (token (Token::Chars(ccl!['0' => '9']))),
+            [(opt (token (Token::Chars(charclass!['0' => '9'])))), ".", (token (Token::Chars(charclass!['0' => '9']))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 
@@ -137,7 +138,7 @@ impl Parser {
 
         (CclChar = {
             ["\\", T_EscapeSequence],
-            (token (Token::Char(ccl![']'].negate()))),
+            (token (Token::Char(charclass![']'].negate()))),
             [EOF, (call error[(value "Unclosed character-class, expecting ']'")])]
         }),
 
@@ -445,7 +446,7 @@ impl Parser {
 
         (T_Integer = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0' => '9']))), (call ast[(value "value_integer")])]
+            [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
         }),
 
         (Instruction = {
@@ -466,9 +467,9 @@ impl Parser {
         /*
         (T_Float = {
             // todo: implement as built-in Parselet
-            [(token (Token::Chars(ccl!['0' => '9']))), ".", (opt (token (Token::Chars(ccl!['0' => '9'])))),
+            [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(opt (token (Token::Chars(ccl!['0' => '9'])))), ".", (token (Token::Chars(ccl!['0' => '9']))),
+            [(opt (token (Token::Chars(charclass!['0' => '9'])))), ".", (token (Token::Chars(charclass!['0' => '9']))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
         }),
 

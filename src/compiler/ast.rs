@@ -3,8 +3,9 @@
 use std::cell::{Ref, RefMut};
 use std::collections::HashSet;
 
+use charclass::CharClass;
+
 use super::*;
-use crate::ccl::Ccl;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
@@ -197,7 +198,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let children = node.borrow_by_key("children").to_list();
 
-            let mut ccl = Ccl::new();
+            let mut ccl = CharClass::new();
 
             for range in children {
                 let range = range.borrow().to_dict();

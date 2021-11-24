@@ -72,7 +72,7 @@ fn parser_leftrec() {
     let program = tokay!({
         (Factor = {
             ["(", (pos [Expression]), ")"],
-            (token (Token::Chars(ccl!['0'..='9'])))
+            (token (Token::Chars(charclass!['0'..='9'])))
         }),
         (Expression = {
             [Expression, "+", Expression],
