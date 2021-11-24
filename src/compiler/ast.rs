@@ -7,9 +7,8 @@ use super::*;
 use crate::ccl::Ccl;
 use crate::error::Error;
 use crate::reader::Offset;
-use crate::token::Token;
 use crate::utils;
-use crate::value::{Dict, List, Value};
+use crate::value::{Dict, List, Token, Value};
 
 // Helper trait for Dict
 trait BorrowByKey {

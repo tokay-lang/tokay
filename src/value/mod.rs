@@ -1,19 +1,24 @@
 //! Tokay value and object representation
-mod parselet;
-
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
 use crate::error::Error;
-use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Reject};
+
+mod dict;
+mod list;
+mod parselet;
+mod string;
+mod token;
+
+pub use dict::Dict;
+pub use list::List;
 pub use parselet::Parselet;
+pub use string::String;
+pub use token::Token;
 
 pub type RefValue = Rc<RefCell<Value>>;
-pub type List = Vec<RefValue>;
-pub type Dict = BTreeMap<String, RefValue>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {

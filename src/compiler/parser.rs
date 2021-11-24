@@ -3,8 +3,7 @@
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::token::Token;
-use crate::value::Value;
+use crate::value::{Token, Value};
 use crate::{ccl, tokay, value};
 
 /**
