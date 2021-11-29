@@ -29,10 +29,7 @@ impl Program {
         }
 
         Self {
-            statics: statics
-                .into_iter()
-                .map(|value| value.into_refvalue())
-                .collect(),
+            statics: statics.into_iter().map(|value| value.into()).collect(),
             main,
         }
     }

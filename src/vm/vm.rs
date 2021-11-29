@@ -30,9 +30,9 @@ impl Capture {
     // Turns a capture into a value.
     fn into_value(&mut self, reader: &Reader) -> RefValue {
         match self {
-            Capture::Empty => Value::Void.into_refvalue(),
+            Capture::Empty => Value::Void.into(),
             Capture::Range(range, alias, severity) => {
-                let value = Value::String(reader.extract(range)).into_refvalue();
+                let value: RefValue = Value::String(reader.extract(range)).into();
                 *self = Capture::Value(value.clone(), alias.clone(), *severity);
                 value
             }
@@ -42,7 +42,7 @@ impl Capture {
 
     pub fn get_value(&self) -> RefValue {
         match self {
-            Capture::Empty => Value::Void.into_refvalue(),
+            Capture::Empty => Value::Void.into(),
             Capture::Range(..) => {
                 panic!("Cannot retrieve value of Capture::Range, use .into_value() first!")
             }
@@ -231,7 +231,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         .reader
                         .extract(&self.runtime.reader.capture_from(&self.reader_start)),
                 )
-                .into_refvalue(),
+                .into(),
             )
         // Any other index.
         } else {
@@ -361,7 +361,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    let value = Value::String(self.runtime.reader.extract(&range)).into_refvalue();
+                    let value = Value::String(self.runtime.reader.extract(&range)).into();
 
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
@@ -401,7 +401,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if dict.len() == 0 {
             if list.len() > 1 || (list.len() > 0 && !single) {
-                Ok(Some(Value::List(Box::new(list)).into_refvalue()))
+                Ok(Some(Value::List(Box::new(list)).into()))
             } else if list.len() == 1 {
                 Ok(Some(list.pop().unwrap()))
             } else {
@@ -425,7 +425,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            Ok(Some(Value::Dict(Box::new(dict)).into_refvalue()))
+            Ok(Some(Value::Dict(Box::new(dict)).into()))
         }
     }
 

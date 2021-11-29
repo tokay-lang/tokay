@@ -516,6 +516,6 @@ fn code_to_char(context: &mut Context, skip: u8, base: u32) -> Result<Accept, Re
             .unwrap_or_default()
     };
 
-    let value = Value::String(format!("{}", code)).into_refvalue();
+    let value = Value::String(format!("{}", code)).into();
     Ok(Accept::Return(Some(value)))
 }

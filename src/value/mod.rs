@@ -18,8 +18,20 @@ pub use parselet::Parselet;
 pub use string::String;
 pub use token::Token;
 
+// RefValue -------------------------------------------------------------------
+
+/// RefValue is the reference-counted, dynamically borrowed value used within Tokay.
 pub type RefValue = Rc<RefCell<Value>>;
 
+impl From<Value> for RefValue {
+    fn from(value: Value) -> Self {
+        Self::new(RefCell::new(value))
+    }
+}
+
+// Value ----------------------------------------------------------------------
+
+/// Value represents a Tokay primitive, which can also be an object with further specialization.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     // Atomics
@@ -65,7 +77,7 @@ macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {
         {
             let mut dict = Dict::new();
-            $( dict.insert($key.to_string(), value!($value).into_refvalue()); )*
+            $( dict.insert($key.to_string(), value!($value).into()); )*
             Value::Dict(Box::new(dict))
         }
     };
@@ -73,7 +85,7 @@ macro_rules! value {
     ( [ $($value:tt),* ] ) => {
         {
             let mut list = List::new();
-            $( list.push(value!($value).into_refvalue()); )*
+            $( list.push(value!($value).into()); )*
             Value::List(Box::new(list))
         }
     };
@@ -164,11 +176,6 @@ impl std::fmt::Debug for Value {
 */
 
 impl Value {
-    /// Create a RefValue from a Value.
-    pub fn into_refvalue(self) -> RefValue {
-        RefValue::new(RefCell::new(self))
-    }
-
     /// Convert a RefValue into a Value
     pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
         match Rc::try_unwrap(this) {
@@ -188,7 +195,7 @@ impl Value {
 
     /** Create an Ok(Accept::Push) from a value. This function is a shortcut. **/
     pub fn into_accept_push_capture(self) -> Result<Accept, Reject> {
-        Ok(Accept::Push(Capture::Value(self.into_refvalue(), None, 10)))
+        Ok(Accept::Push(Capture::Value(self.into(), None, 10)))
     }
 
     /// Check if value is void.
@@ -365,7 +372,7 @@ impl Value {
             *l.clone()
         } else {
             let mut l = List::new();
-            l.push(self.clone().into_refvalue());
+            l.push(self.clone().into());
             l
         }
     }
@@ -377,7 +384,7 @@ impl Value {
         } else {
             let mut d = Dict::new();
             //fixme "0"?
-            d.insert("0".to_string(), self.clone().into_refvalue());
+            d.insert("0".to_string(), self.clone().into());
             d
         }
     }
@@ -442,7 +449,7 @@ impl Value {
             Self::String(s) => {
                 let index = index.to_addr();
                 if let Some(ch) = s.chars().nth(index) {
-                    Ok(Value::String(format!("{}", ch)).into_refvalue())
+                    Ok(Value::String(format!("{}", ch)).into())
                 } else {
                     Err(format!("Index {} beyond end of string", index))
                 }
@@ -520,16 +527,16 @@ impl Value {
 
         let attr = attr.get_string().unwrap();
         match attr {
-            "len" => Ok(Value::Addr(value.get_attr_len()).into_refvalue()),
+            "len" => Ok(Value::Addr(value.get_attr_len()).into()),
             _ => {
                 let name = format!("{}_{}", prefix, attr);
 
                 if let Some(builtin) = builtin::get(&name) {
                     return Ok(Value::Method(Box::new((
                         this.clone(),
-                        Value::Builtin(builtin).into_refvalue(),
+                        Value::Builtin(builtin).into(),
                     )))
-                    .into_refvalue());
+                    .into());
                 }
 
                 Err(format!("Method '{}' not found", name))

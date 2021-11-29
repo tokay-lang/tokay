@@ -128,9 +128,9 @@ impl Parselet {
                     Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
 
                     Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
-                        Capture::Range(range, ..) => Some(
-                            Value::String(context.runtime.reader.extract(&range)).into_refvalue(),
-                        ),
+                        Capture::Range(range, ..) => {
+                            Some(Value::String(context.runtime.reader.extract(&range)).into())
+                        }
                         Capture::Value(value, ..) => Some(value),
                         _ => None,
                     })),
@@ -243,7 +243,7 @@ impl Parselet {
             _ => {
                 if results.len() > 1 {
                     Ok(Accept::Push(Capture::Value(
-                        Value::List(Box::new(results)).into_refvalue(),
+                        Value::List(Box::new(results)).into(),
                         None,
                         self.severity,
                     )))
@@ -358,7 +358,7 @@ impl Parselet {
         for i in 0..self.locals {
             if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
                 context.runtime.stack[context.stack_start + i] =
-                    Capture::Value(Value::Void.into_refvalue(), None, 0);
+                    Capture::Value(Value::Void.into(), None, 0);
             }
         }
 
