@@ -131,50 +131,6 @@ macro_rules! value {
     }
 }
 
-/*
-impl std::fmt::Debug for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Void => write!(f, "void"),
-            Value::Null => write!(f, "null"),
-            Value::True => write!(f, "true"),
-            Value::False => write!(f, "false"),
-            Value::Integer(i) => write!(f, "{}", i),
-            Value::Float(v) => write!(f, "{}", v),
-            Value::Addr(a) => write!(f, "{}", a),
-            Value::String(s) => write!(f, "\"{}\"", s),
-            Value::List(l) => {
-                write!(f, "(")?;
-
-                for (i, v) in l.iter().enumerate() {
-                    write!(f, "{:?}", v)?;
-
-                    if i + 1 < l.len() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                write!(f, ")")
-            },
-            Value::Dict(d) => {
-                write!(f, "(")?;
-
-                for (i, (k, v)) in d.iter().enumerate() {
-                    write!(f, "{:?}: {:?}", k, v)?;
-
-                    if i + 1 < d.len() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                write!(f, ")")
-            },
-            Value::Parselet(p) => write!(f, "@{:?}", p)
-        }
-    }
-}
-*/
-
 impl Value {
     /// Convert a RefValue into a Value
     pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
@@ -182,20 +138,6 @@ impl Value {
             Ok(this) => Ok(this.into_inner()),
             Err(this) => Err(this),
         }
-    }
-
-    // Create a Value from a bool
-    pub fn from_bool(b: bool) -> Value {
-        if b {
-            Value::True
-        } else {
-            Value::False
-        }
-    }
-
-    /** Create an Ok(Accept::Push) from a value. This function is a shortcut. **/
-    pub fn into_accept_push_capture(self) -> Result<Accept, Reject> {
-        Ok(Accept::Push(Capture::Value(self.into(), None, 10)))
     }
 
     /// Check if value is void.
@@ -715,6 +657,46 @@ impl Value {
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        if value {
+            Value::True
+        } else {
+            Value::False
+        }
+    }
+}
+
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Integer(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float(value)
+    }
+}
+
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Value::Addr(value)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string())
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
     }
 }
 

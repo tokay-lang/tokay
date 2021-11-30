@@ -544,7 +544,7 @@ inventory::submit! {
                 ret.push_str(&item.borrow().to_string());
             }
 
-            Value::String(ret).into_accept_push_capture()
+            Value::String(ret).into()
         },
     }
 }
@@ -556,7 +556,7 @@ inventory::submit! {
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_lowercase()).into_accept_push_capture()
+            Value::String(string.to_lowercase()).into()
         },
     }
 }
@@ -577,8 +577,7 @@ inventory::submit! {
                 string.replacen(&from, &to, n.borrow().to_addr())
             } else {
                 string.replace(&from, &to)
-            })
-            .into_accept_push_capture()
+            }).into()
         },
     }
 }
@@ -590,7 +589,7 @@ inventory::submit! {
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_uppercase()).into_accept_push_capture()
+            Value::String(string.to_uppercase()).into()
         },
     }
 }
