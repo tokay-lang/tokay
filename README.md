@@ -1,6 +1,7 @@
 # Tokay
 
 ![Tokay Logo](assets/tokay.svg)
+[![Rust](https://github.com/phorward/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/phorward/tokay/actions/workflows/main.yml)
 
 An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
@@ -8,7 +9,9 @@ An imperative, procedural programming language dedicated to parsing and other te
 
 Tokay is a programming language designed for ad-hoc parsing.
 
-The language was designed to quickly create solutions in text processing problems, which can be just simple data extraction, but also parsing any structured data somehow. Therefore, Tokay provides both a language for simple one-liners but also facilites to create programs like code-analysis and refactoring tools, interpreters or compilers. Tokay's own language parser is implemented in Tokay itself, for example.
+Tokay is a language made to quickly create solutions in text processing problems. This can either be just simple extractions from any data, but also parsing the entire data, and turning it into a structured parse tree or abstract syntax tree for further tasks.
+
+Therefore, Tokay provides both a language for simple one-liners, but also features to create tools for code-analysis, refactoring, interpreters, compilers, transpilers or even entire domain specific languages. Even Tokay's own language parser is implemented with Tokay itself.
 
 Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy and design principles. It might also serve as a general purpose scripting language, but it mainly focuses on processing textual input and work on trees with information extracted from this input.
 
