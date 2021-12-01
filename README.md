@@ -5,6 +5,8 @@
 
 An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
+**Tokay is still in alpha-state; There are plenty of bugs and incomplete features. Please [help to improve it](#contribute)!**
+
 ## About
 
 Tokay is a programming language designed for ad-hoc parsing.
@@ -26,11 +28,9 @@ Tokay is a very young project and gains much potential. [Volunteers are welcome!
 - Implements a memoizing packrat parsing algorithm internally
 - Robust due to its implementation in only safe [Rust](https://rust-lang.org)
 - Enabling awk-style one-liners in combination with other tools
-- Generic functions and parselets (*planned)
-- Import system to create modularized programs (*planned)
-- Embedded interoperability with other programs (*planned)
-
-**Tokay is still in alpha-state; There are plenty of bugs and incomplete features. Please help to improve it!**
+- Generic functions and parselets (*coming soon)
+- Import system to create modularized programs (*coming soon)
+- Embedded interoperability with other programs (*coming soon)
 
 ## Examples
 
@@ -46,7 +46,16 @@ Tokay can also greet any wor(l)ds fed to it:
 world => Word   print("Hello " + $world)
 ```
 
-By its automatic abstract-syntax tree construction, Tokay is designed as a language for implementing ad-hoc parsers. The next example implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
+A simple program counting words from any input:
+
+```tokay
+Word ++words accept
+end words
+```
+
+By design, Tokay constructs syntax trees from consumed information automatically.
+
+The next example implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features. There is [also a version of this program](examples/expr_with_spaces.tok) accepting whitespace between all tokens.
 
 ```tokay
 Factor : @{
@@ -69,7 +78,7 @@ Expr : @{
 Expr
 ```
 
-Tokay can also be used for programs without any parsing features.
+Tokay can also be used for programs without any parsing features.<br>
 Next is a recursive attempt for calculating the faculty of a value.
 
 ```
@@ -89,13 +98,13 @@ The full documentation of the language is currently work-in-progress, and can be
 
 Contributions of any kind, might it be code, bug reports and fixes, documentation, support or advertising are always welcome!
 
-Take a look into the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved.
+Take a look into the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved (there are plenty of them).
 
 Feel free to [contact me](https://phorward.info) on any questions, or directly [file an issue here](https://github.com/phorward/tokay/issues/new).
 
-Tokay is my first Rust project I've started, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
+Tokay is my first project I've started in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
 
-If you want to create a pull request, ensure that `cargo run` and `cargo test` run without errors. When new features where added, don't miss to write some unit tests for them. Run `cargo fmt` before your finally commit.
+If you want to create a pull request, ensure that `cargo run` and `cargo test` run without errors. When new features where added, don't miss to write some unit tests for them. Run `cargo fmt` before you finally commit.
 
 ## Logo
 
