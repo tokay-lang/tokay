@@ -3,80 +3,8 @@ use std::iter::FromIterator;
 
 use super::*;
 use crate::error::Error;
-use crate::reader::{Offset, Range, Reader};
+use crate::reader::{Offset, Reader};
 use crate::value::{Dict, List, Parselet, RefValue, Value};
-
-// --- Capture -----------------------------------------------------------------
-
-/// Captures are stack items where the VM operates on.
-#[derive(Debug, Clone)]
-pub enum Capture {
-    Empty,                               // Empty capture
-    Range(Range, Option<String>, u8),    // Captured range
-    Value(RefValue, Option<String>, u8), // Captured value
-}
-
-impl Capture {
-    fn from_value(&mut self, from: RefValue) {
-        match self {
-            Capture::Empty => *self = Capture::Value(from, None, 5),
-            Capture::Range(_, alias, _) => *self = Capture::Value(from, alias.clone(), 5),
-            Capture::Value(value, ..) => {
-                *value = from;
-            }
-        }
-    }
-
-    // Turns a capture into a value.
-    fn into_value(&mut self, reader: &Reader) -> RefValue {
-        match self {
-            Capture::Empty => Value::Void.into_refvalue(),
-            Capture::Range(range, alias, severity) => {
-                let value = Value::String(reader.extract(range)).into_refvalue();
-                *self = Capture::Value(value.clone(), alias.clone(), *severity);
-                value
-            }
-            Capture::Value(value, ..) => value.clone(),
-        }
-    }
-
-    pub fn get_value(&self) -> RefValue {
-        match self {
-            Capture::Empty => Value::Void.into_refvalue(),
-            Capture::Range(..) => {
-                panic!("Cannot retrieve value of Capture::Range, use .into_value() first!")
-            }
-            Capture::Value(value, ..) => value.clone(),
-        }
-    }
-
-    pub fn get_severity(&self) -> u8 {
-        match self {
-            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) => *severity,
-            _ => 0,
-        }
-    }
-
-    pub fn set_severity(&mut self, new_severity: u8) {
-        match self {
-            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) => {
-                *severity = new_severity
-            }
-            _ => {}
-        }
-    }
-
-    // Degrades a capture to a severity to a capture with zero severity.
-    // This is done when a capture is read.
-    pub fn degrade(&mut self) {
-        match self {
-            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) if *severity <= 5 => {
-                *severity = 0;
-            }
-            _ => {}
-        }
-    }
-}
 
 // --- Accept ------------------------------------------------------------------
 
@@ -88,6 +16,12 @@ pub enum Accept {
     Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
     Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
     Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
+}
+
+impl From<Value> for Result<Accept, Reject> {
+    fn from(value: Value) -> Self {
+        Ok(Accept::Push(value.into()))
+    }
 }
 
 // --- Reject ------------------------------------------------------------------
@@ -231,7 +165,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         .reader
                         .extract(&self.runtime.reader.capture_from(&self.reader_start)),
                 )
-                .into_refvalue(),
+                .into(),
             )
         // Any other index.
         } else {
@@ -361,7 +295,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    let value = Value::String(self.runtime.reader.extract(&range)).into_refvalue();
+                    let value = Value::String(self.runtime.reader.extract(&range)).into();
 
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
@@ -401,7 +335,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if dict.len() == 0 {
             if list.len() > 1 || (list.len() > 0 && !single) {
-                Ok(Some(Value::List(Box::new(list)).into_refvalue()))
+                Ok(Some(Value::List(Box::new(list)).into()))
             } else if list.len() == 1 {
                 Ok(Some(list.pop().unwrap()))
             } else {
@@ -425,7 +359,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            Ok(Some(Value::Dict(Box::new(dict)).into_refvalue()))
+            Ok(Some(Value::Dict(Box::new(dict)).into()))
         }
     }
 

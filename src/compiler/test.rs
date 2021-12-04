@@ -1,6 +1,6 @@
 use super::*;
 use crate::tokay;
-use crate::token::Token;
+use crate::value::Token;
 
 // Tests for parsing and packrat features ---------------------------------------------------------
 
@@ -72,7 +72,7 @@ fn parser_leftrec() {
     let program = tokay!({
         (Factor = {
             ["(", (pos [Expression]), ")"],
-            (token (Token::Chars(ccl!['0'..='9'])))
+            (token (Token::Chars(charclass!['0'..='9'])))
         }),
         (Expression = {
             [Expression, "+", Expression],

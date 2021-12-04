@@ -186,15 +186,15 @@ inventory::submit! {
             // Store positions of reader start
             ret.insert(
                 "offset".to_string(),
-                Value::Addr(context.reader_start.offset).into_refvalue(),
+                Value::Addr(context.reader_start.offset).into(),
             );
             ret.insert(
                 "row".to_string(),
-                Value::Addr(context.reader_start.row as usize).into_refvalue(),
+                Value::Addr(context.reader_start.row as usize).into(),
             );
             ret.insert(
                 "col".to_string(),
-                Value::Addr(context.reader_start.col as usize).into_refvalue(),
+                Value::Addr(context.reader_start.col as usize).into(),
             );
 
             // Store positions of reader stop
@@ -202,20 +202,20 @@ inventory::submit! {
 
             ret.insert(
                 "stop_offset".to_string(),
-                Value::Addr(current.offset).into_refvalue(),
+                Value::Addr(current.offset).into(),
             );
             ret.insert(
                 "stop_row".to_string(),
-                Value::Addr(current.row as usize).into_refvalue(),
+                Value::Addr(current.row as usize).into(),
             );
             ret.insert(
                 "stop_col".to_string(),
-                Value::Addr(current.col as usize).into_refvalue(),
+                Value::Addr(current.col as usize).into(),
             );
 
             Ok(Accept::Push(
                 Capture::Value(
-                    Value::Dict(Box::new(ret)).into_refvalue(),
+                    Value::Dict(Box::new(ret)).into(),
                     None,
                     10
                 )
@@ -232,7 +232,7 @@ inventory::submit! {
         func: |_, args| {
             compiler::ast::print(&args[0].as_ref().unwrap().borrow());
             Ok(Accept::Push(Capture::Value(
-                Value::Void.into_refvalue(),
+                Value::Void.into(),
                 None,
                 10,
             )))
@@ -251,7 +251,7 @@ inventory::submit! {
 
             Ok(Accept::Push(Capture::Value(
                 Value::String(format!("{}", std::char::from_u32(i as u32).unwrap()))
-                    .into_refvalue(),
+                    .into(),
                 None,
                 10,
             )))
@@ -267,7 +267,7 @@ inventory::submit! {
         func: |_context, _args| {
             // fixme: Incomplete, concept missing.
             Ok(Accept::Push(Capture::Value(
-                Value::Dict(Box::new(Dict::new())).into_refvalue(),
+                Value::Dict(Box::new(Dict::new())).into(),
                 None,
                 10,
             )))
@@ -315,7 +315,7 @@ inventory::submit! {
         func: |_context, _args| {
             // fixme: Incomplete, concept missing.
             Ok(Accept::Push(Capture::Value(
-                Value::List(Box::new(List::new())).into_refvalue(),
+                Value::List(Box::new(List::new())).into(),
                 None,
                 10,
             )))
@@ -343,7 +343,7 @@ inventory::submit! {
                 let c = c.chars().next().unwrap();
 
                 Ok(Accept::Push(Capture::Value(
-                    Value::Addr(c as usize).into_refvalue(),
+                    Value::Addr(c as usize).into(),
                     None,
                     10,
                 )))
@@ -375,7 +375,7 @@ inventory::submit! {
 
             print!("\n");
             Ok(Accept::Push(Capture::Value(
-                Value::Void.into_refvalue(),
+                Value::Void.into(),
                 None,
                 10,
             )))
@@ -462,7 +462,7 @@ inventory::submit! {
                 }
 
                 Ok(Accept::Push(Capture::Value(
-                    Value::Integer(value).into_refvalue(),
+                    Value::Integer(value).into(),
                     None,
                     5,
                 )))
@@ -544,7 +544,7 @@ inventory::submit! {
                 ret.push_str(&item.borrow().to_string());
             }
 
-            Value::String(ret).into_accept_push_capture()
+            Value::String(ret).into()
         },
     }
 }
@@ -556,7 +556,7 @@ inventory::submit! {
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_lowercase()).into_accept_push_capture()
+            Value::String(string.to_lowercase()).into()
         },
     }
 }
@@ -577,8 +577,7 @@ inventory::submit! {
                 string.replacen(&from, &to, n.borrow().to_addr())
             } else {
                 string.replace(&from, &to)
-            })
-            .into_accept_push_capture()
+            }).into()
         },
     }
 }
@@ -590,7 +589,7 @@ inventory::submit! {
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_uppercase()).into_accept_push_capture()
+            Value::String(string.to_uppercase()).into()
         },
     }
 }

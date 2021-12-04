@@ -1,26 +1,69 @@
 //! Token callables represented by Value::Token
 
-use crate::ccl;
-use crate::ccl::Ccl;
 use crate::reader::Reader;
 use crate::value::Value;
 use crate::vm::*;
+use charclass::{charclass, CharClass};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Token {
-    Void,
-    EOF,
-    Char(Ccl),
-    BuiltinChar(fn(ch: char) -> bool),
-    Chars(Ccl),
-    BuiltinChars(fn(ch: char) -> bool),
-    Match(String),
-    Touch(String),
+    Void,                               // Matches the empty word
+    EOF,                                // Matches End of File
+    Char(CharClass),                    // Matches one character from a character class
+    BuiltinChar(fn(ch: char) -> bool),  // Matches one character from a callback function
+    Chars(CharClass),                   // Matches multiple characters from a character class
+    BuiltinChars(fn(ch: char) -> bool), // Matches multiple characters from a callback function
+    Match(String),                      // Match a string
+    Touch(String),                      // Match a string with zero severity
 }
 
 impl Token {
+    /// Retrieve builtin token
+    pub fn builtin(ident: &str) -> Option<Token> {
+        fn builtin_ccl(ident: &str) -> Option<Token> {
+            Some(match ident {
+                "Alphabetic" => Token::BuiltinChar(|c| c.is_alphabetic()),
+                "Alphanumeric" => Token::BuiltinChar(|c| c.is_alphanumeric()),
+                "Ascii" => Token::BuiltinChar(|c| c.is_ascii()),
+                "AsciiAlphabetic" => Token::Char(charclass!['A' => 'Z', 'a' => 'z']),
+                "AsciiAlphanumeric" => Token::Char(charclass!['A' => 'Z', 'a' => 'z', '0' => '9']),
+                "AsciiControl" => Token::BuiltinChar(|c| c.is_ascii_control()),
+                "AsciiDigit" => Token::Char(charclass!['0' => '9']),
+                "AsciiGraphic" => Token::Char(charclass!['!' => '~']),
+                "AsciiHexdigit" => Token::Char(charclass!['0' => '9', 'A' => 'F', 'a' => 'f']),
+                "AsciiLowercase" => Token::Char(charclass!['a' => 'z']),
+                "AsciiPunctuation" => Token::BuiltinChar(|c| c.is_ascii_punctuation()),
+                "AsciiUppercase" => Token::Char(charclass!['A' => 'Z']),
+                "AsciiWhitespace" => Token::Char(charclass!['A' => 'Z', 'a' => 'z']),
+                "Control" => Token::BuiltinChar(|c| c.is_control()),
+                "Digit" => Token::BuiltinChar(|c| c.is_digit(10)),
+                "Lowercase" => Token::BuiltinChar(|c| c.is_lowercase()),
+                "Numeric" => Token::BuiltinChar(|c| c.is_numeric()),
+                "Uppercase" => Token::BuiltinChar(|c| c.is_uppercase()),
+                "Whitespace" => Token::BuiltinChar(|c| c.is_whitespace()),
+
+                // Any identifier attached with an "s" will be checked for Token+
+                ident if ident.len() > 1 && ident.ends_with("s") => {
+                    if let Some(Token::BuiltinChar(f)) = builtin_ccl(&ident[..ident.len() - 1]) {
+                        Token::BuiltinChars(f)
+                    } else {
+                        return None;
+                    }
+                }
+                _ => return None,
+            })
+        }
+
+        match ident {
+            "Any" => Some(Token::any()),
+            "EOF" => Some(Token::EOF),
+            "Void" => Some(Token::Void),
+            ident => builtin_ccl(ident),
+        }
+    }
+
     pub fn any() -> Self {
-        Self::Char(Ccl::new().negate())
+        Self::Char(CharClass::new().negate())
     }
 
     pub fn into_value(self) -> Value {
@@ -123,11 +166,15 @@ impl Token {
                 let range = reader.capture_from(&start);
 
                 if range.len() == string.len() {
-                    Ok(Accept::Push(if matches!(self, Token::Touch(_)) {
-                        Capture::Range(range, None, 0)
-                    } else {
-                        Capture::Range(range, None, 5)
-                    }))
+                    Ok(Accept::Push(Capture::Range(
+                        range,
+                        None,
+                        if matches!(self, Token::Touch(_)) {
+                            0
+                        } else {
+                            5
+                        },
+                    )))
                 } else {
                     reader.reset(start);
                     Err(Reject::Next)
@@ -144,50 +191,5 @@ impl Token {
             Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
             Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
         }
-    }
-}
-
-// Built-in token
-fn get_builtin_mapping(ident: &str) -> Option<Token> {
-    Some(match ident {
-        "Alphabetic" => Token::BuiltinChar(|c| c.is_alphabetic()),
-        "Alphanumeric" => Token::BuiltinChar(|c| c.is_alphanumeric()),
-        "Ascii" => Token::BuiltinChar(|c| c.is_ascii()),
-        "AsciiAlphabetic" => Token::Char(ccl!['A' => 'Z', 'a' => 'z']),
-        "AsciiAlphanumeric" => Token::Char(ccl!['A' => 'Z', 'a' => 'z', '0' => '9']),
-        "AsciiControl" => Token::BuiltinChar(|c| c.is_ascii_control()),
-        "AsciiDigit" => Token::Char(ccl!['0' => '9']),
-        "AsciiGraphic" => Token::Char(ccl!['!' => '~']),
-        "AsciiHexdigit" => Token::Char(ccl!['0' => '9', 'A' => 'F', 'a' => 'f']),
-        "AsciiLowercase" => Token::Char(ccl!['a' => 'z']),
-        "AsciiPunctuation" => Token::BuiltinChar(|c| c.is_ascii_punctuation()),
-        "AsciiUppercase" => Token::Char(ccl!['A' => 'Z']),
-        "AsciiWhitespace" => Token::Char(ccl!['A' => 'Z', 'a' => 'z']),
-        "Control" => Token::BuiltinChar(|c| c.is_control()),
-        "Digit" => Token::BuiltinChar(|c| c.is_digit(10)),
-        "Lowercase" => Token::BuiltinChar(|c| c.is_lowercase()),
-        "Numeric" => Token::BuiltinChar(|c| c.is_numeric()),
-        "Uppercase" => Token::BuiltinChar(|c| c.is_uppercase()),
-        "Whitespace" => Token::BuiltinChar(|c| c.is_whitespace()),
-
-        // Any identifier attached with an "s" will be checked for Token+
-        ident if ident.len() > 1 && ident.ends_with("s") => {
-            if let Some(Token::BuiltinChar(f)) = get_builtin_mapping(&ident[..ident.len() - 1]) {
-                Token::BuiltinChars(f)
-            } else {
-                return None;
-            }
-        }
-        _ => return None,
-    })
-}
-
-/// Retrieve builtin token
-pub fn get(ident: &str) -> Option<Token> {
-    match ident {
-        "Void" => Some(Token::Void),
-        "Any" => Some(Token::any()),
-        "EOF" => Some(Token::EOF),
-        ident => get_builtin_mapping(ident),
     }
 }

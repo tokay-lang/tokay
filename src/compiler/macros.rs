@@ -54,7 +54,7 @@ macro_rules! tokay {
     ( $compiler:expr, ( $name:ident = $value:literal ) ) => {
         {
             let name = stringify!($name).to_string();
-            let value = Value::String($value.to_string()).into_refvalue();
+            let value = Value::String($value.to_string()).into();
 
             $compiler.set_constant(&name, value);
 

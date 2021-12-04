@@ -1,20 +1,37 @@
 //! Tokay value and object representation
-mod parselet;
-
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
 use crate::error::Error;
-use crate::token::Token;
 use crate::vm::{Accept, Capture, Context, Reject};
+
+mod dict;
+mod list;
+mod parselet;
+mod string;
+mod token;
+
+pub use dict::Dict;
+pub use list::List;
 pub use parselet::Parselet;
+pub use string::String;
+pub use token::Token;
 
+// RefValue -------------------------------------------------------------------
+
+/// RefValue is the reference-counted, dynamically borrowed value used within Tokay.
 pub type RefValue = Rc<RefCell<Value>>;
-pub type List = Vec<RefValue>;
-pub type Dict = BTreeMap<String, RefValue>;
 
+impl From<Value> for RefValue {
+    fn from(value: Value) -> Self {
+        Self::new(RefCell::new(value))
+    }
+}
+
+// Value ----------------------------------------------------------------------
+
+/// Value represents a Tokay primitive, which can also be an object with further specialization.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     // Atomics
@@ -60,7 +77,7 @@ macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {
         {
             let mut dict = Dict::new();
-            $( dict.insert($key.to_string(), value!($value).into_refvalue()); )*
+            $( dict.insert($key.to_string(), value!($value).into()); )*
             Value::Dict(Box::new(dict))
         }
     };
@@ -68,7 +85,7 @@ macro_rules! value {
     ( [ $($value:tt),* ] ) => {
         {
             let mut list = List::new();
-            $( list.push(value!($value).into_refvalue()); )*
+            $( list.push(value!($value).into()); )*
             Value::List(Box::new(list))
         }
     };
@@ -114,76 +131,13 @@ macro_rules! value {
     }
 }
 
-/*
-impl std::fmt::Debug for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Value::Void => write!(f, "void"),
-            Value::Null => write!(f, "null"),
-            Value::True => write!(f, "true"),
-            Value::False => write!(f, "false"),
-            Value::Integer(i) => write!(f, "{}", i),
-            Value::Float(v) => write!(f, "{}", v),
-            Value::Addr(a) => write!(f, "{}", a),
-            Value::String(s) => write!(f, "\"{}\"", s),
-            Value::List(l) => {
-                write!(f, "(")?;
-
-                for (i, v) in l.iter().enumerate() {
-                    write!(f, "{:?}", v)?;
-
-                    if i + 1 < l.len() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                write!(f, ")")
-            },
-            Value::Dict(d) => {
-                write!(f, "(")?;
-
-                for (i, (k, v)) in d.iter().enumerate() {
-                    write!(f, "{:?}: {:?}", k, v)?;
-
-                    if i + 1 < d.len() {
-                        write!(f, ", ")?;
-                    }
-                }
-
-                write!(f, ")")
-            },
-            Value::Parselet(p) => write!(f, "@{:?}", p)
-        }
-    }
-}
-*/
-
 impl Value {
-    /// Create a RefValue from a Value.
-    pub fn into_refvalue(self) -> RefValue {
-        RefValue::new(RefCell::new(self))
-    }
-
     /// Convert a RefValue into a Value
     pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
         match Rc::try_unwrap(this) {
             Ok(this) => Ok(this.into_inner()),
             Err(this) => Err(this),
         }
-    }
-
-    // Create a Value from a bool
-    pub fn from_bool(b: bool) -> Value {
-        if b {
-            Value::True
-        } else {
-            Value::False
-        }
-    }
-
-    /** Create an Ok(Accept::Push) from a value. This function is a shortcut. **/
-    pub fn into_accept_push_capture(self) -> Result<Accept, Reject> {
-        Ok(Accept::Push(Capture::Value(self.into_refvalue(), None, 10)))
     }
 
     /// Check if value is void.
@@ -360,7 +314,7 @@ impl Value {
             *l.clone()
         } else {
             let mut l = List::new();
-            l.push(self.clone().into_refvalue());
+            l.push(self.clone().into());
             l
         }
     }
@@ -372,7 +326,7 @@ impl Value {
         } else {
             let mut d = Dict::new();
             //fixme "0"?
-            d.insert("0".to_string(), self.clone().into_refvalue());
+            d.insert("0".to_string(), self.clone().into());
             d
         }
     }
@@ -437,7 +391,7 @@ impl Value {
             Self::String(s) => {
                 let index = index.to_addr();
                 if let Some(ch) = s.chars().nth(index) {
-                    Ok(Value::String(format!("{}", ch)).into_refvalue())
+                    Ok(Value::String(format!("{}", ch)).into())
                 } else {
                     Err(format!("Index {} beyond end of string", index))
                 }
@@ -515,16 +469,16 @@ impl Value {
 
         let attr = attr.get_string().unwrap();
         match attr {
-            "len" => Ok(Value::Addr(value.get_attr_len()).into_refvalue()),
+            "len" => Ok(Value::Addr(value.get_attr_len()).into()),
             _ => {
                 let name = format!("{}_{}", prefix, attr);
 
                 if let Some(builtin) = builtin::get(&name) {
                     return Ok(Value::Method(Box::new((
                         this.clone(),
-                        Value::Builtin(builtin).into_refvalue(),
+                        Value::Builtin(builtin).into(),
                     )))
-                    .into_refvalue());
+                    .into());
                 }
 
                 Err(format!("Method '{}' not found", name))
@@ -703,6 +657,46 @@ impl Value {
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        if value {
+            Value::True
+        } else {
+            Value::False
+        }
+    }
+}
+
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Value::Integer(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Float(value)
+    }
+}
+
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Value::Addr(value)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string())
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Value::String(value)
     }
 }
 

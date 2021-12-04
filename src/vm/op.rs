@@ -423,7 +423,7 @@ impl Op {
                         value.call(context, 0, None)
                     } else {
                         // Push a copy of the value
-                        context.push(value.clone().into_refvalue())
+                        context.push(value.clone().into())
                     }
                 }
 
@@ -475,22 +475,20 @@ impl Op {
                 // Variables and values
                 Op::LoadStatic(addr) => {
                     let value = &context.runtime.program.statics[*addr];
-                    context.push(value.borrow().clone().into_refvalue())
+                    context.push(value.borrow().clone().into())
                 }
-                Op::Push0 => context.push(Value::Integer(0).into_refvalue()),
-                Op::Push1 => context.push(Value::Integer(1).into_refvalue()),
-                Op::PushVoid => context.push(Value::Void.into_refvalue()),
-                Op::PushNull => context.push(Value::Null.into_refvalue()),
-                Op::PushTrue => context.push(Value::True.into_refvalue()),
-                Op::PushFalse => context.push(Value::False.into_refvalue()),
+                Op::Push0 => context.push(Value::Integer(0).into()),
+                Op::Push1 => context.push(Value::Integer(1).into()),
+                Op::PushVoid => context.push(Value::Void.into()),
+                Op::PushNull => context.push(Value::Null.into()),
+                Op::PushTrue => context.push(Value::True.into()),
+                Op::PushFalse => context.push(Value::False.into()),
 
                 Op::LoadGlobal(addr) => context.load(*addr),
                 Op::LoadFast(addr) => context.load(context.stack_start + *addr),
 
                 Op::LoadFastCapture(index) => {
-                    let value = context
-                        .get_capture(*index)
-                        .unwrap_or(Value::Void.into_refvalue());
+                    let value = context.get_capture(*index).unwrap_or(Value::Void.into());
                     context.push(value)
                 }
 
@@ -502,14 +500,14 @@ impl Op {
                         Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
                             let value = context
                                 .get_capture(index.to_addr())
-                                .unwrap_or(Value::Void.into_refvalue());
+                                .unwrap_or(Value::Void.into());
                             context.push(value)
                         }
 
                         Value::String(alias) => {
                             let value = context
                                 .get_capture_by_name(alias)
-                                .unwrap_or(Value::Void.into_refvalue());
+                                .unwrap_or(Value::Void.into());
                             context.push(value)
                         }
 
@@ -551,7 +549,7 @@ impl Op {
                     // todo: bounds checking?
                     let value = context.peek();
                     context.runtime.stack[*addr] =
-                        Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
+                        Capture::Value(value.borrow().clone().into(), None, 0);
                     Ok(Accept::Next)
                 }
 
@@ -567,7 +565,7 @@ impl Op {
                     // todo: bounds checking?
                     let value = context.peek();
                     context.runtime.stack[context.stack_start + *addr] =
-                        Capture::Value(value.borrow().clone().into_refvalue(), None, 0);
+                        Capture::Value(value.borrow().clone().into(), None, 0);
                     Ok(Accept::Next)
                 }
 
@@ -581,7 +579,7 @@ impl Op {
                 Op::StoreFastCaptureHold(index) => {
                     let value = context.peek();
 
-                    context.set_capture(*index, value.borrow().clone().into_refvalue());
+                    context.set_capture(*index, value.borrow().clone().into());
                     Ok(Accept::Next)
                 }
 
@@ -597,10 +595,7 @@ impl Op {
                                 Ok(Accept::Push(Capture::Empty))
                             } else {
                                 let value = context.peek();
-                                context.set_capture(
-                                    index.to_addr(),
-                                    value.borrow().clone().into_refvalue(),
-                                );
+                                context.set_capture(index.to_addr(), value.borrow().clone().into());
                                 Ok(Accept::Next)
                             }
                         }
@@ -612,10 +607,7 @@ impl Op {
                                 Ok(Accept::Push(Capture::Empty))
                             } else {
                                 let value = context.peek();
-                                context.set_capture_by_name(
-                                    alias,
-                                    value.borrow().clone().into_refvalue(),
-                                );
+                                context.set_capture_by_name(alias, value.borrow().clone().into());
                                 Ok(Accept::Next)
                             }
                         }
@@ -653,11 +645,7 @@ impl Op {
                         }
 
                         empty => {
-                            *empty = Capture::Value(
-                                Value::Void.into_refvalue(),
-                                Some(name.to_string()),
-                                0,
-                            );
+                            *empty = Capture::Value(Value::Void.into(), Some(name.to_string()), 0);
                         }
                     }
 
@@ -675,7 +663,7 @@ impl Op {
                         dict.insert(key.to_string(), value);
                     }
 
-                    context.push(Value::Dict(Box::new(dict)).into_refvalue())
+                    context.push(Value::Dict(Box::new(dict)).into())
                 }
 
                 // Operations
@@ -692,7 +680,7 @@ impl Op {
                 Op::Dup => {
                     let value = context.peek();
                     let value = value.borrow();
-                    context.push(value.clone().into_refvalue())
+                    context.push(value.clone().into())
                 }
 
                 Op::Rot2 => {
@@ -717,10 +705,10 @@ impl Op {
                     */
 
                     let c = match op {
-                        Op::Add => a.borrow().add(&*b.borrow())?.into_refvalue(),
-                        Op::Sub => a.borrow().sub(&*b.borrow())?.into_refvalue(),
-                        Op::Mul => a.borrow().mul(&*b.borrow())?.into_refvalue(),
-                        Op::Div => a.borrow().div(&*b.borrow())?.into_refvalue(),
+                        Op::Add => a.borrow().add(&*b.borrow())?.into(),
+                        Op::Sub => a.borrow().sub(&*b.borrow())?.into(),
+                        Op::Mul => a.borrow().mul(&*b.borrow())?.into(),
+                        Op::Div => a.borrow().div(&*b.borrow())?.into(),
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
@@ -753,15 +741,15 @@ impl Op {
 
                     //println!("c = {:?}", c);
 
-                    context.push((if c { Value::True } else { Value::False }).into_refvalue())
+                    context.push((if c { Value::True } else { Value::False }).into())
                 }
 
                 Op::Not => {
-                    let value = context.pop().borrow().not()?.into_refvalue();
+                    let value = context.pop().borrow().not()?.into();
                     context.push(value)
                 }
                 Op::Neg => {
-                    let value = context.pop().borrow().neg()?.into_refvalue();
+                    let value = context.pop().borrow().neg()?.into();
                     context.push(value)
                 }
                 Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
@@ -783,7 +771,7 @@ impl Op {
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
-                    context.push(value.clone().into_refvalue())
+                    context.push(value.clone().into())
                 }
 
                 Op::InlineInc => {
@@ -791,7 +779,7 @@ impl Op {
                     let mut value = value.borrow_mut();
 
                     *value = value.add(&Value::Integer(1))?; // todo: perform inc by bit-shift
-                    context.push(value.clone().into_refvalue())
+                    context.push(value.clone().into())
                 }
 
                 Op::InlineDec => {
@@ -799,7 +787,7 @@ impl Op {
                     let mut value = value.borrow_mut();
 
                     *value = value.sub(&Value::Integer(1))?; // todo: perform dec by bit-shift
-                    context.push(value.clone().into_refvalue())
+                    context.push(value.clone().into())
                 }
             };
 

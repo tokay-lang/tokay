@@ -6,8 +6,7 @@ use super::*;
 use crate::builtin;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::token;
-use crate::value::Value;
+use crate::value::{Token, Value};
 use crate::vm::*;
 
 /** Compiler symbolic scope.
@@ -544,13 +543,16 @@ impl Compiler {
         // Builtin constants are defined on demand as fallback
         if name == "_" || name == "__" {
             // Fallback for "_" defines parselet `_ : Whitespace?`
-            self.set_constant("_", token::get("Whitespaces").unwrap().into_value().into());
+            self.set_constant(
+                "_",
+                Token::builtin("Whitespaces").unwrap().into_value().into(),
+            );
 
             return Some(self.get_constant(name).unwrap());
         }
 
         // Check for built-in token
-        if let Some(value) = token::get(name) {
+        if let Some(value) = Token::builtin(name) {
             return Some(value.into_value().into());
         }
 
