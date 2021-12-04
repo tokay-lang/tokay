@@ -18,9 +18,157 @@ pub use parselet::Parselet;
 pub use string::String;
 pub use token::Token;
 
-// RefValue -------------------------------------------------------------------
+// Object
+// ----------------------------------------------------------------------------
 
-/// RefValue is the reference-counted, dynamically borrowed value used within Tokay.
+/// Describes an interface to communicate with an object.
+
+pub trait Object {
+    /// Return a name for the object
+    fn name(&self) -> &str;
+
+    /// Render a Tokay code representation for the object
+    fn repr(&self) -> String {
+        self.name().to_string()
+    }
+
+    /// Check whether the object represents true or false
+    fn is_true(&self) -> bool {
+        true
+    }
+
+    /// Return reference to String when object _is_ a string
+    fn is_string(&self) -> Option<&String> {
+        None
+    }
+
+    /// Return reference to List when object _is_ a List
+    fn is_list(&self) -> Option<&List> {
+        None
+    }
+
+    /// Return reference to Dict when object _is_ a Dict
+    fn is_dict(&self) -> Option<&Dict> {
+        None
+    }
+
+    /// Get object's integer value
+    fn to_integer(&self) -> i64 {
+        0
+    }
+
+    /// Get object's addr value
+    fn to_addr(&self) -> usize {
+        0
+    }
+
+    /// Get object's float value
+    fn to_float(&self) -> f64 {
+        0.0
+    }
+
+    /// Get object's string value
+    fn to_string(&self) -> String {
+        self.repr()
+    }
+
+    /// Return reference to List when object is a List
+    fn to_list(&self) -> List {
+        List::new()
+    }
+
+    /// Return reference to Dict when object is a Dict
+    fn to_dict(&self) -> Dict {
+        Dict::new()
+    }
+
+    /// Get an index from an object.
+    fn get_index(&self, _index: &Value) -> Result<RefValue, String> {
+        Err(format!("'{}' doesn't allow indexing", self.repr()))
+    }
+
+    /// Set a value to an index of an object.
+    fn set_index(&mut self, _index: &Value, _value: RefValue) -> Result<(), String> {
+        Err(format!("'{}' doesn't allow indexing", self.repr()))
+    }
+
+    /// Get an attribute from an object.
+    fn get_attr(&self, _index: &Value) -> Result<RefValue, String> {
+        Err(format!("'{}' has no attributes", self.repr()))
+    }
+
+    /// Check whether a value is callable, and when its callable if with or without arguments.
+    fn is_callable(&self, _with_arguments: bool) -> bool {
+        false
+    }
+
+    /// Check whether a value is consuming
+    fn is_consuming(&self) -> bool {
+        false
+    }
+
+    /// Call a value with a given context, argument and named argument set.
+    fn call(
+        &self,
+        _context: &mut Context,
+        _args: usize,
+        _nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
+    }
+
+    /* fixme: required when below section is used.
+    /// Create a boxed clone of the object
+    fn clone_dyn(&self) -> Box<dyn Object>;
+    */
+}
+
+/*
+Value could make use of Box<dyn Object> as a trait object, but this requires implementation
+of several other trait on Box<dyn Object>. But this looses the possibility of doing PartialEq
+and PartialOrd on the current implementation, which IS important.
+
+Here is the link for a playground started on this:
+https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=4d7fda9b8391506736837f93124a16f4
+
+fixme: Need help with this!
+
+/*
+impl Clone for Box<dyn Object> {
+    fn clone(&self) -> Self {
+        self.clone_dyn()
+    }
+}
+
+impl PartialEq for Box<dyn Object> {
+    fn eq(&self, other: &Self) -> bool {
+        //self.len() == other.len()
+        todo!();
+    }
+}
+
+
+impl PartialOrd for Box<dyn Object> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        //self.len().partial_cmp(&other.len())
+        todo!();
+    }
+}
+
+// https://github.com/rust-lang/rust/issues/31740#issuecomment-700950186
+impl PartialEq<&Self> for Box<dyn Object> {
+    fn eq(&self, other: &&Self) -> bool {
+        //self.len() == other.len()
+        todo!();
+    }
+}
+*/
+*/
+
+// RefValue
+// ----------------------------------------------------------------------------
+
+/// This is the reference-counted, dynamically borrowable value used in most places within the Tokay VM.
 pub type RefValue = Rc<RefCell<Value>>;
 
 impl From<Value> for RefValue {
@@ -29,9 +177,10 @@ impl From<Value> for RefValue {
     }
 }
 
-// Value ----------------------------------------------------------------------
+// Value
+// ----------------------------------------------------------------------------
 
-/// Value represents a Tokay primitive, which can also be an object with further specialization.
+/// Represents a Tokay primitive, which can also be an object with further specialization.
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     // Atomics
@@ -152,7 +301,7 @@ impl Value {
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
             Self::String(s) => s.len() > 0,
-            Self::List(l) => l.len() > 0,
+            Self::List(l) => l.is_true(),
             Self::Dict(d) => d.len() > 0,
             Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,
             _ => false,
@@ -215,70 +364,9 @@ impl Value {
     pub fn repr(&self) -> String {
         match self {
             Self::Void => "void".to_string(),
-            Self::String(s) => {
-                let mut ret = String::with_capacity(s.len() + 2);
-                ret.push('"');
-
-                for ch in s.chars() {
-                    match ch {
-                        '\"' => ret.push_str("!!"),
-                        '\n' => ret.push_str("\\n"),
-                        '\r' => ret.push_str("\\r"),
-                        '\t' => ret.push_str("\\t"),
-                        ch => ret.push(ch),
-                    }
-                }
-
-                ret.push('"');
-                ret
-            }
-            Self::List(l) => {
-                let mut ret = "(".to_string();
-                for item in l.iter() {
-                    if ret.len() > 1 {
-                        ret.push_str(", ");
-                    }
-
-                    ret.push_str(&item.borrow().repr());
-                }
-
-                if l.len() == 1 {
-                    ret.push_str(", ");
-                }
-
-                ret.push(')');
-                ret
-            }
-            Self::Dict(d) => {
-                let mut ret = "(".to_string();
-                for (key, value) in d.iter() {
-                    if ret.len() > 1 {
-                        ret.push_str(", ");
-                    }
-
-                    // todo: Put this into a utility function...
-                    if !key.chars().all(|ch| ch.is_alphabetic()) {
-                        ret.push('"');
-                        for ch in key.chars() {
-                            match ch {
-                                '\n' => ret.push_str("\\n"),
-                                '\r' => ret.push_str("\\r"),
-                                '\t' => ret.push_str("\\t"),
-                                '"' => ret.push_str("\\\""),
-                                _ => ret.push(ch),
-                            }
-                        }
-                        ret.push('"');
-                    } else {
-                        ret.push_str(key);
-                    }
-
-                    ret.push_str(" => ");
-                    ret.push_str(&value.borrow().repr());
-                }
-                ret.push(')');
-                ret
-            }
+            Self::String(s) => s.repr(),
+            Self::List(l) => l.repr(),
+            Self::Dict(d) => d.repr(),
             Self::Parselet(p) => {
                 let p = &*p.borrow();
                 if let Some(name) = p.name.as_ref() {
@@ -311,7 +399,7 @@ impl Value {
     /// Get a value's list representation.
     pub fn to_list(&self) -> List {
         if let Self::List(l) = self {
-            *l.clone()
+            l.to_list()
         } else {
             let mut l = List::new();
             l.push(self.clone().into());
@@ -388,30 +476,9 @@ impl Value {
     /// Retrieve index from a value.
     pub fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         match self {
-            Self::String(s) => {
-                let index = index.to_addr();
-                if let Some(ch) = s.chars().nth(index) {
-                    Ok(Value::String(format!("{}", ch)).into())
-                } else {
-                    Err(format!("Index {} beyond end of string", index))
-                }
-            }
-            Self::List(l) => {
-                let index = index.to_addr();
-                if let Some(value) = l.get(index) {
-                    Ok(value.clone())
-                } else {
-                    Err(format!("Index {} out of bounds", index))
-                }
-            }
-            Self::Dict(d) => {
-                let index = index.to_string();
-                if let Some(value) = d.get(&index) {
-                    Ok(value.clone())
-                } else {
-                    Err(format!("Key '{}' not found", index))
-                }
-            }
+            Self::String(s) => s.get_index(index),
+            Self::List(l) => l.get_index(index),
+            Self::Dict(d) => d.get_index(index),
             _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
         }
     }
@@ -420,32 +487,9 @@ impl Value {
     pub fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
         // fixme: Incomplete, concept missing.
         match self {
-            Self::String(s) => {
-                let index = index.to_addr();
-                if index < s.len() {
-                    todo!();
-                    Ok(())
-                } else {
-                    Err(format!("Index {} beyond end of string", index))
-                }
-            }
-            Self::List(l) => {
-                let index = index.to_addr();
-                if index < l.len() {
-                    l[index] = value;
-                    Ok(())
-                } else if index == l.len() {
-                    l.push(value);
-                    Ok(())
-                } else {
-                    Err(format!("Index {} out of bounds", index))
-                }
-            }
-            Self::Dict(d) => {
-                let index = index.to_string();
-                d.insert(index, value);
-                Ok(())
-            }
+            Self::String(s) => s.set_index(index, value),
+            Self::List(l) => l.set_index(index, value),
+            Self::Dict(d) => d.set_index(index, value),
             _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
         }
     }
