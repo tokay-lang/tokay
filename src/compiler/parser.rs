@@ -159,6 +159,10 @@ impl Parser {
             ["[", _, Expression, "]", _, (call ast[(value "index")])]
         }),
 
+        (Attribute = {
+            [".", _, T_Alias, (call ast[(value "attribute")])]
+        }),
+
         (Capture = {
             ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
@@ -172,9 +176,10 @@ impl Parser {
         }),
 
         (Lvalue = {
-            //[Lvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
-            //[Lvalue, (pos Subscript)],
-            [Variable, (call ast[(value "lvalue")])]
+            [Variable, _, (kle {
+                // Attribute,  // Attribute assignment not required for now.
+                Subscript
+            }), (call ast[(value "lvalue")])]
         }),
 
         (Load = {
@@ -283,10 +288,12 @@ impl Parser {
         }),
 
         (Rvalue = {
-            [Rvalue, ".", _, T_Alias, (call ast[(value "attribute")])],
-            [Rvalue, (pos Subscript), (call ast[(value "rvalue")])],
             [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"), _,
                 (call ast[(value "call")])],
+            [Rvalue, (kle {
+                Attribute,
+                Subscript
+            }), (call ast[(value "rvalue")])],
             Atomic
         }),
 
@@ -399,22 +406,22 @@ impl Parser {
             Statement
         }),
 
-        (ImlSequence = {
+        (Sequence = {
             [(pos [SequenceItem, (opt [",", _])]), (call ast[(value "sequence")])]
         }),
 
         (SequenceOrExpression = {
             [Expression, (peek T_EOL)],
-            ImlSequence
+            Sequence
         }),
 
         (Instruction = {
-            ["begin", ___, ImlSequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", ___, ImlSequence, (expect T_EOL), (call ast[(value "end")])],
+            ["begin", ___, Sequence, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", ___, Sequence, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],
-            ImlSequence,
+            Sequence,
             [T_EOL, (Op::Skip)]
         }),
 
@@ -455,6 +462,18 @@ impl Parser {
         [Block,
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
+        */
+
+        /*
+        (T_Float = {
+            // todo: implement as built-in Parselet
+            [(token (Token::Chars(ccl!['0' => '9']))), ".", (opt (token (Token::Chars(ccl!['0' => '9'])))),
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
+            [(opt (token (Token::Chars(ccl!['0' => '9'])))), ".", (token (Token::Chars(ccl!['0' => '9']))),
+                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
+        }),
+
+        T_Float
         */
 
         // ----------------------------------------------------------------------------

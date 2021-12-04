@@ -231,8 +231,8 @@ impl Parselet {
                 state = None;
             }
 
-            // Reset capture stack for loop repeat ($0 must be kept alive)
-            context.runtime.stack.truncate(context.capture_start + 1);
+            // Reset capture stack for loop repeat
+            context.runtime.stack.truncate(context.capture_start);
             first = false;
         };
 
@@ -421,7 +421,7 @@ impl Parselet {
                 context
                     .runtime
                     .stack
-                    .resize(context.capture_start + 1, Capture::Empty);
+                    .resize(context.capture_start, Capture::Empty);
             }
 
             context.runtime.reader.reset(reader_end);

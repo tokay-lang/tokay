@@ -94,6 +94,8 @@ pub enum Op {
     StoreFastCaptureHold(usize),
     StoreCapture,
     StoreCaptureHold,
+    StoreIndex,
+    StoreIndexHold,
 
     MakeAlias,       // Make key-value-Capture from last two stack items
     MakeDict(usize), // Make a Dict from specified amount of key-value-pairs
@@ -622,6 +624,25 @@ impl Op {
                     }
                 }
 
+                Op::StoreIndex | Op::StoreIndexHold => {
+                    let index = context.pop();
+                    let index = index.borrow();
+                    let target = context.pop();
+                    let value = context.pop();
+
+                    let mut obj = target.borrow_mut();
+
+                    if let Err(msg) = obj.set_index(&index, value) {
+                        Error::new(None, msg).into_reject()
+                    } else {
+                        if matches!(op, Op::StoreIndexHold) {
+                            context.push(target.clone())
+                        } else {
+                            Ok(Accept::Next)
+                        }
+                    }
+                }
+
                 Op::MakeAlias => {
                     let name = context.pop();
                     let name = name.borrow();
@@ -818,12 +839,11 @@ impl Op {
             }
         }
 
-        // Take last remaining value as result (if some)
-        if let Ok(_) = state {
-            state = match context.runtime.stack.len() - frame.capture_start {
-                0 => Ok(Accept::Next),
-                _ => Ok(Accept::Push(context.runtime.stack.pop().unwrap())),
-            };
+        // Take last remaining captured value as result, if available
+        if let Ok(Accept::Next) = state {
+            if context.runtime.stack.len() > context.capture_start {
+                state = Ok(Accept::Push(context.runtime.stack.pop().unwrap()));
+            }
         }
 
         // Debug

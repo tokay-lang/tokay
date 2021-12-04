@@ -137,11 +137,11 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         let stack_start = runtime.stack.len() - take;
 
         /*
-        println!("---");
+        println!("--- {:?} ---", parselet.name);
         println!("stack = {:#?}", runtime.stack);
         println!("stack = {:?}", runtime.stack.len());
         println!("start = {:?}", stack_start);
-        println!("resize = {:?}", stack_start + preserve + 1);
+        println!("resize = {:?}", stack_start + locals + 1);
         */
 
         runtime
@@ -150,7 +150,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         Self {
             stack_start,
-            capture_start: stack_start + locals,
+            capture_start: stack_start + locals + 1,
             reader_start: runtime.reader.tell(),
             runtime,
             parselet,
@@ -212,13 +212,15 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
-        if self.capture_start + pos >= self.runtime.stack.len() {
-            return None;
-        }
+        let pos = self.capture_start + pos - 1;
 
-        if pos == 0 {
+        if pos >= self.runtime.stack.len() {
+            None
+        }
+        // This is $0?
+        else if pos < self.capture_start {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value, ..) = &self.runtime.stack[self.capture_start] {
+            if let Capture::Value(value, ..) = &self.runtime.stack[pos] {
                 return Some(value.clone());
             }
 
@@ -231,9 +233,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 )
                 .into_refvalue(),
             )
+        // Any other index.
         } else {
-            self.runtime.stack[self.capture_start + pos].degrade();
-            Some(self.runtime.stack[self.capture_start + pos].into_value(&self.runtime.reader))
+            self.runtime.stack[pos].degrade();
+            Some(self.runtime.stack[pos].into_value(&self.runtime.reader))
         }
     }
 
@@ -260,7 +263,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
     /** Set a capture to a RefValue by index. */
     pub fn set_capture(&mut self, pos: usize, value: RefValue) {
-        let pos = self.capture_start + pos;
+        let pos = self.capture_start + pos - 1;
 
         if pos >= self.runtime.stack.len() {
             return;
@@ -302,6 +305,10 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         mut inherit: bool,
         severity: u8,
     ) -> Result<Option<RefValue>, Capture> {
+        if capture_start > self.runtime.stack.len() {
+            return Ok(None);
+        }
+
         // Eiter copy or drain captures from stack
         let captures: Vec<Capture> = if copy {
             Vec::from_iter(

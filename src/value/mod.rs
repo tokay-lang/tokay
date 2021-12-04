@@ -462,6 +462,40 @@ impl Value {
         }
     }
 
+    // Set value to an index.
+    pub fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
+        // fixme: Incomplete, concept missing.
+        match self {
+            Self::String(s) => {
+                let index = index.to_addr();
+                if index < s.len() {
+                    todo!();
+                    Ok(())
+                } else {
+                    Err(format!("Index {} beyond end of string", index))
+                }
+            }
+            Self::List(l) => {
+                let index = index.to_addr();
+                if index < l.len() {
+                    l[index] = value;
+                    Ok(())
+                } else if index == l.len() {
+                    l.push(value);
+                    Ok(())
+                } else {
+                    Err(format!("Index {} out of bounds", index))
+                }
+            }
+            Self::Dict(d) => {
+                let index = index.to_string();
+                d.insert(index, value);
+                Ok(())
+            }
+            _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
+        }
+    }
+
     /// Retrieve attribute from a refvalue.
     /// Currently this is only a built-in mapping with a value.
     pub fn get_attr(this: RefValue, attr: &Value) -> Result<RefValue, String> {
