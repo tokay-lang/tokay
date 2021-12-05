@@ -1,7 +1,7 @@
 //! Token callables represented by Value::Token
 
 use crate::reader::Reader;
-use crate::value::Value;
+use super::{Dict, Object, Value};
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 
@@ -191,5 +191,42 @@ impl Token {
             Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
             Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
         }
+    }
+}
+
+
+impl Object for Token {
+    fn name(&self) -> &str {
+        "token"
+    }
+
+    fn repr(&self) -> String {
+        match self {
+            Token::Void => "Void".to_string(),
+            Token::EOF => "EOF".to_string(),
+            Token::Char(ccl) => format!("{:?}", ccl),
+            Token::Chars(ccl) => format!("{:?}+", ccl),
+            Token::BuiltinChar(_) | Token::BuiltinChars(_) => "\"<token builtin fn>\n".to_string(),
+            Token::Touch(s) => format!("'{}'", s),
+            Token::Match(s) => format!("''{}''", s)
+        }
+    }
+
+    fn is_callable(&self, with_arguments: bool) -> bool {
+        !with_arguments  // Tokens don't support arguments
+    }
+
+    fn is_consuming(&self) -> bool {
+        true  // Tokens always consume!
+    }
+
+    fn call(
+        &self,
+        context: &mut Context,
+        args: usize,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        assert!(args == 0 && nargs.is_none());
+        self.read(context.runtime.reader)
     }
 }

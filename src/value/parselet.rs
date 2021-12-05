@@ -1,9 +1,9 @@
-//! VM parselet object
+//! Parselet object represents a callable, user-defined function.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::*;
+use super::{Dict, Object, Value};
 use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
@@ -65,14 +65,6 @@ impl Parselet {
     /// Turns parselet into a Value
     pub fn into_value(self) -> Value {
         Value::Parselet(Rc::new(RefCell::new(self)))
-    }
-
-    // Checks if parselet is callable with or without arguments
-    pub(crate) fn is_callable(&self, with_arguments: bool) -> bool {
-        // Either without arguments and signature is empty or all arguments have default values
-        (!with_arguments && (self.signature.len() == 0 || self.signature.iter().all(|arg| arg.1.is_some())))
-        // or with arguments and signature exists
-            || (with_arguments && self.signature.len() > 0)
     }
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
@@ -464,24 +456,62 @@ impl Parselet {
     }
 }
 
+impl Object for Parselet {
+    fn name(&self) -> &str {
+        "parselet"
+    }
+
+    fn repr(&self) -> String {
+        if let Some(name) = &self.name {
+            format!("\"<{} {}>\"", self.name().to_string(), name)
+        } else {
+            format!(
+                "\"<{} {}>\"",
+                self.name().to_string(),
+                self as *const Self as usize
+            )
+        }
+    }
+
+    fn is_callable(&self, with_arguments: bool) -> bool {
+        // Either without arguments and signature is empty or all arguments have default values
+        (!with_arguments && (self.signature.len() == 0 || self.signature.iter().all(|arg| arg.1.is_some())))
+        // or with arguments and signature exists
+            || (with_arguments && self.signature.len() > 0)
+    }
+
+    fn is_consuming(&self) -> bool {
+        self.consuming.is_some()
+    }
+
+    fn call(
+        &self,
+        context: &mut Context,
+        args: usize,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        self.run(context.runtime, args, nargs, false, context.depth + 1)
+    }
+}
+
 impl std::cmp::PartialEq for Parselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self as *const Parselet as usize == other as *const Parselet as usize
+        self as *const Self as usize == other as *const Self as usize
     }
 }
 
 impl std::hash::Hash for Parselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Parselet as usize).hash(state);
+        (self as *const Self as usize).hash(state);
     }
 }
 
 impl std::cmp::PartialOrd for Parselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const Parselet as usize;
-        let right = other as *const Parselet as usize;
+        let left = self as *const Self as usize;
+        let right = other as *const Self as usize;
 
         left.partial_cmp(&right)
     }

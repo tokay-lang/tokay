@@ -4,16 +4,18 @@ use std::rc::Rc;
 
 use crate::builtin::{self, Builtin};
 use crate::error::Error;
-use crate::vm::{Accept, Capture, Context, Reject};
+use crate::vm::{Accept, Context, Reject};
 
 mod dict;
 mod list;
+mod method;
 mod parselet;
 mod string;
 mod token;
 
 pub use dict::Dict;
 pub use list::List;
+pub use method::Method;
 pub use parselet::Parselet;
 pub use string::String;
 pub use token::Token;
@@ -29,7 +31,7 @@ pub trait Object {
 
     /// Render a Tokay code representation for the object
     fn repr(&self) -> String {
-        self.name().to_string()
+        format!("\"<{}>\"", self.name().to_string())
     }
 
     /// Check whether the object represents true or false
@@ -203,7 +205,7 @@ pub enum Value {
     Token(Box<Token>),                 // Token
     Parselet(Rc<RefCell<Parselet>>),   // Parselet
     Builtin(&'static Builtin),         // Builtin
-    Method(Box<(RefValue, RefValue)>), // Method
+    Method(Box<Method>), // Method
 }
 
 /** Value construction helper-macro
@@ -367,16 +369,9 @@ impl Value {
             Self::String(s) => s.repr(),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
-            Self::Parselet(p) => {
-                let p = &*p.borrow();
-                if let Some(name) = p.name.as_ref() {
-                    format!("<parselet {}>", name)
-                } else {
-                    format!("<parselet {}>", p as *const Parselet as usize)
-                }
-            }
+            Self::Parselet(p) => p.borrow().repr(),
             Self::Builtin(b) => format!("<builtin {}>", b.name),
-            Self::Method(m) => format!("<method {}.{}>", m.0.borrow().repr(), m.1.borrow().repr()),
+            Self::Method(m) => m.repr(),
             other => other.to_string(),
         }
     }
@@ -518,10 +513,12 @@ impl Value {
                 let name = format!("{}_{}", prefix, attr);
 
                 if let Some(builtin) = builtin::get(&name) {
-                    return Ok(Value::Method(Box::new((
-                        this.clone(),
-                        Value::Builtin(builtin).into(),
-                    )))
+                    return Ok(Value::Method(Box::new(
+                        Method{
+                            object: this.clone(),
+                            method: Value::Builtin(builtin).into(),
+                        }
+                    ))
                     .into());
                 }
 
@@ -542,10 +539,10 @@ impl Value {
     /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         match self {
-            Value::Token(_) => !with_arguments,
+            Value::Token(tok) => tok.is_callable(with_arguments),
             Value::Builtin(_) => true,
             Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
-            Value::Method(method) => method.1.borrow().is_callable(with_arguments),
+            Value::Method(method) => method.is_callable(with_arguments),
             _ => false,
         }
     }
@@ -553,9 +550,10 @@ impl Value {
     /// Check whether a value is consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Value::Token(_) => true,
+            Value::Token(tok) => tok.is_consuming(),
             Value::Builtin(builtin) => builtin.is_consumable(),
-            Value::Parselet(parselet) => parselet.borrow().consuming.is_some(),
+            Value::Parselet(parselet) => parselet.borrow().is_consuming(),
+            Value::Method(method) => method.is_consuming(),
             _ => false,
         }
     }
@@ -568,24 +566,10 @@ impl Value {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         match self {
-            Value::Token(token) => {
-                assert!(args == 0 && nargs.is_none());
-                token.read(context.runtime.reader)
-            }
+            Value::Token(token) => token.call(context, args, nargs),
             Value::Builtin(builtin) => builtin.call(context, args, nargs),
-            Value::Parselet(parselet) => {
-                parselet
-                    .borrow()
-                    .run(context.runtime, args, nargs, false, context.depth + 1)
-            }
-            Value::Method(method) => {
-                // Method call injects the related object into the stack and calls the method afterwards.
-                context.runtime.stack.insert(
-                    context.runtime.stack.len() - args,
-                    Capture::Value(method.0.clone(), None, 0),
-                );
-                method.1.borrow().call(context, args + 1, nargs)
-            }
+            Value::Parselet(parselet) => parselet.borrow().call(context, args, nargs),
+            Value::Method(method) => method.call(context, args, nargs),
             _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
         }
     }
