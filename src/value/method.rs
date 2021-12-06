@@ -1,14 +1,13 @@
 //! A method object represents an object's method call (currently only for built-ins)
 
-use super::{Object, Dict, RefValue};
+use super::{Dict, Object, RefValue};
 use crate::vm::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Method {
     pub(super) object: RefValue,
-    pub(super) method: RefValue
+    pub(super) method: RefValue,
 }
-
 
 impl Object for Method {
     fn name(&self) -> &str {
@@ -16,7 +15,11 @@ impl Object for Method {
     }
 
     fn repr(&self) -> String {
-        format!("\"<method {}.{}>\"", self.object.borrow().repr(), self.method.borrow().repr())
+        format!(
+            "\"<method {}.{}>\"",
+            self.object.borrow().repr(),
+            self.method.borrow().repr()
+        )
     }
 
     fn is_callable(&self, with_arguments: bool) -> bool {

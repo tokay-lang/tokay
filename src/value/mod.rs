@@ -202,10 +202,10 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),                 // Token
-    Parselet(Rc<RefCell<Parselet>>),   // Parselet
-    Builtin(&'static Builtin),         // Builtin
-    Method(Box<Method>), // Method
+    Token(Box<Token>),               // Token
+    Parselet(Rc<RefCell<Parselet>>), // Parselet
+    Builtin(&'static Builtin),       // Builtin
+    Method(Box<Method>),             // Method
 }
 
 /** Value construction helper-macro
@@ -513,12 +513,10 @@ impl Value {
                 let name = format!("{}_{}", prefix, attr);
 
                 if let Some(builtin) = builtin::get(&name) {
-                    return Ok(Value::Method(Box::new(
-                        Method{
-                            object: this.clone(),
-                            method: Value::Builtin(builtin).into(),
-                        }
-                    ))
+                    return Ok(Value::Method(Box::new(Method {
+                        object: this.clone(),
+                        method: Value::Builtin(builtin).into(),
+                    }))
                     .into());
                 }
 

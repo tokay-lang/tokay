@@ -1,7 +1,7 @@
 //! Token callables represented by Value::Token
 
-use crate::reader::Reader;
 use super::{Dict, Object, Value};
+use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 
@@ -194,7 +194,6 @@ impl Token {
     }
 }
 
-
 impl Object for Token {
     fn name(&self) -> &str {
         "token"
@@ -208,16 +207,16 @@ impl Object for Token {
             Token::Chars(ccl) => format!("{:?}+", ccl),
             Token::BuiltinChar(_) | Token::BuiltinChars(_) => "\"<token builtin fn>\n".to_string(),
             Token::Touch(s) => format!("'{}'", s),
-            Token::Match(s) => format!("''{}''", s)
+            Token::Match(s) => format!("''{}''", s),
         }
     }
 
     fn is_callable(&self, with_arguments: bool) -> bool {
-        !with_arguments  // Tokens don't support arguments
+        !with_arguments // Tokens don't support arguments
     }
 
     fn is_consuming(&self) -> bool {
-        true  // Tokens always consume!
+        true // Tokens always consume!
     }
 
     fn call(

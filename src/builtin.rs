@@ -7,7 +7,6 @@ use crate::vm::{Accept, Capture, Context, Reject};
 // Abstraction of a built-in function
 pub struct Builtin {
     pub name: &'static str,      // Function's external name
-    pub required: i8,            // Number of required arguments, -1 for dynamic parameters
     pub signature: &'static str, // Argument signature as a string, where each argument name is separated by space
     pub func: fn(&mut Context, args: Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
 }
@@ -33,11 +32,27 @@ impl Builtin {
 
         // Match arguments to signature's names
         let mut count = 0;
+        let mut required = true;
+        let mut required_count = -1;
 
         for name in self.signature.split(" ") {
             //println!("{:?}", name);
             if name.len() == 0 {
                 continue;
+            }
+
+            if name == "?" {
+                assert!(required);
+                required = false;
+                continue;
+            }
+
+            if required {
+                if required_count < 0 {
+                    required_count = 1
+                } else {
+                    required_count += 1;
+                }
             }
 
             if count < args.len() {
@@ -56,7 +71,7 @@ impl Builtin {
 
             if !found_in_nargs {
                 // Report required parameter which is also not found in nargs
-                if self.required > 0 && count < self.required as usize {
+                if required {
                     return Error::new(
                         None,
                         format!("{}() requires parameter '{}'", self.name, name),
@@ -73,7 +88,7 @@ impl Builtin {
         //println!("args = {}, count = {}", args.len(), count);
 
         // Check for correct argument alignment
-        if self.required >= 0 && args.len() > count {
+        if required_count >= 0 && args.len() > count {
             if count == 0 {
                 return Error::new(
                     None,
@@ -159,8 +174,7 @@ pub fn get(ident: &str) -> Option<&'static Builtin> {
 inventory::submit! {
     Builtin {
         name: "ast",
-        required: 1,
-        signature: "emit value",
+        signature: "emit ? value",
         func: |context, args| {
             let emit = args[0].as_ref().unwrap();
 
@@ -227,7 +241,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "ast_print",
-        required: 1,
         signature: "ast",
         func: |_, args| {
             compiler::ast::print(&args[0].as_ref().unwrap().borrow());
@@ -243,12 +256,9 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "chr",
-        required: 1,
         signature: "i",
         func: |_context, args| {
             let i = args[0].as_ref().unwrap().borrow().to_addr();
-            println!("i = {}", i);
-
             Ok(Accept::Push(Capture::Value(
                 Value::String(format!("{}", std::char::from_u32(i as u32).unwrap()))
                     .into(),
@@ -262,7 +272,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "dict",
-        required: 0,
         signature: "",
         func: |_context, _args| {
             // fixme: Incomplete, concept missing.
@@ -278,8 +287,7 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "error",
-        required: 1,
-        signature: "msg collect",
+        signature: "msg ? collect",
         func: |context, args| {
             let msg = args[0].as_ref().unwrap();
             let collect = args[1]
@@ -310,7 +318,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "list",
-        required: 0,
         signature: "",
         func: |_context, _args| {
             // fixme: Incomplete, concept missing.
@@ -326,7 +333,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "ord",
-        required: 1,
         signature: "c",
         func: |_context, args| {
             let c = args[0].as_ref().unwrap().borrow().to_string();
@@ -355,8 +361,7 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "print",
-        required: -1,
-        signature: "",
+        signature: "?",
         func: |context, args| {
             //println!("args = {:?}", args);
             if args.len() == 0 {
@@ -390,7 +395,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "Identifier", // Matching C-style identifiers
-        required: 0,
         signature: "",
         func: |context, _args| {
             if let Some(ch) = context.runtime.reader.peek() {
@@ -430,7 +434,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "Integer", // Matching 64-bit integers directly
-        required: 0,
         signature: "",
         func: |context, _args| {
             let mut neg = false;
@@ -477,8 +480,7 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "Word", // Matching words made of letters
-        required: 0,
-        signature: "min max",
+        signature: "? min max",
         func: |context, args| {
             let min = &args[0];
             let max = &args[1];
@@ -528,7 +530,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "str_join",
-        required: 2,
         signature: "self list",
         func: |_context, args| {
             let delimiter = args[0].as_ref().unwrap().borrow().to_string();
@@ -552,7 +553,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "str_lower",
-        required: 1,
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
@@ -564,8 +564,7 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "str_replace",
-        required: 2,
-        signature: "self from to n",
+        signature: "self from ? to n",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
             let from = args[1].as_ref().unwrap().borrow().to_string();
@@ -585,7 +584,6 @@ inventory::submit! {
 inventory::submit! {
     Builtin {
         name: "str_upper",
-        required: 1,
         signature: "self",
         func: |_context, args| {
             let string = args[0].as_ref().unwrap().borrow().to_string();
