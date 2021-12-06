@@ -1,8 +1,12 @@
 //! Tokay built-in functions and parselets
-use crate::compiler;
 use crate::error::Error;
-use crate::value::{Dict, List, RefValue, Value};
+use crate::value::{Dict, RefValue, Value};
 use crate::vm::{Accept, Capture, Context, Reject};
+
+use linkme::distributed_slice;
+
+#[distributed_slice]
+pub static BUILTINS: [Builtin] = [..];
 
 // Abstraction of a built-in function
 pub struct Builtin {
@@ -154,11 +158,9 @@ impl std::fmt::Debug for Builtin {
     }
 }
 
-inventory::collect!(Builtin);
-
 /// Retrieve builtin by name
 pub fn get(ident: &str) -> Option<&'static Builtin> {
-    for builtin in inventory::iter::<Builtin> {
+    for builtin in BUILTINS {
         if builtin.name == ident {
             return Some(builtin);
         }
@@ -167,427 +169,203 @@ pub fn get(ident: &str) -> Option<&'static Builtin> {
     None
 }
 
-// ------------------------------------------------------------------------------------------------
-// Built-in standard functions
-// ------------------------------------------------------------------------------------------------
+// Global built-ins
 
-inventory::submit! {
-    Builtin {
-        name: "ast",
-        signature: "emit ? value",
-        func: |context, args| {
-            let emit = args[0].as_ref().unwrap();
+#[distributed_slice(BUILTINS)]
+static CHR: Builtin = Builtin {
+    name: "chr",
+    signature: "i",
+    func: |_context, args| {
+        let i = args[0].as_ref().unwrap().borrow().to_addr();
+        Ok(Accept::Push(Capture::Value(
+            Value::String(format!("{}", std::char::from_u32(i as u32).unwrap())).into(),
+            None,
+            10,
+        )))
+    },
+};
 
-            let mut ret = Dict::new();
-            ret.insert("emit".to_string(), emit.clone());
+#[distributed_slice(BUILTINS)]
+static ORD: Builtin = Builtin {
+    name: "ord",
+    signature: "c",
+    func: |_context, args| {
+        let c = args[0].as_ref().unwrap().borrow().to_string();
+        println!("c = {:?}", c);
+        if c.chars().count() != 1 {
+            Error::new(
+                None,
+                format!(
+                    "ord() expected single character, but received string of length {}",
+                    c.len()
+                ),
+            )
+            .into_reject()
+        } else {
+            let c = c.chars().next().unwrap();
 
-            let value = match &args[1] {
-                Some(value) => Some(value.clone()),
-                None => context
-                    .collect(context.capture_start, false, true, false, 0)
-                    .unwrap_or(None),
-            };
+            Ok(Accept::Push(Capture::Value(
+                Value::Addr(c as usize).into(),
+                None,
+                10,
+            )))
+        }
+    },
+};
 
-            if let Some(value) = value {
-                // List or Dict values are classified as child nodes
-                if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
-                    ret.insert("children".to_string(), value.clone());
-                } else {
-                    ret.insert("value".to_string(), value.clone());
-                }
+#[distributed_slice(BUILTINS)]
+static PRINT: Builtin = Builtin {
+    name: "print",
+    signature: "?",
+    func: |context, args| {
+        //println!("args = {:?}", args);
+        if args.len() == 0 {
+            if let Some(capture) = context.get_capture(0) {
+                print!("{}", capture.borrow());
             }
-
-            // Store positions of reader start
-            ret.insert(
-                "offset".to_string(),
-                Value::Addr(context.reader_start.offset).into(),
-            );
-            ret.insert(
-                "row".to_string(),
-                Value::Addr(context.reader_start.row as usize).into(),
-            );
-            ret.insert(
-                "col".to_string(),
-                Value::Addr(context.reader_start.col as usize).into(),
-            );
-
-            // Store positions of reader stop
-            let current = context.runtime.reader.tell();
-
-            ret.insert(
-                "stop_offset".to_string(),
-                Value::Addr(current.offset).into(),
-            );
-            ret.insert(
-                "stop_row".to_string(),
-                Value::Addr(current.row as usize).into(),
-            );
-            ret.insert(
-                "stop_col".to_string(),
-                Value::Addr(current.col as usize).into(),
-            );
-
-            Ok(Accept::Push(
-                Capture::Value(
-                    Value::Dict(Box::new(ret)).into(),
-                    None,
-                    10
-                )
-            ))
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "ast_print",
-        signature: "ast",
-        func: |_, args| {
-            compiler::ast::print(&args[0].as_ref().unwrap().borrow());
-            Ok(Accept::Push(Capture::Value(
-                Value::Void.into(),
-                None,
-                10,
-            )))
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "chr",
-        signature: "i",
-        func: |_context, args| {
-            let i = args[0].as_ref().unwrap().borrow().to_addr();
-            Ok(Accept::Push(Capture::Value(
-                Value::String(format!("{}", std::char::from_u32(i as u32).unwrap()))
-                    .into(),
-                None,
-                10,
-            )))
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "dict",
-        signature: "",
-        func: |_context, _args| {
-            // fixme: Incomplete, concept missing.
-            Ok(Accept::Push(Capture::Value(
-                Value::Dict(Box::new(Dict::new())).into(),
-                None,
-                10,
-            )))
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "error",
-        signature: "msg ? collect",
-        func: |context, args| {
-            let msg = args[0].as_ref().unwrap();
-            let collect = args[1]
-                .as_ref()
-                .map_or(false, |value| value.borrow().is_true());
-
-            let mut msg = msg.borrow().to_string();
-
-            if collect {
-                if let Ok(Some(value)) =
-                    context.collect(context.capture_start, false, true, false, 0)
-                {
-                    let value = value.borrow();
-
-                    if let Value::String(s) = &*value {
-                        msg.push_str(&format!(": '{}'", s))
-                    } else {
-                        msg.push_str(&format!(": {}", value.repr()))
-                    }
+        } else {
+            for i in 0..args.len() {
+                if i > 0 {
+                    print!(" ");
                 }
+
+                print!("{}", args[i].as_ref().unwrap().borrow().to_string());
             }
+        }
 
-            Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "list",
-        signature: "",
-        func: |_context, _args| {
-            // fixme: Incomplete, concept missing.
-            Ok(Accept::Push(Capture::Value(
-                Value::List(Box::new(List::new())).into(),
-                None,
-                10,
-            )))
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "ord",
-        signature: "c",
-        func: |_context, args| {
-            let c = args[0].as_ref().unwrap().borrow().to_string();
-            if c.chars().count() != 1 {
-                Error::new(
-                    None,
-                    format!(
-                        "ord() expected single character, but received string of length {}",
-                        c.len()
-                    ),
-                )
-                .into_reject()
-            } else {
-                let c = c.chars().next().unwrap();
-
-                Ok(Accept::Push(Capture::Value(
-                    Value::Addr(c as usize).into(),
-                    None,
-                    10,
-                )))
-            }
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "print",
-        signature: "?",
-        func: |context, args| {
-            //println!("args = {:?}", args);
-            if args.len() == 0 {
-                if let Some(capture) = context.get_capture(0) {
-                    print!("{}", capture.borrow());
-                }
-            } else {
-                for i in 0..args.len() {
-                    if i > 0 {
-                        print!(" ");
-                    }
-
-                    print!("{}", args[i].as_ref().unwrap().borrow().to_string());
-                }
-            }
-
-            print!("\n");
-            Ok(Accept::Push(Capture::Value(
-                Value::Void.into(),
-                None,
-                10,
-            )))
-        },
-    }
-}
+        print!("\n");
+        Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
+    },
+};
 
 // ------------------------------------------------------------------------------------------------
 // Built-in hard-coded tokens
 // ------------------------------------------------------------------------------------------------
 
-inventory::submit! {
-    Builtin {
-        name: "Identifier", // Matching C-style identifiers
-        signature: "",
-        func: |context, _args| {
-            if let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphabetic() && ch != '_' {
-                    return Err(Reject::Next);
-                }
-
-                context.runtime.reader.next();
-            } else {
+#[distributed_slice(BUILTINS)]
+static IDENTIFIER: Builtin = Builtin {
+    name: "Identifier", // Matching C-style identifiers
+    signature: "",
+    func: |context, _args| {
+        if let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphabetic() && ch != '_' {
                 return Err(Reject::Next);
             }
 
-            let mut count: usize = 1;
+            context.runtime.reader.next();
+        } else {
+            return Err(Reject::Next);
+        }
 
-            while let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphanumeric() && ch != '_' {
-                    break;
-                }
+        let mut count: usize = 1;
 
-                context.runtime.reader.next();
-                count += ch.len_utf8();
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphanumeric() && ch != '_' {
+                break;
             }
 
-            if count > 0 {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_last(count),
-                    None,
-                    5,
-                )))
-            } else {
-                Err(Reject::Next)
-            }
-        },
-    }
-}
+            context.runtime.reader.next();
+            count += ch.len_utf8();
+        }
 
-inventory::submit! {
-    Builtin {
-        name: "Integer", // Matching 64-bit integers directly
-        signature: "",
-        func: |context, _args| {
-            let mut neg = false;
-            let mut value: i64 = 0;
+        if count > 0 {
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_last(count),
+                None,
+                5,
+            )))
+        } else {
+            Err(Reject::Next)
+        }
+    },
+};
 
-            // Sign
-            if let Some(ch) = context.runtime.reader.peek() {
-                if ch == '-' || ch == '+' {
-                    neg = ch == '-';
-                    context.runtime.reader.next();
-                }
-            }
+#[distributed_slice(BUILTINS)]
+static INTEGER: Builtin = Builtin {
+    name: "Integer", // Matching 64-bit integers directly
+    signature: "",
+    func: |context, _args| {
+        let mut neg = false;
+        let mut value: i64 = 0;
 
-            let start = context.runtime.reader.tell();
-
-            // Digits
-            while let Some(ch) = context.runtime.reader.peek() {
-                if ch < '0' || ch > '9' {
-                    break;
-                }
-
-                value = value * 10 + ch.to_digit(10).unwrap() as i64;
+        // Sign
+        if let Some(ch) = context.runtime.reader.peek() {
+            if ch == '-' || ch == '+' {
+                neg = ch == '-';
                 context.runtime.reader.next();
             }
+        }
 
-            if start.offset < context.runtime.reader.tell().offset {
-                if neg {
-                    value = -value;
-                }
+        let start = context.runtime.reader.tell();
 
-                Ok(Accept::Push(Capture::Value(
-                    Value::Integer(value).into(),
-                    None,
-                    5,
-                )))
-            } else {
-                context.runtime.reader.reset(start);
-                Err(Reject::Next)
-            }
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "Word", // Matching words made of letters
-        signature: "? min max",
-        func: |context, args| {
-            let min = &args[0];
-            let max = &args[1];
-
-            let mut count: usize = 0;
-
-            while let Some(ch) = context.runtime.reader.peek() {
-                if !ch.is_alphabetic() {
-                    break;
-                }
-
-                context.runtime.reader.next();
-                count += ch.len_utf8();
+        // Digits
+        while let Some(ch) = context.runtime.reader.peek() {
+            if ch < '0' || ch > '9' {
+                break;
             }
 
-            if count > 0 {
-                if let Some(min) = min {
-                    if count < min.borrow().to_addr() {
-                        count = 0;
-                    }
-                }
+            value = value * 10 + ch.to_digit(10).unwrap() as i64;
+            context.runtime.reader.next();
+        }
 
-                if let Some(max) = max {
-                    if count > max.borrow().to_addr() {
-                        count = 0;
-                    }
+        if start.offset < context.runtime.reader.tell().offset {
+            if neg {
+                value = -value;
+            }
+
+            Ok(Accept::Push(Capture::Value(
+                Value::Integer(value).into(),
+                None,
+                5,
+            )))
+        } else {
+            context.runtime.reader.reset(start);
+            Err(Reject::Next)
+        }
+    },
+};
+
+#[distributed_slice(BUILTINS)]
+static WORD: Builtin = Builtin {
+    name: "Word", // Matching words made of letters
+    signature: "? min max",
+    func: |context, args| {
+        let min = &args[0];
+        let max = &args[1];
+
+        let mut count: usize = 0;
+
+        while let Some(ch) = context.runtime.reader.peek() {
+            if !ch.is_alphabetic() {
+                break;
+            }
+
+            context.runtime.reader.next();
+            count += ch.len_utf8();
+        }
+
+        if count > 0 {
+            if let Some(min) = min {
+                if count < min.borrow().to_addr() {
+                    count = 0;
                 }
             }
 
-            if count > 0 {
-                Ok(Accept::Push(Capture::Range(
-                    context.runtime.reader.capture_last(count),
-                    None,
-                    5,
-                )))
-            } else {
-                Err(Reject::Next)
-            }
-        },
-    }
-}
-
-// ------------------------------------------------------------------------------------------------
-// Built-in string manipulation functions
-// ------------------------------------------------------------------------------------------------
-
-inventory::submit! {
-    Builtin {
-        name: "str_join",
-        signature: "self list",
-        func: |_context, args| {
-            let delimiter = args[0].as_ref().unwrap().borrow().to_string();
-            let list = args[1].as_ref().unwrap().borrow().to_list();
-
-            let mut ret = String::new();
-
-            for item in list {
-                if ret.len() > 0 {
-                    ret.push_str(&delimiter);
+            if let Some(max) = max {
+                if count > max.borrow().to_addr() {
+                    count = 0;
                 }
-
-                ret.push_str(&item.borrow().to_string());
             }
+        }
 
-            Value::String(ret).into()
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "str_lower",
-        signature: "self",
-        func: |_context, args| {
-            let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_lowercase()).into()
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "str_replace",
-        signature: "self from ? to n",
-        func: |_context, args| {
-            let string = args[0].as_ref().unwrap().borrow().to_string();
-            let from = args[1].as_ref().unwrap().borrow().to_string();
-            let to = args[2]
-                .as_ref()
-                .map_or("".to_string(), |value| value.borrow().to_string());
-
-            Value::String(if let Some(n) = args[3].as_ref() {
-                string.replacen(&from, &to, n.borrow().to_addr())
-            } else {
-                string.replace(&from, &to)
-            }).into()
-        },
-    }
-}
-
-inventory::submit! {
-    Builtin {
-        name: "str_upper",
-        signature: "self",
-        func: |_context, args| {
-            let string = args[0].as_ref().unwrap().borrow().to_string();
-            Value::String(string.to_uppercase()).into()
-        },
-    }
-}
+        if count > 0 {
+            Ok(Accept::Push(Capture::Range(
+                context.runtime.reader.capture_last(count),
+                None,
+                5,
+            )))
+        } else {
+            Err(Reject::Next)
+        }
+    },
+};

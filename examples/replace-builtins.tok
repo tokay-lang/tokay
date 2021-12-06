@@ -1,0 +1,32 @@
+# This is the first Tokay 0.4 script used to rewrite Tokay's Rust code
+# for the builtin functions to move from the inventory-crate to the
+# distributed_slice crate for experimental reasons.
+
+# It parses the relevant parts of the code and modifies its notation, by
+# inserting an upper-case identifier from the builtin's name.
+
+# The script is far away from perfect, but it did its job quite well for an
+# alpha-stage programming language :D
+
+_ : @{ _ ; '\n' }
+
+Body : @{
+    peek '}'      accept $0
+    '{' Body '}'  repeat
+    .             repeat
+}
+
+Builtin : @{
+    'Builtin' _ '{' _ 'name:' _ '"' name => Identifier '"' Body '}' {
+        accept (name => $name, body => $0)
+    }
+}
+
+'inventory::submit! {' _ builtin => Builtin _ '}' {
+    print("#[distributed_slice(BUILTINS)]")
+    print(
+        "static" $builtin["name"].upper() + ": Builtin = "
+        $builtin["body"] + ";"
+    )
+    accept
+}

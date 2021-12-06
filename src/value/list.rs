@@ -1,6 +1,9 @@
 //! List object
+use linkme::distributed_slice;
 
 use super::{Object, RefValue, Value};
+use crate::builtin::{Builtin, BUILTINS};
+use crate::vm::*;
 
 pub type List = Vec<RefValue>;
 
@@ -61,3 +64,17 @@ impl Object for List {
         }
     }
 }
+
+#[distributed_slice(BUILTINS)]
+static LIST: Builtin = Builtin {
+    name: "list",
+    signature: "",
+    func: |_context, _args| {
+        // fixme: Incomplete, concept missing.
+        Ok(Accept::Push(Capture::Value(
+            Value::List(Box::new(List::new())).into(),
+            None,
+            10,
+        )))
+    },
+};

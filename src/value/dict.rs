@@ -1,7 +1,10 @@
 //! Dictionary object
+use linkme::distributed_slice;
+use std::collections::BTreeMap;
 
 use super::{Object, RefValue, Value};
-use std::collections::BTreeMap;
+use crate::builtin::{Builtin, BUILTINS};
+use crate::vm::*;
 
 pub type Dict = BTreeMap<String, RefValue>;
 
@@ -68,3 +71,17 @@ impl Object for Dict {
         Ok(())
     }
 }
+
+#[distributed_slice(BUILTINS)]
+static DICT: Builtin = Builtin {
+    name: "dict",
+    signature: "",
+    func: |_context, _args| {
+        // fixme: Incomplete, concept missing.
+        Ok(Accept::Push(Capture::Value(
+            Value::Dict(Box::new(Dict::new())).into(),
+            None,
+            10,
+        )))
+    },
+};

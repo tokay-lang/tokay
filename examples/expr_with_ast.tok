@@ -1,17 +1,20 @@
+# This version of expr_with_spaces.tok generates an abstract-syntax tree (AST)
+# from the parsed input.
+
 Factor : @{
-    Integer             ast("int")
-    '(' Expr ')'
+    Integer _           ast("int")
+    '(' _ Expr ')' _
 }
 
 Term : @{
-    Term '*' Factor     ast("mul")
-    Term '/' Factor     ast("div")
+    Term '*' _ Factor   ast("mul")
+    Term '/' _ Factor   ast("div")
     Factor
 }
 
 Expr : @{
-    Expr '+' Term       ast("add")
-    Expr '-' Term       ast("sub")
+    Expr '+' _ Term     ast("add")
+    Expr '-' _ Term     ast("sub")
     Term
 }
 

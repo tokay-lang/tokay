@@ -1,15 +1,17 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-
 use std::cell::{Ref, RefMut};
 use std::collections::HashSet;
 
 use charclass::CharClass;
+use linkme::distributed_slice;
 
 use super::*;
+use crate::builtin::{Builtin, BUILTINS};
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value::{Dict, List, Token, Value};
+use crate::vm::*;
 
 // Helper trait for Dict
 trait BorrowByKey {
@@ -1426,3 +1428,77 @@ pub fn print(ast: &Value) {
 
     print(ast, 0);
 }
+
+#[distributed_slice(BUILTINS)]
+static AST: Builtin = Builtin {
+    name: "ast",
+    signature: "emit ? value",
+    func: |context, args| {
+        let emit = args[0].as_ref().unwrap();
+
+        let mut ret = Dict::new();
+        ret.insert("emit".to_string(), emit.clone());
+
+        let value = match &args[1] {
+            Some(value) => Some(value.clone()),
+            None => context
+                .collect(context.capture_start, false, true, false, 0)
+                .unwrap_or(None),
+        };
+
+        if let Some(value) = value {
+            // List or Dict values are classified as child nodes
+            if value.borrow().get_list().is_some() || value.borrow().get_dict().is_some() {
+                ret.insert("children".to_string(), value.clone());
+            } else {
+                ret.insert("value".to_string(), value.clone());
+            }
+        }
+
+        // Store positions of reader start
+        ret.insert(
+            "offset".to_string(),
+            Value::Addr(context.reader_start.offset).into(),
+        );
+        ret.insert(
+            "row".to_string(),
+            Value::Addr(context.reader_start.row as usize).into(),
+        );
+        ret.insert(
+            "col".to_string(),
+            Value::Addr(context.reader_start.col as usize).into(),
+        );
+
+        // Store positions of reader stop
+        let current = context.runtime.reader.tell();
+
+        ret.insert(
+            "stop_offset".to_string(),
+            Value::Addr(current.offset).into(),
+        );
+        ret.insert(
+            "stop_row".to_string(),
+            Value::Addr(current.row as usize).into(),
+        );
+        ret.insert(
+            "stop_col".to_string(),
+            Value::Addr(current.col as usize).into(),
+        );
+
+        Ok(Accept::Push(Capture::Value(
+            Value::Dict(Box::new(ret)).into(),
+            None,
+            10,
+        )))
+    },
+};
+
+#[distributed_slice(BUILTINS)]
+static AST_PRINT: Builtin = Builtin {
+    name: "ast_print",
+    signature: "ast",
+    func: |_, args| {
+        print(&args[0].as_ref().unwrap().borrow());
+        Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
+    },
+};

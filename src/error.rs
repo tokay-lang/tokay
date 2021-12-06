@@ -1,6 +1,9 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
+use linkme::distributed_slice;
 
+use crate::builtin::{Builtin, BUILTINS};
 use crate::reader::Offset;
+use crate::value::Value;
 use crate::vm::{Accept, Reject};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,3 +49,31 @@ impl std::fmt::Display for Error {
         }
     }
 }
+
+#[distributed_slice(BUILTINS)]
+static ERROR: Builtin = Builtin {
+    name: "error",
+    signature: "msg ? collect",
+    func: |context, args| {
+        let msg = args[0].as_ref().unwrap();
+        let collect = args[1]
+            .as_ref()
+            .map_or(false, |value| value.borrow().is_true());
+
+        let mut msg = msg.borrow().to_string();
+
+        if collect {
+            if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
+                let value = value.borrow();
+
+                if let Value::String(s) = &*value {
+                    msg.push_str(&format!(": '{}'", s))
+                } else {
+                    msg.push_str(&format!(": {}", value.repr()))
+                }
+            }
+        }
+
+        Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
+    },
+};
