@@ -22,8 +22,8 @@ impl Parser {
         // Whitespace & EOL
 
         (_ = {  // true whitespace
-            [" "],
-            ["#", (token (Token::Chars(charclass!['\n'].negate())))],
+            [(token (Token::Chars(charclass![' ', '\t'])))],
+            ["#", (opt (token (Token::Chars(charclass!['\n'].negate()))))],
             ["\\", "\n"]
         }),
 

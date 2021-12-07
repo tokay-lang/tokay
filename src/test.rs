@@ -836,6 +836,12 @@ fn loops() {
 #[test]
 // Testing several special parsing constructs and error reporting
 fn compiler_structure() {
+    // Test for whitespace
+    assert_eq!(
+        compile_and_run("#normal comment\n#\n\t123", ""),
+        Ok(Some(value!(123)))
+    );
+
     // Tests for blocks and empty blocks
     assert_eq!(
         compile_and_run(
