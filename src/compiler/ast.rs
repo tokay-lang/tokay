@@ -71,9 +71,9 @@ impl BorrowByIdx for List {
 /// Checks whether identifier's name is the name of a reserved word.
 fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "accept" | "begin" | "else" | "end" | "exit" | "expect" | "false" | "for" | "if" | "in"
-        | "loop" | "next" | "not" | "null" | "peek" | "push" | "reject" | "repeat" | "return"
-        | "true" | "void" => Err(Error::new(
+        "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit" | "expect"
+        | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek" | "push"
+        | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
             None,
             format!("Expected identifier, found reserved word '{}'", ident),
         )),
