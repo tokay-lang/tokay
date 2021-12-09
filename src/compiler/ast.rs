@@ -456,10 +456,19 @@ fn traverse_node_lvalue(
                 if utils::identifier_is_consumable(name) {
                     compiler.errors.push(Error::new(
                         traverse_node_offset(node),
-                        format!(
-                            "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
-                            name, name.to_lowercase()
-                        ),
+
+                        if &name[0..1] == "_" {
+                            format!(
+                                "The variable '{}' is invalid, only constants may start with '_'",
+                                name
+                            )
+                        }
+                        else {
+                            format!(
+                                "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                                name, name.to_lowercase()
+                            )
+                        }
                     ));
 
                     break;

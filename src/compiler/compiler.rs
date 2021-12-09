@@ -31,7 +31,7 @@ pub(super) enum Scope {
         usage_start: usize, // Begin of usages to resolve until when scope is closed
         constants: HashMap<String, ImlValue>, // Constants symbol table
     },
-    ImlLoop, // loop level (allows use of break & continue)
+    Loop, // loop level (allows use of break & continue)
 }
 
 /** Tokay compiler instance
@@ -300,7 +300,7 @@ impl Compiler {
 
     /// Push a loop scope
     pub(super) fn push_loop(&mut self) {
-        self.scopes.insert(0, Scope::ImlLoop);
+        self.scopes.insert(0, Scope::Loop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
@@ -369,7 +369,7 @@ impl Compiler {
 
     /// Drops a loop scope.
     pub(super) fn pop_loop(&mut self) {
-        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::ImlLoop));
+        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
         self.scopes.remove(0);
     }
 
@@ -390,7 +390,7 @@ impl Compiler {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
-                Scope::ImlLoop => return true,
+                Scope::Loop => return true,
                 _ => {}
             }
         }
