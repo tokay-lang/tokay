@@ -83,9 +83,9 @@ impl Token {
             Token::Char(ccl) => {
                 if let Some(ch) = reader.peek() {
                     if ccl.test(&(ch..=ch)) {
-                        reader.next();
+                        let ch = reader.next().unwrap();
                         return Ok(Accept::Push(Capture::Range(
-                            reader.capture_last(1),
+                            reader.capture_last(ch.len_utf8()),
                             None,
                             5,
                         )));
@@ -97,9 +97,9 @@ impl Token {
             Token::BuiltinChar(f) => {
                 if let Some(ch) = reader.peek() {
                     if f(ch) {
-                        reader.next();
+                        let ch = reader.next().unwrap();
                         return Ok(Accept::Push(Capture::Range(
-                            reader.capture_last(1),
+                            reader.capture_last(ch.len_utf8()),
                             None,
                             5,
                         )));

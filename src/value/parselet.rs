@@ -174,7 +174,12 @@ impl Parselet {
                     if main {
                         // In case no input was consumed in main loop, skip character
                         if state.is_none()
-                            && context.runtime.reader.capture_from(&context.reader_start).len() == 0
+                            && context
+                                .runtime
+                                .reader
+                                .capture_from(&context.reader_start)
+                                .len()
+                                == 0
                         {
                             context.runtime.reader.next();
                         }
