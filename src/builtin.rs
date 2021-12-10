@@ -191,7 +191,6 @@ static ORD: Builtin = Builtin {
     signature: "c",
     func: |_context, args| {
         let c = args[0].as_ref().unwrap().borrow().to_string();
-        println!("c = {:?}", c);
         if c.chars().count() != 1 {
             Error::new(
                 None,

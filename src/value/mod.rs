@@ -366,13 +366,19 @@ impl Value {
     pub fn repr(&self) -> String {
         match self {
             Self::Void => "void".to_string(),
+            Self::Null => "null".to_string(),
+            Self::True => "true".to_string(),
+            Self::False => "false".to_string(),
+            Self::Integer(i) => format!("{}", i),
+            Self::Addr(a) => format!("{}", a),
+            Self::Float(f) => format!("{}", f),
             Self::String(s) => s.repr(),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
+            Self::Token(t) => t.repr(),
             Self::Parselet(p) => p.borrow().repr(),
             Self::Builtin(b) => format!("<builtin {}>", b.name),
             Self::Method(m) => m.repr(),
-            other => other.to_string(),
         }
     }
 
@@ -380,12 +386,6 @@ impl Value {
     pub fn to_string(&self) -> String {
         match self {
             Self::Void => "".to_string(),
-            Self::Null => "null".to_string(),
-            Self::True => "true".to_string(),
-            Self::False => "false".to_string(),
-            Self::Integer(i) => format!("{}", i),
-            Self::Addr(a) => format!("{}", a),
-            Self::Float(f) => format!("{}", f),
             Self::String(s) => s.clone(),
             other => other.repr(),
         }
