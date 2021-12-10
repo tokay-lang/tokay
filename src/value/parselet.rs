@@ -89,8 +89,6 @@ impl Parselet {
         }
 
         let result = loop {
-            let reader_start = context.runtime.reader.tell();
-
             let ops = match state {
                 // begin
                 Some(true) => &self.begin,
@@ -176,7 +174,7 @@ impl Parselet {
                     if main {
                         // In case no input was consumed in main loop, skip character
                         if state.is_none()
-                            && context.runtime.reader.capture_from(&reader_start).len() == 0
+                            && context.runtime.reader.capture_from(&context.reader_start).len() == 0
                         {
                             context.runtime.reader.next();
                         }
@@ -227,6 +225,8 @@ impl Parselet {
 
             // Reset capture stack for loop repeat
             context.runtime.stack.truncate(context.capture_start);
+            context.reader_start = context.runtime.reader.tell();
+
             first = false;
         };
 
