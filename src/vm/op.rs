@@ -827,18 +827,6 @@ impl Op {
             }
         }
 
-        // Take last remaining captured value as result, if available
-        if let Ok(Accept::Next) = state {
-            if context.runtime.stack.len() > context.capture_start {
-                state = Ok(Accept::Push(context.runtime.stack.pop().unwrap()));
-            }
-        }
-
-        // Debug
-        if context.runtime.debug > 2 {
-            context.debug(&format!("returns {:?}", state));
-        }
-
         state
     }
 }

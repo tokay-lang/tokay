@@ -102,9 +102,23 @@ impl Parselet {
 
             let mut result = Op::execute(ops, context, debug);
 
-            // if main {
-            //     println!("state = {:?} result = {:?}", state, result);
-            // }
+            // Either take $0 if it was set to a value, or
+            // use any last remaining value as result,
+            // if available
+            if let Ok(Accept::Next) = result {
+                let dollar0 = &mut context.runtime.stack[context.capture_start - 1];
+
+                if let Capture::Value(value, ..) = dollar0 {
+                    result = Ok(Accept::Push(value.clone().into()));
+                } else if context.runtime.stack.len() > context.capture_start {
+                    result = Ok(Accept::Push(context.runtime.stack.pop().unwrap()));
+                }
+            }
+
+            // Debug
+            if context.runtime.debug > 2 {
+                context.debug(&format!("returns {:?}", state));
+            }
 
             /*
                 In case this is the main parselet, try matching main as much
@@ -229,8 +243,9 @@ impl Parselet {
             }
 
             // Reset capture stack for loop repeat
-            context.runtime.stack.truncate(context.capture_start);
-            context.reader_start = context.runtime.reader.tell();
+            context.runtime.stack.truncate(context.capture_start - 1); // Truncate stack including $0
+            context.runtime.stack.push(Capture::Empty); // re-initialize $0
+            context.reader_start = context.runtime.reader.tell(); // Reset reader
 
             first = false;
         };

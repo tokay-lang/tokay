@@ -68,3 +68,9 @@ impl From<Value> for Capture {
         Capture::Value(value.into(), None, 10)
     }
 }
+
+impl From<RefValue> for Capture {
+    fn from(value: RefValue) -> Self {
+        Capture::Value(value, None, 10)
+    }
+}

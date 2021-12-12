@@ -715,6 +715,11 @@ fn capture() {
         compile_and_run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab"),
         Ok(Some(value!("bbbaa")))
     );
+
+    assert_eq!(
+        compile_and_run("'a' $0 = \"yes\" 'b'+", "abbb"),
+        Ok(Some(value!("yes")))
+    );
 }
 
 // Tests for control flow -------------------------------------------------------------------------
