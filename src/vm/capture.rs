@@ -10,18 +10,10 @@ pub enum Capture {
 }
 
 impl Capture {
-    pub(super) fn from_value(&mut self, from: RefValue) {
-        match self {
-            Capture::Empty => *self = Capture::Value(from, None, 5),
-            Capture::Range(_, alias, _) => *self = Capture::Value(from, alias.clone(), 5),
-            Capture::Value(value, ..) => {
-                *value = from;
-            }
-        }
-    }
+    /** Extracts a value from a capture.
 
-    // Turns a capture into a value.
-    pub(super) fn into_value(&mut self, reader: &Reader) -> RefValue {
+    In case the capture is a range, the range is extracted as a string from the reader. */
+    pub(super) fn extract(&mut self, reader: &Reader) -> RefValue {
         match self {
             Capture::Empty => Value::Void.into(),
             Capture::Range(range, alias, severity) => {

@@ -86,7 +86,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let mut capture = self.runtime.stack.pop().unwrap();
-        capture.into_value(self.runtime.reader)
+        capture.extract(self.runtime.reader)
     }
 
     /// Peek top value of stack.
@@ -94,14 +94,14 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.last_mut().unwrap();
-        capture.into_value(self.runtime.reader)
+        capture.extract(self.runtime.reader)
     }
 
     // Push a value onto the stack
     #[inline]
     pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
         let capture = &mut self.runtime.stack[index];
-        let value = capture.into_value(self.runtime.reader);
+        let value = capture.extract(self.runtime.reader);
         self.push(value)
     }
 
@@ -131,7 +131,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         // Any other index.
         } else {
             self.runtime.stack[pos].degrade();
-            Some(self.runtime.stack[pos].into_value(&self.runtime.reader))
+            Some(self.runtime.stack[pos].extract(&self.runtime.reader))
         }
     }
 
@@ -146,7 +146,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
                     if alias.as_ref().unwrap() == name {
                         capture.degrade();
-                        return Some(capture.into_value(self.runtime.reader));
+                        return Some(capture.extract(self.runtime.reader));
                     }
                 }
                 _ => {}
@@ -164,7 +164,20 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             return;
         }
 
-        self.runtime.stack[pos].from_value(value);
+        let capture = &mut self.runtime.stack[pos];
+
+        // $0 gets a higher severity than normal captures.
+        let severity = if pos < self.capture_start { 10 } else { 5 };
+
+        match capture {
+            Capture::Empty => *capture = Capture::Value(value, None, severity),
+            Capture::Range(_, alias, _) => {
+                *capture = Capture::Value(value, alias.clone(), severity)
+            }
+            Capture::Value(capture_value, ..) => {
+                *capture_value = value;
+            }
+        }
     }
 
     /** Set a capture to a RefValue by name. */
@@ -177,7 +190,15 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             match capture {
                 Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
                     if alias.as_ref().unwrap() == name {
-                        capture.from_value(value);
+                        match capture {
+                            Capture::Empty => *capture = Capture::Value(value, None, 5),
+                            Capture::Range(_, alias, _) => {
+                                *capture = Capture::Value(value, alias.clone(), 5)
+                            }
+                            Capture::Value(capture_value, ..) => {
+                                *capture_value = value;
+                            }
+                        }
                         break;
                     }
                 }
@@ -338,7 +359,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         captures
             .into_iter()
-            .map(|mut capture| capture.into_value(self.runtime.reader))
+            .map(|mut capture| capture.extract(self.runtime.reader))
             .collect()
     }
 }
