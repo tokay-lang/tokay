@@ -1,51 +1,12 @@
-use std::collections::HashMap;
+//! Contexts represent stack frames for parselet calls.
+
 use std::iter::FromIterator;
 
 use super::*;
-use crate::error::Error;
-use crate::reader::{Offset, Reader};
+use crate::reader::Offset;
 use crate::value::{Dict, List, Parselet, RefValue, Value};
 
-// --- Accept ------------------------------------------------------------------
-
-/// Representing the Ok-value result on a branched run of the VM.
-#[derive(Debug, Clone)]
-pub enum Accept {
-    Next,                     // soft-accept, run next instructions at incremented ip
-    Hold,                     // soft-accept, run next instruction at current ip
-    Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
-    Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
-    Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
-}
-
-impl From<Value> for Result<Accept, Reject> {
-    fn from(value: Value) -> Self {
-        Ok(Accept::Push(value.into()))
-    }
-}
-
-// --- Reject ------------------------------------------------------------------
-
-/// Representing the Err-value result on a branched run of the VM.
-#[derive(Debug, Clone)]
-pub enum Reject {
-    Next,   // soft-reject, skip to next sequence
-    Skip,   // hard-reject, silently drop current parselet
-    Return, // hard-reject current parselet ('return'/'reject'-keyword)
-    Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
-    Error(Box<Error>), //hard-reject with error message (runtime error)
-            // todo: Exit(u32) // stop entire program with exit code
-}
-
-impl From<Error> for Reject {
-    fn from(error: Error) -> Self {
-        Reject::Error(Box::new(error))
-    }
-}
-
-// --- Context -----------------------------------------------------------------
-
-/** Contexts represent stack frames for function calls.
+/** Contexts represent stack frames for parselet calls.
 
 Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
@@ -387,50 +348,5 @@ impl<'runtime, 'program, 'reader, 'parselet> Drop
 {
     fn drop(&mut self) {
         self.runtime.stack.truncate(self.stack_start + self.hold);
-    }
-}
-
-// --- Runtime -----------------------------------------------------------------
-
-/** Merges a program and a reader into one container.
-
-Holds additional runtime information, like the stack or memoization table */
-pub struct Runtime<'program, 'reader> {
-    pub(crate) program: &'program Program,
-    pub(crate) reader: &'reader mut Reader,
-
-    pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
-    pub(crate) stack: Vec<Capture>,
-    pub debug: u8, // Debug level
-}
-
-impl<'program, 'reader> Runtime<'program, 'reader> {
-    pub fn new(program: &'program Program, reader: &'reader mut Reader) -> Self {
-        Self {
-            program,
-            reader,
-            memo: HashMap::new(),
-            stack: Vec::new(),
-            debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
-                level.parse::<u8>().unwrap_or_default()
-            } else {
-                0
-            },
-        }
-    }
-
-    pub fn load_stack(&mut self, stack: Vec<RefValue>) {
-        for item in stack {
-            self.stack.push(Capture::Value(item, None, 0));
-        }
-    }
-
-    pub fn save_stack(mut self) -> Vec<RefValue> {
-        self.stack.drain(..).map(|item| item.get_value()).collect()
-    }
-
-    pub fn dump(&self) {
-        println!("memo has {} entries", self.memo.len());
-        println!("stack has {} entries", self.stack.len());
     }
 }
