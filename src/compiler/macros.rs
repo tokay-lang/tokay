@@ -19,6 +19,8 @@ macro_rules! tokay {
             let mut compiler = Compiler::new();
             compiler.debug = 0;  // unset debug always
 
+            tokay_dump!({ $( $items ),* });
+
             compiler.push_parselet();  // Main
             compiler.mark_consuming();
 
@@ -133,7 +135,7 @@ macro_rules! tokay {
         }
     };
 
-    // ImlSequence
+    // Sequence
     ( $compiler:expr, [ $( $item:tt ),* ] ) => {
         {
             //println!("sequence");
@@ -195,26 +197,27 @@ macro_rules! tokay {
         Some(tokay!($compiler, $item).unwrap().into_optional())
     };
 
-    // ImlNot
+    // Not
     ( $compiler:expr, (not $item:tt) ) => {
         Some(ImlNot::new(tokay!($compiler, $item).unwrap()))
     };
 
-    // ImlPeek
+    // Peek
     ( $compiler:expr, (peek $item:tt) ) => {
         Some(ImlPeek::new(tokay!($compiler, $item).unwrap()))
     };
 
-    // ImlExpect
+    // Expect
     ( $compiler:expr, (expect $item:tt) ) => {
-        {
-            let mut msg = "Expecting ".to_string();
-            msg.push_str(stringify!($item));
-            Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some(msg)))
-        }
+        Some(
+            ImlExpect::new(
+                tokay!($compiler, $item).unwrap(),
+                Some(format!("Expecting {}", stringify!($item)))
+            )
+        )
     };
 
-    // ImlExpect with literal
+    // Expect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
         Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
     };
@@ -307,5 +310,156 @@ macro_rules! tokay {
             //println!("expr = {}", stringify!($expr));
             Some(ImlOp::from($expr))
         }
+    };
+}
+
+#[macro_export]
+macro_rules! tokay_dump {
+
+    // Tokay
+    ( { $( $item:tt ),+ } ) => {
+        $(
+            tokay_dump!($item);
+        )*
+    };
+
+    // Assign a value
+    ( ( $name:ident = $value:literal ) ) => {
+        println!("{} : {}", stringify!($name), stringify!($name));
+    };
+
+    // Assign whitespace
+    ( ( _ = { $( $item:tt ),* } ) ) => {
+        println!("_ : @{{");
+
+        $(
+            print!("    ");
+            tokay_dump!($item);
+            print!("\n");
+        )*
+
+        print!("}}\n\n");
+    };
+
+    // Assign parselet
+    ( ( $name:ident = { $( $item:tt ),* } ) ) => {
+        println!("{} : @{{", stringify!($name));
+
+        $(
+            print!("    ");
+            tokay_dump!($item);
+            print!("\n");
+        )*
+
+        print!("}}\n\n");
+    };
+
+    // Sequence
+    ( [ $( $item:tt ),* ] ) => {
+        $(
+            tokay_dump!($item);
+            print!(" ");
+        )*
+    };
+
+    // Block
+    ( { $( $item:tt ),* } ) => {
+        {
+            println!("{");
+
+            $(
+                print!("    ");
+                tokay_dump!($item);
+                print!("\n");
+            )*
+
+            print!("}");
+        }
+    };
+
+    // Kleene
+    ( (kle $item:tt) ) => {
+        tokay_dump!($item);
+        print!("*");
+    };
+
+    // Positive
+    ( (pos $item:tt) ) => {
+        tokay_dump!($item);
+        print!("+");
+    };
+
+    // Optional
+    ( (opt $item:tt) ) => {
+        tokay_dump!($item);
+        print!("?");
+    };
+
+    // Not
+    ( (not $item:tt) ) => {
+        print!("not ");
+        tokay_dump!($item);
+    };
+
+    // Peek
+    ( (peek $item:tt) ) => {
+        print!("peek ");
+        tokay_dump!($item);
+    };
+
+    // Expect
+    ( (expect $item:tt) ) => {
+        print!("expect ");
+        tokay_dump!($item);
+    };
+
+    // Expect with literal
+    ( (expect $item:tt, $msg:literal) ) => {
+        print!("expect ");
+        tokay_dump!($item);
+        print!(", \"{}\" ", $msg);
+    };
+
+    // Value
+    ( (value $value:tt) ) => {
+        print!("{}", stringify!($value));
+    };
+
+    // Token
+    ( (token $token:tt) ) => {
+        {
+            print!("{}", $token.into_value().repr());
+        }
+    };
+
+    // Call with parameters
+    ( (call $ident:ident [ $( $param:tt ),* ] ) ) => {
+        {
+            print!("{}(", stringify!($ident));
+            $(
+                tokay_dump!($param);
+            )*
+            print!(")");
+        }
+    };
+
+    // Call without parameters
+    ( $ident:ident ) => {
+        print!("{}", stringify!($ident))
+    };
+
+    // Whitespace
+    ( _ ) => {
+        print!("_")
+    };
+
+    // Touch
+    ( $literal:literal ) => {
+        print!("'{}'", $literal)
+    };
+
+    // Fallback
+    ( $expr:tt ) => {
+        print!("{}", stringify!($expr))
     };
 }
