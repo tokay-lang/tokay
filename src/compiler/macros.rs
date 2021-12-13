@@ -319,22 +319,26 @@ macro_rules! tokay_dump {
     // Tokay
     ( { $( $item:tt ),+ } ) => {
         $(
-            tokay_dump!($item);
+            tokay_dump!(0, $item);
         )*
     };
 
     // Assign a value
-    ( ( $name:ident = $value:literal ) ) => {
-        println!("{} : {}", stringify!($name), stringify!($name));
+    ( $indent:expr, ( $name:ident = $value:literal ) ) => {
+        println!("{:indent$}{} : {}",
+            stringify!($name),
+            stringify!($name),
+            indent=indent * 4
+        );
     };
 
     // Assign whitespace
-    ( ( _ = { $( $item:tt ),* } ) ) => {
+    ( $indent:expr, ( _ = { $( $item:tt ),* } ) ) => {
         println!("_ : @{{");
 
         $(
-            print!("    ");
-            tokay_dump!($item);
+            print!("{:indent$}", "", indent=($indent + 1) * 4);
+            tokay_dump!($indent + 1, $item);
             print!("\n");
         )*
 
@@ -342,12 +346,12 @@ macro_rules! tokay_dump {
     };
 
     // Assign parselet
-    ( ( $name:ident = { $( $item:tt ),* } ) ) => {
+    ( $indent:expr, ( $name:ident = { $( $item:tt ),* } ) ) => {
         println!("{} : @{{", stringify!($name));
 
         $(
-            print!("    ");
-            tokay_dump!($item);
+            print!("{:indent$}", "", indent=($indent + 1) * 4);
+            tokay_dump!($indent + 1, $item);
             print!("\n");
         )*
 
@@ -355,111 +359,127 @@ macro_rules! tokay_dump {
     };
 
     // Sequence
-    ( [ $( $item:tt ),* ] ) => {
+    ( $indent:expr, [ $( $item:tt ),* ] ) => {
+        if $indent > 1 {
+            print!("(");
+        }
+
         $(
-            tokay_dump!($item);
+            tokay_dump!($indent + 1, $item);
             print!(" ");
         )*
+
+        if $indent > 1 {
+            print!(")");
+        }
     };
 
     // Block
-    ( { $( $item:tt ),* } ) => {
+    ( $indent:expr, { $( $item:tt ),* } ) => {
         {
-            println!("{");
+            println!("{{");
 
             $(
-                print!("    ");
-                tokay_dump!($item);
+                print!("{:indent$}", "", indent=$indent * 4);
+                tokay_dump!($indent + 1, $item);
                 print!("\n");
             )*
 
-            print!("}");
+            print!("{:indent$}}}", "", indent=($indent - 1) * 4);
         }
     };
 
     // Kleene
-    ( (kle $item:tt) ) => {
-        tokay_dump!($item);
+    ( $indent:expr, (kle $item:tt) ) => {
+        tokay_dump!($indent, $item);
         print!("*");
     };
 
     // Positive
-    ( (pos $item:tt) ) => {
-        tokay_dump!($item);
+    ( $indent:expr, (pos $item:tt) ) => {
+        tokay_dump!($indent, $item);
         print!("+");
     };
 
     // Optional
-    ( (opt $item:tt) ) => {
-        tokay_dump!($item);
+    ( $indent:expr, (opt $item:tt) ) => {
+        tokay_dump!($indent, $item);
         print!("?");
     };
 
     // Not
-    ( (not $item:tt) ) => {
+    ( $indent:expr, (not $item:tt) ) => {
         print!("not ");
-        tokay_dump!($item);
+        tokay_dump!($indent, $item);
     };
 
     // Peek
-    ( (peek $item:tt) ) => {
+    ( $indent:expr, (peek $item:tt) ) => {
         print!("peek ");
-        tokay_dump!($item);
+        tokay_dump!($indent, $item);
     };
 
     // Expect
-    ( (expect $item:tt) ) => {
+    ( $indent:expr, (expect $item:tt) ) => {
         print!("expect ");
-        tokay_dump!($item);
+        tokay_dump!($indent, $item);
     };
 
     // Expect with literal
-    ( (expect $item:tt, $msg:literal) ) => {
+    ( $indent:expr, (expect $item:tt, $msg:literal) ) => {
         print!("expect ");
-        tokay_dump!($item);
+        tokay_dump!($indent, $item);
         print!(", \"{}\" ", $msg);
     };
 
     // Value
-    ( (value $value:tt) ) => {
+    ( $indent:expr, (value $value:tt) ) => {
         print!("{}", stringify!($value));
     };
 
     // Token
-    ( (token $token:tt) ) => {
+    ( $indent:expr, (token $token:tt) ) => {
         {
             print!("{}", $token.into_value().repr());
         }
     };
 
     // Call with parameters
-    ( (call $ident:ident [ $( $param:tt ),* ] ) ) => {
+    ( $indent:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
         {
             print!("{}(", stringify!($ident));
+
             $(
-                tokay_dump!($param);
+                tokay_dump!($indent + 1, $param);
+                print!(" ");
             )*
+
             print!(")");
         }
     };
 
     // Call without parameters
-    ( $ident:ident ) => {
-        print!("{}", stringify!($ident))
+    ( $indent:expr, $ident:ident ) => {
+        print!("{}", stringify!($ident));
     };
 
     // Whitespace
-    ( _ ) => {
-        print!("_")
+    ( $indent:expr, _ ) => {
+        print!("_");
     };
 
     // Touch
-    ( $literal:literal ) => {
-        print!("'{}'", $literal)
+    ( $indent:expr, $literal:literal ) => {
+        print!("'{}'", $literal);
+    };
+
+    // $<offset>
+    ( $indent:expr, (Op::LoadFastCapture($offset:literal)) ) => {
+        print!("${}", $offset);
     };
 
     // Fallback
-    ( $expr:tt ) => {
-        print!("{}", stringify!($expr))
+    ( $indent:expr, $expr:tt ) => {
+        //print!("{}", stringify!($expr));
     };
 }
