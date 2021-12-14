@@ -58,8 +58,8 @@ Released on Mar 4, 2021
 - Symbol resolving and scopes
 
 
-[main]: https://github.com/phorward/tokay/compare/v0.4...main
-[v0.4]: https://github.com/phorward/tokay/compare/v0.3...v0.4
-[v0.3]: https://github.com/phorward/tokay/compare/v0.2...v0.3
-[v0.2]: https://github.com/phorward/tokay/compare/v0.1...v0.2
-[v0.1]: https://github.com/phorward/tokay/compare/2d74215f4842d295371112a630d15ab03442cd1e...v0.1
+[main]: https://github.com/tokay-lang/tokay/compare/v0.4...main
+[v0.4]: https://github.com/tokay-lang/tokay/compare/v0.3...v0.4
+[v0.3]: https://github.com/tokay-lang/tokay/compare/v0.2...v0.3
+[v0.2]: https://github.com/tokay-lang/tokay/compare/v0.1...v0.2
+[v0.1]: https://github.com/tokay-lang/tokay/compare/2d74215f4842d295371112a630d15ab03442cd1e...v0.1

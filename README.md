@@ -1,7 +1,7 @@
 # Tokay
 
 ![Tokay Logo](assets/tokay.svg)
-[![Rust](https://github.com/phorward/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/phorward/tokay/actions/workflows/main.yml)
+[![Rust](https://github.com/tokay-lang/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/tokay-lang/tokay/actions/workflows/main.yml)
 
 An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
@@ -98,9 +98,9 @@ The full documentation of the language is currently work-in-progress, and can be
 
 Contributions of any kind, might it be code, bug reports and fixes, documentation, support or advertising are always welcome!
 
-Take a look into the [bug tracker](https://github.com/phorward/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved (there are plenty of them).
+Take a look into the [bug tracker](https://github.com/tokay-lang/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved (there are plenty of them).
 
-Feel free to [contact me](https://phorward.info) on any questions, or directly [file an issue here](https://github.com/phorward/tokay/issues/new).
+Feel free to [contact me](https://phorward.info) on any questions, or directly [file an issue here](https://github.com/tokay-lang/tokay/issues/new).
 
 Tokay is my first project I've started in Rust, therefore I'm sure many things inside the code could easily be improved by more experienced Rustaceans out there.
 

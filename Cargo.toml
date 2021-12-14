@@ -4,7 +4,7 @@ version = "0.4.0"
 description = "Tokay is a programming language dedicated to parsing and text-processing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
-repository = "https://github.com/phorward/tokay/"
+repository = "https://github.com/tokay-lang/tokay/"
 license = "MIT"
 edition = "2021"
 
