@@ -313,6 +313,8 @@ macro_rules! tokay {
     };
 }
 
+/*
+// Grammar dump macro, used to generate examples/tokay.tok.
 #[macro_export]
 macro_rules! tokay_dump {
 
@@ -464,3 +466,4 @@ macro_rules! tokay_dump {
         "".to_string()
     };
 }
+*/

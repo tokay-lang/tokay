@@ -5,7 +5,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{Token, Value};
-use crate::{tokay, tokay_dump, value};
+use crate::{tokay, value};
 
 /**
 Implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
