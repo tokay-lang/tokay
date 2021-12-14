@@ -19,7 +19,7 @@ macro_rules! tokay {
             let mut compiler = Compiler::new();
             compiler.debug = 0;  // unset debug always
 
-            tokay_dump!({ $( $items ),* });
+            //tokay_dump!({ $( $items ),* });
 
             compiler.push_parselet();  // Main
             compiler.mark_consuming();
