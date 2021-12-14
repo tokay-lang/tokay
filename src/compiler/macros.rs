@@ -391,37 +391,37 @@ macro_rules! tokay_dump {
 
     // Kleene
     ( $indent:expr, (kle $item:tt) ) => {
-        format!("{}*", tokay_dump!($indent, $item))
+        format!("{}*", tokay_dump!($indent + 1, $item))
     };
 
     // Positive
     ( $indent:expr, (pos $item:tt) ) => {
-        format!("{}+", tokay_dump!($indent, $item))
+        format!("{}+", tokay_dump!($indent + 1, $item))
     };
 
     // Optional
     ( $indent:expr, (opt $item:tt) ) => {
-        format!("{}?", tokay_dump!($indent, $item))
+        format!("{}?", tokay_dump!($indent + 1, $item))
     };
 
     // Not
     ( $indent:expr, (not $item:tt) ) => {
-        format!("not {}", tokay_dump!($indent, $item))
+        format!("not {}", tokay_dump!($indent + 1, $item))
     };
 
     // Peek
     ( $indent:expr, (peek $item:tt) ) => {
-        format!("peek {}", tokay_dump!($indent, $item))
+        format!("peek {}", tokay_dump!($indent + 1, $item))
     };
 
     // Expect
     ( $indent:expr, (expect $item:tt) ) => {
-        format!("expect {}", tokay_dump!($indent, $item))
+        format!("expect {}", tokay_dump!($indent + 1, $item))
     };
 
     // Expect with literal
     ( $indent:expr, (expect $item:tt, $msg:literal) ) => {
-        format!("expect {}, \"{}\"", tokay_dump!($indent, $item), $msg)
+        format!("expect {}, \"{}\"", tokay_dump!($indent + 1, $item), $msg)
     };
 
     // Value

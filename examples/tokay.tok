@@ -132,7 +132,7 @@ CallParameter : @{
 }
 
 CallParameters : @{
-    CallParameter (',' _)? (T_EOL _)*
+    (CallParameter (',' _)? (T_EOL _)*)+
 }
 
 Literal : @{
@@ -284,7 +284,7 @@ Argument : @{
 }
 
 Arguments : @{
-    Argument (',' _)*
+    (Argument (',' _)?)+
 }
 
 Parselet : @{
