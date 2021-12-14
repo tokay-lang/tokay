@@ -4,6 +4,8 @@
 
 Current main branch.
 
+- Self-hosted tokay parser in `examples/tokay.tok`
+
 
 ## [v0.4]
 
