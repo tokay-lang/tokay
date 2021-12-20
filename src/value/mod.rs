@@ -404,13 +404,15 @@ impl Value {
 
     /// Get a value's dict representation.
     pub fn to_dict(&self) -> Dict {
-        if let Self::Dict(d) = self {
-            *d.clone()
-        } else {
-            let mut d = Dict::new();
-            //fixme "0"?
-            d.insert("0".to_string(), self.clone().into());
-            d
+        match self {
+            Self::Dict(d) => *d.clone(),
+            Self::Void => Dict::new(),
+            _ => {
+                let mut d = Dict::new();
+                //fixme "0"?
+                d.insert("0".to_string(), self.clone().into());
+                d
+            }
         }
     }
 

@@ -78,3 +78,26 @@ static LIST: Builtin = Builtin {
         )))
     },
 };
+
+#[distributed_slice(BUILTINS)]
+static LIST_PUSH: Builtin = Builtin {
+    name: "list_push",
+    signature: "self item",
+    func: |_context, mut args| {
+        let mut list = args.remove(0).unwrap();
+        let item = args.remove(0).unwrap();
+
+        // If list is not a list, turn it into a list
+        if list.borrow().get_list().is_none() {
+            let new = list.borrow().to_list();
+            list = Value::List(Box::new(new)).into();
+        }
+
+        // Push the item to the list
+        if let Value::List(list) = &mut *list.borrow_mut() {
+            list.push(item);
+        }
+
+        Ok(Accept::Push(Capture::Value(list, None, 10)))
+    },
+};

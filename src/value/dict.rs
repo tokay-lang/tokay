@@ -85,3 +85,29 @@ static DICT: Builtin = Builtin {
         )))
     },
 };
+
+#[distributed_slice(BUILTINS)]
+static DICT_UPDATE: Builtin = Builtin {
+    name: "dict_update",
+    signature: "self other",
+    func: |_context, mut args| {
+        let mut dict = args.remove(0).unwrap();
+        let other = args.remove(0).unwrap();
+
+        // If dict is not a dict, turn it into a dict
+        if dict.borrow().get_dict().is_none() {
+            let new = dict.borrow().to_dict();
+            dict = Value::Dict(Box::new(new)).into();
+        }
+
+        // Extend dict
+        if let Value::Dict(dict) = &mut *dict.borrow_mut() {
+            // If dict is not a dict, turn it into a dict
+            for (k, v) in other.borrow().to_dict().iter() {
+                dict.insert(k.clone(), v.clone());
+            }
+        }
+
+        Ok(Accept::Push(Capture::Value(dict, None, 10)))
+    },
+};

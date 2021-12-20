@@ -1207,7 +1207,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         "kle" => op.into_kleene(),
                         "opt" => op.into_optional(),
                         "peek" => ImlPeek::new(op),
-                        "expect" => ImlExpect::new(op, Some("#todo".to_string())),  // todo!
+                        "expect" => ImlExpect::new(op, Some("#todo".to_string())), // todo!
                         "not" => ImlNot::new(op),
                         _ => unreachable!(),
                     }

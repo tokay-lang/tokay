@@ -1,0 +1,47 @@
+String : @{
+    '"' {
+        #'\\' EscapeSequence
+        [^\\\"]
+        EOF  error("Unclosed string, expecting '\"'")
+    }*  str_join("", $2) expect '"' _
+}
+
+Key : @{
+    Identifier
+    String
+}
+
+Object : @{
+    '{' _ Pairs? '}' _
+}
+
+Pairs : @{
+    Pairs ',' _ Pair?  dict_update($1, $4)
+    Pair
+}
+
+Pair : @{
+    Key ':' _ Value  $1 => $4
+}
+
+Array : @{
+    '[' _ Values ']' _
+}
+
+Values : @{
+    Values ',' _ Value?  list_push($1, $4)
+    Value
+}
+
+Value : @{
+    Identifier _
+    Integer _ # todo
+    ''null'' _
+    ''true'' _
+    ''false'' _
+    String _
+    Object _
+    Array _
+}
+
+Value
