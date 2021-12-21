@@ -443,7 +443,7 @@ impl Op {
                     let target = context.pop();
                     let target = target.borrow();
 
-                    let nargs = Value::from_ref(context.pop()).unwrap();
+                    let nargs: Value = context.pop().into();
                     target.call(context, *args, Some(nargs.into_dict()))
                     //println!("CallArgNamed returns {:?}", ret);
                 }
@@ -462,7 +462,7 @@ impl Op {
                 }
 
                 Op::CallStaticArgNamed(addr_args) => {
-                    let nargs = Value::from_ref(context.pop()).unwrap();
+                    let nargs: Value = context.pop().into();
 
                     context.runtime.program.statics[addr_args.0].borrow().call(
                         context,

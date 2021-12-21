@@ -283,14 +283,6 @@ macro_rules! value {
 }
 
 impl Value {
-    /// Convert a RefValue into a Value
-    pub fn from_ref(this: RefValue) -> Result<Value, RefValue> {
-        match Rc::try_unwrap(this) {
-            Ok(this) => Ok(this.into_inner()),
-            Err(this) => Err(this),
-        }
-    }
-
     /// Check if value is void.
     pub fn is_void(&self) -> bool {
         matches!(self, Value::Void)
@@ -685,6 +677,16 @@ impl Value {
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.to_string())
+    }
+}
+
+/// Convert a RefValue into a Value
+impl From<RefValue> for Value {
+    fn from(value: RefValue) -> Self {
+        match Rc::try_unwrap(value) {
+            Ok(value) => value.into_inner(),
+            Err(value) => value.borrow().clone(),
+        }
     }
 }
 

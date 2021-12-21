@@ -49,10 +49,7 @@ impl Program {
                 }
                 _ => panic!(),
             } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => match Value::from_ref(value) {
-                    Ok(value) => Ok(Some(value)),
-                    Err(value) => Ok(Some(value.borrow().clone())),
-                },
+                Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value.into())),
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
