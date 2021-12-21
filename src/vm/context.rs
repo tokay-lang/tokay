@@ -295,7 +295,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    if !value.borrow().is_void() {
+                    if !matches!(&*value.borrow(), Value::Void) {
                         if let Some(alias) = alias {
                             dict.insert(alias, value);
                         } else if inherit {
