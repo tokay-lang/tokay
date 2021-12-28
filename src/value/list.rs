@@ -7,6 +7,26 @@ use crate::vm::*;
 
 pub type List = Vec<RefValue>;
 
+impl From<Value> for List {
+    fn from(value: Value) -> Self {
+        if let Value::List(list) = value {
+            *list
+        } else {
+            vec![value.into()]
+        }
+    }
+}
+
+impl From<&Value> for List {
+    fn from(value: &Value) -> Self {
+        if let Value::List(list) = value {
+            *list.clone()
+        } else {
+            vec![value.clone().into()]
+        }
+    }
+}
+
 impl Object for List {
     fn name(&self) -> &str {
         "list"
@@ -30,18 +50,7 @@ impl Object for List {
         ret
     }
 
-    fn is_true(&self) -> bool {
-        self.len() > 0
-    }
-
-    fn is_list(&self) -> Option<&List> {
-        Some(self)
-    }
-
-    fn to_list(&self) -> List {
-        self.clone()
-    }
-
+    /*
     fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         let index = index.to_addr();
         if let Some(value) = self.get(index) {
@@ -63,6 +72,7 @@ impl Object for List {
             Err(format!("Index {} out of bounds", index))
         }
     }
+    */
 }
 
 #[distributed_slice(BUILTINS)]
@@ -79,6 +89,7 @@ static LIST: Builtin = Builtin {
     },
 };
 
+/*
 #[distributed_slice(BUILTINS)]
 static LIST_PUSH: Builtin = Builtin {
     name: "list_push",
@@ -88,7 +99,7 @@ static LIST_PUSH: Builtin = Builtin {
         let item = args.remove(0).unwrap();
 
         // If list is not a list, turn it into a list
-        if list.borrow().get_list().is_none() {
+        if list.borrow().list().is_none() {
             let new = list.borrow().to_list();
             list = Value::List(Box::new(new)).into();
         }
@@ -101,3 +112,4 @@ static LIST_PUSH: Builtin = Builtin {
         Ok(Accept::Push(Capture::Value(list, None, 10)))
     },
 };
+*/

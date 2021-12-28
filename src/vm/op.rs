@@ -400,7 +400,7 @@ impl Op {
                 }
                 Op::Reject => Err(Reject::Return),
                 Op::LoadExit => {
-                    std::process::exit(context.pop().borrow().to_integer() as i32);
+                    std::process::exit(context.pop().borrow().to_i64() as i32);
                 }
                 Op::Exit => std::process::exit(0),
 
@@ -444,7 +444,7 @@ impl Op {
                     let target = target.borrow();
 
                     let nargs: Value = context.pop().into();
-                    target.call(context, *args, Some(nargs.into_dict()))
+                    target.call(context, *args, Some(Dict::from(nargs)))
                     //println!("CallArgNamed returns {:?}", ret);
                 }
 
@@ -467,7 +467,7 @@ impl Op {
                     context.runtime.program.statics[addr_args.0].borrow().call(
                         context,
                         addr_args.1,
-                        Some(nargs.into_dict()),
+                        Some(Dict::from(nargs)),
                     )
                     //println!("CallStaticArg returns {:?}",
                 }
@@ -499,7 +499,7 @@ impl Op {
                     match &*index {
                         Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
                             let value = context
-                                .get_capture(index.to_addr())
+                                .get_capture(index.to_usize())
                                 .unwrap_or(Value::Void.into());
                             context.push(value)
                         }
@@ -516,6 +516,8 @@ impl Op {
                 }
 
                 Op::LoadAttr => {
+                    //fixme
+                    /*
                     let attr = context.pop();
                     let attr = attr.borrow();
                     let value = context.pop();
@@ -524,9 +526,13 @@ impl Op {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into_reject(),
                     }
+                    */
+                    todo!();
                 }
 
                 Op::LoadIndex => {
+                    //fixme
+                    /*
                     let index = context.pop();
                     let index = index.borrow();
                     let value = context.pop();
@@ -536,6 +542,8 @@ impl Op {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into_reject(),
                     }
+                    */
+                    todo!();
                 }
 
                 Op::StoreGlobal(addr) => {
@@ -591,11 +599,12 @@ impl Op {
                         Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
                             if matches!(op, Op::StoreCapture) {
                                 let value = context.pop();
-                                context.set_capture(index.to_addr(), value);
+                                context.set_capture(index.to_usize(), value);
                                 Ok(Accept::Push(Capture::Empty))
                             } else {
                                 let value = context.peek();
-                                context.set_capture(index.to_addr(), value.borrow().clone().into());
+                                context
+                                    .set_capture(index.to_usize(), value.borrow().clone().into());
                                 Ok(Accept::Next)
                             }
                         }
@@ -617,6 +626,8 @@ impl Op {
                 }
 
                 Op::StoreIndex | Op::StoreIndexHold => {
+                    //fixme
+                    /*
                     let index = context.pop();
                     let index = index.borrow();
                     let target = context.pop();
@@ -633,6 +644,8 @@ impl Op {
                             Ok(Accept::Next)
                         }
                     }
+                    */
+                    todo!();
                 }
 
                 Op::MakeAlias => {

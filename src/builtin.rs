@@ -128,16 +128,16 @@ impl Builtin {
     }
 }
 
+impl std::hash::Hash for Builtin {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        (self as *const Builtin as usize).hash(state);
+    }
+}
+
 impl std::cmp::PartialEq for Builtin {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self as *const Builtin as usize == other as *const Builtin as usize
-    }
-}
-
-impl std::hash::Hash for Builtin {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Builtin as usize).hash(state);
     }
 }
 
@@ -176,7 +176,7 @@ static CHR: Builtin = Builtin {
     name: "chr",
     signature: "i",
     func: |_context, args| {
-        let i = args[0].as_ref().unwrap().borrow().to_addr();
+        let i = args[0].as_ref().unwrap().borrow().to_usize();
         Ok(Accept::Push(Capture::Value(
             Value::String(format!("{}", std::char::from_u32(i as u32).unwrap())).into(),
             None,
@@ -345,13 +345,13 @@ static WORD: Builtin = Builtin {
 
         if count > 0 {
             if let Some(min) = min {
-                if count < min.borrow().to_addr() {
+                if count < min.borrow().to_usize() {
                     count = 0;
                 }
             }
 
             if let Some(max) = max {
-                if count > max.borrow().to_addr() {
+                if count > max.borrow().to_usize() {
                     count = 0;
                 }
             }

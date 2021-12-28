@@ -8,6 +8,30 @@ use crate::vm::*;
 
 pub type Dict = BTreeMap<String, RefValue>;
 
+impl From<Value> for Dict {
+    fn from(value: Value) -> Self {
+        if let Value::Dict(dict) = value {
+            *dict
+        } else {
+            let mut d = Dict::new();
+            d.insert("#0".to_string(), value.into());
+            d
+        }
+    }
+}
+
+impl From<&Value> for Dict {
+    fn from(value: &Value) -> Self {
+        if let Value::Dict(dict) = value {
+            *dict.clone()
+        } else {
+            let mut d = Dict::new();
+            d.insert("#0".to_string(), value.clone().into());
+            d
+        }
+    }
+}
+
 impl Object for Dict {
     fn name(&self) -> &str {
         "dict"
@@ -15,6 +39,7 @@ impl Object for Dict {
 
     fn repr(&self) -> String {
         let mut ret = "(".to_string();
+
         for (key, value) in self.iter() {
             if ret.len() > 1 {
                 ret.push_str(", ");
@@ -40,22 +65,12 @@ impl Object for Dict {
             ret.push_str(" => ");
             ret.push_str(&value.borrow().repr());
         }
+
         ret.push(')');
         ret
     }
 
-    fn is_true(&self) -> bool {
-        self.len() > 0
-    }
-
-    fn is_dict(&self) -> Option<&Dict> {
-        Some(self)
-    }
-
-    fn to_dict(&self) -> Dict {
-        self.clone()
-    }
-
+    /*
     fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         let index = index.to_string();
         if let Some(value) = self.get(&index) {
@@ -70,6 +85,7 @@ impl Object for Dict {
         self.insert(index, value);
         Ok(())
     }
+    */
 }
 
 #[distributed_slice(BUILTINS)]
@@ -95,15 +111,14 @@ static DICT_UPDATE: Builtin = Builtin {
         let other = args.remove(0).unwrap();
 
         // If dict is not a dict, turn it into a dict
-        if dict.borrow().get_dict().is_none() {
-            let new = dict.borrow().to_dict();
+        if dict.borrow().dict().is_none() {
+            let new = Dict::from(&*dict.borrow());
             dict = Value::Dict(Box::new(new)).into();
         }
 
         // Extend dict
         if let Value::Dict(dict) = &mut *dict.borrow_mut() {
-            // If dict is not a dict, turn it into a dict
-            for (k, v) in other.borrow().to_dict().iter() {
+            for (k, v) in Dict::from(&*other.borrow()).iter() {
                 dict.insert(k.clone(), v.clone());
             }
         }

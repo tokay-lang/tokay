@@ -458,7 +458,7 @@ impl Parselet {
             loop {
                 if let Ok(Accept::Push(Capture::Value(ref value, ..))) = result {
                     let value = value.borrow();
-                    if let Some(d) = value.get_dict() {
+                    if let Some(d) = value.dict() {
                         if d.get("emit").is_some() {
                             context.debug("=> AST");
                             ast::print(&value);
@@ -483,13 +483,9 @@ impl Object for Parselet {
 
     fn repr(&self) -> String {
         if let Some(name) = &self.name {
-            format!("\"<{} {}>\"", self.name().to_string(), name)
+            format!("\"<{} {}>\"", self.name(), name)
         } else {
-            format!(
-                "\"<{} {}>\"",
-                self.name().to_string(),
-                self as *const Self as usize
-            )
+            format!("\"<{} {:p}>\"", self.name(), self)
         }
     }
 
@@ -514,16 +510,16 @@ impl Object for Parselet {
     }
 }
 
+impl std::hash::Hash for Parselet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        (self as *const Self as usize).hash(state);
+    }
+}
+
 impl std::cmp::PartialEq for Parselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self as *const Self as usize == other as *const Self as usize
-    }
-}
-
-impl std::hash::Hash for Parselet {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Self as usize).hash(state);
     }
 }
 

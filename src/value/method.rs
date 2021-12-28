@@ -16,7 +16,8 @@ impl Object for Method {
 
     fn repr(&self) -> String {
         format!(
-            "\"<method {}.{}>\"",
+            "\"<{} {}.{}>\"",
+            self.name(),
             self.object.borrow().repr(),
             self.method.borrow().repr()
         )

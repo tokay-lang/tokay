@@ -2,7 +2,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::builtin::{self, Builtin};
+use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
@@ -23,80 +23,12 @@ pub use token::Token;
 // Object
 // ----------------------------------------------------------------------------
 
-/// Describes an interface to communicate with an object.
-
+/// Describes an interface to a callable object.
 pub trait Object {
-    /// Return a name for the object
     fn name(&self) -> &str;
 
-    /// Render a Tokay code representation for the object
     fn repr(&self) -> String {
-        format!("\"<{}>\"", self.name().to_string())
-    }
-
-    /// Check whether the object represents true or false
-    fn is_true(&self) -> bool {
-        true
-    }
-
-    /// Return reference to String when object _is_ a string
-    fn is_string(&self) -> Option<&String> {
-        None
-    }
-
-    /// Return reference to List when object _is_ a List
-    fn is_list(&self) -> Option<&List> {
-        None
-    }
-
-    /// Return reference to Dict when object _is_ a Dict
-    fn is_dict(&self) -> Option<&Dict> {
-        None
-    }
-
-    /// Get object's integer value
-    fn to_integer(&self) -> i64 {
-        0
-    }
-
-    /// Get object's addr value
-    fn to_addr(&self) -> usize {
-        0
-    }
-
-    /// Get object's float value
-    fn to_float(&self) -> f64 {
-        0.0
-    }
-
-    /// Get object's string value
-    fn to_string(&self) -> String {
-        self.repr()
-    }
-
-    /// Return reference to List when object is a List
-    fn to_list(&self) -> List {
-        List::new()
-    }
-
-    /// Return reference to Dict when object is a Dict
-    fn to_dict(&self) -> Dict {
-        Dict::new()
-    }
-
-    /// Get an index from an object.
-    fn get_index(&self, _index: &Value) -> Result<RefValue, String> {
-        Err(format!("'{}' doesn't allow indexing", self.repr()))
-    }
-
-    /// Set a value to an index of an object.
-    fn set_index(&mut self, _index: &Value, _value: RefValue) -> Result<(), String> {
-        Err(format!("'{}' doesn't allow indexing", self.repr()))
-    }
-
-    /// Get an attribute from an object.
-    fn get_attr(&self, _index: &Value) -> Result<RefValue, String> {
-        Err(format!("'{}' has no attributes", self.repr()))
+        format!("\"<{} {:p}>\"", self.name(), self)
     }
 
     /// Check whether a value is callable, and when its callable if with or without arguments.
@@ -118,11 +50,6 @@ pub trait Object {
     ) -> Result<Accept, Reject> {
         Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
     }
-
-    /* fixme: required when below section is used.
-    /// Create a boxed clone of the object
-    fn clone_dyn(&self) -> Box<dyn Object>;
-    */
 }
 
 /*
@@ -192,12 +119,12 @@ pub enum Value {
     False, // false
 
     // Primitives
-    Integer(i64), // integer
+    Integer(i64), // int
     Float(f64),   // float
-    Addr(usize),  // usize
+    Addr(usize),  // addr
 
     // Objects
-    String(String),  // string
+    String(String),  // str
     List(Box<List>), // list
     Dict(Box<Dict>), // dict
 
@@ -283,73 +210,28 @@ macro_rules! value {
 }
 
 impl Value {
-    /// Get a value's boolean meaning.
-    pub fn is_true(&self) -> bool {
+    // Retieve type name of a value
+    pub fn name(&self) -> &str {
         match self {
-            Self::True => true,
-            Self::Integer(i) => *i != 0,
-            Self::Float(f) => *f != 0.0,
-            Self::String(s) => s.len() > 0,
-            Self::List(l) => l.is_true(),
-            Self::Dict(d) => d.len() > 0,
-            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) => true,
-            _ => false,
+            Self::Void => "void",
+            Self::Null => "null",
+            Self::True => "true",
+            Self::False => "false",
+            Self::Integer(_) => "int",
+            Self::Float(_) => "float",
+            Self::Addr(_) => "addr",
+            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
+            Self::String(s) => s.name(),
+            Self::List(l) => l.name(),
+            Self::Dict(d) => d.name(),
+            Self::Token(t) => t.name(),
+            Self::Parselet(_) => "parselet",
+            Self::Builtin(_) => "builtin",
+            Self::Method(m) => m.name(),
         }
     }
 
-    /// Get value's integer representation.
-    pub fn to_integer(&self) -> i64 {
-        match self {
-            Self::True => 1,
-            Self::Integer(i) => *i,
-            Self::Float(f) => *f as i64,
-            Self::String(s) => {
-                // todo: parseInt-like behavior?
-                match s.parse::<i64>() {
-                    Ok(i) => i,
-                    Err(_) => 0,
-                }
-            }
-            _ => 0,
-        }
-    }
-
-    /// Get value's float representation.
-    pub fn to_float(&self) -> f64 {
-        match self {
-            Self::True => 1.0,
-            Self::Integer(i) => *i as f64,
-            Self::Float(f) => *f,
-            Self::String(s) => {
-                // todo: parseFloat-like behavior?
-                match s.parse::<f64>() {
-                    Ok(f) => f,
-                    Err(_) => 0.0,
-                }
-            }
-            _ => 0.0,
-        }
-    }
-
-    /// Get value's usize representation.
-    pub fn to_addr(&self) -> usize {
-        match self {
-            Self::True => 1,
-            Self::Integer(i) => *i as usize,
-            Self::Float(f) => *f as usize,
-            Self::Addr(a) => *a,
-            Self::String(s) => {
-                // todo: parseInt-like behavior?
-                match s.parse::<usize>() {
-                    Ok(i) => i,
-                    Err(_) => 0,
-                }
-            }
-            _ => 0,
-        }
-    }
-
-    // Get value's representation as Tokay code.
+    /// Get representation in Tokay code.
     pub fn repr(&self) -> String {
         match self {
             Self::Void => "void".to_string(),
@@ -359,6 +241,7 @@ impl Value {
             Self::Integer(i) => format!("{}", i),
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
+            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
             Self::String(s) => s.repr(),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
@@ -369,69 +252,83 @@ impl Value {
         }
     }
 
-    /// Get value's string representation.
-    pub fn to_string(&self) -> String {
+    /// Get a value's boolean meaning.
+    pub fn is_true(&self) -> bool {
         match self {
-            Self::Void => "".to_string(),
-            Self::String(s) => s.clone(),
-            other => other.repr(),
+            Self::True => true,
+            Self::Integer(i) => *i != 0,
+            Self::Float(f) => *f != 0.0,
+            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
+            Self::String(s) => s.len() > 0,
+            Self::List(l) => l.len() > 0,
+            Self::Dict(d) => d.len() > 0,
+            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) | Self::Method(_) => true,
+            _ => false,
         }
     }
 
-    /// Get a value's list representation.
-    pub fn to_list(&self) -> List {
-        if let Self::List(l) = self {
-            l.to_list()
-        } else {
-            let mut l = List::new();
-            l.push(self.clone().into());
-            l
-        }
-    }
-
-    /// Get a value's dict representation.
-    pub fn to_dict(&self) -> Dict {
+    /// Get value's integer representation.
+    pub fn to_i64(&self) -> i64 {
         match self {
-            Self::Dict(d) => *d.clone(),
-            Self::Void => Dict::new(),
-            _ => {
-                let mut d = Dict::new();
-                //fixme "0"?
-                d.insert("0".to_string(), self.clone().into());
-                d
+            Self::True => 1,
+            Self::Integer(i) => *i,
+            Self::Float(f) => *f as i64,
+            Self::String(s) => {
+                // todo: JavaScript-style parseInt-like behavior?
+                match s.parse::<i64>() {
+                    Ok(i) => i,
+                    Err(_) => 0,
+                }
             }
+            _ => 0,
         }
     }
 
-    /// Turn value into raw String, consuming the value.
-    pub fn into_string(self) -> String {
+    /// Get value's float representation.
+    pub fn to_f64(&self) -> f64 {
+        match self {
+            Self::True => 1.0,
+            Self::Integer(i) => *i as f64,
+            Self::Float(f) => *f,
+            Self::String(s) => {
+                // todo: JavaScript-style parseFloat-like behavior?
+                match s.parse::<f64>() {
+                    Ok(f) => f,
+                    Err(_) => 0.0,
+                }
+            }
+            _ => 0.0,
+        }
+    }
+
+    /// Get value's usize representation.
+    pub fn to_usize(&self) -> usize {
+        match self {
+            Self::True => 1,
+            Self::Integer(i) => *i as usize,
+            Self::Float(f) => *f as usize,
+            Self::Addr(a) => *a,
+            Self::String(s) => {
+                // todo: JavaScript-style parseInt-like behavior?
+                match s.parse::<usize>() {
+                    Ok(i) => i,
+                    Err(_) => 0,
+                }
+            }
+            _ => 0,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
         if let Self::String(s) = self {
-            s
+            s.clone()
         } else {
-            self.to_string()
+            self.repr()
         }
     }
 
-    /// Turn value into raw List, consuming the value.
-    pub fn into_list(self) -> List {
-        if let Self::List(l) = self {
-            *l
-        } else {
-            self.to_list()
-        }
-    }
-
-    /// Turn value into raw Dict, consuming the value.
-    pub fn into_dict(self) -> Dict {
-        if let Self::Dict(d) = self {
-            *d
-        } else {
-            self.to_dict()
-        }
-    }
-
-    /// Extract String from a value
-    pub fn get_string(&self) -> Option<&str> {
+    /// Retrieve &str from a value in case it is a string.
+    pub fn str(&self) -> Option<&str> {
         if let Self::String(s) = self {
             Some(&s)
         } else {
@@ -439,8 +336,8 @@ impl Value {
         }
     }
 
-    /// Extract List from a value
-    pub fn get_list(&self) -> Option<&List> {
+    /// Retrieve &List from a value in case it is a list.
+    pub fn list(&self) -> Option<&List> {
         if let Self::List(l) = self {
             Some(&l)
         } else {
@@ -448,8 +345,8 @@ impl Value {
         }
     }
 
-    /// Extract Dict from a value
-    pub fn get_dict(&self) -> Option<&Dict> {
+    /// Retrieve &Dict from a value in case it is a dict.
+    pub fn dict(&self) -> Option<&Dict> {
         if let Self::Dict(d) = self {
             Some(&d)
         } else {
@@ -457,71 +354,21 @@ impl Value {
         }
     }
 
-    /// Retrieve index from a value.
-    pub fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-        match self {
-            Self::String(s) => s.get_index(index),
-            Self::List(l) => l.get_index(index),
-            Self::Dict(d) => d.get_index(index),
-            _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
+    /*
+    /// Retrieve a method from a value.
+    pub fn get_method(&self, method: &str) -> Result<Value, String> {
+        let name = format!("{}_{}", self.name(), method);
+
+        if let Some(builtin) = builtin::get(&name) {
+            return Ok(Value::Method(Box::new(Method {
+                object: self.clone(),
+                method: Value::Builtin(builtin).into(),
+            })));
         }
+
+        Err(format!("Method '{}' not found", name))
     }
-
-    // Set value to an index.
-    pub fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-        // fixme: Incomplete, concept missing.
-        match self {
-            Self::String(s) => s.set_index(index, value),
-            Self::List(l) => l.set_index(index, value),
-            Self::Dict(d) => d.set_index(index, value),
-            _ => Err(format!("Value '{}' doesn't allow indexing", self.repr())),
-        }
-    }
-
-    /// Retrieve attribute from a refvalue.
-    /// Currently this is only a built-in mapping with a value.
-    pub fn get_attr(this: RefValue, attr: &Value) -> Result<RefValue, String> {
-        let value = &*this.borrow();
-
-        let prefix = match value {
-            Self::String(_) => "str",
-            Self::Dict(_) => "dict",
-            Self::List(_) => "list",
-            _ => {
-                return Err(format!(
-                    "Value '{}' doesn't allow for attribute access",
-                    value.repr()
-                ))
-            }
-        };
-
-        let attr = attr.get_string().unwrap();
-        match attr {
-            "len" => Ok(Value::Addr(value.get_attr_len()).into()),
-            _ => {
-                let name = format!("{}_{}", prefix, attr);
-
-                if let Some(builtin) = builtin::get(&name) {
-                    return Ok(Value::Method(Box::new(Method {
-                        object: this.clone(),
-                        method: Value::Builtin(builtin).into(),
-                    }))
-                    .into());
-                }
-
-                Err(format!("Method '{}' not found", name))
-            }
-        }
-    }
-
-    pub fn get_attr_len(&self) -> usize {
-        match self {
-            Value::String(s) => s.chars().count(),
-            Value::Dict(d) => d.len(),
-            Value::List(l) => l.len(),
-            _ => 0,
-        }
-    }
+    */
 
     /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
@@ -574,11 +421,11 @@ impl Value {
             (a, Value::String(b)) => Ok(Value::String(a.to_string() + &b)),
 
             // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a + b.to_float())),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() + b)),
+            (Value::Float(a), b) => Ok(Value::Float(a + b.to_f64())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() + b)),
 
             // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_integer() + b.to_integer())),
+            (a, b) => Ok(Value::Integer(a.to_i64() + b.to_i64())),
         }
     }
 
@@ -586,11 +433,11 @@ impl Value {
     pub fn sub(&self, rhs: &Value) -> Result<Value, Error> {
         match (self, rhs) {
             // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a - b.to_float())),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() - b)),
+            (Value::Float(a), b) => Ok(Value::Float(a - b.to_f64())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() - b)),
 
             // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_integer() - b.to_integer())),
+            (a, b) => Ok(Value::Integer(a.to_i64() - b.to_i64())),
         }
     }
 
@@ -599,15 +446,15 @@ impl Value {
         match (self, rhs) {
             // When one is String and one is something else...
             (Value::String(s), n) | (n, Value::String(s)) => {
-                Ok(Value::String(s.repeat(n.to_addr())))
+                Ok(Value::String(s.repeat(n.to_usize())))
             }
 
             // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a * b.to_float())),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_float() * b)),
+            (Value::Float(a), b) => Ok(Value::Float(a * b.to_f64())),
+            (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() * b)),
 
             // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_integer() * b.to_integer())),
+            (a, b) => Ok(Value::Integer(a.to_i64() * b.to_i64())),
         }
     }
 
@@ -616,8 +463,8 @@ impl Value {
         match (self, rhs) {
             // When one is Float...
             (Value::Float(_), _) | (_, Value::Float(_)) => {
-                let a = self.to_float();
-                let b = rhs.to_float();
+                let a = self.to_f64();
+                let b = rhs.to_f64();
 
                 if b == 0.0 {
                     return Err(Error::new(None, "Cannot divide by zero".to_string()));
@@ -626,10 +473,10 @@ impl Value {
                 Ok(Value::Float(a / b))
             }
 
-            // All is threatened as Integer
+            // ...otherwise, all is assumed as integer.
             (a, b) => {
-                let a = a.to_integer();
-                let b = b.to_integer();
+                let a = a.to_i64();
+                let b = b.to_i64();
 
                 if b == 0 {
                     return Err(Error::new(None, "Cannot divide by zero".to_string()));
@@ -651,7 +498,7 @@ impl Value {
     pub fn neg(&self) -> Result<Value, Error> {
         match self {
             Value::Float(v) => Ok(Value::Float(-v)),
-            v => Ok(Value::Integer(-v.to_integer())),
+            v => Ok(Value::Integer(-v.to_i64())),
         }
     }
 
@@ -684,6 +531,8 @@ impl From<RefValue> for Value {
         }
     }
 }
+
+// Conversion from native types into Value
 
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
@@ -725,14 +574,26 @@ impl From<String> for Value {
     }
 }
 
+impl From<List> for Value {
+    fn from(value: List) -> Self {
+        Value::List(Box::new(value))
+    }
+}
+
+impl From<Dict> for Value {
+    fn from(value: Dict) -> Self {
+        Value::Dict(Box::new(value))
+    }
+}
+
 // This is bat country...
 /*
 #[test]
 fn test_literal() {
-    assert_eq!(Value::Integer(1337).to_integer().unwrap(), Some(1337));
-    assert_eq!(Value::Integer(-1337).to_integer().unwrap(), Some(-1337));
-    //assert_eq!(Value::Float(13.37).to_float(), 13.37);
-    //assert_eq!(Value::Float(-13.37).to_float(), -13.37);
+    assert_eq!(Value::Integer(1337).to_i64().unwrap(), Some(1337));
+    assert_eq!(Value::Integer(-1337).to_i64().unwrap(), Some(-1337));
+    //assert_eq!(Value::Float(13.37).to_f64(), 13.37);
+    //assert_eq!(Value::Float(-13.37).to_f64(), -13.37);
     assert_eq!(Value::String("hello world".to_string()).to_string().unwrap(), Some("hello world".to_string()));
     assert_eq!(Value::Void.to_string().unwrap(), Some("void".to_string()));
     assert_eq!(Value::True.to_string().unwrap(), Some("true".to_string()));
@@ -743,26 +604,26 @@ fn test_literal() {
 fn test_conversion() {
     let v = Value::Void;
     assert_eq!(v.to_string(), Some("void".to_string()));
-    assert_eq!(v.to_integer(), None);
+    assert_eq!(v.to_i64(), None);
     assert_eq!(v.to_bool(), Some(false));
 
     /*
     let f = Value::Float(1.337);
-    assert_eq!(f.to_float(), 1.337);
+    assert_eq!(f.to_f64(), 1.337);
     assert_eq!(f.to_string(), "1.337");
-    assert_eq!(f.to_float(), 1.337);
-    assert_eq!(f.to_integer(), 1);
+    assert_eq!(f.to_f64(), 1.337);
+    assert_eq!(f.to_i64(), 1);
     */
 
     let s = Value::String("42".to_string());
     assert_eq!(s.to_string(), Some("42".to_string()));
-    assert_eq!(s.to_integer(), Some(42));
-    assert_eq!(s.to_float(), Some(42.0));
+    assert_eq!(s.to_i64(), Some(42));
+    assert_eq!(s.to_f64(), Some(42.0));
     assert_eq!(s.to_string(), Some("42".to_string()));
 
     let s = Value::String("gunshot42".to_string());
     assert_eq!(s.to_string(), Some("gunshot42".to_string()));
-    assert_eq!(s.to_integer(), Some(0));
+    assert_eq!(s.to_i64(), Some(0));
 }
 
 #[test]
