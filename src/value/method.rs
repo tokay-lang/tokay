@@ -14,7 +14,7 @@ impl Object for Method {
         "method"
     }
 
-    fn repr(&self) -> String {
+    fn repr(&self) -> std::string::String {
         format!(
             "\"<{} {}.{}>\"",
             self.name(),

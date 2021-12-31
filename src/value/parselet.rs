@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::{Dict, Object, Value};
+use super::{Dict, List, Object, Value};
 use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
@@ -70,7 +70,7 @@ impl Parselet {
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
         let mut first = self.begin.len() > 0;
-        let mut results = Vec::new();
+        let mut results = List::new();
         let mut state = if self.begin.len() == 0 {
             None
         } else {
@@ -254,8 +254,10 @@ impl Parselet {
             Some(result) if !matches!(result, Ok(Accept::Next)) => result,
             _ => {
                 if results.len() > 1 {
+                    let results: Value = results.into();
+
                     Ok(Accept::Push(Capture::Value(
-                        Value::List(Box::new(results)).into(),
+                        results.into(),
                         None,
                         self.severity,
                     )))

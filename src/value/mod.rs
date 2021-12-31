@@ -17,7 +17,6 @@ pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
 pub use parselet::Parselet;
-pub use string::String;
 pub use token::Token;
 
 // Object
@@ -220,10 +219,10 @@ impl Value {
             Self::Integer(_) => "int",
             Self::Float(_) => "float",
             Self::Addr(_) => "addr",
+            Self::String(_) => "str",
+            Self::List(_) => "list",
+            Self::Dict(_) => "dict",
             // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
-            Self::String(s) => s.name(),
-            Self::List(l) => l.name(),
-            Self::Dict(d) => d.name(),
             Self::Token(t) => t.name(),
             Self::Parselet(_) => "parselet",
             Self::Builtin(_) => "builtin",
@@ -241,10 +240,10 @@ impl Value {
             Self::Integer(i) => format!("{}", i),
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
-            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
-            Self::String(s) => s.repr(),
+            Self::String(s) => string::repr(s),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
+            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
             Self::Token(t) => t.repr(),
             Self::Parselet(p) => p.borrow().repr(),
             Self::Builtin(b) => format!("<builtin {}>", b.name),
@@ -258,10 +257,10 @@ impl Value {
             Self::True => true,
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
-            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
             Self::String(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
+            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
             Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) | Self::Method(_) => true,
             _ => false,
         }
@@ -571,18 +570,6 @@ impl From<&str> for Value {
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Value::String(value)
-    }
-}
-
-impl From<List> for Value {
-    fn from(value: List) -> Self {
-        Value::List(Box::new(value))
-    }
-}
-
-impl From<Dict> for Value {
-    fn from(value: Dict) -> Self {
-        Value::Dict(Box::new(value))
     }
 }
 

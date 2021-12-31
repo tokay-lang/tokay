@@ -2,42 +2,25 @@
 use linkme::distributed_slice;
 use std::collections::BTreeMap;
 
-use super::{Object, RefValue, Value};
+use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 use crate::vm::*;
 
-pub type Dict = BTreeMap<String, RefValue>;
+type InnerDict = BTreeMap<String, RefValue>;
 
-impl From<Value> for Dict {
-    fn from(value: Value) -> Self {
-        if let Value::Dict(dict) = value {
-            *dict
-        } else {
-            let mut d = Dict::new();
-            d.insert("#0".to_string(), value.into());
-            d
-        }
-    }
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Dict {
+    dict: InnerDict,
 }
 
-impl From<&Value> for Dict {
-    fn from(value: &Value) -> Self {
-        if let Value::Dict(dict) = value {
-            *dict.clone()
-        } else {
-            let mut d = Dict::new();
-            d.insert("#0".to_string(), value.clone().into());
-            d
+impl Dict {
+    pub fn new() -> Self {
+        Self {
+            dict: InnerDict::new(),
         }
     }
-}
 
-impl Object for Dict {
-    fn name(&self) -> &str {
-        "dict"
-    }
-
-    fn repr(&self) -> String {
+    pub fn repr(&self) -> String {
         let mut ret = "(".to_string();
 
         for (key, value) in self.iter() {
@@ -86,6 +69,56 @@ impl Object for Dict {
         Ok(())
     }
     */
+}
+
+impl std::ops::Deref for Dict {
+    type Target = InnerDict;
+
+    fn deref(&self) -> &Self::Target {
+        &self.dict
+    }
+}
+
+impl std::ops::DerefMut for Dict {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.dict
+    }
+}
+
+impl From<Value> for Dict {
+    fn from(value: Value) -> Self {
+        if let Value::Dict(dict) = value {
+            *dict
+        } else {
+            let mut d = Dict::new();
+            d.insert("#0".to_string(), value.into());
+            d
+        }
+    }
+}
+
+impl From<&Value> for Dict {
+    fn from(value: &Value) -> Self {
+        if let Value::Dict(dict) = value {
+            *dict.clone()
+        } else {
+            let mut d = Dict::new();
+            d.insert("#0".to_string(), value.clone().into());
+            d
+        }
+    }
+}
+
+impl From<Dict> for Value {
+    fn from(value: Dict) -> Self {
+        Value::Dict(Box::new(value))
+    }
+}
+
+impl From<InnerDict> for Value {
+    fn from(dict: InnerDict) -> Self {
+        Value::Dict(Box::new(Dict { dict }))
+    }
 }
 
 #[distributed_slice(BUILTINS)]

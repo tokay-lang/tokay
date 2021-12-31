@@ -1,38 +1,25 @@
 //! List object
 use linkme::distributed_slice;
 
-use super::{Object, RefValue, Value};
+use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 use crate::vm::*;
 
-pub type List = Vec<RefValue>;
+type InnerList = Vec<RefValue>;
 
-impl From<Value> for List {
-    fn from(value: Value) -> Self {
-        if let Value::List(list) = value {
-            *list
-        } else {
-            vec![value.into()]
-        }
-    }
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct List {
+    list: InnerList,
 }
 
-impl From<&Value> for List {
-    fn from(value: &Value) -> Self {
-        if let Value::List(list) = value {
-            *list.clone()
-        } else {
-            vec![value.clone().into()]
+impl List {
+    pub fn new() -> Self {
+        Self {
+            list: InnerList::new(),
         }
     }
-}
 
-impl Object for List {
-    fn name(&self) -> &str {
-        "list"
-    }
-
-    fn repr(&self) -> String {
+    pub fn repr(&self) -> String {
         let mut ret = "(".to_string();
         for item in self.iter() {
             if ret.len() > 1 {
@@ -49,30 +36,65 @@ impl Object for List {
         ret.push(')');
         ret
     }
+}
 
-    /*
-    fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-        let index = index.to_addr();
-        if let Some(value) = self.get(index) {
-            Ok(value.clone())
+impl std::ops::Deref for List {
+    type Target = InnerList;
+
+    fn deref(&self) -> &Self::Target {
+        &self.list
+    }
+}
+
+impl std::ops::DerefMut for List {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.list
+    }
+}
+
+impl std::iter::IntoIterator for List {
+    type Item = RefValue;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list.into_iter()
+    }
+}
+
+impl From<Value> for List {
+    fn from(value: Value) -> Self {
+        if let Value::List(list) = value {
+            *list
         } else {
-            Err(format!("Index {} out of bounds", index))
+            Self {
+                list: vec![value.into()],
+            }
         }
     }
+}
 
-    fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-        let index = index.to_addr();
-        if index < self.len() {
-            self[index] = value;
-            Ok(())
-        } else if index == self.len() {
-            self.push(value);
-            Ok(())
+impl From<&Value> for List {
+    fn from(value: &Value) -> Self {
+        if let Value::List(list) = value {
+            *list.clone()
         } else {
-            Err(format!("Index {} out of bounds", index))
+            Self {
+                list: vec![value.clone().into()],
+            }
         }
     }
-    */
+}
+
+impl From<List> for Value {
+    fn from(value: List) -> Self {
+        Value::List(Box::new(value))
+    }
+}
+
+impl From<InnerList> for Value {
+    fn from(list: InnerList) -> Self {
+        Value::List(Box::new(List { list }))
+    }
 }
 
 #[distributed_slice(BUILTINS)]

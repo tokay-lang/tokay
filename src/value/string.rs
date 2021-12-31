@@ -1,55 +1,47 @@
 //! String object
 use linkme::distributed_slice;
 
-use super::{List, Object, Value};
+use super::{List, Value};
 use crate::builtin::{Builtin, BUILTINS};
 
-pub type String = std::string::String;
+pub fn repr(string: &str) -> String {
+    let mut ret = String::with_capacity(string.len() + 2);
+    ret.push('"');
 
-impl Object for String {
-    fn name(&self) -> &str {
-        "str"
-    }
-
-    fn repr(&self) -> String {
-        let mut ret = String::with_capacity(self.len() + 2);
-        ret.push('"');
-
-        for ch in self.chars() {
-            match ch {
-                '\"' => ret.push_str("!!"),
-                '\n' => ret.push_str("\\n"),
-                '\r' => ret.push_str("\\r"),
-                '\t' => ret.push_str("\\t"),
-                ch => ret.push(ch),
-            }
-        }
-
-        ret.push('"');
-        ret
-    }
-
-    /*
-    fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-        let index = index.to_usize();
-        if let Some(ch) = self.chars().nth(index) {
-            Ok(Value::String(format!("{}", ch)).into())
-        } else {
-            Err(format!("Index {} beyond end of string", index))
+    for ch in string.chars() {
+        match ch {
+            '\"' => ret.push_str("\\\""),
+            '\n' => ret.push_str("\\n"),
+            '\r' => ret.push_str("\\r"),
+            '\t' => ret.push_str("\\t"),
+            ch => ret.push(ch),
         }
     }
 
-    fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-        let index = index.to_usize();
-        if index < self.len() {
-            todo!();
-            Ok(())
-        } else {
-            Err(format!("Index {} beyond end of string", index))
-        }
-    }
-    */
+    ret.push('"');
+    ret
 }
+
+/*
+fn get_index(&self, index: &Value) -> Result<RefValue, String> {
+    let index = index.to_usize();
+    if let Some(ch) = self.chars().nth(index) {
+        Ok(Value::String(format!("{}", ch)).into())
+    } else {
+        Err(format!("Index {} beyond end of string", index))
+    }
+}
+
+fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
+    let index = index.to_usize();
+    if index < self.len() {
+        todo!();
+        Ok(())
+    } else {
+        Err(format!("Index {} beyond end of string", index))
+    }
+}
+*/
 
 #[distributed_slice(BUILTINS)]
 static STR_JOIN: Builtin = Builtin {
@@ -61,7 +53,7 @@ static STR_JOIN: Builtin = Builtin {
 
         let mut ret = String::new();
 
-        for item in list {
+        for item in list.iter() {
             if ret.len() > 0 {
                 ret.push_str(&delimiter);
             }

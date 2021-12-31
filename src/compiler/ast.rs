@@ -194,7 +194,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let mut ccl = CharClass::new();
 
-            for range in children {
+            for range in children.iter() {
                 let range = Dict::from(&*range.borrow());
 
                 let emit = range.borrow_by_key("emit");
@@ -246,7 +246,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let mut sig_names = HashSet::new();
 
             if let Some(args) = args {
-                for node in List::from(&*args) {
+                for node in List::from(&*args).iter() {
                     let node = node.borrow();
                     let node = node.dict().unwrap();
 
@@ -663,7 +663,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             if children.len() > 1 {
                 let params = List::from(&*children[1].borrow());
 
-                for param in &params {
+                for param in params.iter() {
                     let param = param.borrow();
                     let param = param.dict().unwrap();
 
@@ -1343,7 +1343,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
             let mut ops = Vec::new();
 
-            for node in &children {
+            for node in children.iter() {
                 ops.extend(traverse_node_or_list(compiler, &node.borrow()).into_ops(compiler, true))
             }
 
