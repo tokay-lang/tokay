@@ -2,10 +2,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
+mod callable;
 mod dict;
 mod list;
 mod method;
@@ -13,85 +13,12 @@ mod parselet;
 mod string;
 mod token;
 
+pub use callable::Callable;
 pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
-pub use parselet::Parselet;
+pub use parselet::{Parselet, ParseletRef};
 pub use token::Token;
-
-// Object
-// ----------------------------------------------------------------------------
-
-/// Describes an interface to a callable object.
-pub trait Object {
-    fn name(&self) -> &str;
-
-    fn repr(&self) -> String {
-        format!("\"<{} {:p}>\"", self.name(), self)
-    }
-
-    /// Check whether a value is callable, and when its callable if with or without arguments.
-    fn is_callable(&self, _with_arguments: bool) -> bool {
-        false
-    }
-
-    /// Check whether a value is consuming
-    fn is_consuming(&self) -> bool {
-        false
-    }
-
-    /// Call a value with a given context, argument and named argument set.
-    fn call(
-        &self,
-        _context: &mut Context,
-        _args: usize,
-        _nargs: Option<Dict>,
-    ) -> Result<Accept, Reject> {
-        Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
-    }
-}
-
-/*
-Value could make use of Box<dyn Object> as a trait object, but this requires implementation
-of several other trait on Box<dyn Object>. But this looses the possibility of doing PartialEq
-and PartialOrd on the current implementation, which IS important.
-
-Here is the link for a playground started on this:
-https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=4d7fda9b8391506736837f93124a16f4
-
-fixme: Need help with this!
-
-/*
-impl Clone for Box<dyn Object> {
-    fn clone(&self) -> Self {
-        self.clone_dyn()
-    }
-}
-
-impl PartialEq for Box<dyn Object> {
-    fn eq(&self, other: &Self) -> bool {
-        //self.len() == other.len()
-        todo!();
-    }
-}
-
-
-impl PartialOrd for Box<dyn Object> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        //self.len().partial_cmp(&other.len())
-        todo!();
-    }
-}
-
-// https://github.com/rust-lang/rust/issues/31740#issuecomment-700950186
-impl PartialEq<&Self> for Box<dyn Object> {
-    fn eq(&self, other: &&Self) -> bool {
-        //self.len() == other.len()
-        todo!();
-    }
-}
-*/
-*/
 
 // RefValue
 // ----------------------------------------------------------------------------
@@ -128,10 +55,7 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Token(Box<Token>),               // Token
-    Parselet(Rc<RefCell<Parselet>>), // Parselet
-    Builtin(&'static Builtin),       // Builtin
-    Method(Box<Method>),             // Method
+    Callable(Box<dyn Callable>),
 }
 
 /** Value construction helper-macro
@@ -222,11 +146,7 @@ impl Value {
             Self::String(_) => "str",
             Self::List(_) => "list",
             Self::Dict(_) => "dict",
-            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
-            Self::Token(t) => t.name(),
-            Self::Parselet(_) => "parselet",
-            Self::Builtin(_) => "builtin",
-            Self::Method(m) => m.name(),
+            Self::Callable(callable) => callable.name(),
         }
     }
 
@@ -243,26 +163,20 @@ impl Value {
             Self::String(s) => string::repr(s),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
-            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
-            Self::Token(t) => t.repr(),
-            Self::Parselet(p) => p.borrow().repr(),
-            Self::Builtin(b) => format!("<builtin {}>", b.name),
-            Self::Method(m) => m.repr(),
+            _ => format!("<{} {:p}>", self.name(), self),
         }
     }
 
     /// Get a value's boolean meaning.
     pub fn is_true(&self) -> bool {
         match self {
-            Self::True => true,
+            Self::Void | Self::Null | Self::False => false,
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
             Self::String(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
-            // fixme: vv-- below is bullshit area, as this could be trait object? --vv //
-            Self::Builtin(_) | Self::Parselet(_) | Self::Addr(_) | Self::Method(_) => true,
-            _ => false,
+            _ => true, // everything else is just true as it exists.
         }
     }
 
@@ -314,7 +228,7 @@ impl Value {
                     Err(_) => 0,
                 }
             }
-            _ => 0,
+            _ => self as *const Self as usize,
         }
     }
 
@@ -371,23 +285,28 @@ impl Value {
 
     /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
-        match self {
-            Value::Token(tok) => tok.is_callable(with_arguments),
-            Value::Builtin(_) => true,
-            Value::Parselet(parselet) => parselet.borrow().is_callable(with_arguments),
-            Value::Method(method) => method.is_callable(with_arguments),
-            _ => false,
+        if let Value::Callable(callable) = self {
+            callable.is_callable(with_arguments)
+        } else {
+            false
         }
     }
 
     /// Check whether a value is consuming
     pub fn is_consuming(&self) -> bool {
-        match self {
-            Value::Token(tok) => tok.is_consuming(),
-            Value::Builtin(builtin) => builtin.is_consumable(),
-            Value::Parselet(parselet) => parselet.borrow().is_consuming(),
-            Value::Method(method) => method.is_consuming(),
-            _ => false,
+        if let Value::Callable(callable) = self {
+            callable.is_consuming()
+        } else {
+            false
+        }
+    }
+
+    /// Check whether a value is consuming
+    pub fn is_nullable(&self) -> bool {
+        if let Value::Callable(callable) = self {
+            callable.is_nullable()
+        } else {
+            false
         }
     }
 
@@ -398,19 +317,46 @@ impl Value {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        match self {
-            Value::Token(token) => token.call(context, args, nargs),
-            Value::Builtin(builtin) => builtin.call(context, args, nargs),
-            Value::Parselet(parselet) => parselet.borrow().call(context, args, nargs),
-            Value::Method(method) => method.call(context, args, nargs),
-            _ => Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject(),
+        if let Value::Callable(callable) = self {
+            callable.call(context, args, nargs)
+        } else {
+            Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
         }
     }
 
-    // The following functions where prevously solved by std::ops::*, etc. but this
+    // The following functions where previously solved by std::ops::*, etc. but this
     // is now changed as error handling must work with Tokay's VM.
     // Fixme: For better integration with Rust, std::ops::* could be re-implemented
     // by wrapping these operational functions.
+
+    // Equality
+    /*
+    pub fn eq(&self, rhs: &Value) -> Result<bool, Error> {
+        Some(match (self, rhs) {
+            (Self::Void, Self::Void) => true,
+            (Self::Null, Self::Null) => true,
+            (Self::True, Self::True) => true,
+            (Self::False, Self::False) => true,
+
+            (Self::Integer(_), _) | (_, Self::Integer(_)) => self.to_i64() == rhs.to_i64(),
+            (Self::Float(_), _) | (_, Self::Float(_)) => self.to_f64() == rhs.to_f64(),
+
+            (Self::String(a), Self::String(b)) => a == b,
+            (Self::String(a), b) => a == &b.to_string(),
+            (a, Self::String(b)) => &a.to_string() == b,
+
+            (Self::List(a), Self::List(b)) => a == b,
+            (Self::List(a), b) => a == List::from(b),
+            (a, Self::List(b)) => List::from(a) == b,
+
+            (Self::Dict(a), Self::Dict(b)) => a == b,
+            (Self::Dict(a), b) => a == Dict::from(b),
+            (a, Self::Dict(b)) => Dict::from(a) == b,
+
+            (a, b) => a.to_usize() == b.to_usize()
+        })
+    }
+    */
 
     // Addition
     pub fn add(&self, rhs: &Value) -> Result<Value, Error> {
@@ -521,6 +467,12 @@ impl std::fmt::Display for Value {
     }
 }
 
+/*
+impl std::cmp::PartialEq for Value {
+    fn eq(&self)
+}
+*/
+
 /// Convert a RefValue into a Value
 impl From<RefValue> for Value {
     fn from(value: RefValue) -> Self {
@@ -570,6 +522,12 @@ impl From<&str> for Value {
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Value::String(value)
+    }
+}
+
+impl<T: Callable> From<Box<T>> for Value {
+    fn from(value: Box<T>) -> Self {
+        Value::Callable(value)
     }
 }
 

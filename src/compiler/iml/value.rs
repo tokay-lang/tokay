@@ -55,9 +55,7 @@ impl ImlValue {
                     false
                 }
             }
-            ImlValue::Value(Value::Token(token)) => token.is_nullable(),
-            ImlValue::Value(Value::Builtin(_)) => false, // By definition, a built-in is never nullable
-            _ => true,
+            ImlValue::Value(value) => value.is_nullable(),
         }
     }
 }

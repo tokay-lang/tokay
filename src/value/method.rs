@@ -1,6 +1,6 @@
 //! A method object represents an object's method call (currently only for built-ins)
 
-use super::{Dict, Object, RefValue};
+use super::{Callable, Dict, RefValue};
 use crate::vm::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -9,18 +9,13 @@ pub struct Method {
     pub(super) method: RefValue,
 }
 
-impl Object for Method {
-    fn name(&self) -> &str {
-        "method"
+impl Callable for Method {
+    fn id(&self) -> usize {
+        self as *const Self as usize
     }
 
-    fn repr(&self) -> std::string::String {
-        format!(
-            "\"<{} {}.{}>\"",
-            self.name(),
-            self.object.borrow().repr(),
-            self.method.borrow().repr()
-        )
+    fn name(&self) -> &str {
+        "method"
     }
 
     fn is_callable(&self, with_arguments: bool) -> bool {
@@ -44,5 +39,9 @@ impl Object for Method {
         );
 
         self.method.borrow().call(context, args + 1, nargs)
+    }
+
+    fn clone_dyn(&self) -> Box<dyn Callable> {
+        Box::new((*self).clone()) // Forward to the derive(Clone) impl
     }
 }

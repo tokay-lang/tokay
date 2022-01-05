@@ -6,8 +6,10 @@ use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 use crate::vm::*;
 
+// Alias for the inner dict
 type InnerDict = BTreeMap<String, RefValue>;
 
+// Dict object type
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Dict {
     dict: InnerDict,

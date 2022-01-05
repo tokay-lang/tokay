@@ -5,8 +5,10 @@ use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 use crate::vm::*;
 
+/// Alias for the inner list definition
 type InnerList = Vec<RefValue>;
 
+/// List object type
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct List {
     list: InnerList,
@@ -84,6 +86,19 @@ impl From<&Value> for List {
         }
     }
 }
+
+/*
+// fixme: This could be a replacement for value.list() but its usage is ugly.
+impl<'list> From<&'list Value> for Option<&'list List> {
+    fn from(value: &'list Value) -> Self {
+        if let Value::List(list) = value {
+            Some(&list)
+        } else {
+            None
+        }
+    }
+}
+*/
 
 impl From<List> for Value {
     fn from(value: List) -> Self {

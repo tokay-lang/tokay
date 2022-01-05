@@ -25,8 +25,10 @@ impl ImlResult {
             ImlResult::Empty => Vec::new(),
             ImlResult::Value(value) => {
                 vec![ImlOp::Op(if call && value.is_callable(false) {
-                    if let ImlValue::Value(Value::Token(_)) = value {
-                        compiler.mark_consuming();
+                    if let ImlValue::Value(value) = &value {
+                        if value.name() == "token" {
+                            compiler.mark_consuming();
+                        }
                     }
 
                     Op::CallStatic(compiler.define_value(value))

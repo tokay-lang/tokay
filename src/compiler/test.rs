@@ -1,6 +1,6 @@
 use super::*;
 use crate::tokay;
-use crate::value::Token;
+use crate::value::{Token, Value};
 
 // Tests for parsing and packrat features ---------------------------------------------------------
 

@@ -241,7 +241,7 @@ impl Compiler {
             values
                 .into_iter()
                 .map(|value| match value {
-                    ImlValue::Parselet(parselet) => parselet.borrow().into_parselet().into_value(),
+                    ImlValue::Parselet(parselet) => parselet.borrow().into_parselet().into(),
                     ImlValue::Value(value) => value,
                 })
                 .collect(),
@@ -537,7 +537,7 @@ impl Compiler {
 
         // When not found, check for a builtin function
         if let Some(builtin) = builtin::get(name) {
-            return Some(Value::Builtin(builtin).into());
+            return Some(Value::from(Box::new(builtin)).into());
         }
 
         // Builtin constants are defined on demand as fallback
@@ -545,7 +545,7 @@ impl Compiler {
             // Fallback for "_" defines parselet `_ : Whitespace?`
             self.set_constant(
                 "_",
-                Token::builtin("Whitespaces").unwrap().into_value().into(),
+                Value::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
             return Some(self.get_constant(name).unwrap());
@@ -553,7 +553,7 @@ impl Compiler {
 
         // Check for built-in token
         if let Some(value) = Token::builtin(name) {
-            return Some(value.into_value().into());
+            return Some(Value::from(value).into());
         }
 
         None

@@ -1,6 +1,6 @@
 //! Token callables represented by Value::Token
 
-use super::{Dict, Object, Value};
+use super::{Callable, Dict, Value};
 use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
@@ -64,10 +64,6 @@ impl Token {
 
     pub fn any() -> Self {
         Self::Char(CharClass::new().negate())
-    }
-
-    pub fn into_value(self) -> Value {
-        Value::Token(Box::new(self))
     }
 
     pub fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
@@ -182,23 +178,18 @@ impl Token {
             }
         }
     }
-
-    pub fn is_nullable(&self) -> bool {
-        match self {
-            Token::Void => true,
-            Token::EOF => false,
-            Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
-            Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
-            Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
-        }
-    }
 }
 
-impl Object for Token {
+impl Callable for Token {
+    fn id(&self) -> usize {
+        self as *const Self as usize
+    }
+
     fn name(&self) -> &str {
         "token"
     }
 
+    /*
     fn repr(&self) -> String {
         match self {
             Token::Void => "Void".to_string(),
@@ -210,6 +201,7 @@ impl Object for Token {
             Token::Match(s) => format!("''{}''", s),
         }
     }
+    */
 
     fn is_callable(&self, with_arguments: bool) -> bool {
         !with_arguments // Tokens don't support arguments
@@ -217,6 +209,16 @@ impl Object for Token {
 
     fn is_consuming(&self) -> bool {
         true // Tokens always consume!
+    }
+
+    fn is_nullable(&self) -> bool {
+        match self {
+            Token::Void => true,
+            Token::EOF => false,
+            Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
+            Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
+            Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
+        }
     }
 
     fn call(
@@ -227,5 +229,15 @@ impl Object for Token {
     ) -> Result<Accept, Reject> {
         assert!(args == 0 && nargs.is_none());
         self.read(context.runtime.reader)
+    }
+
+    fn clone_dyn(&self) -> Box<dyn Callable> {
+        Box::new((*self).clone()) // Forward to the derive(Clone) impl
+    }
+}
+
+impl From<Token> for Value {
+    fn from(token: Token) -> Self {
+        Value::Callable(Box::new(token))
     }
 }

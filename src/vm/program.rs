@@ -4,7 +4,7 @@ use std::io::{self, BufReader};
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{RefValue, Value}; // todo: temporary! // todo: temporary!
+use crate::value::{ParseletRef, RefValue, Value};
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
@@ -22,9 +22,12 @@ impl Program {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
-            if matches!(statics[i], Value::Parselet(_)) {
-                main = Some(i);
-                break;
+            // todo: This is unhandy.
+            if let Value::Callable(callable) = &statics[i] {
+                if let Some(_) = callable.as_ref().downcast_ref::<ParseletRef>() {
+                    main = Some(i);
+                    break;
+                }
             }
         }
 
@@ -43,9 +46,15 @@ impl Program {
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<Value>, Error> {
         if let Some(main) = self.main {
             match match &*self.statics[main].borrow() {
-                Value::Parselet(main) => {
-                    main.borrow()
-                        .run(runtime, runtime.stack.len(), None, true, 0)
+                // todo: This is absolutely unhandy.
+                Value::Callable(main) => {
+                    if let Some(main) = main.as_ref().downcast_ref::<ParseletRef>() {
+                        main.0
+                            .borrow()
+                            .run(runtime, runtime.stack.len(), None, true, 0)
+                    } else {
+                        panic!()
+                    }
                 }
                 _ => panic!(),
             } {

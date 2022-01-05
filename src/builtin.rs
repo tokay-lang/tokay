@@ -1,6 +1,6 @@
 //! Tokay built-in functions and parselets
 use crate::error::Error;
-use crate::value::{Dict, RefValue, Value};
+use crate::value::{Callable, Dict, RefValue, Value};
 use crate::vm::{Accept, Capture, Context, Reject};
 
 use linkme::distributed_slice;
@@ -15,14 +15,31 @@ pub struct Builtin {
     pub func: fn(&mut Context, args: Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
 }
 
-impl Builtin {
+#[derive(Clone)]
+pub struct BuiltinRef(&'static Builtin);
+
+impl Callable for BuiltinRef {
+    fn id(&self) -> usize {
+        self.0 as *const Builtin as usize
+    }
+
+    // Returns the callable's name.
+    fn name(&self) -> &str {
+        "builtin"
+    }
+
+    /// Check whether the callable accepts any arguments.
+    fn is_callable(&self, _with_arguments: bool) -> bool {
+        true // fixme
+    }
+
     /// Check if builtin is consuming
-    pub fn is_consumable(&self) -> bool {
-        crate::utils::identifier_is_consumable(self.name)
+    fn is_consuming(&self) -> bool {
+        crate::utils::identifier_is_consumable(self.0.name)
     }
 
     /// Call self
-    pub fn call(
+    fn call(
         &self,
         context: &mut Context,
         args: usize,
@@ -39,7 +56,7 @@ impl Builtin {
         let mut required = true;
         let mut required_count = -1;
 
-        for name in self.signature.split(" ") {
+        for name in self.0.signature.split(" ") {
             //println!("{:?}", name);
             if name.len() == 0 {
                 continue;
@@ -78,7 +95,7 @@ impl Builtin {
                 if required {
                     return Error::new(
                         None,
-                        format!("{}() requires parameter '{}'", self.name, name),
+                        format!("{}() requires parameter '{}'", self.0.name, name),
                     )
                     .into_reject();
                 }
@@ -96,13 +113,13 @@ impl Builtin {
             if count == 0 {
                 return Error::new(
                     None,
-                    format!("{}() does not accept any arguments", self.name),
+                    format!("{}() does not accept any arguments", self.0.name),
                 )
                 .into_reject();
             } else {
                 return Error::new(
                     None,
-                    format!("{}() does accept {} arguments only", self.name, count),
+                    format!("{}() does accept {} arguments only", self.0.name, count),
                 )
                 .into_reject();
             }
@@ -115,7 +132,7 @@ impl Builtin {
                     None,
                     format!(
                         "{}() called with unknown named argument '{}'",
-                        self.name,
+                        self.0.name,
                         nargs.keys().nth(0).unwrap()
                     ),
                 )
@@ -124,7 +141,11 @@ impl Builtin {
         }
 
         //println!("{} {:?}", self.name, args);
-        (self.func)(context, args)
+        (self.0.func)(context, args)
+    }
+
+    fn clone_dyn(&self) -> Box<dyn Callable> {
+        Box::new((*self).clone()) // Forward to the derive(Clone) impl
     }
 }
 
@@ -151,18 +172,18 @@ impl std::cmp::PartialOrd for Builtin {
     }
 }
 
-impl std::fmt::Debug for Builtin {
+impl std::fmt::Debug for BuiltinRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //write!(f, "<Builtin {}>", self.name)
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.0.name)
     }
 }
 
 /// Retrieve builtin by name
-pub fn get(ident: &str) -> Option<&'static Builtin> {
+pub fn get(ident: &str) -> Option<BuiltinRef> {
     for builtin in BUILTINS {
         if builtin.name == ident {
-            return Some(builtin);
+            return Some(BuiltinRef(builtin));
         }
     }
 

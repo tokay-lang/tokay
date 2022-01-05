@@ -178,12 +178,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             if emit == "value_token_match" {
-                Token::Match(value).into_value().into()
+                Value::from(Token::Match(value)).into()
             } else {
-                Token::Touch(value).into_value().into()
+                Value::from(Token::Touch(value)).into()
             }
         }
-        "value_token_any" => Token::any().into_value().into(),
+        "value_token_any" => Value::from(Token::any()).into(),
         "value_token_ccl" => {
             let node = Dict::from(&*node.borrow_by_key("children"));
 
@@ -221,10 +221,10 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             if emit == "ccl_neg" {
-                Token::Char(ccl.negate()).into_value().into()
+                Value::from(Token::Char(ccl.negate())).into()
             } else {
                 assert!(emit == "ccl");
-                Token::Char(ccl).into_value().into()
+                Value::from(Token::Char(ccl)).into()
             }
         }
 
@@ -1140,32 +1140,36 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                             compiler.mark_consuming();
                         }
 
-                        if let ImlValue::Value(Value::Token(token)) = value {
-                            if let Token::Char(ccl) = *token.clone() {
-                                match parts[2] {
-                                    // mod_pos on Token::Char becomes Token::Chars
-                                    "pos" | "kle" => {
-                                        let chars =
-                                            ImlResult::Value(Token::Chars(ccl).into_value().into());
+                        // In case of a token, try to replace it with a repeating counterpart.
+                        if let ImlValue::Value(Value::Callable(callable)) = value {
+                            if let Some(token) = callable.as_ref().downcast_ref::<Token>() {
+                                if let Token::Char(ccl) = token.clone() {
+                                    match parts[2] {
+                                        // mod_pos on Token::Char becomes Token::Chars
+                                        "pos" | "kle" => {
+                                            let chars = ImlResult::Value(
+                                                Value::from(Token::Chars(ccl)).into(),
+                                            );
 
-                                        if parts[2] == "pos" {
-                                            return chars;
+                                            if parts[2] == "pos" {
+                                                return chars;
+                                            }
+
+                                            // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                            return ImlResult::Ops(vec![ImlOp::from_vec(
+                                                chars.into_ops(compiler, true),
+                                            )
+                                            .into_optional()]);
                                         }
 
-                                        // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                        return ImlResult::Ops(vec![ImlOp::from_vec(
-                                            chars.into_ops(compiler, true),
-                                        )
-                                        .into_optional()]);
+                                        // mod_not on Token::Char becomes negated Token::Char
+                                        "not" => {
+                                            return ImlResult::Value(
+                                                Value::from(Token::Char(ccl.negate())).into(),
+                                            );
+                                        }
+                                        _ => {}
                                     }
-
-                                    // mod_not on Token::Char becomes negated Token::Char
-                                    "not" => {
-                                        return ImlResult::Value(
-                                            Token::Char(ccl.negate()).into_value().into(),
-                                        );
-                                    }
-                                    _ => {}
                                 }
                             }
                         }

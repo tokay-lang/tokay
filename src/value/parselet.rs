@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::{Dict, List, Object, Value};
+use super::{Callable, Dict, List, Value};
 use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
@@ -60,11 +60,6 @@ impl Parselet {
             end,
             body,
         }
-    }
-
-    /// Turns parselet into a Value
-    pub fn into_value(self) -> Value {
-        Value::Parselet(Rc::new(RefCell::new(self)))
     }
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
@@ -478,28 +473,28 @@ impl Parselet {
     }
 }
 
-impl Object for Parselet {
+#[derive(Clone, Debug)]
+pub struct ParseletRef(pub Rc<RefCell<Parselet>>);
+
+impl Callable for ParseletRef {
+    fn id(&self) -> usize {
+        &*self.0.borrow() as *const Parselet as usize
+    }
+
     fn name(&self) -> &str {
         "parselet"
     }
 
-    fn repr(&self) -> String {
-        if let Some(name) = &self.name {
-            format!("\"<{} {}>\"", self.name(), name)
-        } else {
-            format!("\"<{} {:p}>\"", self.name(), self)
-        }
-    }
-
     fn is_callable(&self, with_arguments: bool) -> bool {
+        let parselet = self.0.borrow();
         // Either without arguments and signature is empty or all arguments have default values
-        (!with_arguments && (self.signature.len() == 0 || self.signature.iter().all(|arg| arg.1.is_some())))
+        (!with_arguments && (parselet.signature.len() == 0 || parselet.signature.iter().all(|arg| arg.1.is_some())))
         // or with arguments and signature exists
-            || (with_arguments && self.signature.len() > 0)
+            || (with_arguments && parselet.signature.len() > 0)
     }
 
     fn is_consuming(&self) -> bool {
-        self.consuming.is_some()
+        self.0.borrow().consuming.is_some()
     }
 
     fn call(
@@ -508,7 +503,13 @@ impl Object for Parselet {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        self.run(context.runtime, args, nargs, false, context.depth + 1)
+        self.0
+            .borrow()
+            .run(context.runtime, args, nargs, false, context.depth + 1)
+    }
+
+    fn clone_dyn(&self) -> Box<dyn Callable> {
+        Box::new((*self).clone()) // Forward to the derive(Clone) impl
     }
 }
 
@@ -532,5 +533,11 @@ impl std::cmp::PartialOrd for Parselet {
         let right = other as *const Self as usize;
 
         left.partial_cmp(&right)
+    }
+}
+
+impl From<Parselet> for Value {
+    fn from(parselet: Parselet) -> Self {
+        Value::Callable(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))))
     }
 }
