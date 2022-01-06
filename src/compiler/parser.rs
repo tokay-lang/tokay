@@ -431,7 +431,7 @@ impl Parser {
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
-        [_, Tokay,
+        [_, (opt Tokay),
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 

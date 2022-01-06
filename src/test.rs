@@ -872,6 +872,12 @@ fn compiler_structure() {
         compile_and_run("{}}", ""),
         Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
     );
+
+    // Test for programs which consist just of one comment
+    assert_eq!(
+        compile_and_run("#tralala", ""),
+        Ok(None)
+    );
 }
 
 #[test]
