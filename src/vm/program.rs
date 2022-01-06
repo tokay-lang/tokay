@@ -58,7 +58,13 @@ impl Program {
                 }
                 _ => panic!(),
             } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => Ok(Some(value.into())),
+                Ok(Accept::Push(Capture::Value(value, ..))) => {
+                    let value: Value = value.into();
+                    match value {
+                        Value::Void => Ok(None),
+                        other => Ok(Some(other)),
+                    }
+                }
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),

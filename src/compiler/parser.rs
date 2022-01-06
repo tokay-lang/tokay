@@ -223,7 +223,8 @@ impl Parser {
         }),
 
         (Collection = {
-            ["(", _, (kle [T_EOL, _]), (pos [Expression, (opt [",", _]), (kle [T_EOL, _])]), ")", // no expect ")" here!
+            ["(", _, (kle [T_EOL, _]), ")", (call ast[(value "value_void")])],
+            ["(", _, (kle [T_EOL, _]), (expect (pos [Expression, (opt [",", _]), (kle [T_EOL, _])])), ")", // no expect ")" here!
                 (call ast[(value "sequence")])],
             ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
                 (call ast[(value "sequence")])]
@@ -431,7 +432,7 @@ impl Parser {
                 (call error[(value "Parse error, unexpected token"), (value true)])]
         }),
 
-        [_, Tokay,
+        [_, (opt Tokay),
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 

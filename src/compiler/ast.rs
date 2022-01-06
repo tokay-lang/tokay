@@ -902,27 +902,29 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // main -----------------------------------------------------------
         "main" => {
-            let children = node.borrow_by_key("children");
+            if let Some(ast) = node.get("children") {
+                let children = ast.borrow();
+                // When interactive and there's a scope, don't push, as the main scope
+                // is kept to hold globals.
+                if compiler.scopes.len() != 1 || !compiler.interactive {
+                    compiler.push_parselet(); // Main
+                }
 
-            // When interactive and there's a scope, don't push, as the main scope
-            // is kept to hold globals.
-            if compiler.scopes.len() != 1 || !compiler.interactive {
-                compiler.push_parselet(); // Main
+                let body = traverse_node_or_list(compiler, &children).into_ops(compiler, true);
+
+                let main = compiler.pop_parselet(
+                    Some("__main__".to_string()),
+                    Vec::new(),
+                    match body.len() {
+                        0 => Op::Nop.into(),
+                        1 => body.into_iter().next().unwrap(),
+                        _ => ImlAlternation::new(body),
+                    },
+                );
+
+                compiler.define_value(main.into());
             }
 
-            let body = traverse_node_or_list(compiler, &children).into_ops(compiler, true);
-
-            let main = compiler.pop_parselet(
-                Some("__main__".to_string()),
-                Vec::new(),
-                match body.len() {
-                    0 => Op::Nop.into(),
-                    1 => body.into_iter().next().unwrap(),
-                    _ => ImlAlternation::new(body),
-                },
-            );
-
-            compiler.define_value(main.into());
             ImlResult::Empty
         }
 
