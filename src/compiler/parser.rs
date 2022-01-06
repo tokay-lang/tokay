@@ -223,7 +223,8 @@ impl Parser {
         }),
 
         (Collection = {
-            ["(", _, (kle [T_EOL, _]), (pos [Expression, (opt [",", _]), (kle [T_EOL, _])]), ")", // no expect ")" here!
+            ["(", _, (kle [T_EOL, _]), ")", (call ast[(value "value_void")])],
+            ["(", _, (kle [T_EOL, _]), (expect (pos [Expression, (opt [",", _]), (kle [T_EOL, _])])), ")", // no expect ")" here!
                 (call ast[(value "sequence")])],
             ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
                 (call ast[(value "sequence")])]

@@ -640,7 +640,7 @@ fn parselet_call_error_reporting() {
 
 #[test]
 fn kaputt() {
-    assert_eq!(compile_and_run("{{}}", ""), Ok(Some(Value::Void)));
+    assert_eq!(compile_and_run("{{}}", ""), Ok(None));
 }
 
 #[test]
@@ -840,14 +840,37 @@ fn loops() {
 
 #[test]
 // Testing several special parsing constructs and error reporting
-fn compiler_structure() {
+fn compiler_error_reporting() {
+    // Test for programs which consist just of one comment
+    assert_eq!(compile_and_run("#tralala", ""), Ok(None));
+
     // Test for whitespace
     assert_eq!(
         compile_and_run("#normal comment\n#\n\t123", ""),
         Ok(Some(value!(123)))
     );
 
-    // Tests for blocks and empty blocks
+    // Test for invalid input when EOF is expected
+    assert_eq!(
+        compile_and_run("{}}", ""),
+        Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
+    );
+
+    // Test on unclosed sequences `(1 `
+    assert_eq!(
+        compile_and_run("(1", ""),
+        Err("Line 1, column 3: Expecting \")\"".to_string())
+    );
+
+    assert_eq!(
+        compile_and_run("(a => 1, b => 2", ""),
+        Err("Line 1, column 16: Expecting \")\"".to_string())
+    );
+
+    // Test empty sequence
+    assert_eq!(compile_and_run("()", ""), Ok(None));
+
+    // Tests on filled and empty blocks and empty blocks
     assert_eq!(
         compile_and_run(
             "
@@ -865,18 +888,6 @@ fn compiler_structure() {
             ""
         ),
         Ok(Some(value!(3)))
-    );
-
-    // Test for invalid input when EOF is expected
-    assert_eq!(
-        compile_and_run("{}}", ""),
-        Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
-    );
-
-    // Test for programs which consist just of one comment
-    assert_eq!(
-        compile_and_run("#tralala", ""),
-        Ok(None)
     );
 }
 
