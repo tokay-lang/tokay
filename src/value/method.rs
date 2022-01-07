@@ -3,7 +3,7 @@
 use super::{Callable, Dict, RefValue};
 use crate::vm::*;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone)]
 pub struct Method {
     pub(super) object: RefValue,
     pub(super) method: RefValue,

@@ -93,15 +93,13 @@ impl PartialEq for Box<dyn Callable> {
 
 impl PartialOrd for Box<dyn Callable> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        //self.len().partial_cmp(&other.len())
-        todo!();
+        self.id().partial_cmp(&other.id())
     }
 }
 
 // https://github.com/rust-lang/rust/issues/31740#issuecomment-700950186
 impl PartialEq<&Self> for Box<dyn Callable> {
     fn eq(&self, other: &&Self) -> bool {
-        //self.len() == other.len()
-        todo!();
+        self.id() == other.id()
     }
 }

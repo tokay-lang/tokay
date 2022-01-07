@@ -513,29 +513,6 @@ impl Callable for ParseletRef {
     }
 }
 
-impl std::hash::Hash for Parselet {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Self as usize).hash(state);
-    }
-}
-
-impl std::cmp::PartialEq for Parselet {
-    // It satisfies to just compare the parselet's memory address for equality
-    fn eq(&self, other: &Self) -> bool {
-        self as *const Self as usize == other as *const Self as usize
-    }
-}
-
-impl std::cmp::PartialOrd for Parselet {
-    // It satisfies to just compare the parselet's memory address for equality
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const Self as usize;
-        let right = other as *const Self as usize;
-
-        left.partial_cmp(&right)
-    }
-}
-
 impl From<Parselet> for Value {
     fn from(parselet: Parselet) -> Self {
         Value::Callable(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))))

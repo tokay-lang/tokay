@@ -149,29 +149,6 @@ impl Callable for BuiltinRef {
     }
 }
 
-impl std::hash::Hash for Builtin {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const Builtin as usize).hash(state);
-    }
-}
-
-impl std::cmp::PartialEq for Builtin {
-    // It satisfies to just compare the parselet's memory address for equality
-    fn eq(&self, other: &Self) -> bool {
-        self as *const Builtin as usize == other as *const Builtin as usize
-    }
-}
-
-impl std::cmp::PartialOrd for Builtin {
-    // It satisfies to just compare the parselet's memory address for equality
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const Builtin as usize;
-        let right = other as *const Builtin as usize;
-
-        left.partial_cmp(&right)
-    }
-}
-
 impl std::fmt::Debug for BuiltinRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //write!(f, "<Builtin {}>", self.name)
