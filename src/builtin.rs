@@ -19,10 +19,6 @@ pub struct Builtin {
 pub struct BuiltinRef(&'static Builtin);
 
 impl Callable for BuiltinRef {
-    fn id(&self) -> usize {
-        self.0 as *const Builtin as usize
-    }
-
     // Returns the callable's name.
     fn name(&self) -> &str {
         "builtin"

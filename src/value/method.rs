@@ -10,10 +10,6 @@ pub struct Method {
 }
 
 impl Callable for Method {
-    fn id(&self) -> usize {
-        self as *const Self as usize
-    }
-
     fn name(&self) -> &str {
         "method"
     }

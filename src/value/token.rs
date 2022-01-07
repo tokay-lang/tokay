@@ -181,10 +181,6 @@ impl Token {
 }
 
 impl Callable for Token {
-    fn id(&self) -> usize {
-        self as *const Self as usize
-    }
-
     fn name(&self) -> &str {
         "token"
     }

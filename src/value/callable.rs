@@ -9,7 +9,9 @@ use crate::vm::{Accept, Context, Reject};
 /// Describes an interface to a callable object.
 pub trait Callable: std::any::Any + std::fmt::Debug {
     // Returns the callables's id.
-    fn id(&self) -> usize;
+    fn id(&self) -> usize {
+        self as *const Self as *const () as usize
+    }
 
     // Returns the callable's name.
     fn name(&self) -> &str;
