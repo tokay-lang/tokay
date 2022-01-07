@@ -351,6 +351,7 @@ impl Compiler {
             };
 
             if self.scopes.len() == 0 && self.interactive {
+                *consuming = false;
                 self.scopes.push(scope);
             }
 
