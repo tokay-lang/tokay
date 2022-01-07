@@ -160,7 +160,9 @@ impl Compiler {
 
         // Obtain intermediate values collected during compilation
         let values = if self.interactive {
-            self.values.clone()
+            let values = self.values.clone();
+            self.values.pop(); // Remove last __main__ from interactive compiler.
+            values
         } else {
             self.values.drain(..).collect()
         };
