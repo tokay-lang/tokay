@@ -36,8 +36,4 @@ impl Callable for Method {
 
         self.method.borrow().call(context, args + 1, nargs)
     }
-
-    fn clone_dyn(&self) -> Box<dyn Callable> {
-        Box::new((*self).clone()) // Forward to the derive(Clone) impl
-    }
 }

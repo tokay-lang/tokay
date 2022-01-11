@@ -226,10 +226,6 @@ impl Callable for Token {
         assert!(args == 0 && nargs.is_none());
         self.read(context.runtime.reader)
     }
-
-    fn clone_dyn(&self) -> Box<dyn Callable> {
-        Box::new((*self).clone()) // Forward to the derive(Clone) impl
-    }
 }
 
 impl From<Token> for Value {

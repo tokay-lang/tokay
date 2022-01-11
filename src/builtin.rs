@@ -139,10 +139,6 @@ impl Callable for BuiltinRef {
         //println!("{} {:?}", self.name, args);
         (self.0.func)(context, args)
     }
-
-    fn clone_dyn(&self) -> Box<dyn Callable> {
-        Box::new((*self).clone()) // Forward to the derive(Clone) impl
-    }
 }
 
 impl std::fmt::Debug for BuiltinRef {

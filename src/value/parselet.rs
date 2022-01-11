@@ -507,10 +507,6 @@ impl Callable for ParseletRef {
             .borrow()
             .run(context.runtime, args, nargs, false, context.depth + 1)
     }
-
-    fn clone_dyn(&self) -> Box<dyn Callable> {
-        Box::new((*self).clone()) // Forward to the derive(Clone) impl
-    }
 }
 
 impl From<Parselet> for Value {

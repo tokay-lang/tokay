@@ -3,11 +3,27 @@ use std::any::{Any, TypeId};
 use super::Dict;
 use crate::vm::{Accept, Context, Reject};
 
+// CloneDyn
+// ----------------------------------------------------------------------------
+
+pub trait CloneDyn {
+    fn clone_dyn(&self) -> Box<dyn Callable>;
+}
+
+impl<T> CloneDyn for T
+where
+    T: 'static + Callable + Clone,
+{
+    fn clone_dyn(&self) -> Box<dyn Callable> {
+        Box::new(self.clone())
+    }
+}
+
 // Callable
 // ----------------------------------------------------------------------------
 
 /// Describes an interface to a callable object.
-pub trait Callable: std::any::Any + std::fmt::Debug {
+pub trait Callable: CloneDyn + std::any::Any + std::fmt::Debug {
     // Returns the callables's id.
     fn id(&self) -> usize {
         self as *const Self as *const () as usize
@@ -34,8 +50,6 @@ pub trait Callable: std::any::Any + std::fmt::Debug {
         _args: usize,
         _nargs: Option<Dict>,
     ) -> Result<Accept, Reject>;
-
-    fn clone_dyn(&self) -> Box<dyn Callable>;
 }
 
 // The next piece of code including the comment was kindly borrowed from
