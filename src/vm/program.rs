@@ -23,8 +23,8 @@ impl Program {
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
             // todo: This is unhandy.
-            if let Value::Callable(callable) = &statics[i] {
-                if let Some(_) = callable.as_ref().downcast_ref::<ParseletRef>() {
+            if let Value::Object(object) = &statics[i] {
+                if let Some(_) = object.as_ref().downcast_ref::<ParseletRef>() {
                     main = Some(i);
                     break;
                 }
@@ -47,7 +47,7 @@ impl Program {
         if let Some(main) = self.main {
             match match &*self.statics[main].borrow() {
                 // todo: This is absolutely unhandy.
-                Value::Callable(main) => {
+                Value::Object(main) => {
                     if let Some(main) = main.as_ref().downcast_ref::<ParseletRef>() {
                         main.0
                             .borrow()

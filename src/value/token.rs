@@ -1,6 +1,6 @@
 //! Token callables represented by Value::Token
 
-use super::{Callable, Dict, Value};
+use super::{Dict, Object, Value};
 use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
@@ -180,7 +180,7 @@ impl Token {
     }
 }
 
-impl Callable for Token {
+impl Object for Token {
     fn name(&self) -> &str {
         "token"
     }
@@ -230,6 +230,6 @@ impl Callable for Token {
 
 impl From<Token> for Value {
     fn from(token: Token) -> Self {
-        Value::Callable(Box::new(token))
+        Value::Object(Box::new(token))
     }
 }

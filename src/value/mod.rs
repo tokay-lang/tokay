@@ -6,18 +6,18 @@ use crate::builtin;
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
-mod callable;
 mod dict;
 mod list;
 mod method;
+mod object;
 mod parselet;
 mod string;
 mod token;
 
-pub use callable::Callable;
 pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
+pub use object::Object;
 pub use parselet::{Parselet, ParseletRef};
 pub use token::Token;
 
@@ -46,7 +46,7 @@ impl RefValue {
         if let Some(builtin) = builtin::get(&name) {
             let method: Value = Method {
                 object: self.clone(),
-                method: Value::Callable(Box::new(builtin)).into(),
+                method: Value::Object(Box::new(builtin)).into(),
             }
             .into();
 
@@ -94,7 +94,7 @@ pub enum Value {
     Dict(Box<Dict>), // dict
 
     // Callables
-    Callable(Box<dyn Callable>),
+    Object(Box<dyn Object>),
 }
 
 /** Value construction helper-macro
@@ -185,7 +185,7 @@ impl Value {
             Self::String(_) => "str",
             Self::List(_) => "list",
             Self::Dict(_) => "dict",
-            Self::Callable(callable) => callable.name(),
+            Self::Object(object) => object.name(),
         }
     }
 
@@ -306,10 +306,10 @@ impl Value {
         }
     }
 
-    /// Check whether a value is callable, and when its callable if with or without arguments.
+    /// Check whether a value is object, and when its object if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
-        if let Value::Callable(callable) = self {
-            callable.is_callable(with_arguments)
+        if let Value::Object(object) = self {
+            object.is_callable(with_arguments)
         } else {
             false
         }
@@ -317,8 +317,8 @@ impl Value {
 
     /// Check whether a value is consuming
     pub fn is_consuming(&self) -> bool {
-        if let Value::Callable(callable) = self {
-            callable.is_consuming()
+        if let Value::Object(object) = self {
+            object.is_consuming()
         } else {
             false
         }
@@ -326,8 +326,8 @@ impl Value {
 
     /// Check whether a value is consuming
     pub fn is_nullable(&self) -> bool {
-        if let Value::Callable(callable) = self {
-            callable.is_nullable()
+        if let Value::Object(object) = self {
+            object.is_nullable()
         } else {
             false
         }
@@ -340,8 +340,8 @@ impl Value {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        if let Value::Callable(callable) = self {
-            callable.call(context, args, nargs)
+        if let Value::Object(object) = self {
+            object.call(context, args, nargs)
         } else {
             Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
         }
@@ -548,9 +548,9 @@ impl From<String> for Value {
     }
 }
 
-impl<T: Callable> From<Box<T>> for Value {
+impl<T: Object> From<Box<T>> for Value {
     fn from(value: Box<T>) -> Self {
-        Value::Callable(value)
+        Value::Object(value)
     }
 }
 

@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::{Callable, Dict, List, Value};
+use super::{Dict, List, Object, Value};
 use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
@@ -476,7 +476,7 @@ impl Parselet {
 #[derive(Clone, Debug)]
 pub struct ParseletRef(pub Rc<RefCell<Parselet>>);
 
-impl Callable for ParseletRef {
+impl Object for ParseletRef {
     fn id(&self) -> usize {
         &*self.0.borrow() as *const Parselet as usize
     }
@@ -511,6 +511,6 @@ impl Callable for ParseletRef {
 
 impl From<Parselet> for Value {
     fn from(parselet: Parselet) -> Self {
-        Value::Callable(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))))
+        Value::Object(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))))
     }
 }

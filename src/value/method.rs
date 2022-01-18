@@ -1,6 +1,6 @@
 //! A method object represents an object's method call (currently only for built-ins)
 
-use super::{Callable, Dict, RefValue, Value};
+use super::{Dict, Object, RefValue, Value};
 use crate::vm::*;
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct Method {
     pub(super) method: RefValue,
 }
 
-impl Callable for Method {
+impl Object for Method {
     fn name(&self) -> &str {
         "method"
     }
@@ -40,6 +40,6 @@ impl Callable for Method {
 
 impl From<Method> for Value {
     fn from(method: Method) -> Self {
-        Value::Callable(Box::new(method))
+        Value::Object(Box::new(method))
     }
 }

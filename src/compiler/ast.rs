@@ -1143,8 +1143,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         }
 
                         // In case of a token, try to replace it with a repeating counterpart.
-                        if let ImlValue::Value(Value::Callable(callable)) = value {
-                            if let Some(token) = callable.as_ref().downcast_ref::<Token>() {
+                        if let ImlValue::Value(Value::Object(object)) = value {
+                            if let Some(token) = object.as_ref().downcast_ref::<Token>() {
                                 if let Token::Char(ccl) = token.clone() {
                                     match parts[2] {
                                         // mod_pos on Token::Char becomes Token::Chars

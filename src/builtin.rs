@@ -1,6 +1,6 @@
 //! Tokay built-in functions and parselets
 use crate::error::Error;
-use crate::value::{Callable, Dict, RefValue, Value};
+use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Capture, Context, Reject};
 
 use linkme::distributed_slice;
@@ -18,7 +18,7 @@ pub struct Builtin {
 #[derive(Clone)]
 pub struct BuiltinRef(&'static Builtin);
 
-impl Callable for BuiltinRef {
+impl Object for BuiltinRef {
     // Returns the callable's name.
     fn name(&self) -> &str {
         "builtin"
