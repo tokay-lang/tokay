@@ -1,7 +1,8 @@
 //! Tokay value and object representation
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
+use crate::builtin;
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
@@ -24,11 +25,49 @@ pub use token::Token;
 // ----------------------------------------------------------------------------
 
 /// This is the reference-counted, dynamically borrowable value used in most places within the Tokay VM.
-pub type RefValue = Rc<RefCell<Value>>;
+#[derive(Clone, PartialEq, PartialOrd)]
+pub struct RefValue {
+    value: Rc<RefCell<Value>>,
+}
+
+impl RefValue {
+    pub fn borrow(&self) -> Ref<Value> {
+        self.value.borrow()
+    }
+
+    pub fn borrow_mut(&self) -> RefMut<Value> {
+        self.value.borrow_mut()
+    }
+
+    /// Retrieve a method from a value.
+    pub fn get_method(&self, method: &str) -> Result<RefValue, String> {
+        let name = format!("{}_{}", self.value.borrow().name(), method);
+
+        if let Some(builtin) = builtin::get(&name) {
+            let method: Value = Method {
+                object: self.clone(),
+                method: Value::Callable(Box::new(builtin)).into(),
+            }
+            .into();
+
+            return Ok(method.into());
+        }
+
+        Err(format!("Method '{}' not found", name))
+    }
+}
+
+impl std::fmt::Debug for RefValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.borrow().fmt(f)
+    }
+}
 
 impl From<Value> for RefValue {
     fn from(value: Value) -> Self {
-        Self::new(RefCell::new(value))
+        RefValue {
+            value: Rc::new(RefCell::new(value)),
+        }
     }
 }
 
@@ -267,22 +306,6 @@ impl Value {
         }
     }
 
-    /*
-    /// Retrieve a method from a value.
-    pub fn get_method(&self, method: &str) -> Result<Value, String> {
-        let name = format!("{}_{}", self.name(), method);
-
-        if let Some(builtin) = builtin::get(&name) {
-            return Ok(Value::Method(Box::new(Method {
-                object: self.clone(),
-                method: Value::Builtin(builtin).into(),
-            })));
-        }
-
-        Err(format!("Method '{}' not found", name))
-    }
-    */
-
     /// Check whether a value is callable, and when its callable if with or without arguments.
     pub fn is_callable(&self, with_arguments: bool) -> bool {
         if let Value::Callable(callable) = self {
@@ -476,7 +499,7 @@ impl std::cmp::PartialEq for Value {
 /// Convert a RefValue into a Value
 impl From<RefValue> for Value {
     fn from(value: RefValue) -> Self {
-        match Rc::try_unwrap(value) {
+        match Rc::try_unwrap(value.value) {
             Ok(value) => value.into_inner(),
             Err(value) => value.borrow().clone(),
         }

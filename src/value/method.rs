@@ -1,6 +1,6 @@
 //! A method object represents an object's method call (currently only for built-ins)
 
-use super::{Callable, Dict, RefValue};
+use super::{Callable, Dict, RefValue, Value};
 use crate::vm::*;
 
 #[derive(Debug, Clone)]
@@ -35,5 +35,11 @@ impl Callable for Method {
         );
 
         self.method.borrow().call(context, args + 1, nargs)
+    }
+}
+
+impl From<Method> for Value {
+    fn from(method: Method) -> Self {
+        Value::Callable(Box::new(method))
     }
 }

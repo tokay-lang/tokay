@@ -516,18 +516,14 @@ impl Op {
                 }
 
                 Op::LoadAttr => {
-                    //fixme
-                    /*
                     let attr = context.pop();
                     let attr = attr.borrow();
                     let value = context.pop();
 
-                    match Value::get_attr(value, &attr) {
+                    match value.get_method(attr.str().unwrap()) {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into_reject(),
                     }
-                    */
-                    todo!();
                 }
 
                 Op::LoadIndex => {
