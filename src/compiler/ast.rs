@@ -1448,6 +1448,7 @@ static AST: Builtin = Builtin {
     name: "ast",
     signature: "emit ? value",
     func: |context, args| {
+        let context = context.unwrap();
         let emit = args[0].as_ref().unwrap();
 
         let mut ret = Dict::new();

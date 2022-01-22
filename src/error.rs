@@ -55,6 +55,8 @@ static ERROR: Builtin = Builtin {
     name: "error",
     signature: "msg ? collect",
     func: |context, args| {
+        let context = context.unwrap();
+
         let msg = args[0].as_ref().unwrap();
         let collect = args[1]
             .as_ref()

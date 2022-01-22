@@ -2,7 +2,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crate::builtin;
+use crate::builtin::{self, BuiltinRef};
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
@@ -39,21 +39,55 @@ impl RefValue {
         self.value.borrow_mut()
     }
 
-    /// Retrieve a method from a value.
-    pub fn get_method(&self, method: &str) -> Result<RefValue, String> {
-        let name = format!("{}_{}", self.value.borrow().name(), method);
+    /** Checks for a method on a value given by value type and method name.
 
+    Methods are currently only native Rust functions provided via builtins.
+
+    A method follows the naming convention <type>_<method>, so that the
+    calls `"hello".upper()` and `str_upper("hello")` are calls to the
+    same function.
+    */
+    pub fn get_method(&self, name: &str) -> Result<BuiltinRef, String> {
+        let name = format!("{}_{}", self.value.borrow().name(), name);
         if let Some(builtin) = builtin::get(&name) {
-            let method: Value = Method {
-                object: self.clone(),
-                method: Value::Object(Box::new(builtin)).into(),
-            }
-            .into();
-
-            return Ok(method.into());
+            Ok(builtin)
+        } else {
+            Err(format!(
+                "Method '{}_{}' not found",
+                self.value.borrow().name(),
+                name
+            ))
         }
+    }
 
-        Err(format!("Method '{}' not found", name))
+    /** Creates a callable Method object from a value and a given builtin. */
+    pub fn create_method(&self, name: &str) -> Result<RefValue, String> {
+        let builtin = self.get_method(name)?;
+
+        let method: Value = Method {
+            object: self.clone(),
+            method: Value::Object(Box::new(builtin)).into(),
+        }
+        .into();
+
+        return Ok(method.into());
+    }
+
+    /** Performs a direct method call on a value.
+
+    This function is designed to invoke methods on values directly from Rust code. */
+    pub fn call_method(
+        &self,
+        name: &str,
+        mut args: Vec<Option<RefValue>>,
+    ) -> Result<Accept, Reject> {
+        let builtin = self.get_method(name)?;
+
+        // Inject own value as first parameter.
+        args.insert(0, Some(self.clone()));
+
+        // Call the builtin directly.
+        (builtin.0.func)(None, args)
     }
 }
 

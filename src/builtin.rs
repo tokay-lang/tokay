@@ -12,11 +12,11 @@ pub static BUILTINS: [Builtin] = [..];
 pub struct Builtin {
     pub name: &'static str,      // Function's external name
     pub signature: &'static str, // Argument signature as a string, where each argument name is separated by space
-    pub func: fn(&mut Context, args: Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
+    pub func: fn(Option<&mut Context>, Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
 }
 
 #[derive(Clone)]
-pub struct BuiltinRef(&'static Builtin);
+pub struct BuiltinRef(pub &'static Builtin);
 
 impl Object for BuiltinRef {
     // Returns the callable's name.
@@ -137,7 +137,7 @@ impl Object for BuiltinRef {
         }
 
         //println!("{} {:?}", self.name, args);
-        (self.0.func)(context, args)
+        (self.0.func)(Some(context), args)
     }
 }
 
@@ -208,8 +208,8 @@ static PRINT: Builtin = Builtin {
     signature: "?",
     func: |context, args| {
         //println!("args = {:?}", args);
-        if args.len() == 0 {
-            if let Some(capture) = context.get_capture(0) {
+        if args.len() == 0 && context.is_some() {
+            if let Some(capture) = context.unwrap().get_capture(0) {
                 print!("{}", capture.borrow());
             }
         } else {
@@ -236,6 +236,8 @@ static IDENTIFIER: Builtin = Builtin {
     name: "Identifier", // Matching C-style identifiers
     signature: "",
     func: |context, _args| {
+        let context = context.unwrap();
+
         if let Some(ch) = context.runtime.reader.peek() {
             if !ch.is_alphabetic() && ch != '_' {
                 return Err(Reject::Next);
@@ -274,6 +276,8 @@ static INTEGER: Builtin = Builtin {
     name: "Integer", // Matching 64-bit integers directly
     signature: "",
     func: |context, _args| {
+        let context = context.unwrap();
+
         let mut neg = false;
         let mut value: i64 = 0;
 
@@ -319,6 +323,8 @@ static WORD: Builtin = Builtin {
     name: "Word", // Matching words made of letters
     signature: "? min max",
     func: |context, args| {
+        let context = context.unwrap();
+
         let min = &args[0];
         let max = &args[1];
 

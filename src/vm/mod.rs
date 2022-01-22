@@ -51,3 +51,9 @@ impl From<Error> for Reject {
         Reject::Error(Box::new(error))
     }
 }
+
+impl From<String> for Reject {
+    fn from(error: String) -> Self {
+        Error::new(None, error).into()
+    }
+}
