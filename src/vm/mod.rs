@@ -57,3 +57,9 @@ impl From<String> for Reject {
         Error::new(None, error).into()
     }
 }
+
+impl From<Error> for Result<Accept, Reject> {
+    fn from(error: Error) -> Self {
+        Err(error.into())
+    }
+}

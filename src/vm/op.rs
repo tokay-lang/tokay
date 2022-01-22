@@ -406,10 +406,10 @@ impl Op {
 
                 Op::Error(msg) => {
                     if let Some(msg) = msg {
-                        Error::new(Some(frame.reader_start), msg.clone()).into_reject()
+                        Error::new(Some(frame.reader_start), msg.clone()).into()
                     } else {
                         Error::new(Some(frame.reader_start), context.pop().borrow().to_string())
-                            .into_reject()
+                            .into()
                     }
                 }
 
@@ -522,7 +522,7 @@ impl Op {
 
                     match value.create_method(attr.str().unwrap()) {
                         Ok(value) => context.push(value),
-                        Err(msg) => Error::new(None, msg).into_reject(),
+                        Err(msg) => Error::new(None, msg).into(),
                     }
                 }
 
@@ -536,7 +536,7 @@ impl Op {
 
                     match value.get_index(&index) {
                         Ok(value) => context.push(value),
-                        Err(msg) => Error::new(None, msg).into_reject(),
+                        Err(msg) => Error::new(None, msg).into(),
                     }
                     */
                     todo!();
@@ -632,7 +632,7 @@ impl Op {
                     let mut obj = target.borrow_mut();
 
                     if let Err(msg) = obj.set_index(&index, value) {
-                        Error::new(None, msg).into_reject()
+                        Error::new(None, msg).args[0].as_ref().unwrap().()
                     } else {
                         if matches!(op, Op::StoreIndexHold) {
                             context.push(target.clone())

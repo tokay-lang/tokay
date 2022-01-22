@@ -317,7 +317,7 @@ impl Parselet {
                         args
                     ),
                 )
-                .into_reject();
+                .into();
             }
 
             // Set remaining parameters to their defaults
@@ -341,8 +341,7 @@ impl Parselet {
                         continue;
                     }
 
-                    return Error::new(None, format!("Parameter '{}' required", arg.0))
-                        .into_reject();
+                    return Error::new(None, format!("Parameter '{}' required", arg.0)).into();
                 }
             }
 
@@ -354,7 +353,7 @@ impl Parselet {
                         None,
                         format!("Parameter '{}' provided to call but not used", narg.0),
                     )
-                    .into_reject();
+                    .into();
                 }
             }
         } else

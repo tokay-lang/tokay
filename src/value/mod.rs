@@ -376,7 +376,7 @@ impl Value {
         if let Value::Object(object) = self {
             object.call(context, args, nargs)
         } else {
-            Error::new(None, format!("'{}' cannot be called", self.repr())).into_reject()
+            Error::new(None, format!("'{}' cannot be called", self.repr())).into()
         }
     }
 

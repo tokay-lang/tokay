@@ -96,7 +96,7 @@ static ORD: Builtin = Builtin {
                     c.len()
                 ),
             )
-            .into_reject()
+            .into()
         } else {
             let c = c.chars().next().unwrap();
 

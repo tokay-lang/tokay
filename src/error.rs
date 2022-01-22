@@ -4,7 +4,6 @@ use linkme::distributed_slice;
 use crate::builtin::{Builtin, BUILTINS};
 use crate::reader::Offset;
 use crate::value::Value;
-use crate::vm::{Accept, Reject};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
@@ -18,21 +17,11 @@ impl Error {
         Error { offset, message }
     }
 
-    /// Turns an Error into Result<Reject::Error<Box>>
-    pub fn into_reject(self) -> Result<Accept, Reject> {
-        Err(Reject::Error(Box::new(self)))
-    }
-
     /// Attaches position information to an error message when not already present
     pub fn patch_offset(&mut self, offset: Offset) {
         if let None = self.offset {
             self.offset = Some(offset);
         }
-    }
-
-    /// Turn an error into a string
-    pub fn into_string(self) -> String {
-        format!("{}", self)
     }
 }
 
@@ -76,6 +65,6 @@ static ERROR: Builtin = Builtin {
             }
         }
 
-        Error::new(Some(context.runtime.reader.tell()), msg).into_reject()
+        Error::new(Some(context.runtime.reader.tell()), msg).into()
     },
 };
