@@ -6,7 +6,7 @@ use super::*;
 use crate::builtin;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{Token, Value};
+use crate::value::{RefValue, Token, Value};
 use crate::vm::*;
 
 /** Compiler symbolic scope.
@@ -540,7 +540,7 @@ impl Compiler {
 
         // When not found, check for a builtin function
         if let Some(builtin) = builtin::get(name) {
-            return Some(Value::from(Box::new(builtin)).into());
+            return Some(RefValue::from(Box::new(builtin)).into());
         }
 
         // Builtin constants are defined on demand as fallback

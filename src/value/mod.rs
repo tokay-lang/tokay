@@ -104,6 +104,54 @@ impl From<Value> for RefValue {
     }
 }
 
+// Conversion from native types into Value
+
+impl From<bool> for RefValue {
+    fn from(value: bool) -> Self {
+        if value {
+            Value::True.into()
+        } else {
+            Value::False.into()
+        }
+    }
+}
+
+impl From<i64> for RefValue {
+    fn from(value: i64) -> Self {
+        Value::Integer(value).into()
+    }
+}
+
+impl From<f64> for RefValue {
+    fn from(value: f64) -> Self {
+        Value::Float(value).into()
+    }
+}
+
+impl From<usize> for RefValue {
+    fn from(value: usize) -> Self {
+        Value::Addr(value).into()
+    }
+}
+
+impl From<&str> for RefValue {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string()).into()
+    }
+}
+
+impl From<String> for RefValue {
+    fn from(value: String) -> Self {
+        Value::String(value).into()
+    }
+}
+
+impl<T: Object> From<Box<T>> for RefValue {
+    fn from(value: Box<T>) -> Self {
+        Value::Object(value).into()
+    }
+}
+
 // Value
 // ----------------------------------------------------------------------------
 
@@ -536,54 +584,6 @@ impl From<RefValue> for Value {
             Ok(value) => value.into_inner(),
             Err(value) => value.borrow().clone(),
         }
-    }
-}
-
-// Conversion from native types into Value
-
-impl From<bool> for Value {
-    fn from(value: bool) -> Self {
-        if value {
-            Value::True
-        } else {
-            Value::False
-        }
-    }
-}
-
-impl From<i64> for Value {
-    fn from(value: i64) -> Self {
-        Value::Integer(value)
-    }
-}
-
-impl From<f64> for Value {
-    fn from(value: f64) -> Self {
-        Value::Float(value)
-    }
-}
-
-impl From<usize> for Value {
-    fn from(value: usize) -> Self {
-        Value::Addr(value)
-    }
-}
-
-impl From<&str> for Value {
-    fn from(value: &str) -> Self {
-        Value::String(value.to_string())
-    }
-}
-
-impl From<String> for Value {
-    fn from(value: String) -> Self {
-        Value::String(value)
-    }
-}
-
-impl<T: Object> From<Box<T>> for Value {
-    fn from(value: Box<T>) -> Self {
-        Value::Object(value)
     }
 }
 

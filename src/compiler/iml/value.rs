@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::Value;
+use crate::value::{RefValue, Value};
 
 /** Compile-time constant value */
 #[derive(Clone, Debug, PartialEq)]
@@ -69,5 +69,11 @@ impl From<ImlParselet> for ImlValue {
 impl From<Value> for ImlValue {
     fn from(value: Value) -> Self {
         Self::Value(value)
+    }
+}
+
+impl From<RefValue> for ImlValue {
+    fn from(refvalue: RefValue) -> Self {
+        Self::Value(Value::from(refvalue))
     }
 }
