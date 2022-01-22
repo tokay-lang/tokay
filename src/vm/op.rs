@@ -520,18 +520,6 @@ impl Op {
                     let attr = attr.borrow();
                     let value = context.pop();
 
-                    // Test.
-                    {
-                        let s: Value = "Hello World".into();
-                        let s: RefValue = s.into();
-
-                        let l: Value = "l".into();
-                        let x: Value = "x".into();
-
-                        println!("{:?}", s.call_method("upper", Vec::new()));
-                        println!("{:?}", s.call_method("replace", vec![l.into(), x.into()]));
-                    }
-
                     match value.create_method(attr.str().unwrap()) {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into_reject(),
