@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use crate::builtin::{self, BuiltinRef};
 use crate::error::Error;
+use crate::utils;
 use crate::vm::{Accept, Context, Reject};
 
 mod dict;
@@ -76,15 +77,13 @@ impl RefValue {
     /** Performs a direct method call on a value.
 
     This function is designed to invoke methods on values directly from Rust code. */
-    pub fn call_method(
-        &self,
-        name: &str,
-        mut args: Vec<Option<RefValue>>,
-    ) -> Result<Accept, Reject> {
+    pub fn call_method(&self, name: &str, mut args: Vec<RefValue>) -> Result<Accept, Reject> {
         let builtin = self.get_method(name)?;
 
         // Inject own value as first parameter.
-        args.insert(0, Some(self.clone()));
+        args.insert(0, self.clone());
+
+        let args = utils::map_args_and_nargs(builtin.0.name, builtin.0.signature, args, None)?;
 
         // Call the builtin directly.
         (builtin.0.func)(None, args)

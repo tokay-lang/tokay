@@ -1,5 +1,6 @@
 //! Tokay built-in functions and parselets
 use crate::error::Error;
+use crate::utils;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Capture, Context, Reject};
 
@@ -39,104 +40,10 @@ impl Object for BuiltinRef {
         &self,
         context: &mut Context,
         args: usize,
-        mut nargs: Option<Dict>,
+        nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        // First, collect all arguments and turn them into RefValues
-        let args = context.drain(args);
-
-        // Turn args into a mutable Vec<Option<RefValue>> initialized with all Some...
-        let mut args: Vec<Option<RefValue>> = args.into_iter().map(|item| Some(item)).collect();
-
-        // Match arguments to signature's names
-        let mut count = 0;
-        let mut required = true;
-        let mut required_count = -1;
-
-        for name in self.0.signature.split(" ") {
-            //println!("{:?}", name);
-            if name.len() == 0 {
-                continue;
-            }
-
-            if name == "?" {
-                assert!(required);
-                required = false;
-                continue;
-            }
-
-            if required {
-                if required_count < 0 {
-                    required_count = 1
-                } else {
-                    required_count += 1;
-                }
-            }
-
-            if count < args.len() {
-                count += 1;
-                continue;
-            }
-
-            let mut found_in_nargs = false;
-
-            if let Some(nargs) = &mut nargs {
-                if let Some(value) = nargs.remove(name) {
-                    args.push(Some(value));
-                    found_in_nargs = true;
-                }
-            }
-
-            if !found_in_nargs {
-                // Report required parameter which is also not found in nargs
-                if required {
-                    return Error::new(
-                        None,
-                        format!("{}() requires parameter '{}'", self.0.name, name),
-                    )
-                    .into_reject();
-                }
-
-                args.push(None);
-            }
-
-            count += 1;
-        }
-
-        //println!("args = {}, count = {}", args.len(), count);
-
-        // Check for correct argument alignment
-        if required_count >= 0 && args.len() > count {
-            if count == 0 {
-                return Error::new(
-                    None,
-                    format!("{}() does not accept any arguments", self.0.name),
-                )
-                .into_reject();
-            } else {
-                return Error::new(
-                    None,
-                    format!("{}() does accept {} arguments only", self.0.name, count),
-                )
-                .into_reject();
-            }
-        }
-
-        // Check for remaining nargs not consumed
-        if let Some(nargs) = nargs {
-            if nargs.len() > 0 {
-                return Error::new(
-                    None,
-                    format!(
-                        "{}() called with unknown named argument '{}'",
-                        self.0.name,
-                        nargs.keys().nth(0).unwrap()
-                    ),
-                )
-                .into_reject();
-            }
-        }
-
-        //println!("{} {:?}", self.name, args);
+        let args =
+            utils::map_args_and_nargs(self.0.name, self.0.signature, context.drain(args), nargs)?;
         (self.0.func)(Some(context), args)
     }
 }

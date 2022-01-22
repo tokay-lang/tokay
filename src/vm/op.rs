@@ -529,10 +529,7 @@ impl Op {
                         let x: Value = "x".into();
 
                         println!("{:?}", s.call_method("upper", Vec::new()));
-                        println!(
-                            "{:?}",
-                            s.call_method("replace", vec![Some(l.into()), Some(x.into()), None])
-                        );
+                        println!("{:?}", s.call_method("replace", vec![l.into(), x.into()]));
                     }
 
                     match value.create_method(attr.str().unwrap()) {
