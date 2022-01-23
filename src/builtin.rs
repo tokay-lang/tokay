@@ -117,7 +117,7 @@ static PRINT: Builtin = Builtin {
         //println!("args = {:?}", args);
         if args.len() == 0 && context.is_some() {
             if let Some(capture) = context.unwrap().get_capture(0) {
-                print!("{}", capture.borrow());
+                print!("{}", capture);
             }
         } else {
             for i in 0..args.len() {

@@ -4,7 +4,7 @@ use charclass::charclass;
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{Token, Value};
+use crate::value::{RefValue, Token, Value};
 use crate::{tokay, value};
 
 /**
@@ -493,8 +493,8 @@ impl Parser {
 
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
-                if ast.dict().is_some() {
-                    Ok(ast)
+                if ast.borrow().dict().is_some() {
+                    Ok(ast.into())
                 } else {
                     Err(Error::new(None, "Parse error".to_string()))
                 }

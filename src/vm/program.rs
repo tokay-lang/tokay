@@ -43,7 +43,7 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<Value>, Error> {
+    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = self.main {
             match match &*self.statics[main].borrow() {
                 // todo: This is absolutely unhandy.
@@ -58,13 +58,10 @@ impl Program {
                 }
                 _ => panic!(),
             } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => {
-                    let value: Value = value.into();
-                    match value {
-                        Value::Void => Ok(None),
-                        other => Ok(Some(other)),
-                    }
-                }
+                Ok(Accept::Push(Capture::Value(value, ..))) => match &*value.borrow() {
+                    Value::Void => Ok(None),
+                    _ => Ok(Some(value.clone())),
+                },
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
@@ -74,24 +71,24 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<Value>, Error> {
+    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
         let mut runtime = Runtime::new(&self, &mut reader);
         self.run(&mut runtime)
     }
 
-    pub fn run_from_str(&self, src: &'static str) -> Result<Option<Value>, Error> {
+    pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
         self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
         )))))
     }
 
-    pub fn run_from_string(&self, src: String) -> Result<Option<Value>, Error> {
+    pub fn run_from_string(&self, src: String) -> Result<Option<RefValue>, Error> {
         self.run_from_reader(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src,
         )))))
     }
 
-    pub fn run_from_file(&self, filename: &str) -> Result<Option<Value>, Error> {
+    pub fn run_from_file(&self, filename: &str) -> Result<Option<RefValue>, Error> {
         if filename == "-" {
             self.run_from_reader(Reader::new(Box::new(BufReader::new(io::stdin()))))
         } else if let Ok(file) = File::open(filename) {

@@ -90,6 +90,12 @@ impl RefValue {
     }
 }
 
+impl std::fmt::Display for RefValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.borrow().to_string())
+    }
+}
+
 impl std::fmt::Debug for RefValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.borrow().fmt(f)
@@ -199,7 +205,7 @@ macro_rules! value {
         {
             let mut dict = Dict::new();
             $( dict.insert($key.to_string(), value!($value).into()); )*
-            Value::Dict(Box::new(dict))
+            RefValue::from(Value::Dict(Box::new(dict)))
         }
     };
 
@@ -207,7 +213,7 @@ macro_rules! value {
         {
             let mut list = List::new();
             $( list.push(value!($value).into()); )*
-            Value::List(Box::new(list))
+            RefValue::from(Value::List(Box::new(list)))
         }
     };
 
@@ -215,39 +221,39 @@ macro_rules! value {
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<bool>()
         {
             if *value {
-                Value::True
+                RefValue::from(Value::True)
             }
             else {
-                Value::False
+                RefValue::from(Value::False)
             }
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f32>()
         {
-            Value::Float(*value as f64)
+            RefValue::from(Value::Float(*value as f64))
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f64>()
         {
-            Value::Float(*value)
+            RefValue::from(Value::Float(*value))
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i32>()
         {
-            Value::Integer(*value as i64)
+            RefValue::from(Value::Integer(*value as i64))
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i64>()
         {
-            Value::Integer(*value)
+            RefValue::from(Value::Integer(*value))
         }
         else
         if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<usize>()
         {
-            Value::Addr(*value)
+            RefValue::from(Value::Addr(*value))
         }
         else {
-            Value::String($value.to_string())
+            RefValue::from(Value::String($value.to_string()))
         }
     }
 }
@@ -562,12 +568,6 @@ impl Value {
                 Value::True
             }),
         }
-    }
-}
-
-impl std::fmt::Display for Value {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
     }
 }
 
