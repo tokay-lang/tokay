@@ -998,10 +998,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
                         if let Ok(value) = match parts[2] {
-                            "add" => left.add(&right),
-                            "sub" => left.sub(&right),
-                            "mul" => left.mul(&right),
-                            "div" => left.div(&right),
+                            "add" => left.add(right),
+                            "sub" => left.sub(right),
+                            "mul" => left.mul(right),
+                            "div" => left.div(right),
                             _ => {
                                 unimplemented!("op_binary_{}", parts[2]);
                             }

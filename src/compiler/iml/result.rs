@@ -1,6 +1,6 @@
 use crate::compiler::*;
 use crate::reader::Offset;
-use crate::value::Value;
+use crate::value::{RefValue, Value};
 
 /** Intermediate traversal result.
 
@@ -73,11 +73,11 @@ impl ImlResult {
 
     The function will only return Ok(Value) when static_expression_evaluation-feature
     is enabled, the ImlResult contains a value and this value is NOT a callable! */
-    pub fn get_evaluable_value(&self) -> Result<Value, ()> {
+    pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
             if let ImlResult::Value(ImlValue::Value(value)) = self {
                 if !value.is_callable(false) {
-                    return Ok(value.clone());
+                    return Ok(value.clone().into());
                 }
             }
         }

@@ -15,11 +15,11 @@ impl Object for Method {
     }
 
     fn is_callable(&self, with_arguments: bool) -> bool {
-        self.method.borrow().is_callable(with_arguments)
+        self.method.is_callable(with_arguments)
     }
 
     fn is_consuming(&self) -> bool {
-        self.method.borrow().is_consuming()
+        self.method.is_consuming()
     }
 
     fn call(
@@ -34,7 +34,7 @@ impl Object for Method {
             Capture::Value(self.object.clone(), None, 0),
         );
 
-        self.method.borrow().call(context, args + 1, nargs)
+        self.method.call(context, args + 1, nargs)
     }
 }
 

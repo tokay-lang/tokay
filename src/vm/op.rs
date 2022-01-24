@@ -311,7 +311,7 @@ impl Op {
 
                 // Conditional jumps
                 Op::ForwardIfTrue(goto) => {
-                    if context.pop().borrow().is_true() {
+                    if context.pop().is_true() {
                         ip += goto;
                     } else {
                         ip += 1;
@@ -321,7 +321,7 @@ impl Op {
                 }
 
                 Op::ForwardIfFalse(goto) => {
-                    if !context.pop().borrow().is_true() {
+                    if !context.pop().is_true() {
                         ip += goto;
                     } else {
                         ip += 1;
@@ -340,7 +340,7 @@ impl Op {
                 }
 
                 Op::BackwardIfTrue(goto) => {
-                    if context.pop().borrow().is_true() {
+                    if context.pop().is_true() {
                         ip -= goto;
                     } else {
                         ip += 1;
@@ -350,7 +350,7 @@ impl Op {
                 }
 
                 Op::BackwardIfFalse(goto) => {
-                    if !context.pop().borrow().is_true() {
+                    if !context.pop().is_true() {
                         ip -= goto;
                     } else {
                         ip += 1;
@@ -400,7 +400,7 @@ impl Op {
                 }
                 Op::Reject => Err(Reject::Return),
                 Op::LoadExit => {
-                    std::process::exit(context.pop().borrow().to_i64() as i32);
+                    std::process::exit(context.pop().to_i64() as i32);
                 }
                 Op::Exit => std::process::exit(0),
 
@@ -408,63 +408,54 @@ impl Op {
                     if let Some(msg) = msg {
                         Error::new(Some(frame.reader_start), msg.clone()).into()
                     } else {
-                        Error::new(Some(frame.reader_start), context.pop().borrow().to_string())
-                            .into()
+                        Error::new(Some(frame.reader_start), context.pop().to_string()).into()
                     }
                 }
 
                 // Calls
                 Op::CallOrCopy => {
                     let value = context.pop();
-                    let value = value.borrow();
 
                     if value.is_callable(false) {
                         // Call the value without parameters
                         value.call(context, 0, None)
                     } else {
                         // Push a copy of the value
-                        context.push(value.clone().into())
+                        context.push(value.borrow().clone().into())
                     }
                 }
 
                 Op::Call => {
                     let target = context.pop();
-                    let target = target.borrow();
                     target.call(context, 0, None)
                 }
 
                 Op::CallArg(args) => {
                     let target = context.pop();
-                    let target = target.borrow();
                     target.call(context, *args, None)
                 }
 
                 Op::CallArgNamed(args) => {
                     let target = context.pop();
-                    let target = target.borrow();
 
                     let nargs: Value = context.pop().into();
                     target.call(context, *args, Some(Dict::from(nargs)))
                     //println!("CallArgNamed returns {:?}", ret);
                 }
 
-                Op::CallStatic(addr) => context.runtime.program.statics[*addr]
-                    .borrow()
-                    .call(context, 0, None),
+                Op::CallStatic(addr) => {
+                    context.runtime.program.statics[*addr].call(context, 0, None)
+                }
 
                 Op::CallStaticArg(addr_args) => {
-                    context.runtime.program.statics[addr_args.0].borrow().call(
-                        context,
-                        addr_args.1,
-                        None,
-                    )
+                    context.runtime.program.statics[addr_args.0].call(context, addr_args.1, None)
                     //println!("CallStaticArg returns {:?}", ret);
                 }
 
                 Op::CallStaticArgNamed(addr_args) => {
                     let nargs: Value = context.pop().into();
 
-                    context.runtime.program.statics[addr_args.0].borrow().call(
+                    context.runtime.program.statics[addr_args.0].call(
                         context,
                         addr_args.1,
                         Some(Dict::from(nargs)),
@@ -646,7 +637,6 @@ impl Op {
 
                 Op::MakeAlias => {
                     let name = context.pop();
-                    let name = name.borrow();
 
                     match context.runtime.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
@@ -666,7 +656,6 @@ impl Op {
 
                     for _ in 0..*count {
                         let key = context.pop();
-                        let key = key.borrow();
 
                         let value = context.pop();
                         dict.insert(key.to_string(), value);
@@ -714,10 +703,10 @@ impl Op {
                     */
 
                     let c = match op {
-                        Op::Add => a.borrow().add(&*b.borrow())?.into(),
-                        Op::Sub => a.borrow().sub(&*b.borrow())?.into(),
-                        Op::Mul => a.borrow().mul(&*b.borrow())?.into(),
-                        Op::Div => a.borrow().div(&*b.borrow())?.into(),
+                        Op::Add => a.add(b)?.into(),
+                        Op::Sub => a.sub(b)?.into(),
+                        Op::Mul => a.mul(b)?.into(),
+                        Op::Div => a.div(b)?.into(),
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
@@ -738,12 +727,12 @@ impl Op {
                     //println!("b = {:?}", b);
 
                     let c = match op {
-                        Op::Equal => &*a.borrow() == &*b.borrow(),
-                        Op::NotEqual => &*a.borrow() != &*b.borrow(),
-                        Op::LowerEqual => &*a.borrow() <= &*b.borrow(),
-                        Op::GreaterEqual => &*a.borrow() >= &*b.borrow(),
-                        Op::Lower => &*a.borrow() < &*b.borrow(),
-                        Op::Greater => &*a.borrow() > &*b.borrow(),
+                        Op::Equal => a == b,
+                        Op::NotEqual => a != b,
+                        Op::LowerEqual => a <= b,
+                        Op::GreaterEqual => a >= b,
+                        Op::Lower => a < b,
+                        Op::Greater => a > b,
 
                         _ => unimplemented!("Unimplemented operator"),
                     };
@@ -754,17 +743,16 @@ impl Op {
                 }
 
                 Op::Not => {
-                    let value = context.pop().borrow().not()?.into();
+                    let value = context.pop().not()?.into();
                     context.push(value)
                 }
                 Op::Neg => {
-                    let value = context.pop().borrow().neg()?.into();
+                    let value = context.pop().neg()?.into();
                     context.push(value)
                 }
                 Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
                     let b = context.pop();
                     let value = context.pop();
-                    let mut value = value.borrow_mut();
 
                     /*
                     println!("{:?}", op);
@@ -772,30 +760,34 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
-                    *value = match op {
-                        Op::InlineAdd => value.add(&*b.borrow())?,
-                        Op::InlineSub => value.sub(&*b.borrow())?,
-                        Op::InlineMul => value.mul(&*b.borrow())?,
-                        Op::InlineDiv => value.div(&*b.borrow())?,
+                    let res = match op {
+                        Op::InlineAdd => value.add(b)?,
+                        Op::InlineSub => value.sub(b)?,
+                        Op::InlineMul => value.mul(b)?,
+                        Op::InlineDiv => value.div(b)?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
+
+                    *value.borrow_mut() = res.into();
 
                     context.push(value.clone().into())
                 }
 
                 Op::InlineInc => {
                     let value = context.pop();
-                    let mut value = value.borrow_mut();
 
-                    *value = value.add(&Value::Integer(1))?; // todo: perform inc by bit-shift
+                    let res = value.add(Value::Integer(1).into())?; // todo: perform inc by bit-shift
+                    *value.borrow_mut() = res.into();
+
                     context.push(value.clone().into())
                 }
 
                 Op::InlineDec => {
                     let value = context.pop();
-                    let mut value = value.borrow_mut();
 
-                    *value = value.sub(&Value::Integer(1))?; // todo: perform dec by bit-shift
+                    let res = value.sub(Value::Integer(1).into())?; // todo: perform dec by bit-shift
+                    *value.borrow_mut() = res.into();
+
                     context.push(value.clone().into())
                 }
             };

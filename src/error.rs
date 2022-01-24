@@ -39,6 +39,12 @@ impl std::fmt::Display for Error {
     }
 }
 
+impl From<&str> for Error {
+    fn from(error: &str) -> Self {
+        Error::new(None, error.to_string())
+    }
+}
+
 #[distributed_slice(BUILTINS)]
 static ERROR: Builtin = Builtin {
     name: "error",
