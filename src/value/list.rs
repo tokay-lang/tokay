@@ -87,6 +87,18 @@ impl From<&Value> for List {
     }
 }
 
+impl From<RefValue> for List {
+    fn from(refvalue: RefValue) -> Self {
+        if let Value::List(list) = &*refvalue.borrow() {
+            *list.clone()
+        } else {
+            Self {
+                list: vec![refvalue.clone()],
+            }
+        }
+    }
+}
+
 /*
 // fixme: This could be a replacement for value.list() but its usage is ugly.
 impl<'list> From<&'list Value> for Option<&'list List> {
@@ -99,6 +111,12 @@ impl<'list> From<&'list Value> for Option<&'list List> {
     }
 }
 */
+
+impl From<List> for RefValue {
+    fn from(value: List) -> Self {
+        Value::List(Box::new(value)).into()
+    }
+}
 
 impl From<List> for Value {
     fn from(value: List) -> Self {
@@ -115,18 +133,20 @@ impl From<InnerList> for Value {
 #[distributed_slice(BUILTINS)]
 static LIST: Builtin = Builtin {
     name: "list",
-    signature: "",
-    func: |_context, _args| {
-        // fixme: Incomplete, concept missing.
-        Ok(Accept::Push(Capture::Value(
-            Value::List(Box::new(List::new())).into(),
-            None,
-            10,
-        )))
+    signature: "?",
+    func: |_context, mut args| {
+        let list = if args.len() == 1 {
+            List::from(args.remove(0).unwrap())
+        } else {
+            List {
+                list: args.into_iter().map(|item| item.unwrap()).collect(),
+            }
+        };
+
+        Ok(Accept::Push(Capture::Value(list.into(), None, 10)))
     },
 };
 
-/*
 #[distributed_slice(BUILTINS)]
 static LIST_PUSH: Builtin = Builtin {
     name: "list_push",
@@ -136,9 +156,12 @@ static LIST_PUSH: Builtin = Builtin {
         let item = args.remove(0).unwrap();
 
         // If list is not a list, turn it into a list
-        if list.borrow().list().is_none() {
-            let new = list.borrow().to_list();
-            list = Value::List(Box::new(new)).into();
+        if !list.is("list") {
+            list = Builtin::get("list")
+                .unwrap()
+                .call(None, vec![list])
+                .unwrap()
+                .unwrap();
         }
 
         // Push the item to the list
@@ -149,4 +172,3 @@ static LIST_PUSH: Builtin = Builtin {
         Ok(Accept::Push(Capture::Value(list, None, 10)))
     },
 };
-*/

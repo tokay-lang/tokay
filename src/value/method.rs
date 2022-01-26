@@ -38,8 +38,8 @@ impl Object for Method {
     }
 }
 
-impl From<Method> for Value {
+impl From<Method> for RefValue {
     fn from(method: Method) -> Self {
-        Value::Object(Box::new(method))
+        Value::Object(Box::new(method)).into()
     }
 }

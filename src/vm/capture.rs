@@ -25,11 +25,11 @@ impl Capture {
         }
     }
 
-    pub(super) fn get_value(&self) -> RefValue {
+    pub fn get_value(&self) -> RefValue {
         match self {
             Capture::Empty => Value::Void.into(),
             Capture::Range(..) => {
-                panic!("Cannot retrieve value of Capture::Range, use .into_value() first!")
+                panic!("Cannot retrieve value of Capture::Range, use self.extract() first!")
             }
             Capture::Value(value, ..) => value.clone(),
         }

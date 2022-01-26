@@ -2,9 +2,8 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use crate::builtin::{self, BuiltinRef};
+use crate::builtin::Builtin;
 use crate::error::Error;
-use crate::utils;
 use crate::vm::{Accept, Context, Reject};
 
 mod dict;
@@ -48,45 +47,45 @@ impl RefValue {
     calls `"hello".upper()` and `str_upper("hello")` are calls to the
     same function.
     */
-    pub fn get_method(&self, name: &str) -> Result<BuiltinRef, String> {
+    pub fn get_method(&self, name: &str) -> Result<&'static Builtin, String> {
         let name = format!("{}_{}", self.value.borrow().name(), name);
-        if let Some(builtin) = builtin::get(&name) {
+
+        if let Some(builtin) = Builtin::get(&name) {
             Ok(builtin)
         } else {
-            Err(format!(
-                "Method '{}_{}' not found",
-                self.value.borrow().name(),
-                name
-            ))
+            Err(format!("Method '{}' not found", name))
         }
     }
 
     /** Creates a callable Method object from a value and a given builtin. */
     pub fn create_method(&self, name: &str) -> Result<RefValue, String> {
         let builtin = self.get_method(name)?;
-
-        let method: Value = Method {
+        return Ok(RefValue::from(Method {
             object: self.clone(),
-            method: Value::Object(Box::new(builtin)).into(),
-        }
-        .into();
-
-        return Ok(method.into());
+            method: RefValue::from(builtin),
+        }));
     }
 
     /** Performs a direct method call on a value.
 
     This function is designed to invoke methods on values directly from Rust code. */
-    pub fn call_method(&self, name: &str, mut args: Vec<RefValue>) -> Result<Accept, Reject> {
+    pub fn call_method(
+        &self,
+        name: &str,
+        mut args: Vec<RefValue>,
+    ) -> Result<Option<RefValue>, String> {
         let builtin = self.get_method(name)?;
 
         // Inject own value as first parameter.
         args.insert(0, self.clone());
 
-        let args = utils::map_args_and_nargs(builtin.0.name, builtin.0.signature, args, None)?;
-
         // Call the builtin directly.
-        (builtin.0.func)(None, args)
+        builtin.call(None, args)
+    }
+
+    /// Checks against a given type name
+    pub fn is(&self, name: &str) -> bool {
+        self.borrow().name() == name
     }
 
     /// Get representation in Tokay code.

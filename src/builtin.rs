@@ -16,6 +16,36 @@ pub struct Builtin {
     pub func: fn(Option<&mut Context>, Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
 }
 
+impl Builtin {
+    /// Retrieve builtin by name
+    pub fn get(ident: &str) -> Option<&'static Builtin> {
+        for builtin in BUILTINS {
+            if builtin.name == ident {
+                return Some(builtin);
+            }
+        }
+
+        None
+    }
+
+    /// Directly call builtin without context and specified parameters.
+    pub fn call(
+        &self,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
+    ) -> Result<Option<RefValue>, String> {
+        let args = utils::map_args_and_nargs(self.name, self.signature, args, None)?;
+
+        // Call the builtin directly.
+        match (self.func)(context, args) {
+            Ok(Accept::Next | Accept::Hold) => Ok(None),
+            Ok(Accept::Push(capture)) => Ok(Some(capture.get_value())),
+            Err(Reject::Error(error)) => Err(error.message),
+            other => Err(format!("Cannot handle {:?} on direct call", other)),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct BuiltinRef(pub &'static Builtin);
 
@@ -42,6 +72,7 @@ impl Object for BuiltinRef {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
+        // todo!!
         let args =
             utils::map_args_and_nargs(self.0.name, self.0.signature, context.drain(args), nargs)?;
         (self.0.func)(Some(context), args)
@@ -55,15 +86,10 @@ impl std::fmt::Debug for BuiltinRef {
     }
 }
 
-/// Retrieve builtin by name
-pub fn get(ident: &str) -> Option<BuiltinRef> {
-    for builtin in BUILTINS {
-        if builtin.name == ident {
-            return Some(BuiltinRef(builtin));
-        }
+impl From<&'static Builtin> for RefValue {
+    fn from(builtin: &'static Builtin) -> Self {
+        Value::Object(Box::new(BuiltinRef(builtin))).into()
     }
-
-    None
 }
 
 // Global built-ins

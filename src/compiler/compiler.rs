@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::BufReader;
 
 use super::*;
-use crate::builtin;
+use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{RefValue, Token, Value};
@@ -539,8 +539,8 @@ impl Compiler {
         }
 
         // When not found, check for a builtin function
-        if let Some(builtin) = builtin::get(name) {
-            return Some(RefValue::from(Box::new(builtin)).into());
+        if let Some(builtin) = Builtin::get(name) {
+            return Some(RefValue::from(builtin).into()); // fixme: Makes a Value into a RefValue into a Value...
         }
 
         // Builtin constants are defined on demand as fallback

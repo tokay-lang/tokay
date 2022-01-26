@@ -7,8 +7,8 @@ use crate::value::Value;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
-    offset: Option<Offset>,
-    message: String,
+    pub offset: Option<Offset>,
+    pub message: String,
 }
 
 impl Error {

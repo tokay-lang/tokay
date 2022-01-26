@@ -31,7 +31,7 @@ impl Dict {
             }
 
             // todo: Put this into a utility function...
-            if !key.chars().all(|ch| ch.is_alphabetic()) {
+            if !key.chars().all(|ch| ch.is_alphabetic() || ch == '_') {
                 ret.push('"');
                 for ch in key.chars() {
                     match ch {
