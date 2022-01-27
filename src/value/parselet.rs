@@ -3,7 +3,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::{Dict, List, Object, Value};
+use super::{Dict, List, Object, RefValue, Value};
 use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
@@ -249,10 +249,8 @@ impl Parselet {
             Some(result) if !matches!(result, Ok(Accept::Next)) => result,
             _ => {
                 if results.len() > 1 {
-                    let results: Value = results.into();
-
                     Ok(Accept::Push(Capture::Value(
-                        results.into(),
+                        RefValue::from(results),
                         None,
                         self.severity,
                     )))

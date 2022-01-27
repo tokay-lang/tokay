@@ -87,18 +87,7 @@ impl std::ops::DerefMut for Dict {
     }
 }
 
-impl From<Value> for Dict {
-    fn from(value: Value) -> Self {
-        if let Value::Dict(dict) = value {
-            *dict
-        } else {
-            let mut d = Dict::new();
-            d.insert("#0".to_string(), value.into());
-            d
-        }
-    }
-}
-
+// todo: replace by builtin-function which can be called as dict::dict
 impl From<&Value> for Dict {
     fn from(value: &Value) -> Self {
         if let Value::Dict(dict) = value {
@@ -111,15 +100,9 @@ impl From<&Value> for Dict {
     }
 }
 
-impl From<Dict> for Value {
+impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
-        Value::Dict(Box::new(value))
-    }
-}
-
-impl From<InnerDict> for Value {
-    fn from(dict: InnerDict) -> Self {
-        Value::Dict(Box::new(Dict { dict }))
+        Value::Dict(Box::new(value)).into()
     }
 }
 

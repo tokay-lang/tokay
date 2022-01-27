@@ -118,18 +118,6 @@ impl From<List> for RefValue {
     }
 }
 
-impl From<List> for Value {
-    fn from(value: List) -> Self {
-        Value::List(Box::new(value))
-    }
-}
-
-impl From<InnerList> for Value {
-    fn from(list: InnerList) -> Self {
-        Value::List(Box::new(List { list }))
-    }
-}
-
 #[distributed_slice(BUILTINS)]
 static LIST: Builtin = Builtin {
     name: "list",

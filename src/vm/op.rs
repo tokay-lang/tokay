@@ -438,9 +438,11 @@ impl Op {
                 Op::CallArgNamed(args) => {
                     let target = context.pop();
 
-                    let nargs: Value = context.pop().into();
-                    target.call(context, *args, Some(Dict::from(nargs)))
-                    //println!("CallArgNamed returns {:?}", ret);
+                    if let Value::Dict(nargs) = context.pop().into() {
+                        target.call(context, *args, Some(*nargs))
+                    } else {
+                        panic!("nargs operand required to be dict")
+                    }
                 }
 
                 Op::CallStatic(addr) => {
@@ -453,14 +455,15 @@ impl Op {
                 }
 
                 Op::CallStaticArgNamed(addr_args) => {
-                    let nargs: Value = context.pop().into();
-
-                    context.runtime.program.statics[addr_args.0].call(
-                        context,
-                        addr_args.1,
-                        Some(Dict::from(nargs)),
-                    )
-                    //println!("CallStaticArg returns {:?}",
+                    if let Value::Dict(nargs) = context.pop().into() {
+                        context.runtime.program.statics[addr_args.0].call(
+                            context,
+                            addr_args.1,
+                            Some(*nargs),
+                        )
+                    } else {
+                        panic!("nargs operand required to be dict")
+                    }
                 }
 
                 // Variables and values

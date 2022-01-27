@@ -317,7 +317,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if dict.len() == 0 {
             if list.len() > 1 || (list.len() > 0 && !single) {
-                Ok(Some(Value::from(list).into()))
+                Ok(Some(RefValue::from(list)))
             } else if list.len() == 1 {
                 Ok(Some(list.pop().unwrap()))
             } else {
@@ -341,7 +341,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            Ok(Some(Value::from(dict).into()))
+            Ok(Some(RefValue::from(dict)))
         }
     }
 

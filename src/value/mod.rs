@@ -335,24 +335,6 @@ impl From<usize> for RefValue {
     }
 }
 
-impl From<&str> for RefValue {
-    fn from(value: &str) -> Self {
-        Value::String(value.to_string()).into()
-    }
-}
-
-impl From<String> for RefValue {
-    fn from(value: String) -> Self {
-        Value::String(value).into()
-    }
-}
-
-impl<T: Object> From<Box<T>> for RefValue {
-    fn from(value: Box<T>) -> Self {
-        Value::Object(value).into()
-    }
-}
-
 // Value
 // ----------------------------------------------------------------------------
 

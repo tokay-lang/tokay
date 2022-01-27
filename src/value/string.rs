@@ -1,7 +1,7 @@
 //! String object
 use linkme::distributed_slice;
 
-use super::{List, Value};
+use super::{List, RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 
 pub fn repr(string: &str) -> String {
@@ -20,6 +20,18 @@ pub fn repr(string: &str) -> String {
 
     ret.push('"');
     ret
+}
+
+impl From<&str> for RefValue {
+    fn from(value: &str) -> Self {
+        Value::String(value.to_string()).into()
+    }
+}
+
+impl From<String> for RefValue {
+    fn from(value: String) -> Self {
+        Value::String(value).into()
+    }
 }
 
 /*

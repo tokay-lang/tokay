@@ -1,6 +1,6 @@
 use std::any::{Any, TypeId};
 
-use super::Dict;
+use super::{Dict, RefValue, Value};
 use crate::vm::{Accept, Context, Reject};
 
 // BoxedObject
@@ -124,5 +124,11 @@ impl PartialOrd for BoxedObject {
 impl PartialEq<&Self> for BoxedObject {
     fn eq(&self, other: &&Self) -> bool {
         self.id() == other.id()
+    }
+}
+
+impl<T: Object> From<Box<T>> for RefValue {
+    fn from(value: Box<T>) -> Self {
+        Value::Object(value).into()
     }
 }
