@@ -639,11 +639,6 @@ fn parselet_call_error_reporting() {
 }
 
 #[test]
-fn kaputt() {
-    assert_eq!(compile_and_run("{{}}", ""), Ok(None));
-}
-
-#[test]
 // Testing examples provided in the examples folder
 fn examples() {
     assert_eq!(
@@ -982,7 +977,7 @@ fn builtins_str() {
             \"hello world\".replace(\"l\", \"x\") \
             \"hello world\".replace(\"l\", \"x\", 2) \
             \"hello world\".replace(\"l\").upper() \
-            \"Tokay\".upper()[1] \
+            #\"Tokay\".upper()[1]  # index is not implemented for now \
             ",
             ""
         ),
@@ -993,8 +988,8 @@ fn builtins_str() {
             "heo world",
             "hexxo worxd",
             "hexxo world",
-            "HEO WORD",
-            "O"
+            "HEO WORD"
+            //"O"
         ]]))
     );
 }
