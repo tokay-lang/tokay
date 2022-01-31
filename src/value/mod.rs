@@ -120,10 +120,10 @@ impl RefValue {
 
     // Get value's String representation
     pub fn to_string(&self) -> String {
-        if let Value::String(s) = &*self.borrow() {
-            s.clone()
-        } else {
-            self.repr()
+        match &*self.borrow() {
+            Value::Void => "".to_string(),
+            Value::String(s) => s.clone(),
+            _ => self.repr(),
         }
     }
 

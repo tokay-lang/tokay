@@ -988,8 +988,7 @@ fn builtins_str() {
             "heo world",
             "hexxo worxd",
             "hexxo world",
-            "HEO WORD"
-            //"O"
+            "HEO WORD" //"O"
         ]]))
     );
 }
