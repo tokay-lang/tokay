@@ -11,11 +11,11 @@ struct BuiltinDef {
 
 impl syn::parse::Parse for BuiltinDef {
     fn parse(stream: syn::parse::ParseStream) -> syn::Result<Self> {
-        let function: syn::Ident = stream.parse().unwrap();
-        let _comma: syn::token::Comma = stream.parse().unwrap();
-        let arguments: syn::LitStr = stream.parse().unwrap();
-        let _comma: syn::token::Comma = stream.parse().unwrap();
-        let body: syn::Block = stream.parse().unwrap();
+        let function: syn::Ident = stream.parse()?;
+        let _comma: syn::token::Comma = stream.parse()?;
+        let arguments: syn::LitStr = stream.parse()?;
+        let _comma: syn::token::Comma = stream.parse()?;
+        let body: syn::Block = stream.parse()?;
 
         Ok(BuiltinDef {
             function,
