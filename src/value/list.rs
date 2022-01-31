@@ -22,12 +22,7 @@ impl List {
         }
     }
 
-    //#[tokay_method(name = "list_new")]
-    #[tokay_method("list_new")]
-    pub fn constructor(
-        _context: Option<&mut Context>,
-        mut args: Vec<Option<RefValue>>,
-    ) -> Result<Accept, Reject> {
+    tokay_method!(list_new, "?", {
         let list = if args.len() == 1 {
             List::from(args.remove(0).unwrap())
         } else {
@@ -36,24 +31,16 @@ impl List {
             }
         };
 
-        Ok(Accept::Push(Capture::Value(list.into(), None, 10)))
-    }
+        Ok(list.into())
+    });
 
-    #[tokay_method]
-    pub fn list_push(
-        _context: Option<&mut Context>,
-        mut args: Vec<Option<RefValue>>,
-    ) -> Result<Accept, Reject> {
+    tokay_method!(list_push, "self item", {
         let mut list = args.remove(0).unwrap();
         let item = args.remove(0).unwrap();
 
-        // If list is not a list, turn it into a list
+        // If list is not a list, turn it into a list and push list as first element
         if !list.is("list") {
-            list = Builtin::get("list")
-                .unwrap()
-                .call(None, vec![list])
-                .unwrap()
-                .unwrap();
+            list = Self::list_new(vec![Some(list)])?;
         }
 
         // Push the item to the list
@@ -61,8 +48,8 @@ impl List {
             list.push(item);
         }
 
-        Ok(Accept::Push(Capture::Value(list, None, 10)))
-    }
+        Ok(list)
+    });
 
     pub fn repr(&self) -> String {
         let mut ret = "(".to_string();
@@ -165,12 +152,12 @@ impl From<List> for RefValue {
 static LIST: Builtin = Builtin {
     name: "list",
     signature: "?",
-    func: List::constructor,
+    func: List::tokay_method_list_new,
 };
 
 #[distributed_slice(BUILTINS)]
 static LIST_PUSH: Builtin = Builtin {
     name: "list_push",
     signature: "self item",
-    func: List::list_push,
+    func: List::tokay_method_list_push,
 };
