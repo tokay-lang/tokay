@@ -333,8 +333,17 @@ static WORD: Builtin = Builtin {
     func: |context, args| {
         let context = context.unwrap();
 
-        let min = &args[0];
-        let max = &args[1];
+        let min = if args[0].is_void() {
+            None
+        } else {
+            Some(args[0].to_usize())
+        };
+
+        let max = if args[1].is_void() {
+            None
+        } else {
+            Some(args[1].to_usize())
+        };
 
         let mut count: usize = 0;
 
@@ -349,13 +358,13 @@ static WORD: Builtin = Builtin {
 
         if count > 0 {
             if let Some(min) = min {
-                if count < min.borrow().to_usize() {
+                if count < min {
                     count = 0;
                 }
             }
 
             if let Some(max) = max {
-                if count > max.borrow().to_usize() {
+                if count > max {
                     count = 0;
                 }
             }

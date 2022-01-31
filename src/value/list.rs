@@ -24,23 +24,21 @@ impl List {
 
     tokay_method!(list_new, "?", {
         let list = if args.len() == 1 {
-            List::from(args.remove(0).unwrap())
+            List::from(args.remove(0))
         } else {
-            List {
-                list: args.into_iter().map(|item| item.unwrap()).collect(),
-            }
+            List { list: args }
         };
 
         Ok(list.into())
     });
 
     tokay_method!(list_push, "self item", {
-        let mut list = args.remove(0).unwrap();
-        let item = args.remove(0).unwrap();
+        let mut list = args.remove(0);
+        let item = args.remove(0);
 
         // If list is not a list, turn it into a list and push list as first element
         if !list.is("list") {
-            list = Self::list_new(vec![Some(list)])?;
+            list = Self::list_new(vec![list])?;
         }
 
         // Push the item to the list

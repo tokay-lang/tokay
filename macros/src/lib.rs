@@ -37,11 +37,11 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     let body = def.body;
 
     let gen = quote! {
-        pub fn #function(mut args: Vec<Option<RefValue>>) -> Result<RefValue, String> {
+        pub fn #function(mut args: Vec<RefValue>) -> Result<RefValue, String> {
             #body
         }
 
-        pub fn #callable(_context: Option<&mut Context>, args: Vec<Option<RefValue>>) -> Result<Accept, Reject> {
+        pub fn #callable(_context: Option<&mut Context>, args: Vec<RefValue>) -> Result<Accept, Reject> {
             let ret = Self::#function(args)?;
             Ok(Accept::Push(Capture::Value(ret, None, 10)))
         }

@@ -52,14 +52,9 @@ static ERROR: Builtin = Builtin {
     func: |context, args| {
         let context = context.unwrap();
 
-        let msg = args[0].as_ref().unwrap();
-        let collect = args[1]
-            .as_ref()
-            .map_or(false, |value| value.borrow().is_true());
+        let mut msg = args[0].to_string();
 
-        let mut msg = msg.borrow().to_string();
-
-        if collect {
+        if args[1].is_true() {
             if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
                 let value = value.borrow();
 

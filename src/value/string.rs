@@ -60,8 +60,8 @@ static STR_JOIN: Builtin = Builtin {
     name: "str_join",
     signature: "self list",
     func: |_context, args| {
-        let delimiter = args[0].as_ref().unwrap().borrow().to_string();
-        let list = List::from(&*args[1].as_ref().unwrap().borrow());
+        let delimiter = args[0].to_string();
+        let list = List::from(args[1].clone());
 
         let mut ret = String::new();
 
@@ -70,7 +70,7 @@ static STR_JOIN: Builtin = Builtin {
                 ret.push_str(&delimiter);
             }
 
-            ret.push_str(&item.borrow().to_string());
+            ret.push_str(&item.to_string());
         }
 
         Value::String(ret).into()
@@ -82,7 +82,7 @@ static STR_LOWER: Builtin = Builtin {
     name: "str_lower",
     signature: "self",
     func: |_context, args| {
-        let string = args[0].as_ref().unwrap().borrow().to_string();
+        let string = args[0].to_string();
         Value::String(string.to_lowercase()).into()
     },
 };
@@ -92,14 +92,12 @@ static STR_REPLACE: Builtin = Builtin {
     name: "str_replace",
     signature: "self from ? to n",
     func: |_context, args| {
-        let string = args[0].as_ref().unwrap().borrow().to_string();
-        let from = args[1].as_ref().unwrap().borrow().to_string();
-        let to = args[2]
-            .as_ref()
-            .map_or("".to_string(), |value| value.borrow().to_string());
+        let string = args[0].to_string();
+        let from = args[1].to_string();
+        let to = args[2].to_string();
 
-        Value::String(if let Some(n) = args[3].as_ref() {
-            string.replacen(&from, &to, n.borrow().to_usize())
+        Value::String(if !args[3].is_void() {
+            string.replacen(&from, &to, args[3].to_usize())
         } else {
             string.replace(&from, &to)
         })
@@ -112,7 +110,7 @@ static STR_UPPER: Builtin = Builtin {
     name: "str_upper",
     signature: "self",
     func: |_context, args| {
-        let string = args[0].as_ref().unwrap().borrow().to_string();
+        let string = args[0].to_string();
         Value::String(string.to_uppercase()).into()
     },
 };

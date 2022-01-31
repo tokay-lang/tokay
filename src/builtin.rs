@@ -12,7 +12,7 @@ pub static BUILTINS: [Builtin] = [..];
 pub struct Builtin {
     pub name: &'static str,      // Function's external name
     pub signature: &'static str, // Argument signature as a string, where each argument name is separated by space
-    pub func: fn(Option<&mut Context>, Vec<Option<RefValue>>) -> Result<Accept, Reject>, // Function
+    pub func: fn(Option<&mut Context>, Vec<RefValue>) -> Result<Accept, Reject>, // Function
 }
 
 impl Builtin {
@@ -36,12 +36,9 @@ impl Builtin {
     */
     pub fn map_args_and_nargs(
         &self,
-        args: Vec<RefValue>,
+        mut args: Vec<RefValue>,
         mut nargs: Option<Dict>,
-    ) -> Result<Vec<Option<RefValue>>, String> {
-        // Turn args into a mutable Vec<Option<RefValue>> initialized with all Some...
-        let mut args: Vec<Option<RefValue>> = args.into_iter().map(|item| Some(item)).collect();
-
+    ) -> Result<Vec<RefValue>, String> {
         // Match arguments to signature's names
         let mut count = 0;
         let mut required = true;
@@ -76,7 +73,7 @@ impl Builtin {
 
             if let Some(nargs) = &mut nargs {
                 if let Some(value) = nargs.remove(name) {
-                    args.push(Some(value));
+                    args.push(value);
                     found_in_nargs = true;
                 }
             }
@@ -87,7 +84,7 @@ impl Builtin {
                     return Err(format!("{}() requires parameter '{}'", self.name, name));
                 }
 
-                args.push(None);
+                args.push(RefValue::from(Value::Void));
             }
 
             count += 1;
@@ -191,7 +188,7 @@ static CHR: Builtin = Builtin {
     name: "chr",
     signature: "i",
     func: |_context, args| {
-        let i = args[0].as_ref().unwrap().borrow().to_usize();
+        let i = args[0].to_usize();
         Ok(Accept::Push(Capture::Value(
             Value::String(format!("{}", std::char::from_u32(i as u32).unwrap())).into(),
             None,
@@ -205,7 +202,7 @@ static ORD: Builtin = Builtin {
     name: "ord",
     signature: "c",
     func: |_context, args| {
-        let c = args[0].as_ref().unwrap().borrow().to_string();
+        let c = args[0].to_string();
         if c.chars().count() != 1 {
             Error::new(
                 None,
@@ -243,7 +240,7 @@ static PRINT: Builtin = Builtin {
                     print!(" ");
                 }
 
-                print!("{}", args[i].as_ref().unwrap().borrow().to_string());
+                print!("{}", args[i].to_string());
             }
         }
 

@@ -94,6 +94,11 @@ impl RefValue {
     }
 
     /// Get a value's boolean meaning.
+    pub fn is_void(&self) -> bool {
+        matches!(&*self.borrow(), Value::Void)
+    }
+
+    /// Get a value's boolean meaning.
     pub fn is_true(&self) -> bool {
         self.borrow().is_true()
     }
