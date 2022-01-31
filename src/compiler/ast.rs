@@ -1449,16 +1449,16 @@ static AST: Builtin = Builtin {
     signature: "emit ? value",
     func: |context, args| {
         let context = context.unwrap();
-        let emit = args[0].as_ref().unwrap();
 
         let mut ret = Dict::new();
-        ret.insert("emit".to_string(), emit.clone());
+        ret.insert("emit".to_string(), args[0].clone());
 
-        let value = match &args[1] {
-            Some(value) => Some(value.clone()),
-            None => context
+        let value = if args[1].is_void() {
+            context
                 .collect(context.capture_start, false, true, false, 0)
-                .unwrap_or(None),
+                .unwrap_or(None)
+        } else {
+            Some(args[1].clone())
         };
 
         if let Some(value) = value {
@@ -1513,7 +1513,7 @@ static AST_PRINT: Builtin = Builtin {
     name: "ast_print",
     signature: "ast",
     func: |_, args| {
-        print(&args[0].as_ref().unwrap().borrow());
+        print(&args[0].borrow());
         Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
     },
 };

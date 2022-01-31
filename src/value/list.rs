@@ -1,5 +1,6 @@
 //! List object
 use linkme::distributed_slice;
+use macros::tokay_method;
 
 use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
@@ -20,6 +21,33 @@ impl List {
             list: InnerList::new(),
         }
     }
+
+    tokay_method!(list_new, "?", {
+        let list = if args.len() == 1 {
+            List::from(args.remove(0))
+        } else {
+            List { list: args }
+        };
+
+        Ok(list.into())
+    });
+
+    tokay_method!(list_push, "self item", {
+        let mut list = args.remove(0);
+        let item = args.remove(0);
+
+        // If list is not a list, turn it into a list and push list as first element
+        if !list.is("list") {
+            list = Self::list_new(vec![list])?;
+        }
+
+        // Push the item to the list
+        if let Value::List(list) = &mut *list.borrow_mut() {
+            list.push(item);
+        }
+
+        Ok(list)
+    });
 
     pub fn repr(&self) -> String {
         let mut ret = "(".to_string();
@@ -122,41 +150,12 @@ impl From<List> for RefValue {
 static LIST: Builtin = Builtin {
     name: "list",
     signature: "?",
-    func: |_context, mut args| {
-        let list = if args.len() == 1 {
-            List::from(args.remove(0).unwrap())
-        } else {
-            List {
-                list: args.into_iter().map(|item| item.unwrap()).collect(),
-            }
-        };
-
-        Ok(Accept::Push(Capture::Value(list.into(), None, 10)))
-    },
+    func: List::tokay_method_list_new,
 };
 
 #[distributed_slice(BUILTINS)]
 static LIST_PUSH: Builtin = Builtin {
     name: "list_push",
     signature: "self item",
-    func: |_context, mut args| {
-        let mut list = args.remove(0).unwrap();
-        let item = args.remove(0).unwrap();
-
-        // If list is not a list, turn it into a list
-        if !list.is("list") {
-            list = Builtin::get("list")
-                .unwrap()
-                .call(None, vec![list])
-                .unwrap()
-                .unwrap();
-        }
-
-        // Push the item to the list
-        if let Value::List(list) = &mut *list.borrow_mut() {
-            list.push(item);
-        }
-
-        Ok(Accept::Push(Capture::Value(list, None, 10)))
-    },
+    func: List::tokay_method_list_push,
 };

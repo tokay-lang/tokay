@@ -1,0 +1,14 @@
+[package]
+name = "macros"
+version = "0.0.0"
+authors = ["Jan Max Meyer <jmm@phorward.de>"]
+edition = "2021"
+publish = false
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1.0"
+syn = { features = ["full", "fold", "extra-traits"] }
+proc-macro2 = "1.0.36"

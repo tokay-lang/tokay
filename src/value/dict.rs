@@ -125,8 +125,8 @@ static DICT_UPDATE: Builtin = Builtin {
     name: "dict_update",
     signature: "self other",
     func: |_context, mut args| {
-        let mut dict = args.remove(0).unwrap();
-        let other = args.remove(0).unwrap();
+        let mut dict = args.remove(0);
+        let other = args.remove(0);
 
         // If dict is not a dict, turn it into a dict
         if dict.borrow().dict().is_none() {
