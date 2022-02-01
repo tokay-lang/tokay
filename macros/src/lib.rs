@@ -36,17 +36,22 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
         proc_macro2::Span::call_site(),
     );
 
-    //let arguments: Vec<(usize, syn::Ident)> = def.arguments.into_iter().enumerate().collect();
-    let arguments = def.arguments;
+    let arguments: Vec<proc_macro2::TokenStream> = def
+        .arguments
+        .into_iter()
+        .enumerate()
+        .map(|(idx, arg)| {
+            quote! {
+                let mut #arg = args.get(#idx).unwrap().clone();
+            }
+        })
+        .collect();
+
     let body = def.body;
 
     let gen = quote! {
         pub fn #function(args: Vec<RefValue>) -> Result<RefValue, String> {
-            let mut _i = 0;
-            #(
-                let mut #arguments = args.get(_i).unwrap().clone();
-                _i += 1;
-            )*
+            #(#arguments)*
             #body
         }
 
@@ -55,8 +60,6 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
             Ok(Accept::Push(Capture::Value(ret, None, 10)))
         }
     };
-
-    //println!("{:#?}", gen);
 
     TokenStream::from(gen)
 }
