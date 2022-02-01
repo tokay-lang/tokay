@@ -23,7 +23,7 @@ impl List {
     }
 
     tokay_method!(
-        list_new() {
+        list_new(?) {
             let list = if args.len() == 1 {
                 List::from(args[0].clone())
             } else {
