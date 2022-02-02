@@ -4,7 +4,6 @@ use macros::tokay_method;
 
 use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
-use crate::vm::*;
 
 /// Alias for the inner list definition
 type InnerList = Vec<RefValue>;

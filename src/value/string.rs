@@ -1,5 +1,6 @@
 //! String object
 use linkme::distributed_slice;
+use macros::tokay_method;
 
 use super::{List, RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
@@ -55,62 +56,79 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
 }
 */
 
+struct Str; // Empty struct just for the methods.
+
+impl Str {
+    tokay_method!(
+        str_join(str, list) {
+            let delimiter = str.to_string();
+            let list = List::from(list);
+
+            let mut ret = String::new();
+
+            for item in list.iter() {
+                if ret.len() > 0 {
+                    ret.push_str(&delimiter);
+                }
+
+                ret.push_str(&item.to_string());
+            }
+
+            Ok(RefValue::from(ret))
+        }
+    );
+
+    tokay_method!(
+        str_lower(str) {
+            Ok(RefValue::from(str.to_string().to_lowercase()))
+        }
+    );
+
+    tokay_method!(
+        str_replace(str, from, ?, to, n) {
+            let string = str.to_string();
+            let from = from.to_string();
+            let to = to.to_string();
+
+            Ok(RefValue::from(if n.is_void() {
+                string.replace(&from, &to)
+            } else {
+                string.replacen(&from, &to, n.to_usize())
+            }))
+        }
+    );
+
+    tokay_method!(
+        str_upper(str) {
+            Ok(RefValue::from(str.to_string().to_uppercase()))
+        }
+    );
+}
+
 #[distributed_slice(BUILTINS)]
 static STR_JOIN: Builtin = Builtin {
     name: "str_join",
     signature: "self list",
-    func: |_context, args| {
-        let delimiter = args[0].to_string();
-        let list = List::from(args[1].clone());
-
-        let mut ret = String::new();
-
-        for item in list.iter() {
-            if ret.len() > 0 {
-                ret.push_str(&delimiter);
-            }
-
-            ret.push_str(&item.to_string());
-        }
-
-        Value::String(ret).into()
-    },
+    func: Str::tokay_method_str_join,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_LOWER: Builtin = Builtin {
     name: "str_lower",
     signature: "self",
-    func: |_context, args| {
-        let string = args[0].to_string();
-        Value::String(string.to_lowercase()).into()
-    },
+    func: Str::tokay_method_str_lower,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_REPLACE: Builtin = Builtin {
     name: "str_replace",
     signature: "self from ? to n",
-    func: |_context, args| {
-        let string = args[0].to_string();
-        let from = args[1].to_string();
-        let to = args[2].to_string();
-
-        Value::String(if !args[3].is_void() {
-            string.replacen(&from, &to, args[3].to_usize())
-        } else {
-            string.replace(&from, &to)
-        })
-        .into()
-    },
+    func: Str::tokay_method_str_replace,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_UPPER: Builtin = Builtin {
     name: "str_upper",
     signature: "self",
-    func: |_context, args| {
-        let string = args[0].to_string();
-        Value::String(string.to_uppercase()).into()
-    },
+    func: Str::tokay_method_str_upper,
 };

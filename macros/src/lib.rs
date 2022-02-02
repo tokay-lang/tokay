@@ -83,33 +83,52 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     );
 
     // Generate assignment to identifier for each argument.
-    let arguments: Vec<proc_macro2::TokenStream> = def
+    let arguments: Vec<proc_macro2::TokenStream> = if def.required.is_some() {
+        def
         .arguments
         .into_iter()
         .enumerate()
         .map(|(idx, arg)| {
-            quote! {
-                let mut #arg = args.get(#idx).unwrap().clone();
+            if idx < def.required.unwrap() {
+                quote! {
+                    let mut #arg = args.get(#idx).unwrap().clone();
+                }
+            }
+            else {
+                quote! {
+                    let mut #arg = args
+                        .get(#idx)
+                        .and_then(|x| Some(x.clone()))
+                        .unwrap_or_else(|| crate::value::RefValue::from(Value::Void));
+                }
             }
         })
-        .collect();
+        .collect()
+    }
+    else {
+        vec![
+            quote! {
+                assert!(args.is_empty());
+            }
+        ]
+    };
 
     let body = def.body;
 
     // Generate two functions: One for direct usage from other Rust code,
     // and one wrapping function for calls from the Tokay VM or a Method.
     let gen = quote! {
-        pub fn #function(args: Vec<RefValue>) -> Result<RefValue, String> {
+        pub fn #function(args: Vec<crate::value::RefValue>) -> Result<crate::value::RefValue, String> {
             #(#arguments)*
             #body
         }
 
         pub fn #callable(
-            _context: Option<&mut Context>,
-            args: Vec<RefValue>
-        ) -> Result<Accept, Reject> {
+            _context: Option<&mut crate::vm::Context>,
+            args: Vec<crate::value::RefValue>
+        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
             let ret = Self::#function(args)?;
-            Ok(Accept::Push(Capture::Value(ret, None, 10)))
+            Ok(crate::vm::Accept::Push(crate::vm::Capture::Value(ret, None, 10)))
         }
     };
 
