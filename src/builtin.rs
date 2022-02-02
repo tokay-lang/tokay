@@ -140,22 +140,22 @@ impl Builtin {
 pub struct BuiltinRef(pub &'static Builtin);
 
 impl Object for BuiltinRef {
-    // Returns the callable's name.
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "builtin"
     }
 
-    /// Check whether the callable accepts any arguments.
+    fn repr(&self) -> String {
+        format!("<{} {}>", self.name(), self.0.name)
+    }
+
     fn is_callable(&self, _with_arguments: bool) -> bool {
         true // fixme
     }
 
-    /// Check if builtin is consuming
     fn is_consuming(&self) -> bool {
         crate::utils::identifier_is_consumable(self.0.name)
     }
 
-    /// Call self
     fn call(
         &self,
         context: &mut Context,

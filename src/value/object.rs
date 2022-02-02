@@ -29,13 +29,43 @@ where
 
 /// Describes an interface to a callable object.
 pub trait Object: CloneBoxedObject + std::any::Any + std::fmt::Debug {
-    // Returns the callables's id.
+    /// Object ID (unique memory address)
     fn id(&self) -> usize {
         self as *const Self as *const () as usize
     }
 
-    // Returns the callable's name.
-    fn name(&self) -> &str;
+    /// Object type name.
+    fn name(&self) -> &'static str;
+
+    /// Object representation in Tokay code
+    fn repr(&self) -> String {
+        format!("<{} {:p}>", self.name(), self)
+    }
+
+    /// Object as bool
+    fn is_true(&self) -> bool {
+        true
+    }
+
+    /// Object as i64
+    fn to_i64(&self) -> i64 {
+        0
+    }
+
+    /// Object as f64
+    fn to_f64(&self) -> f64 {
+        0.0
+    }
+
+    /// Object as usize
+    fn to_usize(&self) -> usize {
+        self.id()
+    }
+
+    /// Object as String
+    fn to_string(&self) -> String {
+        self.repr()
+    }
 
     /// Check whether the callable accepts any arguments.
     fn is_callable(&self, with_arguments: bool) -> bool;

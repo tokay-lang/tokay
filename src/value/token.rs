@@ -184,7 +184,7 @@ impl Token {
 }
 
 impl Object for Token {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "token"
     }
 

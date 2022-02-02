@@ -85,7 +85,17 @@ impl RefValue {
 
     /// Checks against a given type name
     pub fn is(&self, name: &str) -> bool {
-        self.borrow().name() == name
+        self.name() == name
+    }
+
+    /// Object ID (unique memory address)
+    pub fn id(&self) -> usize {
+        self.borrow().id()
+    }
+
+    /// Object type name.
+    pub fn name(&self) -> &'static str {
+        self.borrow().name()
     }
 
     /// Get representation in Tokay code.
@@ -120,11 +130,7 @@ impl RefValue {
 
     // Get value's String representation
     pub fn to_string(&self) -> String {
-        match &*self.borrow() {
-            Value::Void => "".to_string(),
-            Value::String(s) => s.clone(),
-            _ => self.repr(),
-        }
+        self.borrow().to_string()
     }
 
     /// Check whether a value is object, and when its object if with or without arguments.
@@ -442,7 +448,15 @@ macro_rules! value {
 
 impl Value {
     // Retrieve type name of a value
-    pub fn name(&self) -> &str {
+    pub fn id(&self) -> usize {
+        match self {
+            Self::Object(object) => object.id(),
+            _ => self as *const Self as usize,
+        }
+    }
+
+    // Retrieve type name of a value
+    pub fn name(&self) -> &'static str {
         match self {
             Self::Void => "void",
             Self::Null => "null",
@@ -471,7 +485,7 @@ impl Value {
             Self::String(s) => string::repr(s),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
-            _ => format!("<{} {:p}>", self.name(), self),
+            Self::Object(object) => object.repr(),
         }
     }
 
@@ -541,10 +555,10 @@ impl Value {
     }
 
     pub fn to_string(&self) -> String {
-        if let Self::String(s) = self {
-            s.clone()
-        } else {
-            self.repr()
+        match self {
+            Value::Void => "".to_string(),
+            Value::String(s) => s.clone(),
+            _ => self.repr(),
         }
     }
 
@@ -602,12 +616,6 @@ impl Value {
         }
     }
 }
-
-/*
-impl std::cmp::PartialEq for Value {
-    fn eq(&self)
-}
-*/
 
 /// Convert a RefValue into a Value
 impl From<RefValue> for Value {

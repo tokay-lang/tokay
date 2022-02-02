@@ -10,8 +10,18 @@ pub struct Method {
 }
 
 impl Object for Method {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "method"
+    }
+
+    fn repr(&self) -> String {
+        format!(
+            "<{} {} of {} object at {:#x}>",
+            self.name(),
+            self.method.repr(),
+            self.object.name(),
+            self.object.id()
+        )
     }
 
     fn is_callable(&self, with_arguments: bool) -> bool {

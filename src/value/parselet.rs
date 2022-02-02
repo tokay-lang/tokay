@@ -478,7 +478,7 @@ impl Object for ParseletRef {
         &*self.0.borrow() as *const Parselet as usize
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "parselet"
     }
 
