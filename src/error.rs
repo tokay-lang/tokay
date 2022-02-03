@@ -58,7 +58,7 @@ static ERROR: Builtin = Builtin {
             if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
                 let value = value.borrow();
 
-                if let Value::String(s) = &*value {
+                if let Value::Str(s) = &*value {
                     msg.push_str(&format!(": '{}'", s))
                 } else {
                     msg.push_str(&format!(": {}", value.repr()))

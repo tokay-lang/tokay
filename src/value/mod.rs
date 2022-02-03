@@ -19,6 +19,7 @@ pub use list::List;
 pub use method::Method;
 pub use object::Object;
 pub use parselet::{Parselet, ParseletRef};
+pub use string::Str;
 pub use token::Token;
 
 // RefValue
@@ -198,10 +199,11 @@ impl RefValue {
 
     // Addition
     pub fn add(&self, rhs: RefValue) -> Result<RefValue, Error> {
+        // todo: This must be moved to trait Object...
         match (&*self.borrow(), &*rhs.borrow()) {
             // When one is String...
-            (Value::String(a), b) => Ok(Value::String(a.to_owned() + &b.to_string()).into()),
-            (a, Value::String(b)) => Ok(Value::String(a.to_string() + &b).into()),
+            (Value::Str(a), b) => Ok(RefValue::from(a.as_str().to_owned() + &b.to_string())),
+            (a, Value::Str(b)) => Ok(RefValue::from(a.to_string() + &b.as_str())),
 
             // When one is Float...
             (Value::Float(a), b) => Ok(Value::Float(a + b.to_f64()).into()),
@@ -214,6 +216,7 @@ impl RefValue {
 
     // Substraction
     pub fn sub(&self, rhs: RefValue) -> Result<RefValue, Error> {
+        // todo: This must be moved to trait Object...
         match (&*self.borrow(), &*rhs.borrow()) {
             // When one is Float...
             (Value::Float(a), b) => Ok(Value::Float(a - b.to_f64()).into()),
@@ -226,10 +229,11 @@ impl RefValue {
 
     // Multiplication
     pub fn mul(&self, rhs: RefValue) -> Result<RefValue, Error> {
+        // todo: This must be moved to trait Object...
         match (&*self.borrow(), &*rhs.borrow()) {
             // When one is String and one is something else...
-            (Value::String(s), n) | (n, Value::String(s)) => {
-                Ok(Value::String(s.repeat(n.to_usize())).into())
+            (Value::Str(s), n) | (n, Value::Str(s)) => {
+                Ok(RefValue::from(s.as_str().to_owned().repeat(n.to_usize())))
             }
 
             // When one is Float...
@@ -243,6 +247,7 @@ impl RefValue {
 
     // Division
     pub fn div(&self, rhs: RefValue) -> Result<RefValue, Error> {
+        // todo: This must be moved to trait Object...
         match (&*self.borrow(), &*rhs.borrow()) {
             // When one is Float...
             (Value::Float(_), _) | (_, Value::Float(_)) => {
@@ -364,7 +369,7 @@ pub enum Value {
     Addr(usize),  // addr
 
     // Objects
-    String(String),  // str
+    Str(Str),        // str
     List(Box<List>), // list
     Dict(Box<Dict>), // dict
 
@@ -441,7 +446,7 @@ macro_rules! value {
             RefValue::from(Value::Addr(*value))
         }
         else {
-            RefValue::from(Value::String($value.to_string()))
+            RefValue::from(Value::Str($value.to_string().into()))
         }
     }
 }
@@ -465,7 +470,7 @@ impl Value {
             Self::Integer(_) => "int",
             Self::Float(_) => "float",
             Self::Addr(_) => "addr",
-            Self::String(_) => "str",
+            Self::Str(_) => "str",
             Self::List(_) => "list",
             Self::Dict(_) => "dict",
             Self::Object(object) => object.name(),
@@ -482,7 +487,7 @@ impl Value {
             Self::Integer(i) => format!("{}", i),
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
-            Self::String(s) => string::repr(s),
+            Self::Str(s) => s.repr(),
             Self::List(l) => l.repr(),
             Self::Dict(d) => d.repr(),
             Self::Object(object) => object.repr(),
@@ -495,7 +500,7 @@ impl Value {
             Self::Void | Self::Null | Self::False => false,
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
-            Self::String(s) => s.len() > 0,
+            Self::Str(s) => s.len() > 0,
             Self::List(l) => l.len() > 0,
             Self::Dict(d) => d.len() > 0,
             _ => true, // everything else is just true as it exists.
@@ -508,7 +513,7 @@ impl Value {
             Self::True => 1,
             Self::Integer(i) => *i,
             Self::Float(f) => *f as i64,
-            Self::String(s) => {
+            Self::Str(s) => {
                 // todo: JavaScript-style parseInt-like behavior?
                 match s.parse::<i64>() {
                     Ok(i) => i,
@@ -525,7 +530,7 @@ impl Value {
             Self::True => 1.0,
             Self::Integer(i) => *i as f64,
             Self::Float(f) => *f,
-            Self::String(s) => {
+            Self::Str(s) => {
                 // todo: JavaScript-style parseFloat-like behavior?
                 match s.parse::<f64>() {
                     Ok(f) => f,
@@ -543,7 +548,7 @@ impl Value {
             Self::Integer(i) => *i as usize,
             Self::Float(f) => *f as usize,
             Self::Addr(a) => *a,
-            Self::String(s) => {
+            Self::Str(s) => {
                 // todo: JavaScript-style parseInt-like behavior?
                 match s.parse::<usize>() {
                     Ok(i) => i,
@@ -557,14 +562,14 @@ impl Value {
     pub fn to_string(&self) -> String {
         match self {
             Value::Void => "".to_string(),
-            Value::String(s) => s.clone(),
+            Value::Str(s) => s.as_str().to_string(),
             _ => self.repr(),
         }
     }
 
     /// Retrieve &str from a value in case it is a string.
     pub fn str(&self) -> Option<&str> {
-        if let Self::String(s) = self {
+        if let Self::Str(s) = self {
             Some(&s)
         } else {
             None
@@ -635,7 +640,7 @@ fn test_literal() {
     assert_eq!(Value::Integer(-1337).to_i64().unwrap(), Some(-1337));
     //assert_eq!(Value::Float(13.37).to_f64(), 13.37);
     //assert_eq!(Value::Float(-13.37).to_f64(), -13.37);
-    assert_eq!(Value::String("hello world".to_string()).to_string().unwrap(), Some("hello world".to_string()));
+    assert_eq!(Value::Str("hello world".to_string()).to_string().unwrap(), Some("hello world".to_string()));
     assert_eq!(Value::Void.to_string().unwrap(), Some("void".to_string()));
     assert_eq!(Value::True.to_string().unwrap(), Some("true".to_string()));
     assert_eq!(Value::False.to_string().unwrap(), Some("false".to_string()));
@@ -656,13 +661,13 @@ fn test_conversion() {
     assert_eq!(f.to_i64(), 1);
     */
 
-    let s = Value::String("42".to_string());
+    let s = Value::Str("42".to_string());
     assert_eq!(s.to_string(), Some("42".to_string()));
     assert_eq!(s.to_i64(), Some(42));
     assert_eq!(s.to_f64(), Some(42.0));
     assert_eq!(s.to_string(), Some("42".to_string()));
 
-    let s = Value::String("gunshot42".to_string());
+    let s = Value::Str("gunshot42".to_string());
     assert_eq!(s.to_string(), Some("gunshot42".to_string()));
     assert_eq!(s.to_i64(), Some(0));
 }
@@ -670,12 +675,12 @@ fn test_conversion() {
 #[test]
 fn test_add() {
     let x = Value::Integer(42);
-    let y = Value::String("hello".to_string());
-    assert_eq!(x + y, Value::String("42hello".to_string()));
+    let y = Value::Str("hello".to_string());
+    assert_eq!(x + y, Value::Str("42hello".to_string()));
 
     let x = Value::Integer(42);
-    let y = Value::String("hello".to_string());
-    assert_eq!(y + x, Value::String("hello42".to_string()));
+    let y = Value::Str("hello".to_string());
+    assert_eq!(y + x, Value::Str("hello42".to_string()));
 
     let x = Value::Integer(42);
     let y = Value::Integer(23);
@@ -694,11 +699,11 @@ fn test_mul() {
     assert_eq!(x * y, Value::Integer(966));
 
     let x = Value::Integer(3);
-    let y = Value::String("hello".to_string());
-    assert_eq!(x * y, Value::String("hellohellohello".to_string()));
+    let y = Value::Str("hello".to_string());
+    assert_eq!(x * y, Value::Str("hellohellohello".to_string()));
 
-    assert_eq!(Value::Bool(true) * Value::String("hello".to_string()), Value::String("hello".to_string()));
-    assert_eq!(Value::Bool(false) * Value::String("hello".to_string()), Value::String("".to_string()));
+    assert_eq!(Value::Bool(true) * Value::Str("hello".to_string()), Value::Str("hello".to_string()));
+    assert_eq!(Value::Bool(false) * Value::Str("hello".to_string()), Value::Str("".to_string()));
 
     //let x = Value::Integer(42);
     //let y = Value::Float(1.337);

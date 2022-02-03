@@ -17,7 +17,7 @@ impl Capture {
         match self {
             Capture::Empty => Value::Void.into(),
             Capture::Range(range, alias, severity) => {
-                let value: RefValue = Value::String(reader.extract(range)).into();
+                let value = RefValue::from(reader.extract(range));
                 *self = Capture::Value(value.clone(), alias.clone(), *severity);
                 value
             }

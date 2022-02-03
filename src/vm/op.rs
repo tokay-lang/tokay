@@ -498,7 +498,7 @@ impl Op {
                             context.push(value)
                         }
 
-                        Value::String(alias) => {
+                        Value::Str(alias) => {
                             let value = context
                                 .get_capture_by_name(alias)
                                 .unwrap_or(Value::Void.into());
@@ -599,7 +599,7 @@ impl Op {
                             }
                         }
 
-                        Value::String(alias) => {
+                        Value::Str(alias) => {
                             if matches!(op, Op::StoreCapture) {
                                 let value = context.pop();
                                 context.set_capture_by_name(alias, value);

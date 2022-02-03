@@ -128,7 +128,7 @@ impl Parselet {
 
                     Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
                         Capture::Range(range, ..) => {
-                            Some(Value::String(context.runtime.reader.extract(&range)).into())
+                            Some(RefValue::from(context.runtime.reader.extract(&range)))
                         }
                         Capture::Value(value, ..) => Some(value),
                         _ => None,

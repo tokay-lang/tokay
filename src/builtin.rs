@@ -190,7 +190,7 @@ static CHR: Builtin = Builtin {
     func: |_context, args| {
         let i = args[0].to_usize();
         Ok(Accept::Push(Capture::Value(
-            Value::String(format!("{}", std::char::from_u32(i as u32).unwrap())).into(),
+            format!("{}", std::char::from_u32(i as u32).unwrap()).into(),
             None,
             10,
         )))

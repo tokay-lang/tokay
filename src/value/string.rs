@@ -5,61 +5,36 @@ use macros::tokay_method;
 use super::{List, RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 
-pub fn repr(string: &str) -> String {
-    let mut ret = String::with_capacity(string.len() + 2);
-    ret.push('"');
-
-    for ch in string.chars() {
-        match ch {
-            '\"' => ret.push_str("\\\""),
-            '\n' => ret.push_str("\\n"),
-            '\r' => ret.push_str("\\r"),
-            '\t' => ret.push_str("\\t"),
-            ch => ret.push(ch),
-        }
-    }
-
-    ret.push('"');
-    ret
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
+pub struct Str {
+    string: String,
 }
-
-impl From<&str> for RefValue {
-    fn from(value: &str) -> Self {
-        Value::String(value.to_string()).into()
-    }
-}
-
-impl From<String> for RefValue {
-    fn from(value: String) -> Self {
-        Value::String(value).into()
-    }
-}
-
-/*
-fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-    let index = index.to_usize();
-    if let Some(ch) = self.chars().nth(index) {
-        Ok(Value::String(format!("{}", ch)).into())
-    } else {
-        Err(format!("Index {} beyond end of string", index))
-    }
-}
-
-fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-    let index = index.to_usize();
-    if index < self.len() {
-        todo!();
-        Ok(())
-    } else {
-        Err(format!("Index {} beyond end of string", index))
-    }
-}
-*/
-
-struct Str; // Empty struct just for the methods.
 
 impl Str {
+    pub fn as_str(&self) -> &str {
+        &self.string
+    }
+
+    pub fn repr(&self) -> String {
+        let mut ret = String::with_capacity(self.string.len() + 2);
+        ret.push('"');
+
+        for ch in self.string.chars() {
+            match ch {
+                '\"' => ret.push_str("\\\""),
+                '\n' => ret.push_str("\\n"),
+                '\r' => ret.push_str("\\r"),
+                '\t' => ret.push_str("\\t"),
+                ch => ret.push(ch),
+            }
+        }
+
+        ret.push('"');
+        ret
+    }
+
     tokay_method!(
+        // Test
         str_join(str, list) {
             let delimiter = str.to_string();
             let list = List::from(list);
@@ -104,6 +79,76 @@ impl Str {
         }
     );
 }
+
+impl std::fmt::Display for Str {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.string)
+    }
+}
+
+impl std::ops::Deref for Str {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.string
+    }
+}
+
+impl std::ops::DerefMut for Str {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.string
+    }
+}
+
+impl From<String> for Str {
+    fn from(string: String) -> Self {
+        Str { string }
+    }
+}
+
+impl From<&str> for Str {
+    fn from(string: &str) -> Self {
+        Str {
+            string: string.to_string(),
+        }
+    }
+}
+
+impl From<&str> for RefValue {
+    fn from(string: &str) -> Self {
+        Value::Str(Str {
+            string: string.to_string(),
+        })
+        .into()
+    }
+}
+
+impl From<String> for RefValue {
+    fn from(string: String) -> Self {
+        Value::Str(Str { string: string }).into()
+    }
+}
+
+/*
+fn get_index(&self, index: &Value) -> Result<RefValue, String> {
+    let index = index.to_usize();
+    if let Some(ch) = self.chars().nth(index) {
+        Ok(Value::Str(format!("{}", ch)).into())
+    } else {
+        Err(format!("Index {} beyond end of string", index))
+    }
+}
+
+fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
+    let index = index.to_usize();
+    if index < self.len() {
+        todo!();
+        Ok(())
+    } else {
+        Err(format!("Index {} beyond end of string", index))
+    }
+}
+*/
 
 #[distributed_slice(BUILTINS)]
 static STR_JOIN: Builtin = Builtin {

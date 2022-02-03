@@ -120,14 +120,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             }
 
             // ...returns the current range read so far.
-            Some(
-                Value::String(
-                    self.runtime
-                        .reader
-                        .extract(&self.runtime.reader.capture_from(&self.reader_start)),
-                )
-                .into(),
-            )
+            Some(RefValue::from(self.runtime.reader.extract(
+                &self.runtime.reader.capture_from(&self.reader_start),
+            )))
         // Any other index.
         } else {
             self.runtime.stack[pos].degrade();
@@ -277,7 +272,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    let value = Value::String(self.runtime.reader.extract(&range)).into();
+                    let value = RefValue::from(self.runtime.reader.extract(&range));
 
                     if let Some(alias) = alias {
                         dict.insert(alias, value);

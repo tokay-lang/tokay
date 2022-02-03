@@ -10,7 +10,7 @@ use crate::builtin::{Builtin, BUILTINS};
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
-use crate::value::{Dict, List, Token, Value};
+use crate::value::{Dict, List, Str, Token, Value};
 use crate::vm::*;
 
 // Helper trait for Dict
@@ -141,9 +141,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => {
-            Value::String(node.borrow_by_key("value").str().unwrap().to_string()).into()
-        }
+        "value_string" => Value::Str(Str::from(node.borrow_by_key("value").str().unwrap())).into(),
         "value_integer" => {
             let value = node.borrow_by_key("value").str().unwrap().to_string();
             Value::Integer(match value.parse::<i64>() {
@@ -706,8 +704,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                                 .unwrap()
                                 .to_string();
                             ops.push(
-                                Op::LoadStatic(compiler.define_value(Value::String(ident).into()))
-                                    .into(),
+                                Op::LoadStatic(
+                                    compiler.define_value(Value::Str(ident.into()).into()),
+                                )
+                                .into(),
                             );
 
                             nargs += 1;
