@@ -230,7 +230,7 @@ macro_rules! tokay {
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
         {
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(Value::from($token).into()))))
+            Some(ImlOp::from(Op::CallStatic($compiler.define_value(RefValue::from($token).into()))))
         }
     };
 
@@ -291,7 +291,7 @@ macro_rules! tokay {
     // Match
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
-            let token = Value::from(Token::Match($literal.to_string()));
+            let token = RefValue::from(Token::Match($literal.to_string()));
             Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
         }
     };
@@ -299,7 +299,7 @@ macro_rules! tokay {
     // Touch
     ( $compiler:expr, $literal:literal ) => {
         {
-            let token = Value::from(Token::Touch($literal.to_string()));
+            let token = RefValue::from(Token::Touch($literal.to_string()));
             Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
         }
     };

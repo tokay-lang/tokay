@@ -1,7 +1,7 @@
 //! Token callables represented by Value::Token
 use linkme::distributed_slice;
 
-use super::{Dict, Object, Value};
+use super::{Dict, Object, RefValue, Value};
 use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
@@ -231,9 +231,9 @@ impl Object for Token {
     }
 }
 
-impl From<Token> for Value {
+impl From<Token> for RefValue {
     fn from(token: Token) -> Self {
-        Value::Object(Box::new(token))
+        Value::Object(Box::new(token)).into()
     }
 }
 

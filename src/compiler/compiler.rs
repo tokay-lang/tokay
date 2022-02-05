@@ -6,7 +6,7 @@ use super::*;
 use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{RefValue, Token, Value};
+use crate::value::{RefValue, Token};
 use crate::vm::*;
 
 /** Compiler symbolic scope.
@@ -243,7 +243,9 @@ impl Compiler {
             values
                 .into_iter()
                 .map(|value| match value {
-                    ImlValue::Parselet(parselet) => parselet.borrow().into_parselet().into(),
+                    ImlValue::Parselet(parselet) => {
+                        RefValue::from(parselet.borrow().into_parselet())
+                    }
                     ImlValue::Value(value) => value,
                 })
                 .collect(),
@@ -548,7 +550,7 @@ impl Compiler {
             // Fallback for "_" defines parselet `_ : Whitespace?`
             self.set_constant(
                 "_",
-                Value::from(Token::builtin("Whitespaces").unwrap()).into(),
+                RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
             return Some(self.get_constant(name).unwrap());
@@ -556,7 +558,7 @@ impl Compiler {
 
         // Check for built-in token
         if let Some(value) = Token::builtin(name) {
-            return Some(Value::from(value).into());
+            return Some(RefValue::from(value).into());
         }
 
         None

@@ -16,14 +16,14 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(statics: Vec<Value>) -> Self {
+    pub fn new(statics: Vec<RefValue>) -> Self {
         let mut main = None;
 
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
             // todo: This is unhandy.
-            if let Value::Object(object) = &statics[i] {
+            if let Value::Object(object) = &*statics[i].borrow() {
                 if let Some(_) = object.as_ref().downcast_ref::<ParseletRef>() {
                     main = Some(i);
                     break;
@@ -31,10 +31,7 @@ impl Program {
             }
         }
 
-        Self {
-            statics: statics.into_iter().map(|value| value.into()).collect(),
-            main,
-        }
+        Self { statics, main }
     }
 
     pub fn dump(&self) {

@@ -470,6 +470,12 @@ impl Parselet {
     }
 }
 
+impl From<Parselet> for RefValue {
+    fn from(parselet: Parselet) -> Self {
+        Value::Object(Box::new(ParseletRef(Rc::new(RefCell::new(parselet))))).into()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ParseletRef(pub Rc<RefCell<Parselet>>);
 
@@ -503,11 +509,5 @@ impl Object for ParseletRef {
         self.0
             .borrow()
             .run(context.runtime, args, nargs, false, context.depth + 1)
-    }
-}
-
-impl From<Parselet> for Value {
-    fn from(parselet: Parselet) -> Self {
-        Value::Object(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))))
     }
 }

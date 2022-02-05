@@ -10,7 +10,7 @@ use crate::builtin::{Builtin, BUILTINS};
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
-use crate::value::{Dict, List, Str, Token, Value};
+use crate::value::{Dict, List, RefValue, Token, Value};
 use crate::vm::*;
 
 // Helper trait for Dict
@@ -103,7 +103,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> ImlResult {
     } else if let Some(dict) = ast.dict() {
         traverse_node(compiler, dict)
     } else {
-        ImlResult::Value(ast.clone().into())
+        ImlResult::Value(ImlValue::from(RefValue::from(ast.clone())))
     }
 }
 
@@ -141,10 +141,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => Value::Str(Str::from(node.borrow_by_key("value").str().unwrap())).into(),
+        "value_string" => {
+            ImlValue::from(RefValue::from(node.borrow_by_key("value").str().unwrap()))
+        }
         "value_integer" => {
             let value = node.borrow_by_key("value").str().unwrap().to_string();
-            Value::Integer(match value.parse::<i64>() {
+            RefValue::from(match value.parse::<i64>() {
                 Ok(i) => i,
                 Err(_) => 0,
             })
@@ -152,16 +154,16 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         }
         "value_float" => {
             let value = node.borrow_by_key("value").str().unwrap().to_string();
-            Value::Float(match value.parse::<f64>() {
+            RefValue::from(match value.parse::<f64>() {
                 Ok(f) => f,
                 Err(_) => 0.0,
             })
             .into()
         }
-        "value_true" => Value::True.into(),
-        "value_false" => Value::False.into(),
-        "value_null" => Value::Null.into(),
-        "value_void" => Value::Void.into(),
+        "value_true" => RefValue::from(true).into(),
+        "value_false" => RefValue::from(false).into(),
+        "value_null" => ImlValue::from(Value::Null),
+        "value_void" => ImlValue::from(Value::Void),
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
@@ -176,12 +178,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             if emit == "value_token_match" {
-                Value::from(Token::Match(value)).into()
+                RefValue::from(Token::Match(value)).into()
             } else {
-                Value::from(Token::Touch(value)).into()
+                RefValue::from(Token::Touch(value)).into()
             }
         }
-        "value_token_any" => Value::from(Token::any()).into(),
+        "value_token_any" => RefValue::from(Token::any()).into(),
         "value_token_ccl" => {
             let node = Dict::from(&*node.borrow_by_key("children"));
 
@@ -219,10 +221,10 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             if emit == "ccl_neg" {
-                Value::from(Token::Char(ccl.negate())).into()
+                RefValue::from(Token::Char(ccl.negate())).into()
             } else {
                 assert!(emit == "ccl");
-                Value::from(Token::Char(ccl)).into()
+                RefValue::from(Token::Char(ccl)).into()
             }
         }
 
@@ -1143,34 +1145,38 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         }
 
                         // In case of a token, try to replace it with a repeating counterpart.
-                        if let ImlValue::Value(Value::Object(object)) = value {
-                            if let Some(token) = object.as_ref().downcast_ref::<Token>() {
-                                if let Token::Char(ccl) = token.clone() {
-                                    match parts[2] {
-                                        // mod_pos on Token::Char becomes Token::Chars
-                                        "pos" | "kle" => {
-                                            let chars = ImlResult::Value(
-                                                Value::from(Token::Chars(ccl)).into(),
-                                            );
+                        if let ImlValue::Value(value) = value {
+                            // todo: will be removed when Box<dyn Object> is standard
+                            if let Value::Object(object) = &*value.borrow() {
+                                if let Some(token) = object.as_ref().downcast_ref::<Token>() {
+                                    if let Token::Char(ccl) = token.clone() {
+                                        match parts[2] {
+                                            // mod_pos on Token::Char becomes Token::Chars
+                                            "pos" | "kle" => {
+                                                let chars = ImlResult::Value(
+                                                    RefValue::from(Token::Chars(ccl)).into(),
+                                                );
 
-                                            if parts[2] == "pos" {
-                                                return chars;
+                                                if parts[2] == "pos" {
+                                                    return chars;
+                                                }
+
+                                                // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                                return ImlResult::Ops(vec![ImlOp::from_vec(
+                                                    chars.into_ops(compiler, true),
+                                                )
+                                                .into_optional()]);
                                             }
 
-                                            // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                            return ImlResult::Ops(vec![ImlOp::from_vec(
-                                                chars.into_ops(compiler, true),
-                                            )
-                                            .into_optional()]);
+                                            // mod_not on Token::Char becomes negated Token::Char
+                                            "not" => {
+                                                return ImlResult::Value(
+                                                    RefValue::from(Token::Char(ccl.negate()))
+                                                        .into(),
+                                                );
+                                            }
+                                            _ => {}
                                         }
-
-                                        // mod_not on Token::Char becomes negated Token::Char
-                                        "not" => {
-                                            return ImlResult::Value(
-                                                Value::from(Token::Char(ccl.negate())).into(),
-                                            );
-                                        }
-                                        _ => {}
                                     }
                                 }
                             }

@@ -33,16 +33,21 @@ impl ImlResult {
 
                     Op::CallStatic(compiler.define_value(value))
                 } else {
-                    // void, true, false, etc. can be directly pushed
-                    match value {
-                        ImlValue::Value(Value::Integer(0)) => Op::Push0,
-                        ImlValue::Value(Value::Integer(1)) => Op::Push1,
-                        ImlValue::Value(Value::Void) => Op::PushVoid,
-                        ImlValue::Value(Value::Null) => Op::PushNull,
-                        ImlValue::Value(Value::True) => Op::PushTrue,
-                        ImlValue::Value(Value::False) => Op::PushFalse,
-                        _ => Op::LoadStatic(compiler.define_value(value.clone())),
+                    let mut op = None;
+
+                    if let ImlValue::Value(value) = &value {
+                        op = match &*value.borrow() {
+                            Value::Integer(0) => Some(Op::Push0),
+                            Value::Integer(1) => Some(Op::Push1),
+                            Value::Void => Some(Op::PushVoid),
+                            Value::Null => Some(Op::PushNull),
+                            Value::True => Some(Op::PushTrue),
+                            Value::False => Some(Op::PushFalse),
+                            _ => None,
+                        }
                     }
+
+                    op.unwrap_or_else(|| Op::LoadStatic(compiler.define_value(value)))
                 })]
             }
             ImlResult::Identifier(name, offset) => {

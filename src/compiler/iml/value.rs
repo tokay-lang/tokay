@@ -9,11 +9,11 @@ use crate::value::{RefValue, Value};
 #[derive(Clone, Debug, PartialEq)]
 pub enum ImlValue {
     Parselet(Rc<RefCell<ImlParselet>>),
-    Value(Value),
+    Value(RefValue),
 }
 
 impl ImlValue {
-    pub fn unwrap(self) -> Value {
+    pub fn unwrap(self) -> RefValue {
         if let ImlValue::Value(value) = self {
             value
         } else {
@@ -66,14 +66,14 @@ impl From<ImlParselet> for ImlValue {
     }
 }
 
-impl From<Value> for ImlValue {
-    fn from(value: Value) -> Self {
+impl From<RefValue> for ImlValue {
+    fn from(value: RefValue) -> Self {
         Self::Value(value)
     }
 }
 
-impl From<RefValue> for ImlValue {
-    fn from(refvalue: RefValue) -> Self {
-        Self::Value(Value::from(refvalue))
+impl From<Value> for ImlValue {
+    fn from(value: Value) -> Self {
+        Self::Value(value.into())
     }
 }
