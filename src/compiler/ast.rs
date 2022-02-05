@@ -1,5 +1,4 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-use std::cell::{Ref, RefMut};
 use std::collections::HashSet;
 
 use charclass::CharClass;
@@ -12,61 +11,6 @@ use crate::reader::Offset;
 use crate::utils;
 use crate::value::{Dict, List, RefValue, Token, Value};
 use crate::vm::*;
-
-// Helper trait for Dict
-trait BorrowByKey {
-    fn borrow_by_key(&self, key: &str) -> Ref<Value>;
-    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value>;
-}
-
-impl BorrowByKey for Dict {
-    fn borrow_by_key(&self, key: &str) -> Ref<Value> {
-        let value = self.get(key).unwrap();
-        value.borrow()
-    }
-
-    fn borrow_by_key_mut(&self, key: &str) -> RefMut<Value> {
-        let value = self.get(key).unwrap();
-        value.borrow_mut()
-    }
-}
-
-// Helper trait for List
-trait BorrowByIdx {
-    fn borrow_by_idx(&self, idx: usize) -> Ref<Value>;
-    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value>;
-
-    fn borrow_first(&self) -> Ref<Value> {
-        self.borrow_by_idx(0)
-    }
-
-    fn borrow_first_2(&self) -> (Ref<Value>, Ref<Value>) {
-        let first = self.borrow_by_idx(0);
-        let second = self.borrow_by_idx(1);
-
-        (first, second)
-    }
-
-    fn borrow_first_3(&self) -> (Ref<Value>, Ref<Value>, Ref<Value>) {
-        let first = self.borrow_by_idx(0);
-        let second = self.borrow_by_idx(1);
-        let third = self.borrow_by_idx(2);
-
-        (first, second, third)
-    }
-}
-
-impl BorrowByIdx for List {
-    fn borrow_by_idx(&self, idx: usize) -> Ref<Value> {
-        let value = self.get(idx).unwrap();
-        value.borrow()
-    }
-
-    fn borrow_by_idx_mut(&self, idx: usize) -> RefMut<Value> {
-        let value = self.get(idx).unwrap();
-        value.borrow_mut()
-    }
-}
 
 /// Checks whether identifier's name is the name of a reserved word.
 fn identifier_is_valid(ident: &str) -> Result<(), Error> {
@@ -82,17 +26,17 @@ fn identifier_is_valid(ident: &str) -> Result<(), Error> {
 }
 
 /// AST traversal entry
-pub(super) fn traverse(compiler: &mut Compiler, ast: &Value) {
+pub(super) fn traverse(compiler: &mut Compiler, ast: &RefValue) {
     traverse_node_or_list(compiler, ast);
 }
 
 // Traverse either a node or a list from the AST
-fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> ImlResult {
-    if let Some(list) = ast.list() {
+fn traverse_node_or_list(compiler: &mut Compiler, ast: &RefValue) -> ImlResult {
+    if let Some(list) = ast.borrow().list() {
         let mut ops = Vec::new();
 
         for item in list.iter() {
-            ops.extend(traverse_node_or_list(compiler, &item.borrow()).into_ops(compiler, false));
+            ops.extend(traverse_node_or_list(compiler, item).into_ops(compiler, false));
         }
 
         if ops.len() > 0 {
@@ -100,7 +44,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &Value) -> ImlResult {
         } else {
             ImlResult::Empty
         }
-    } else if let Some(dict) = ast.dict() {
+    } else if let Some(dict) = ast.borrow().dict() {
         traverse_node(compiler, dict)
     } else {
         ImlResult::Value(ImlValue::from(RefValue::from(ast.clone())))
@@ -133,19 +77,17 @@ fn insert_offset(ops: &mut Vec<ImlOp>, node: &Dict) {
     }
 }
 
-// Traverse a value node into a Value instance
+// Traverse a value node into an ImlValue instance
 fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
-    let emit = node.borrow_by_key("emit");
+    let emit = node["emit"].borrow();
     let emit = emit.str().unwrap();
 
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => {
-            ImlValue::from(RefValue::from(node.borrow_by_key("value").str().unwrap()))
-        }
+        "value_string" => ImlValue::from(RefValue::from(node["value"].borrow().str().unwrap())),
         "value_integer" => {
-            let value = node.borrow_by_key("value").str().unwrap().to_string();
+            let value = node["value"].borrow().str().unwrap().to_string();
             RefValue::from(match value.parse::<i64>() {
                 Ok(i) => i,
                 Err(_) => 0,
@@ -153,7 +95,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             .into()
         }
         "value_float" => {
-            let value = node.borrow_by_key("value").str().unwrap().to_string();
+            let value = node["value"].borrow().str().unwrap().to_string();
             RefValue::from(match value.parse::<f64>() {
                 Ok(f) => f,
                 Err(_) => 0.0,
@@ -167,7 +109,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
-            let mut value = node.borrow_by_key("value").str().unwrap().to_string();
+            let mut value = node["value"].borrow().str().unwrap().to_string();
 
             if value.len() == 0 {
                 compiler.errors.push(Error::new(
@@ -185,22 +127,22 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         }
         "value_token_any" => RefValue::from(Token::any()).into(),
         "value_token_ccl" => {
-            let node = Dict::from(&*node.borrow_by_key("children"));
+            let node = Dict::from(&*node["children"].borrow());
 
-            let emit = node.borrow_by_key("emit");
+            let emit = node["emit"].borrow();
             let emit = emit.str().unwrap();
 
-            let children = List::from(&*node.borrow_by_key("children"));
+            let children = List::from(&*node["children"].borrow());
 
             let mut ccl = CharClass::new();
 
             for range in children.iter() {
                 let range = Dict::from(&*range.borrow());
 
-                let emit = range.borrow_by_key("emit");
+                let emit = range["emit"].borrow();
                 let emit = emit.str().unwrap();
 
-                let value = range.borrow_by_key("value");
+                let value = range["value"].borrow();
                 let value = value.str().unwrap();
 
                 match &emit[..] {
@@ -232,7 +174,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.push_parselet();
 
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
 
             let (args, body) = if let Some(children) = children.list() {
                 assert!(children.len() == 2);
@@ -250,12 +192,9 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                     let node = node.borrow();
                     let node = node.dict().unwrap();
 
-                    let children = List::from(&*node.borrow_by_key("children"));
-                    let ident = children
-                        .borrow_by_idx(0)
-                        .dict()
-                        .unwrap()
-                        .borrow_by_key("value")
+                    let children = List::from(&*node["children"].borrow());
+                    let ident = children[0].borrow().dict().unwrap()["value"]
+                        .borrow()
                         .str()
                         .unwrap()
                         .to_string();
@@ -287,7 +226,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                     assert!(children.len() <= 2);
                     let default = if children.len() == 2 {
-                        let default = children.borrow_by_idx(1);
+                        let default = children[1].borrow();
                         let value =
                             traverse_node_static(compiler, Some(&ident), default.dict().unwrap());
                         Some(compiler.define_value(value))
@@ -363,11 +302,11 @@ fn traverse_node_lvalue(
     store: bool,
     hold: bool,
 ) -> ImlResult {
-    let emit = node.borrow_by_key("emit");
+    let emit = node["emit"].borrow();
     let emit = emit.str().unwrap();
     assert!(emit == "lvalue");
 
-    let children = List::from(&*node.borrow_by_key("children"));
+    let children = List::from(&*node["children"].borrow());
 
     let mut ops: Vec<ImlOp> = Vec::new();
 
@@ -375,19 +314,20 @@ fn traverse_node_lvalue(
         let item = item.borrow();
         let item = item.dict().unwrap();
 
-        let emit = item.borrow_by_key("emit");
+        let emit = item["emit"].borrow();
         let emit = emit.str().unwrap();
 
         let store = if i < children.len() - 1 { false } else { store };
 
         match emit {
             capture if capture.starts_with("capture") => {
-                let children = item.borrow_by_key("children");
+                let children = item["children"].borrow();
 
                 match capture {
                     "capture_expr" | "capture_alias" => {
                         ops.extend(
-                            traverse_node_or_list(compiler, &children).into_ops(compiler, false),
+                            traverse_node_or_list(compiler, &item["children"])
+                                .into_ops(compiler, false),
                         );
 
                         if store {
@@ -423,7 +363,7 @@ fn traverse_node_lvalue(
             }
 
             "identifier" => {
-                let name = item.borrow_by_key("value");
+                let name = item["value"].borrow();
                 let name = name.str().unwrap();
 
                 // Check for not assigning to a constant (at any level)
@@ -511,8 +451,7 @@ fn traverse_node_lvalue(
             // index ----------------------------------------------------------
             "index" => {
                 ops.extend(
-                    traverse_node_or_list(compiler, &item.borrow_by_key("children"))
-                        .into_ops(compiler, true),
+                    traverse_node_or_list(compiler, &item["children"]).into_ops(compiler, true),
                 );
 
                 if store {
@@ -538,18 +477,17 @@ fn traverse_node_lvalue(
 // Main traversal function, running recursively through the AST
 fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
     // Normal node processing...
-    let emit = node.borrow_by_key("emit");
+    let emit = node["emit"].borrow();
     let emit = emit.str().unwrap();
 
     //println!("emit = {:?}", emit);
 
     match emit {
         "alias" => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
             let children = children.list().unwrap();
-            assert_eq!(children.len(), 2);
 
-            let (left, right) = children.borrow_first_2();
+            let (left, right) = (children[0].borrow(), children[1].borrow());
 
             let left = traverse_node(compiler, &left.dict().unwrap());
             let right = traverse_node(compiler, &right.dict().unwrap());
@@ -564,10 +502,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // assign ---------------------------------------------------------
         assign if assign.starts_with("assign") => {
-            let children = node.borrow_by_key("children");
-            let children = children.list();
+            let children = node["children"].borrow();
+            let children = children.list().unwrap();
 
-            let (lvalue, value) = children.unwrap().borrow_first_2();
+            let (lvalue, value) = (children[0].borrow(), children[1].borrow());
             let lvalue = lvalue.dict().unwrap();
             let value = value.dict().unwrap();
 
@@ -605,8 +543,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // attribute ------------------------------------------------------
         "attribute" => {
-            let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
-                .into_ops(compiler, true);
+            let mut ops =
+                traverse_node_or_list(compiler, &node["children"]).into_ops(compiler, true);
 
             insert_offset(&mut ops, node);
             ops.push(Op::LoadAttr.into());
@@ -614,8 +552,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
         }
         // begin ----------------------------------------------------------
         "begin" | "end" => {
-            let ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
-                .into_ops(compiler, true);
+            let ops = traverse_node_or_list(compiler, &node["children"]).into_ops(compiler, true);
 
             if let Scope::Parselet { begin, end, .. } = &mut compiler.scopes[0] {
                 if emit == "begin" {
@@ -637,8 +574,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
         "block" => {
             if let Some(children) = node.get("children") {
                 compiler.push_block();
-                let body =
-                    traverse_node_or_list(compiler, &children.borrow()).into_ops(compiler, true);
+                let body = traverse_node_or_list(compiler, children).into_ops(compiler, true);
                 compiler.pop_block();
 
                 ImlResult::Ops(if body.len() > 1 {
@@ -653,7 +589,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // call -----------------------------------------------------------
         "call" => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
             let children = List::from(&*children);
 
             let mut ops = Vec::new();
@@ -667,7 +603,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     let param = param.borrow();
                     let param = param.dict().unwrap();
 
-                    let emit = param.borrow_by_key("emit");
+                    let emit = param["emit"].borrow();
 
                     match emit.str().unwrap() {
                         "param" => {
@@ -683,33 +619,28 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                             }
 
                             ops.extend(
-                                traverse_node_or_list(compiler, &param.borrow_by_key("children"))
+                                traverse_node_or_list(compiler, &param["children"])
                                     .into_ops(compiler, false),
                             );
                             args += 1;
                         }
 
                         "param_named" => {
-                            let children = List::from(&*param.borrow_by_key("children"));
+                            let children = List::from(&*param["children"].borrow());
 
                             ops.extend(
-                                traverse_node_or_list(compiler, &children.borrow_by_idx(1))
+                                traverse_node_or_list(compiler, &children[1])
                                     .into_ops(compiler, false),
                             );
 
-                            let ident = children.borrow_by_idx(0);
-                            let ident = ident
-                                .dict()
-                                .unwrap()
-                                .borrow_by_key("value")
-                                .str()
-                                .unwrap()
-                                .to_string();
+                            let ident = children[0].borrow();
+                            let ident = ident.dict().unwrap();
+                            let ident = ident["value"].borrow();
+                            let ident = ident.str().unwrap();
+
                             ops.push(
-                                Op::LoadStatic(
-                                    compiler.define_value(Value::Str(ident.into()).into()),
-                                )
-                                .into(),
+                                Op::LoadStatic(compiler.define_value(RefValue::from(ident).into()))
+                                    .into(),
                             );
 
                             nargs += 1;
@@ -729,7 +660,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             insert_offset(&mut ops, node);
 
             // Perform static call or resolved rvalue call
-            let callee = traverse_node_or_list(compiler, &children[0].borrow());
+            let callee = traverse_node_or_list(compiler, &children[0]);
 
             if let ImlResult::Identifier(ident, offset) = callee {
                 if utils::identifier_is_consumable(&ident) {
@@ -762,15 +693,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // capture --------------------------------------------------------
         "capture_alias" | "capture_expr" => {
-            let children = node.borrow_by_key("children");
-
-            let mut ops = traverse_node_or_list(compiler, &children).into_ops(compiler, false);
+            let mut ops =
+                traverse_node_or_list(compiler, &node["children"]).into_ops(compiler, false);
             ops.push(Op::LoadCapture.into());
             ImlResult::Ops(ops)
         }
 
         "capture_index" => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
 
             let children = children.dict().unwrap();
             let index = traverse_node_value(compiler, children).unwrap();
@@ -779,13 +709,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // constant -------------------------------------------------------
         "constant" => {
-            let children = node.borrow_by_key("children");
-            let children = children.list();
+            let children = node["children"].borrow();
+            let children = children.list().unwrap();
 
-            let (ident, value) = children.unwrap().borrow_first_2();
+            let (ident, value) = (children[0].borrow(), children[1].borrow());
 
             let ident = ident.dict().unwrap();
-            let ident = ident.borrow_by_key("value");
+            let ident = ident["value"].borrow();
             let ident = ident.str().unwrap();
 
             if let Err(mut error) = identifier_is_valid(ident) {
@@ -834,10 +764,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // identifier -----------------------------------------------------
         "identifier" => {
-            let name = node.borrow_by_key("value").str().unwrap().to_string();
+            let name = node["value"].borrow();
+            let name = name.str().unwrap();
 
             // Check if identifier is valid
-            if let Err(mut error) = identifier_is_valid(&name) {
+            if let Err(mut error) = identifier_is_valid(name) {
                 if let Some(offset) = traverse_node_offset(node) {
                     error.patch_offset(offset);
                 }
@@ -845,14 +776,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 compiler.errors.push(error);
                 ImlResult::Empty
             } else {
-                ImlResult::Identifier(name, traverse_node_offset(node))
+                ImlResult::Identifier(name.to_string(), traverse_node_offset(node))
             }
         }
 
         // index ----------------------------------------------------------
         "index" => {
-            let mut ops = traverse_node_or_list(compiler, &node.borrow_by_key("children"))
-                .into_ops(compiler, true);
+            let mut ops =
+                traverse_node_or_list(compiler, &node["children"]).into_ops(compiler, true);
 
             insert_offset(&mut ops, node);
             ops.push(Op::LoadIndex.into()); // todo: in case value is an integer, use LoadFastIndex
@@ -861,7 +792,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // inplace --------------------------------------------------------
         inplace if inplace.starts_with("inplace_") => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
             let lvalue = children.dict().unwrap();
 
             let mut ops = Vec::new();
@@ -904,15 +835,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // main -----------------------------------------------------------
         "main" => {
-            if let Some(ast) = node.get("children") {
-                let children = ast.borrow();
+            if let Some(children) = node.get("children") {
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
                 if compiler.scopes.len() != 1 || !compiler.interactive {
                     compiler.push_parselet(); // Main
                 }
 
-                let body = traverse_node_or_list(compiler, &children).into_ops(compiler, true);
+                let body = traverse_node_or_list(compiler, children).into_ops(compiler, true);
 
                 let main = compiler.pop_parselet(
                     Some("__main__".to_string()),
@@ -986,11 +916,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 "reject" => Op::Reject.into(),
 
                 "binary" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.list().unwrap();
                     assert_eq!(children.len(), 2);
 
-                    let (left, right) = children.borrow_first_2();
+                    let (left, right) = (children[0].borrow(), children[1].borrow());
 
                     let left = traverse_node(compiler, &left.dict().unwrap());
                     let right = traverse_node(compiler, &right.dict().unwrap());
@@ -1031,7 +961,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "unary" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.dict().unwrap();
 
                     let res = traverse_node(compiler, children);
@@ -1062,11 +992,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "compare" | "logical" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.list().unwrap();
                     assert_eq!(children.len(), 2);
 
-                    let (left, right) = children.borrow_first_2();
+                    let (left, right) = (children[0].borrow(), children[1].borrow());
                     let left = traverse_node(compiler, &left.dict().unwrap());
                     let right = traverse_node(compiler, &right.dict().unwrap());
 
@@ -1125,7 +1055,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "mod" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.dict().unwrap();
 
                     let res = traverse_node(compiler, children);
@@ -1225,13 +1155,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "if" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.list().unwrap();
 
-                    let condition = traverse_node_or_list(compiler, &children[0].borrow());
-                    let then = traverse_node_or_list(compiler, &children[1].borrow());
+                    let condition = traverse_node_or_list(compiler, &children[0]);
+                    let then = traverse_node_or_list(compiler, &children[1]);
                     let else_ = if children.len() == 3 {
-                        Some(traverse_node_or_list(compiler, &children[2].borrow()))
+                        Some(traverse_node_or_list(compiler, &children[2]))
                     } else {
                         None
                     };
@@ -1261,22 +1191,21 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "for" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = children.list().unwrap();
 
                     // Initial
-                    let initial = traverse_node_or_list(compiler, &children[0].borrow())
-                        .into_ops(compiler, true);
+                    let initial =
+                        traverse_node_or_list(compiler, &children[0]).into_ops(compiler, true);
 
                     compiler.push_loop();
 
-                    let condition = traverse_node_or_list(compiler, &children[1].borrow())
-                        .into_ops(compiler, true);
-                    let mut body = traverse_node_or_list(compiler, &children[3].borrow())
-                        .into_ops(compiler, true);
+                    let condition =
+                        traverse_node_or_list(compiler, &children[1]).into_ops(compiler, true);
+                    let mut body =
+                        traverse_node_or_list(compiler, &children[3]).into_ops(compiler, true);
                     body.extend(
-                        traverse_node_or_list(compiler, &children[2].borrow())
-                            .into_ops(compiler, true),
+                        traverse_node_or_list(compiler, &children[2]).into_ops(compiler, true),
                     );
 
                     compiler.pop_loop();
@@ -1289,7 +1218,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "loop" => {
-                    let children = node.borrow_by_key("children");
+                    let children = node["children"].borrow();
                     let children = List::from(&*children);
 
                     compiler.push_loop();
@@ -1299,18 +1228,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                             ImlOp::Nop,
                             ImlOp::Nop,
                             ImlOp::from_vec(
-                                traverse_node_or_list(compiler, &children[0].borrow())
+                                traverse_node_or_list(compiler, &children[0])
                                     .into_ops(compiler, true),
                             ),
                         ),
                         2 => ImlLoop::new(
                             ImlOp::Nop,
                             ImlOp::from_vec(
-                                traverse_node_or_list(compiler, &children[0].borrow())
+                                traverse_node_or_list(compiler, &children[0])
                                     .into_ops(compiler, true),
                             ),
                             ImlOp::from_vec(
-                                traverse_node_or_list(compiler, &children[1].borrow())
+                                traverse_node_or_list(compiler, &children[1])
                                     .into_ops(compiler, true),
                             ),
                         ),
@@ -1333,15 +1262,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // rvalue ---------------------------------------------------------
         "rvalue" => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
             let children = List::from(&*children);
 
             let mut ops = Vec::new();
 
             for node in children.iter() {
-                ops.extend(
-                    traverse_node_or_list(compiler, &node.borrow()).into_ops(compiler, false),
-                );
+                ops.extend(traverse_node_or_list(compiler, node).into_ops(compiler, false));
             }
 
             assert!(ops.len() > 0);
@@ -1350,13 +1277,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // sequence  ------------------------------------------------------
         "sequence" => {
-            let children = node.borrow_by_key("children");
+            let children = node["children"].borrow();
             let children = List::from(&*children);
 
             let mut ops = Vec::new();
 
             for node in children.iter() {
-                ops.extend(traverse_node_or_list(compiler, &node.borrow()).into_ops(compiler, true))
+                ops.extend(traverse_node_or_list(compiler, node).into_ops(compiler, true))
             }
 
             if ops.len() == 1 {
@@ -1377,7 +1304,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
         _ => {
             // When there are children, try to traverse_node_or_list recursively
             if let Some(children) = node.get("children") {
-                traverse_node_or_list(compiler, &children.borrow())
+                traverse_node_or_list(compiler, children)
             }
             // Otherwise, report unhandled node!
             else {
@@ -1388,9 +1315,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 }
 
 /// Debug function to print an AST to stdout.
-pub fn print(ast: &Value) {
-    fn print(value: &Value, indent: usize) {
-        match value {
+pub fn print(ast: &RefValue) {
+    fn print(value: &RefValue, indent: usize) {
+        match &*value.borrow() {
             Value::Dict(d) => {
                 let emit = d["emit"].borrow();
                 let emit = emit.str().unwrap();
@@ -1432,13 +1359,13 @@ pub fn print(ast: &Value) {
                 print!("\n");
 
                 if let Some(children) = children {
-                    print(&children.borrow(), indent + 1);
+                    print(children, indent + 1);
                 }
             }
 
             Value::List(l) => {
                 for item in l.iter() {
-                    print(&item.borrow(), indent);
+                    print(item, indent);
                 }
             }
 
@@ -1519,7 +1446,7 @@ static AST_PRINT: Builtin = Builtin {
     name: "ast_print",
     signature: "ast",
     func: |_, args| {
-        print(&args[0].borrow());
+        print(&args[0]);
         Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
     },
 };

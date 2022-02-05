@@ -481,7 +481,7 @@ impl Parser {
                     }))
     }
 
-    pub fn parse(&self, mut reader: Reader) -> Result<Value, Error> {
+    pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
         //self.0.dump();
         let mut runtime = Runtime::new(&self.0, &mut reader);
 
@@ -494,12 +494,12 @@ impl Parser {
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
                 if ast.borrow().dict().is_some() {
-                    Ok(ast.into())
+                    Ok(ast)
                 } else {
                     Err(Error::new(None, "Parse error".to_string()))
                 }
             }
-            Ok(None) => Ok(Value::Void),
+            Ok(None) => Ok(Value::Void.into()),
             Err(error) => Err(error),
         }
     }

@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::{Dict, List, Object, RefValue, Value};
-use crate::compiler::ast;
 use crate::error::Error;
 use crate::vm::*;
 
@@ -448,6 +447,9 @@ impl Parselet {
             result
         };
 
+        /*
+        // Dump AST when parselet returns an AST for debugging purposes.
+        // fixme: Disabled for now, can be enabled on demand.
         if context.runtime.debug > 1 {
             loop {
                 if let Ok(Accept::Push(Capture::Value(ref value, ..))) = result {
@@ -465,6 +467,7 @@ impl Parselet {
                 break;
             }
         }
+        */
 
         result
     }
