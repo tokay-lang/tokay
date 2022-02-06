@@ -5,7 +5,7 @@ use macros::tokay_method;
 use super::{List, RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct Str {
     string: String,
 }
@@ -78,6 +78,12 @@ impl Str {
             Ok(RefValue::from(str.to_string().to_uppercase()))
         }
     );
+}
+
+impl std::fmt::Debug for Str {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\"", self.string)
+    }
 }
 
 impl std::fmt::Display for Str {
