@@ -1,6 +1,7 @@
 //! Compiler's internal Abstract Syntax Tree traversal
 use std::collections::HashSet;
 
+use ::macros::tokay_function;
 use charclass::CharClass;
 use linkme::distributed_slice;
 
@@ -127,7 +128,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         }
         "value_token_any" => RefValue::from(Token::any()).into(),
         "value_token_ccl" => {
-            let node = Dict::from(&*node["children"].borrow());
+            let node = node["children"].borrow();
+            let node = node.dict().unwrap();
 
             let emit = node["emit"].borrow();
             let emit = emit.str().unwrap();
@@ -137,7 +139,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let mut ccl = CharClass::new();
 
             for range in children.iter() {
-                let range = Dict::from(&*range.borrow());
+                let range = range.borrow();
+                let range = range.dict().unwrap();
 
                 let emit = range["emit"].borrow();
                 let emit = emit.str().unwrap();
@@ -1376,22 +1379,19 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-#[distributed_slice(BUILTINS)]
-static AST: Builtin = Builtin {
-    name: "ast",
-    signature: "emit ? value",
-    func: |context, args| {
+tokay_function!(
+    ast(emit, ?, value) {
         let context = context.unwrap();
 
         let mut ret = Dict::new();
-        ret.insert("emit".to_string(), args[0].clone());
+        ret.insert("emit".to_string(), emit);
 
-        let value = if args[1].is_void() {
+        let value = if value.is_void() {
             context
                 .collect(context.capture_start, false, true, false, 0)
                 .unwrap_or(None)
         } else {
-            Some(args[1].clone())
+            Some(value)
         };
 
         if let Some(value) = value {
@@ -1433,20 +1433,27 @@ static AST: Builtin = Builtin {
             Value::Addr(current.col as usize).into(),
         );
 
-        Ok(Accept::Push(Capture::Value(
-            Value::Dict(Box::new(ret)).into(),
-            None,
-            10,
-        )))
-    },
+        Value::Dict(Box::new(ret)).into()
+    }
+);
+
+tokay_function!(
+    ast_print(ast) {
+        print(&ast);
+        Value::Void.into()
+    }
+);
+
+#[distributed_slice(BUILTINS)]
+static AST: Builtin = Builtin {
+    name: "ast",
+    signature: "emit ? value",
+    func: ast,
 };
 
 #[distributed_slice(BUILTINS)]
 static AST_PRINT: Builtin = Builtin {
     name: "ast_print",
     signature: "ast",
-    func: |_, args| {
-        print(&args[0]);
-        Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
-    },
+    func: ast_print,
 };

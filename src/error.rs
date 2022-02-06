@@ -1,5 +1,6 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
 use linkme::distributed_slice;
+use macros::tokay_function;
 
 use crate::builtin::{Builtin, BUILTINS};
 use crate::reader::Offset;
@@ -45,16 +46,12 @@ impl From<&str> for Error {
     }
 }
 
-#[distributed_slice(BUILTINS)]
-static ERROR: Builtin = Builtin {
-    name: "error",
-    signature: "msg ? collect",
-    func: |context, args| {
+tokay_function!(
+    error(msg, ?, collect) {
         let context = context.unwrap();
+        let mut msg = msg.to_string();
 
-        let mut msg = args[0].to_string();
-
-        if args[1].is_true() {
+        if collect.is_true() {
             if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
                 let value = value.borrow();
 
@@ -67,5 +64,12 @@ static ERROR: Builtin = Builtin {
         }
 
         Error::new(Some(context.runtime.reader.tell()), msg).into()
-    },
+    }
+);
+
+#[distributed_slice(BUILTINS)]
+static ERROR: Builtin = Builtin {
+    name: "error",
+    signature: "msg ? collect",
+    func: error,
 };

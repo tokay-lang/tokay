@@ -194,7 +194,8 @@ tokay_function!(
         let c = c.to_string();
         if c.chars().count() != 1 {
             Err(format!(
-                "ord() expected single character, but received string of length {}",
+                "{} expects a single character, but received string of length {}",
+                __function,
                 c.len()
             ).into())
         } else {

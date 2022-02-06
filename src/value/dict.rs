@@ -1,10 +1,11 @@
 //! Dictionary object
 use linkme::distributed_slice;
+use macros::tokay_method;
+
 use std::collections::BTreeMap;
 
 use super::{RefValue, Value};
 use crate::builtin::{Builtin, BUILTINS};
-use crate::vm::*;
 
 // Alias for the inner dict
 type InnerDict = BTreeMap<String, RefValue>;
@@ -55,6 +56,49 @@ impl Dict {
         ret
     }
 
+    tokay_method!(
+        dict_new() {
+            Ok(RefValue::from(Dict::new()))
+        }
+    );
+
+    tokay_method!(
+        dict_update(dict, other) {
+            {
+                let dict = &mut *dict.borrow_mut();
+                let other = &*other.borrow();
+
+                if let Value::Dict(dict) = dict {
+                    if let Value::Dict(other) = other {
+                        for (k, v) in other.iter() {
+                            dict.insert(k.clone(), v.clone());
+                        }
+                    }
+                    else {
+                        return Err(
+                            format!(
+                                "{} only accepts 'dict' as second parameter, not '{}'",
+                                __function,
+                                other.name()
+                            )
+                        )
+                    }
+                }
+                else {
+                    return Err(
+                        format!(
+                            "{} only accepts 'dict' as first parameter, not '{}'",
+                            __function,
+                            dict.name()
+                        )
+                    )
+                }
+            }
+
+            Ok(dict)
+        }
+    );
+
     /*
     fn get_index(&self, index: &Value) -> Result<RefValue, String> {
         let index = index.to_string();
@@ -87,19 +131,6 @@ impl std::ops::DerefMut for Dict {
     }
 }
 
-// todo: replace by builtin-function which can be called as dict::dict
-impl From<&Value> for Dict {
-    fn from(value: &Value) -> Self {
-        if let Value::Dict(dict) = value {
-            *dict.clone()
-        } else {
-            let mut d = Dict::new();
-            d.insert("#0".to_string(), value.clone().into());
-            d
-        }
-    }
-}
-
 impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
         Value::Dict(Box::new(value)).into()
@@ -110,37 +141,12 @@ impl From<Dict> for RefValue {
 static DICT: Builtin = Builtin {
     name: "dict",
     signature: "",
-    func: |_context, _args| {
-        // fixme: Incomplete, concept missing.
-        Ok(Accept::Push(Capture::Value(
-            Value::Dict(Box::new(Dict::new())).into(),
-            None,
-            10,
-        )))
-    },
+    func: Dict::tokay_method_dict_new,
 };
 
 #[distributed_slice(BUILTINS)]
 static DICT_UPDATE: Builtin = Builtin {
     name: "dict_update",
     signature: "self other",
-    func: |_context, mut args| {
-        let mut dict = args.remove(0);
-        let other = args.remove(0);
-
-        // If dict is not a dict, turn it into a dict
-        if dict.borrow().dict().is_none() {
-            let new = Dict::from(&*dict.borrow());
-            dict = Value::Dict(Box::new(new)).into();
-        }
-
-        // Extend dict
-        if let Value::Dict(dict) = &mut *dict.borrow_mut() {
-            for (k, v) in Dict::from(&*other.borrow()).iter() {
-                dict.insert(k.clone(), v.clone());
-            }
-        }
-
-        Ok(Accept::Push(Capture::Value(dict, None, 10)))
-    },
+    func: Dict::tokay_method_dict_update,
 };

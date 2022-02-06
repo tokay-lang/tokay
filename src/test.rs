@@ -950,7 +950,7 @@ fn builtins() {
     assert_eq!(
         compile_and_run("ord(\"12\")", ""),
         Err(
-            "Line 1, column 1: ord() expected single character, but received string of length 2"
+            "Line 1, column 1: ord() expects a single character, but received string of length 2"
                 .to_string()
         )
     );
@@ -958,7 +958,7 @@ fn builtins() {
     assert_eq!(
         compile_and_run("ord(\"\")", ""),
         Err(
-            "Line 1, column 1: ord() expected single character, but received string of length 0"
+            "Line 1, column 1: ord() expects a single character, but received string of length 0"
                 .to_string()
         )
     );

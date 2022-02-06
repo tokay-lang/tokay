@@ -120,6 +120,7 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     // and one wrapping function for calls from the Tokay VM or a Method.
     let gen = quote! {
         pub fn #function(args: Vec<crate::value::RefValue>) -> Result<crate::value::RefValue, String> {
+            let __function = stringify!(#function());
             #(#arguments)*
             #body
         }
@@ -154,6 +155,7 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
             context: Option<&mut crate::vm::Context>,
             args: Vec<crate::value::RefValue>)
         -> Result<crate::vm::Accept, crate::vm::Reject> {
+            let __function = stringify!(#function());
             #(#arguments)*
             #body
         }
