@@ -72,6 +72,36 @@ impl syn::parse::Parse for BuiltinDef {
     }
 }
 
+fn gen_assign_arguments(
+    required: Option<usize>,
+    arguments: Vec<syn::Ident>,
+) -> Vec<proc_macro2::TokenStream> {
+    if required.is_some() {
+        arguments
+            .into_iter()
+            .enumerate()
+            .map(|(idx, arg)| {
+                if idx < required.unwrap() {
+                    quote! {
+                        let mut #arg = args.get(#idx).unwrap().clone();
+                    }
+                } else {
+                    quote! {
+                        let mut #arg = args
+                            .get(#idx)
+                            .and_then(|x| Some(x.clone()))
+                            .unwrap_or_else(|| crate::value::RefValue::from(Value::Void));
+                    }
+                }
+            })
+            .collect()
+    } else {
+        vec![quote! {
+            assert!(args.is_empty());
+        }]
+    }
+}
+
 #[proc_macro]
 pub fn tokay_method(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
@@ -83,36 +113,7 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     );
 
     // Generate assignment to identifier for each argument.
-    let arguments: Vec<proc_macro2::TokenStream> = if def.required.is_some() {
-        def
-        .arguments
-        .into_iter()
-        .enumerate()
-        .map(|(idx, arg)| {
-            if idx < def.required.unwrap() {
-                quote! {
-                    let mut #arg = args.get(#idx).unwrap().clone();
-                }
-            }
-            else {
-                quote! {
-                    let mut #arg = args
-                        .get(#idx)
-                        .and_then(|x| Some(x.clone()))
-                        .unwrap_or_else(|| crate::value::RefValue::from(Value::Void));
-                }
-            }
-        })
-        .collect()
-    }
-    else {
-        vec![
-            quote! {
-                assert!(args.is_empty());
-            }
-        ]
-    };
-
+    let arguments = gen_assign_arguments(def.required, def.arguments);
     let body = def.body;
 
     // Generate two functions: One for direct usage from other Rust code,
@@ -133,6 +134,30 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     };
 
     //println!("{} {:?}", function.to_string(), def.required);
+
+    TokenStream::from(gen)
+}
+
+#[proc_macro]
+pub fn tokay_function(input: TokenStream) -> TokenStream {
+    let def = syn::parse_macro_input!(input as BuiltinDef);
+
+    let function = def.function;
+
+    // Generate assignment to identifier for each argument.
+    let arguments = gen_assign_arguments(def.required, def.arguments);
+    let body = def.body;
+
+    // Generate function
+    let gen = quote! {
+        pub fn #function(
+            context: Option<&mut crate::vm::Context>,
+            args: Vec<crate::value::RefValue>)
+        -> Result<crate::vm::Accept, crate::vm::Reject> {
+            #(#arguments)*
+            #body
+        }
+    };
 
     TokenStream::from(gen)
 }

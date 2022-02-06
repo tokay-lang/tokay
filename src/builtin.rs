@@ -1,9 +1,9 @@
 //! Tokay built-in functions
-use crate::error::Error;
 use crate::value::{Dict, Object, RefValue, Value};
-use crate::vm::{Accept, Capture, Context, Reject};
+use crate::vm::{Accept, Context, Reject};
 
 use linkme::distributed_slice;
+use macros::tokay_function;
 
 #[distributed_slice]
 pub static BUILTINS: [Builtin] = [..];
@@ -183,53 +183,28 @@ impl From<&'static Builtin> for RefValue {
 
 // Global built-ins
 
-#[distributed_slice(BUILTINS)]
-static CHR: Builtin = Builtin {
-    name: "chr",
-    signature: "i",
-    func: |_context, args| {
-        let i = args[0].to_usize();
-        Ok(Accept::Push(Capture::Value(
-            format!("{}", std::char::from_u32(i as u32).unwrap()).into(),
-            None,
-            10,
-        )))
-    },
-};
+tokay_function!(
+    chr(i) {
+        RefValue::from(format!("{}", std::char::from_u32(i.to_usize() as u32).unwrap())).into()
+    }
+);
 
-#[distributed_slice(BUILTINS)]
-static ORD: Builtin = Builtin {
-    name: "ord",
-    signature: "c",
-    func: |_context, args| {
-        let c = args[0].to_string();
+tokay_function!(
+    ord(c) {
+        let c = c.to_string();
         if c.chars().count() != 1 {
-            Error::new(
-                None,
-                format!(
-                    "ord() expected single character, but received string of length {}",
-                    c.len()
-                ),
-            )
-            .into()
+            Err(format!(
+                "ord() expected single character, but received string of length {}",
+                c.len()
+            ).into())
         } else {
-            let c = c.chars().next().unwrap();
-
-            Ok(Accept::Push(Capture::Value(
-                Value::Addr(c as usize).into(),
-                None,
-                10,
-            )))
+            RefValue::from(c.chars().next().unwrap() as usize).into()
         }
-    },
-};
+    }
+);
 
-#[distributed_slice(BUILTINS)]
-static PRINT: Builtin = Builtin {
-    name: "print",
-    signature: "?",
-    func: |context, args| {
-        //println!("args = {:?}", args);
+tokay_function!(
+    print(?) {
         if args.len() == 0 && context.is_some() {
             if let Some(capture) = context.unwrap().get_capture(0) {
                 print!("{}", capture);
@@ -245,6 +220,27 @@ static PRINT: Builtin = Builtin {
         }
 
         print!("\n");
-        Ok(Accept::Push(Capture::Value(Value::Void.into(), None, 10)))
-    },
+        Value::Void.into()
+    }
+);
+
+#[distributed_slice(BUILTINS)]
+static CHR: Builtin = Builtin {
+    name: "chr",
+    signature: "i",
+    func: chr,
+};
+
+#[distributed_slice(BUILTINS)]
+static ORD: Builtin = Builtin {
+    name: "ord",
+    signature: "c",
+    func: ord,
+};
+
+#[distributed_slice(BUILTINS)]
+static PRINT: Builtin = Builtin {
+    name: "print",
+    signature: "?",
+    func: print,
 };

@@ -27,9 +27,15 @@ pub enum Accept {
     Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
 }
 
+impl From<RefValue> for Result<Accept, Reject> {
+    fn from(value: RefValue) -> Self {
+        Ok(Accept::Push(value.into()))
+    }
+}
+
 impl From<Value> for Result<Accept, Reject> {
     fn from(value: Value) -> Self {
-        Ok(Accept::Push(value.into()))
+        Ok(Accept::Push(RefValue::from(value).into()))
     }
 }
 
