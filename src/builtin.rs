@@ -229,19 +229,19 @@ tokay_function!(
 static CHR: Builtin = Builtin {
     name: "chr",
     signature: "i",
-    func: chr,
+    func: tokay_function_chr,
 };
 
 #[distributed_slice(BUILTINS)]
 static ORD: Builtin = Builtin {
     name: "ord",
     signature: "c",
-    func: ord,
+    func: tokay_function_ord,
 };
 
 #[distributed_slice(BUILTINS)]
 static PRINT: Builtin = Builtin {
     name: "print",
     signature: "?",
-    func: print,
+    func: tokay_function_print,
 };

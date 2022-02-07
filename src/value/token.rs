@@ -1,5 +1,6 @@
 //! Token callables represented by Value::Token
 use linkme::distributed_slice;
+use macros::tokay_token;
 
 use super::{Dict, Object, RefValue, Value};
 use crate::reader::Reader;
@@ -239,13 +240,9 @@ impl From<Token> for RefValue {
 
 // Hard-coded Tokens are builtins, but they are consumable.
 
-#[distributed_slice(BUILTINS)]
-static IDENTIFIER: Builtin = Builtin {
-    name: "Identifier", // Matching C-style identifiers
-    signature: "",
-    func: |context, _args| {
-        let context = context.unwrap();
-
+tokay_token!(
+    // Matching C-style identifiers
+    Identifier() {
         if let Some(ch) = context.runtime.reader.peek() {
             if !ch.is_alphabetic() && ch != '_' {
                 return Err(Reject::Next);
@@ -276,16 +273,12 @@ static IDENTIFIER: Builtin = Builtin {
         } else {
             Err(Reject::Next)
         }
-    },
-};
+    }
+);
 
-#[distributed_slice(BUILTINS)]
-static INTEGER: Builtin = Builtin {
-    name: "Integer", // Matching 64-bit integers directly
-    signature: "",
-    func: |context, _args| {
-        let context = context.unwrap();
-
+tokay_token!(
+    // Matching 64-bit integers directly
+    Integer() {
         let mut neg = false;
         let mut value: i64 = 0;
 
@@ -323,26 +316,21 @@ static INTEGER: Builtin = Builtin {
             context.runtime.reader.reset(start);
             Err(Reject::Next)
         }
-    },
-};
+    }
+);
 
-#[distributed_slice(BUILTINS)]
-static WORD: Builtin = Builtin {
-    name: "Word", // Matching words made of letters
-    signature: "? min max",
-    func: |context, args| {
-        let context = context.unwrap();
-
-        let min = if args[0].is_void() {
+tokay_token!(
+    Word(?, min, max) {
+        let min = if min.is_void() {
             None
         } else {
-            Some(args[0].to_usize())
+            Some(min.to_usize())
         };
 
-        let max = if args[1].is_void() {
+        let max = if max.is_void() {
             None
         } else {
-            Some(args[1].to_usize())
+            Some(max.to_usize())
         };
 
         let mut count: usize = 0;
@@ -379,5 +367,26 @@ static WORD: Builtin = Builtin {
         } else {
             Err(Reject::Next)
         }
-    },
+    }
+);
+
+#[distributed_slice(BUILTINS)]
+static IDENTIFIER: Builtin = Builtin {
+    name: "Identifier",
+    signature: "",
+    func: tokay_token_identifier,
+};
+
+#[distributed_slice(BUILTINS)]
+static INTEGER: Builtin = Builtin {
+    name: "Integer",
+    signature: "",
+    func: tokay_token_integer,
+};
+
+#[distributed_slice(BUILTINS)]
+static WORD: Builtin = Builtin {
+    name: "Word", // Matching words made of letters
+    signature: "? min max",
+    func: tokay_token_word,
 };

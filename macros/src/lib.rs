@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn;
 
 /// Allows to specify either an identifier or an required-delimiter `?` as parameter list.
@@ -106,11 +106,21 @@ fn gen_assign_arguments(
 pub fn tokay_method(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
-    let function = def.function;
+    let name = def.function;
     let callable = syn::Ident::new(
-        &format!("tokay_method_{}", function.to_string()),
+        &format!("tokay_method_{}", name.to_string()),
         proc_macro2::Span::call_site(),
     );
+
+    // Method names must start with a lower-case letter
+    if !name.to_string().chars().next().unwrap().is_lowercase() {
+        return quote_spanned! {
+            name.span() => compile_error!(
+                "Method identifier must start with a lower-case letter"
+            );
+        }
+        .into();
+    }
 
     // Generate assignment to identifier for each argument.
     let arguments = gen_assign_arguments(def.required, def.arguments);
@@ -118,10 +128,19 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
 
     // Generate two functions: One for direct usage from other Rust code,
     // and one wrapping function for calls from the Tokay VM or a Method.
+    // The direct usage function will return an Result<RefValue, String>
+    // instead of an Result<Accept, Reject>.
     let gen = quote! {
-        pub fn #function(args: Vec<crate::value::RefValue>) -> Result<crate::value::RefValue, String> {
-            let __function = stringify!(#function());
+        pub fn #name(
+            args: Vec<crate::value::RefValue>
+        ) -> Result<crate::value::RefValue, String> {
+            // The function's original name in Tokay
+            let __function = stringify!(#name());
+
+            // Arguments
             #(#arguments)*
+
+            // Body
             #body
         }
 
@@ -129,7 +148,7 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
             _context: Option<&mut crate::vm::Context>,
             args: Vec<crate::value::RefValue>
         ) -> Result<crate::vm::Accept, crate::vm::Reject> {
-            let ret = Self::#function(args)?;
+            let ret = Self::#name(args)?;
             Ok(crate::vm::Accept::Push(crate::vm::Capture::Value(ret, None, 10)))
         }
     };
@@ -143,7 +162,21 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
 pub fn tokay_function(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
-    let function = def.function;
+    let name = def.function;
+    let callable = syn::Ident::new(
+        &format!("tokay_function_{}", name.to_string()),
+        proc_macro2::Span::call_site(),
+    );
+
+    // Function names must start with a lower-case letter
+    if !name.to_string().chars().next().unwrap().is_lowercase() {
+        return quote_spanned! {
+            name.span() => compile_error!(
+                "Function identifier must start with a lower-case letter"
+            );
+        }
+        .into();
+    }
 
     // Generate assignment to identifier for each argument.
     let arguments = gen_assign_arguments(def.required, def.arguments);
@@ -151,13 +184,77 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
 
     // Generate function
     let gen = quote! {
-        pub fn #function(
+        pub fn #callable(
             context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>)
-        -> Result<crate::vm::Accept, crate::vm::Reject> {
-            let __function = stringify!(#function());
+            args: Vec<crate::value::RefValue>
+        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            // The function's original name in Tokay
+            let __function = stringify!(#name());
+
+            // Arguments
             #(#arguments)*
+
+            // Body
             #body
+        }
+    };
+
+    TokenStream::from(gen)
+}
+
+#[proc_macro]
+pub fn tokay_token(input: TokenStream) -> TokenStream {
+    let def = syn::parse_macro_input!(input as BuiltinDef);
+
+    let name = def.function;
+
+    // Token names must start with an upper-case letter or underscore
+    if !{
+        let ch = name.to_string().chars().next().unwrap();
+        ch.is_uppercase() || ch == '_'
+    } {
+        return quote_spanned! {
+            name.span() => compile_error!(
+                "Token identifier must start with an upper-case letter or underscore"
+            );
+        }
+        .into();
+    }
+
+    let function = syn::Ident::new(
+        &name.to_string().to_lowercase(),
+        proc_macro2::Span::call_site(),
+    );
+    let callable = syn::Ident::new(
+        &format!("tokay_token_{}", name.to_string().to_lowercase()),
+        proc_macro2::Span::call_site(),
+    );
+
+    // Generate assignment to identifier for each argument.
+    let arguments = gen_assign_arguments(def.required, def.arguments);
+    let body = def.body;
+
+    // Generate function and wrapper
+    let gen = quote! {
+        pub fn #function(
+            context: &mut crate::vm::Context,
+            args: Vec<crate::value::RefValue>
+        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            // The function's original name in Tokay
+            let __function = stringify!(#name());
+
+            // Arguments
+            #(#arguments)*
+
+            // Body
+            #body
+        }
+
+        pub fn #callable(
+            context: Option<&mut crate::vm::Context>,
+            args: Vec<crate::value::RefValue>
+        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            #function(context.unwrap(), args)
         }
     };
 

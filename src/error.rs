@@ -71,5 +71,5 @@ tokay_function!(
 static ERROR: Builtin = Builtin {
     name: "error",
     signature: "msg ? collect",
-    func: error,
+    func: tokay_function_error,
 };
