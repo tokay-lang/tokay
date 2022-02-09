@@ -57,13 +57,13 @@ impl Dict {
     }
 
     tokay_method!(
-        dict_new() {
+        "dict_new()", {
             Ok(RefValue::from(Dict::new()))
         }
     );
 
     tokay_method!(
-        dict_update(dict, other) {
+        "dict_update(dict, other)", {
             {
                 let dict = &mut *dict.borrow_mut();
                 let other = &*other.borrow();

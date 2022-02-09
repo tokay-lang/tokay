@@ -1380,7 +1380,8 @@ pub fn print(ast: &RefValue) {
 }
 
 tokay_function!(
-    ast(emit, ?, value) {
+    "ast(emit, value=void)",
+    {
         let context = context.unwrap();
 
         let mut ret = Dict::new();
@@ -1438,7 +1439,8 @@ tokay_function!(
 );
 
 tokay_function!(
-    ast_print(ast) {
+    "ast_print(ast)",
+    {
         print(&ast);
         Value::Void.into()
     }

@@ -34,8 +34,7 @@ impl Str {
     }
 
     tokay_method!(
-        // Test
-        str_join(str, list) {
+        "str_join(str, list)", {
             let delimiter = str.to_string();
             let list = List::from(list);
 
@@ -54,13 +53,13 @@ impl Str {
     );
 
     tokay_method!(
-        str_lower(str) {
+        "str_lower(str)", {
             Ok(RefValue::from(str.to_string().to_lowercase()))
         }
     );
 
     tokay_method!(
-        str_replace(str, from, ?, to, n) {
+        "str_replace(str, from, to=void, n=void)", {
             let string = str.to_string();
             let from = from.to_string();
             let to = to.to_string();
@@ -74,7 +73,7 @@ impl Str {
     );
 
     tokay_method!(
-        str_upper(str) {
+        "str_upper(str)", {
             Ok(RefValue::from(str.to_string().to_uppercase()))
         }
     );

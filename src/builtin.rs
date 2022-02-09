@@ -183,47 +183,46 @@ impl From<&'static Builtin> for RefValue {
 
 // Global built-ins
 
-tokay_function!(
-    chr(i) {
-        RefValue::from(format!("{}", std::char::from_u32(i.to_usize() as u32).unwrap())).into()
-    }
-);
+tokay_function!("chr(i)", {
+    RefValue::from(format!(
+        "{}",
+        std::char::from_u32(i.to_usize() as u32).unwrap()
+    ))
+    .into()
+});
 
-tokay_function!(
-    ord(c) {
-        let c = c.to_string();
-        if c.chars().count() != 1 {
-            Err(format!(
-                "{} expects a single character, but received string of length {}",
-                __function,
-                c.len()
-            ).into())
-        } else {
-            RefValue::from(c.chars().next().unwrap() as usize).into()
+tokay_function!("ord(c)", {
+    let c = c.to_string();
+    if c.chars().count() != 1 {
+        Err(format!(
+            "{} expects a single character, but received string of length {}",
+            __function,
+            c.len()
+        )
+        .into())
+    } else {
+        RefValue::from(c.chars().next().unwrap() as usize).into()
+    }
+});
+
+tokay_function!("print(?)", {
+    if args.len() == 0 && context.is_some() {
+        if let Some(capture) = context.unwrap().get_capture(0) {
+            print!("{}", capture);
+        }
+    } else {
+        for i in 0..args.len() {
+            if i > 0 {
+                print!(" ");
+            }
+
+            print!("{}", args[i].to_string());
         }
     }
-);
 
-tokay_function!(
-    print(?) {
-        if args.len() == 0 && context.is_some() {
-            if let Some(capture) = context.unwrap().get_capture(0) {
-                print!("{}", capture);
-            }
-        } else {
-            for i in 0..args.len() {
-                if i > 0 {
-                    print!(" ");
-                }
-
-                print!("{}", args[i].to_string());
-            }
-        }
-
-        print!("\n");
-        Value::Void.into()
-    }
-);
+    print!("\n");
+    Value::Void.into()
+});
 
 #[distributed_slice(BUILTINS)]
 static CHR: Builtin = Builtin {

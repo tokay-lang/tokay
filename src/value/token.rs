@@ -240,135 +240,130 @@ impl From<Token> for RefValue {
 
 // Hard-coded Tokens are builtins, but they are consumable.
 
-tokay_token!(
-    // Matching C-style identifiers
-    Identifier() {
-        if let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphabetic() && ch != '_' {
-                return Err(Reject::Next);
-            }
-
-            context.runtime.reader.next();
-        } else {
+// Matching C-style identifiers
+tokay_token!("Identifier", {
+    if let Some(ch) = context.runtime.reader.peek() {
+        if !ch.is_alphabetic() && ch != '_' {
             return Err(Reject::Next);
         }
 
-        let mut count: usize = 1;
-
-        while let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphanumeric() && ch != '_' {
-                break;
-            }
-
-            context.runtime.reader.next();
-            count += ch.len_utf8();
-        }
-
-        if count > 0 {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_last(count),
-                None,
-                5,
-            )))
-        } else {
-            Err(Reject::Next)
-        }
+        context.runtime.reader.next();
+    } else {
+        return Err(Reject::Next);
     }
-);
 
-tokay_token!(
-    // Matching 64-bit integers directly
-    Integer() {
-        let mut neg = false;
-        let mut value: i64 = 0;
+    let mut count: usize = 1;
 
-        // Sign
-        if let Some(ch) = context.runtime.reader.peek() {
-            if ch == '-' || ch == '+' {
-                neg = ch == '-';
-                context.runtime.reader.next();
-            }
+    while let Some(ch) = context.runtime.reader.peek() {
+        if !ch.is_alphanumeric() && ch != '_' {
+            break;
         }
 
-        let start = context.runtime.reader.tell();
+        context.runtime.reader.next();
+        count += ch.len_utf8();
+    }
 
-        // Digits
-        while let Some(ch) = context.runtime.reader.peek() {
-            if ch < '0' || ch > '9' {
-                break;
-            }
+    if count > 0 {
+        Ok(Accept::Push(Capture::Range(
+            context.runtime.reader.capture_last(count),
+            None,
+            5,
+        )))
+    } else {
+        Err(Reject::Next)
+    }
+});
 
-            value = value * 10 + ch.to_digit(10).unwrap() as i64;
+// Matching 64-bit integers directly
+tokay_token!("Integer", {
+    let mut neg = false;
+    let mut value: i64 = 0;
+
+    // Sign
+    if let Some(ch) = context.runtime.reader.peek() {
+        if ch == '-' || ch == '+' {
+            neg = ch == '-';
             context.runtime.reader.next();
         }
+    }
 
-        if start.offset < context.runtime.reader.tell().offset {
-            if neg {
-                value = -value;
+    let start = context.runtime.reader.tell();
+
+    // Digits
+    while let Some(ch) = context.runtime.reader.peek() {
+        if ch < '0' || ch > '9' {
+            break;
+        }
+
+        value = value * 10 + ch.to_digit(10).unwrap() as i64;
+        context.runtime.reader.next();
+    }
+
+    if start.offset < context.runtime.reader.tell().offset {
+        if neg {
+            value = -value;
+        }
+
+        Ok(Accept::Push(Capture::Value(
+            Value::Integer(value).into(),
+            None,
+            5,
+        )))
+    } else {
+        context.runtime.reader.reset(start);
+        Err(Reject::Next)
+    }
+});
+
+// Words, optionally with limited length
+tokay_token!("Word(min=void max=void)", {
+    let min = if min.is_void() {
+        None
+    } else {
+        Some(min.to_usize())
+    };
+
+    let max = if max.is_void() {
+        None
+    } else {
+        Some(max.to_usize())
+    };
+
+    let mut count: usize = 0;
+
+    while let Some(ch) = context.runtime.reader.peek() {
+        if !ch.is_alphabetic() {
+            break;
+        }
+
+        context.runtime.reader.next();
+        count += ch.len_utf8();
+    }
+
+    if count > 0 {
+        if let Some(min) = min {
+            if count < min {
+                count = 0;
             }
+        }
 
-            Ok(Accept::Push(Capture::Value(
-                Value::Integer(value).into(),
-                None,
-                5,
-            )))
-        } else {
-            context.runtime.reader.reset(start);
-            Err(Reject::Next)
+        if let Some(max) = max {
+            if count > max {
+                count = 0;
+            }
         }
     }
-);
 
-tokay_token!(
-    Word(?, min, max) {
-        let min = if min.is_void() {
-            None
-        } else {
-            Some(min.to_usize())
-        };
-
-        let max = if max.is_void() {
-            None
-        } else {
-            Some(max.to_usize())
-        };
-
-        let mut count: usize = 0;
-
-        while let Some(ch) = context.runtime.reader.peek() {
-            if !ch.is_alphabetic() {
-                break;
-            }
-
-            context.runtime.reader.next();
-            count += ch.len_utf8();
-        }
-
-        if count > 0 {
-            if let Some(min) = min {
-                if count < min {
-                    count = 0;
-                }
-            }
-
-            if let Some(max) = max {
-                if count > max {
-                    count = 0;
-                }
-            }
-        }
-
-        if count > 0 {
-            Ok(Accept::Push(Capture::Range(
-                context.runtime.reader.capture_last(count),
-                None,
-                5,
-            )))
-        } else {
-            Err(Reject::Next)
-        }
+    if count > 0 {
+        Ok(Accept::Push(Capture::Range(
+            context.runtime.reader.capture_last(count),
+            None,
+            5,
+        )))
+    } else {
+        Err(Reject::Next)
     }
-);
+});
 
 #[distributed_slice(BUILTINS)]
 static IDENTIFIER: Builtin = Builtin {

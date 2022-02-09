@@ -2,59 +2,79 @@ use proc_macro::TokenStream;
 use proc_macro2;
 use quote::{quote, quote_spanned};
 use syn;
+use tokay;
 
-/// Allows to specify either an identifier or an required-delimiter `?` as parameter list.
-enum BuiltinArgDef {
-    Argument(syn::Ident),
-    OptionalMarker(syn::Token![?]),
-}
+/* Tokay v0.4 compat, the function must be reworked in v0.5 */
+fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {
+    let mut compiler = tokay::compiler::Compiler::new();
+    let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))));
 
-impl syn::parse::Parse for BuiltinArgDef {
-    fn parse(stream: syn::parse::ParseStream) -> syn::Result<Self> {
-        if stream.peek(syn::Token![?]) {
-            Ok(BuiltinArgDef::OptionalMarker(stream.parse()?))
-        } else {
-            Ok(BuiltinArgDef::Argument(stream.parse()?))
-        }
+    match program {
+        Ok(program) => program.run_from_string(input.to_owned()).map_err(|err| err.to_string()),
+        Err(errors) => Err(errors
+            .into_iter()
+            .map(|err| err.to_string())
+            .collect::<Vec<String>>()
+            .join("\n")),
     }
 }
 
+
 /// Describes a builtin function and its arguments.
 struct BuiltinDef {
-    function: syn::Ident,
-    arguments: Vec<syn::Ident>,
-    required: Option<usize>,
+    name: syn::Ident,
+    arguments: Vec<(syn::Ident, Option<String>)>,
     body: syn::Block,
 }
 
 impl syn::parse::Parse for BuiltinDef {
     fn parse(stream: syn::parse::ParseStream) -> syn::Result<Self> {
-        let function: syn::Ident = stream.parse()?;
-        //let function = stream.parse::<syn::Ident>()?;
-        let content;
-        let _: syn::token::Paren = syn::parenthesized!(content in stream);
-        let argdefs: syn::punctuated::Punctuated<BuiltinArgDef, syn::Token![,]> =
-            content.parse_terminated(BuiltinArgDef::parse)?;
-        let body: syn::Block = stream.parse()?;
+        let signature = stream.parse::<syn::LitStr>()?;
+        let _ = stream.parse::<syn::Token![,]>()?;
+        let body = stream.parse::<syn::Block>()?;
 
         // Collect arguments and possible required marker.
+        //let mut mt = MiniTokay::new(signature.value().chars());
+        let res = tokay_run(
+            r#"
+            Argument : {
+                Identifier _ { '=' Identifier}?
+            }
+
+            Arguments : {
+                Arguments Argument _ ','?
+                Argument _ ','?
+            }
+
+            _ Identifier { '(' Arguments ')' _ }?
+            "#,
+            &signature.value()
+        );
+
+        println!("{:?}", res);
+
         let mut arguments = Vec::new();
+        /*
         let mut required = None;
 
-        for (i, argdef) in argdefs.into_iter().enumerate() {
-            match argdef {
-                BuiltinArgDef::Argument(arg) => arguments.push(arg),
-                BuiltinArgDef::OptionalMarker(marker) => {
-                    if required.is_some() {
-                        return Err(syn::parse::Error::new(
-                            marker.span,
-                            "Cannot provide multiple required delimiters",
-                        ));
-                    }
-
-                    required = Some(i)
-                }
+        for (i, name) in signature.value().split(" ").enumerate() {
+            if name.len() == 0 {
+                continue;
             }
+
+            if name == "?" {
+                if required.is_some() {
+                    return Err(syn::parse::Error::new(
+                        signature.span(),
+                        "Cannot provide multiple required delimiters",
+                    ));
+                }
+
+                required = Some(i);
+                continue;
+            }
+
+            arguments.push(syn::Ident::new(name, signature.span()));
         }
 
         // If no required-marker was set but arguments where defined,
@@ -62,20 +82,20 @@ impl syn::parse::Parse for BuiltinDef {
         if required.is_none() && !arguments.is_empty() {
             required = Some(arguments.len());
         }
+        */
 
         Ok(BuiltinDef {
-            function,
+            name: syn::Ident::new("fixme", proc_macro2::Span::call_site()),
             arguments,
-            required,
             body,
         })
     }
 }
 
 fn gen_assign_arguments(
-    required: Option<usize>,
-    arguments: Vec<syn::Ident>,
+    arguments: Vec<(syn::Ident, Option<String>)>,
 ) -> Vec<proc_macro2::TokenStream> {
+    /*
     if required.is_some() {
         arguments
             .into_iter()
@@ -100,13 +120,19 @@ fn gen_assign_arguments(
             assert!(args.is_empty());
         }]
     }
+    */
+
+    vec![quote! {
+        assert!(args.is_empty());
+    }]
+
 }
 
 #[proc_macro]
 pub fn tokay_method(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
-    let name = def.function;
+    let name = def.name;
     let callable = syn::Ident::new(
         &format!("tokay_method_{}", name.to_string()),
         proc_macro2::Span::call_site(),
@@ -123,7 +149,7 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     }
 
     // Generate assignment to identifier for each argument.
-    let arguments = gen_assign_arguments(def.required, def.arguments);
+    let arguments = gen_assign_arguments(def.arguments);
     let body = def.body;
 
     // Generate two functions: One for direct usage from other Rust code,
@@ -162,7 +188,7 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
 pub fn tokay_function(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
-    let name = def.function;
+    let name = def.name;
     let callable = syn::Ident::new(
         &format!("tokay_function_{}", name.to_string()),
         proc_macro2::Span::call_site(),
@@ -179,7 +205,7 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
     }
 
     // Generate assignment to identifier for each argument.
-    let arguments = gen_assign_arguments(def.required, def.arguments);
+    let arguments = gen_assign_arguments(def.arguments);
     let body = def.body;
 
     // Generate function
@@ -206,7 +232,7 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
 pub fn tokay_token(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
-    let name = def.function;
+    let name = def.name;
 
     // Token names must start with an upper-case letter or underscore
     if !{
@@ -231,7 +257,7 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
     );
 
     // Generate assignment to identifier for each argument.
-    let arguments = gen_assign_arguments(def.required, def.arguments);
+    let arguments = gen_assign_arguments(def.arguments);
     let body = def.body;
 
     // Generate function and wrapper
