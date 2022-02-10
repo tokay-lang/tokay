@@ -46,26 +46,24 @@ impl From<&str> for Error {
     }
 }
 
-tokay_function!(
-    "error(msg, collect=false)", {
-        let context = context.unwrap();
-        let mut msg = msg.to_string();
+tokay_function!("error(msg, collect=false)", {
+    let context = context.unwrap();
+    let mut msg = msg.to_string();
 
-        if collect.is_true() {
-            if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
-                let value = value.borrow();
+    if collect.is_true() {
+        if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
+            let value = value.borrow();
 
-                if let Value::Str(s) = &*value {
-                    msg.push_str(&format!(": '{}'", s))
-                } else {
-                    msg.push_str(&format!(": {}", value.repr()))
-                }
+            if let Value::Str(s) = &*value {
+                msg.push_str(&format!(": '{}'", s))
+            } else {
+                msg.push_str(&format!(": {}", value.repr()))
             }
         }
-
-        Error::new(Some(context.runtime.reader.tell()), msg).into()
     }
-);
+
+    Error::new(Some(context.runtime.reader.tell()), msg).into()
+});
 
 #[distributed_slice(BUILTINS)]
 static ERROR: Builtin = Builtin {

@@ -316,7 +316,7 @@ tokay_token!("Integer", {
 });
 
 // Words, optionally with limited length
-tokay_token!("Word(min=void max=void)", {
+tokay_token!("Word(min=void max=void test=lol)", {
     let min = if min.is_void() {
         None
     } else {

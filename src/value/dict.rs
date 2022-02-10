@@ -56,48 +56,36 @@ impl Dict {
         ret
     }
 
-    tokay_method!(
-        "dict_new()", {
-            Ok(RefValue::from(Dict::new()))
-        }
-    );
+    tokay_method!("dict_new()", { Ok(RefValue::from(Dict::new())) });
 
-    tokay_method!(
-        "dict_update(dict, other)", {
-            {
-                let dict = &mut *dict.borrow_mut();
-                let other = &*other.borrow();
+    tokay_method!("dict_update(dict, other)", {
+        {
+            let dict = &mut *dict.borrow_mut();
+            let other = &*other.borrow();
 
-                if let Value::Dict(dict) = dict {
-                    if let Value::Dict(other) = other {
-                        for (k, v) in other.iter() {
-                            dict.insert(k.clone(), v.clone());
-                        }
+            if let Value::Dict(dict) = dict {
+                if let Value::Dict(other) = other {
+                    for (k, v) in other.iter() {
+                        dict.insert(k.clone(), v.clone());
                     }
-                    else {
-                        return Err(
-                            format!(
-                                "{} only accepts 'dict' as second parameter, not '{}'",
-                                __function,
-                                other.name()
-                            )
-                        )
-                    }
+                } else {
+                    return Err(format!(
+                        "{} only accepts 'dict' as second parameter, not '{}'",
+                        __function,
+                        other.name()
+                    ));
                 }
-                else {
-                    return Err(
-                        format!(
-                            "{} only accepts 'dict' as first parameter, not '{}'",
-                            __function,
-                            dict.name()
-                        )
-                    )
-                }
+            } else {
+                return Err(format!(
+                    "{} only accepts 'dict' as first parameter, not '{}'",
+                    __function,
+                    dict.name()
+                ));
             }
-
-            Ok(dict)
         }
-    );
+
+        Ok(dict)
+    });
 
     /*
     fn get_index(&self, index: &Value) -> Result<RefValue, String> {

@@ -7,10 +7,14 @@ use tokay;
 /* Tokay v0.4 compat, the function must be reworked in v0.5 */
 fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {
     let mut compiler = tokay::compiler::Compiler::new();
-    let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))));
+    let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(
+        src.to_owned(),
+    ))));
 
     match program {
-        Ok(program) => program.run_from_string(input.to_owned()).map_err(|err| err.to_string()),
+        Ok(program) => program
+            .run_from_string(input.to_owned())
+            .map_err(|err| err.to_string()),
         Err(errors) => Err(errors
             .into_iter()
             .map(|err| err.to_string())
@@ -19,11 +23,10 @@ fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, Stri
     }
 }
 
-
 /// Describes a builtin function and its arguments.
 struct BuiltinDef {
     name: syn::Ident,
-    arguments: Vec<(syn::Ident, Option<String>)>,
+    arguments: Vec<(syn::Ident, String)>,
     body: syn::Block,
 }
 
@@ -37,23 +40,56 @@ impl syn::parse::Parse for BuiltinDef {
         //let mut mt = MiniTokay::new(signature.value().chars());
         let res = tokay_run(
             r#"
+            # This grammar should be tested and refactored with Tokay v0.5 to work without hassle.
             Argument : {
-                Identifier _ { '=' Identifier}?
+                Identifier _ {
+                    '=' Identifier
+                    "required"  # required to produce a consistent AST.
+                } accept ($1 $3)  # omg this is this ugly, but it works... Tokay v0.4 hassle.
             }
 
-            Arguments : {
-                Arguments Argument _ ','?
-                Argument _ ','?
-            }
-
-            _ Identifier { '(' Arguments ')' _ }?
+            _ Identifier { '(' { Argument _ {',' _}? }+ ')' _ }?
             "#,
-            &signature.value()
+            &signature.value(),
         );
 
-        println!("{:?}", res);
+        if let Err(msg) = res {
+            return Err(syn::parse::Error::new(signature.span(), msg));
+        }
 
         let mut arguments = Vec::new();
+        let res = res.unwrap().unwrap().to_list();
+
+        let name = res[0].borrow().to_string();
+
+        if res.len() > 1 {
+            let args = res[1].borrow().to_list();
+
+            for item in args.iter() {
+                let arg = &*item.borrow();
+                if let Some(arg) = arg.get_list() {
+                    //println!("{} {:?}", name, item);
+                    arguments.push((
+                        syn::Ident::new(
+                            arg[0].borrow().get_string().unwrap(),
+                            proc_macro2::Span::call_site(),
+                        ),
+                        arg[1].borrow().to_string(),
+                    ));
+                } else {
+                    //println!("{} {:?}", name, args);
+                    arguments.push((
+                        syn::Ident::new(
+                            args[0].borrow().get_string().unwrap(),
+                            proc_macro2::Span::call_site(),
+                        ),
+                        args[1].borrow().to_string(),
+                    ));
+                    break; // Tokay v0.4 special case... don't ask for this.
+                }
+            }
+        }
+
         /*
         let mut required = None;
 
@@ -85,16 +121,14 @@ impl syn::parse::Parse for BuiltinDef {
         */
 
         Ok(BuiltinDef {
-            name: syn::Ident::new("fixme", proc_macro2::Span::call_site()),
+            name: syn::Ident::new(&name, proc_macro2::Span::call_site()),
             arguments,
             body,
         })
     }
 }
 
-fn gen_assign_arguments(
-    arguments: Vec<(syn::Ident, Option<String>)>,
-) -> Vec<proc_macro2::TokenStream> {
+fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2::TokenStream> {
     /*
     if required.is_some() {
         arguments
@@ -125,7 +159,6 @@ fn gen_assign_arguments(
     vec![quote! {
         assert!(args.is_empty());
     }]
-
 }
 
 #[proc_macro]

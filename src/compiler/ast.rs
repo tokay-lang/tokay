@@ -1379,72 +1379,66 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-tokay_function!(
-    "ast(emit, value=void)",
-    {
-        let context = context.unwrap();
+tokay_function!("ast(emit, value=void)", {
+    let context = context.unwrap();
 
-        let mut ret = Dict::new();
-        ret.insert("emit".to_string(), emit);
+    let mut ret = Dict::new();
+    ret.insert("emit".to_string(), emit);
 
-        let value = if value.is_void() {
-            context
-                .collect(context.capture_start, false, true, false, 0)
-                .unwrap_or(None)
+    let value = if value.is_void() {
+        context
+            .collect(context.capture_start, false, true, false, 0)
+            .unwrap_or(None)
+    } else {
+        Some(value)
+    };
+
+    if let Some(value) = value {
+        // List or Dict values are classified as child nodes
+        if value.borrow().list().is_some() || value.borrow().dict().is_some() {
+            ret.insert("children".to_string(), value.clone());
         } else {
-            Some(value)
-        };
-
-        if let Some(value) = value {
-            // List or Dict values are classified as child nodes
-            if value.borrow().list().is_some() || value.borrow().dict().is_some() {
-                ret.insert("children".to_string(), value.clone());
-            } else {
-                ret.insert("value".to_string(), value.clone());
-            }
+            ret.insert("value".to_string(), value.clone());
         }
-
-        // Store positions of reader start
-        ret.insert(
-            "offset".to_string(),
-            Value::Addr(context.reader_start.offset).into(),
-        );
-        ret.insert(
-            "row".to_string(),
-            Value::Addr(context.reader_start.row as usize).into(),
-        );
-        ret.insert(
-            "col".to_string(),
-            Value::Addr(context.reader_start.col as usize).into(),
-        );
-
-        // Store positions of reader stop
-        let current = context.runtime.reader.tell();
-
-        ret.insert(
-            "stop_offset".to_string(),
-            Value::Addr(current.offset).into(),
-        );
-        ret.insert(
-            "stop_row".to_string(),
-            Value::Addr(current.row as usize).into(),
-        );
-        ret.insert(
-            "stop_col".to_string(),
-            Value::Addr(current.col as usize).into(),
-        );
-
-        Value::Dict(Box::new(ret)).into()
     }
-);
 
-tokay_function!(
-    "ast_print(ast)",
-    {
-        print(&ast);
-        Value::Void.into()
-    }
-);
+    // Store positions of reader start
+    ret.insert(
+        "offset".to_string(),
+        Value::Addr(context.reader_start.offset).into(),
+    );
+    ret.insert(
+        "row".to_string(),
+        Value::Addr(context.reader_start.row as usize).into(),
+    );
+    ret.insert(
+        "col".to_string(),
+        Value::Addr(context.reader_start.col as usize).into(),
+    );
+
+    // Store positions of reader stop
+    let current = context.runtime.reader.tell();
+
+    ret.insert(
+        "stop_offset".to_string(),
+        Value::Addr(current.offset).into(),
+    );
+    ret.insert(
+        "stop_row".to_string(),
+        Value::Addr(current.row as usize).into(),
+    );
+    ret.insert(
+        "stop_col".to_string(),
+        Value::Addr(current.col as usize).into(),
+    );
+
+    Value::Dict(Box::new(ret)).into()
+});
+
+tokay_function!("ast_print(ast)", {
+    print(&ast);
+    Value::Void.into()
+});
 
 #[distributed_slice(BUILTINS)]
 static AST: Builtin = Builtin {

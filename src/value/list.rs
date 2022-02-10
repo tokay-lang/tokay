@@ -21,32 +21,29 @@ impl List {
         }
     }
 
-    tokay_method!(
-        "list_new()", {
-            let list = if args.len() == 1 {
-                List::from(args[0].clone())
-            } else {
-                List { list: args }
-            };
+    tokay_method!("list_new()", {
+        let list = if args.len() == 1 {
+            List::from(args[0].clone())
+        } else {
+            List { list: args }
+        };
 
-            Ok(list.into())
+        Ok(list.into())
     });
 
-    tokay_method!(
-        list_push(list, item) {
-            // If list is not a list, turn it into a list and push list as first element
-            if !list.is("list") {
-                list = Self::list_new(vec![list.clone()])?;
-            }
-
-            // Push the item to the list
-            if let Value::List(list) = &mut *list.borrow_mut() {
-                list.push(item);
-            }
-
-            Ok(list)
+    tokay_method!("list_push(list, item)", {
+        // If list is not a list, turn it into a list and push list as first element
+        if !list.is("list") {
+            list = Self::list_new(vec![list.clone()])?;
         }
-    );
+
+        // Push the item to the list
+        if let Value::List(list) = &mut *list.borrow_mut() {
+            list.push(item);
+        }
+
+        Ok(list)
+    });
 
     pub fn repr(&self) -> String {
         let mut ret = "(".to_string();

@@ -33,50 +33,42 @@ impl Str {
         ret
     }
 
-    tokay_method!(
-        "str_join(str, list)", {
-            let delimiter = str.to_string();
-            let list = List::from(list);
+    tokay_method!("str_join(str, list)", {
+        let delimiter = str.to_string();
+        let list = List::from(list);
 
-            let mut ret = String::new();
+        let mut ret = String::new();
 
-            for item in list.iter() {
-                if ret.len() > 0 {
-                    ret.push_str(&delimiter);
-                }
-
-                ret.push_str(&item.to_string());
+        for item in list.iter() {
+            if ret.len() > 0 {
+                ret.push_str(&delimiter);
             }
 
-            Ok(RefValue::from(ret))
+            ret.push_str(&item.to_string());
         }
-    );
 
-    tokay_method!(
-        "str_lower(str)", {
-            Ok(RefValue::from(str.to_string().to_lowercase()))
-        }
-    );
+        Ok(RefValue::from(ret))
+    });
 
-    tokay_method!(
-        "str_replace(str, from, to=void, n=void)", {
-            let string = str.to_string();
-            let from = from.to_string();
-            let to = to.to_string();
+    tokay_method!("str_lower(str)", {
+        Ok(RefValue::from(str.to_string().to_lowercase()))
+    });
 
-            Ok(RefValue::from(if n.is_void() {
-                string.replace(&from, &to)
-            } else {
-                string.replacen(&from, &to, n.to_usize())
-            }))
-        }
-    );
+    tokay_method!("str_replace(str, from, to=void, n=void)", {
+        let string = str.to_string();
+        let from = from.to_string();
+        let to = to.to_string();
 
-    tokay_method!(
-        "str_upper(str)", {
-            Ok(RefValue::from(str.to_string().to_uppercase()))
-        }
-    );
+        Ok(RefValue::from(if n.is_void() {
+            string.replace(&from, &to)
+        } else {
+            string.replacen(&from, &to, n.to_usize())
+        }))
+    });
+
+    tokay_method!("str_upper(str)", {
+        Ok(RefValue::from(str.to_string().to_uppercase()))
+    });
 }
 
 impl std::fmt::Debug for Str {
