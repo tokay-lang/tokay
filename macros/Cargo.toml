@@ -11,5 +11,5 @@ proc-macro = true
 [dependencies]
 tokay = "0.4"
 quote = "1.0"
-syn = { features = ["full", "fold", "extra-traits"] }
+syn = { version = "1.0.86 ", features = ["full", "fold", "extra-traits"] }
 proc-macro2 = "1.0.36"
