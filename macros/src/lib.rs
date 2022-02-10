@@ -1,3 +1,21 @@
+/*! Tokay proc-macros
+
+This crate contains the proc-macro implementation for
+
+- tokay_function!() - Built-in function
+- tokay_method!() - Built-in object method
+- tokay_token!() - Built-in consuming function
+
+Every macro generates a slightly different version of a callable built-in.
+
+All macros require for two parameters:
+
+- *signature* is a Tokay-style function signature string, including default values.
+  This can be `f`, `f()`, `f(a, b)`, `f(a b = void)` or similar.
+  Currently, this does only accept for a subset of Tokay atomics: void, null, true, false.
+- *expression* is the Rust expression to be executed. This is the body of the function.
+*/
+
 use proc_macro::TokenStream;
 use proc_macro2;
 use quote::{quote, quote_spanned};
@@ -37,42 +55,19 @@ impl syn::parse::Parse for BuiltinDef {
         let body = stream.parse::<syn::Expr>()?;
 
         // Collect arguments and possible required marker.
-        //let mut mt = MiniTokay::new(signature.value().chars());
-        let res = tokay_run(
-            r#"
-            # This grammar should be tested and refactored with Tokay v0.5 to work without hassle.
-            Argument : {
-                Identifier _ {
-                    '=' _ {
-                        ''void''
-                        ''true''
-                        ''false''
-                        error("Only 'void', 'true' or 'false' allowed here")  # fixme: add more with Tokay v0.5 as base.
-                    } _
-                    ""  # required to produce a consistent AST in Tokay v0.4
-                } accept ($1 $3)  # omg this is this ugly, but it works... Tokay v0.4 hassle.
-            }
-
-            _ Identifier {
-                '(' _ ')' _ void
-                '(' _ { { Argument | not peek ')' error("Invalid input") } _ {',' _}? }* ')' _
-            }? EOF
-            "#,
-            &signature.value(),
-        );
-
-        if let Err(msg) = res {
-            return Err(syn::parse::Error::new(signature.span(), msg));
-        }
+        let res = match tokay_run(include_str!("signature.tok"), &signature.value()) {
+            Err(msg) => return Err(syn::parse::Error::new(signature.span(), msg)),
+            Ok(ast) => ast.unwrap().to_list(),
+        };
 
         let mut arguments = Vec::new();
-        let res = res.unwrap().unwrap().to_list();
-
         let name = res[0].borrow().to_string();
 
         if res.len() > 1 {
             let args = res[1].borrow().to_list();
 
+            // fixme: This is a little bit ugly but is needed to use Tokay v0.4 here.
+            //        Is has to be improved when using a higher Tokay version for building later.
             for item in args.iter() {
                 let arg = &*item.borrow();
                 if let Some(arg) = arg.get_list() {
@@ -98,36 +93,6 @@ impl syn::parse::Parse for BuiltinDef {
             }
         }
 
-        /*
-        let mut required = None;
-
-        for (i, name) in signature.value().split(" ").enumerate() {
-            if name.len() == 0 {
-                continue;
-            }
-
-            if name == "?" {
-                if required.is_some() {
-                    return Err(syn::parse::Error::new(
-                        signature.span(),
-                        "Cannot provide multiple required delimiters",
-                    ));
-                }
-
-                required = Some(i);
-                continue;
-            }
-
-            arguments.push(syn::Ident::new(name, signature.span()));
-        }
-
-        // If no required-marker was set but arguments where defined,
-        // all arguments are required.
-        if required.is_none() && !arguments.is_empty() {
-            required = Some(arguments.len());
-        }
-        */
-
         Ok(BuiltinDef {
             name: syn::Ident::new(&name, proc_macro2::Span::call_site()),
             arguments,
@@ -151,6 +116,7 @@ fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2
                 } else {
                     let default = match &default[..] {
                         "void" => stringify!(Value::Void),
+                        "null" => stringify!(Value::Null),
                         "true" => stringify!(Value::True),
                         "false" => stringify!(Value::False),
                         _ => unreachable!(),
