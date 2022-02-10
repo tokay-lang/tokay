@@ -27,14 +27,14 @@ fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, Stri
 struct BuiltinDef {
     name: syn::Ident,
     arguments: Vec<(syn::Ident, String)>,
-    body: syn::Block,
+    body: syn::Expr,
 }
 
 impl syn::parse::Parse for BuiltinDef {
     fn parse(stream: syn::parse::ParseStream) -> syn::Result<Self> {
         let signature = stream.parse::<syn::LitStr>()?;
         let _ = stream.parse::<syn::Token![,]>()?;
-        let body = stream.parse::<syn::Block>()?;
+        let body = stream.parse::<syn::Expr>()?;
 
         // Collect arguments and possible required marker.
         //let mut mt = MiniTokay::new(signature.value().chars());
@@ -43,12 +43,20 @@ impl syn::parse::Parse for BuiltinDef {
             # This grammar should be tested and refactored with Tokay v0.5 to work without hassle.
             Argument : {
                 Identifier _ {
-                    '=' Identifier
-                    "required"  # required to produce a consistent AST.
+                    '=' _ {
+                        ''void''
+                        ''true''
+                        ''false''
+                        error("Only 'void', 'true' or 'false' allowed here")  # fixme: add more with Tokay v0.5 as base.
+                    } _
+                    ""  # required to produce a consistent AST in Tokay v0.4
                 } accept ($1 $3)  # omg this is this ugly, but it works... Tokay v0.4 hassle.
             }
 
-            _ Identifier { '(' { Argument _ {',' _}? }+ ')' _ }?
+            _ Identifier {
+                '(' _ ')' _ void
+                '(' _ { { Argument | not peek ')' error("Invalid input") } _ {',' _}? }* ')' _
+            }? EOF
             "#,
             &signature.value(),
         );
@@ -129,22 +137,30 @@ impl syn::parse::Parse for BuiltinDef {
 }
 
 fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2::TokenStream> {
-    /*
-    if required.is_some() {
+    if arguments.len() > 0 {
         arguments
             .into_iter()
             .enumerate()
-            .map(|(idx, arg)| {
-                if idx < required.unwrap() {
+            .map(|(idx, (arg, default))| {
+                //println!("{} => {} = {}", idx, arg, default);
+
+                if default.is_empty() {
                     quote! {
                         let mut #arg = args.get(#idx).unwrap().clone();
                     }
                 } else {
+                    let default = match &default[..] {
+                        "void" => stringify!(Value::Void),
+                        "true" => stringify!(Value::True),
+                        "false" => stringify!(Value::False),
+                        _ => unreachable!(),
+                    };
+
                     quote! {
                         let mut #arg = args
                             .get(#idx)
                             .and_then(|x| Some(x.clone()))
-                            .unwrap_or_else(|| crate::value::RefValue::from(Value::Void));
+                            .unwrap_or_else(|| crate::value::RefValue::from(#default));
                     }
                 }
             })
@@ -154,11 +170,6 @@ fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2
             assert!(args.is_empty());
         }]
     }
-    */
-
-    vec![quote! {
-        assert!(args.is_empty());
-    }]
 }
 
 #[proc_macro]

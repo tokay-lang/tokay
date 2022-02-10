@@ -205,24 +205,27 @@ tokay_function!("ord(c)", {
     }
 });
 
-tokay_function!("print(?)", {
-    if args.len() == 0 && context.is_some() {
-        if let Some(capture) = context.unwrap().get_capture(0) {
-            print!("{}", capture);
-        }
-    } else {
-        for i in 0..args.len() {
-            if i > 0 {
-                print!(" ");
+tokay_function!(
+    "print(msg=void)", //fixme: print() allowed for dynamic parameters, msg is a placeholder
+    {
+        if args.len() == 0 && context.is_some() {
+            if let Some(capture) = context.unwrap().get_capture(0) {
+                print!("{}", capture);
             }
+        } else {
+            for i in 0..args.len() {
+                if i > 0 {
+                    print!(" ");
+                }
 
-            print!("{}", args[i].to_string());
+                print!("{}", args[i].to_string());
+            }
         }
-    }
 
-    print!("\n");
-    Value::Void.into()
-});
+        print!("\n");
+        Value::Void.into()
+    }
+);
 
 #[distributed_slice(BUILTINS)]
 static CHR: Builtin = Builtin {
