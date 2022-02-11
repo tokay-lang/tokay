@@ -1443,13 +1443,11 @@ tokay_function!("ast_print(ast)", {
 #[distributed_slice(BUILTINS)]
 static AST: Builtin = Builtin {
     name: "ast",
-    signature: "emit ? value",
     func: tokay_function_ast,
 };
 
 #[distributed_slice(BUILTINS)]
 static AST_PRINT: Builtin = Builtin {
     name: "ast_print",
-    signature: "ast",
     func: tokay_function_ast_print,
 };

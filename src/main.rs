@@ -15,6 +15,14 @@ fn print_version() {
 }
 
 fn main() {
+    /*
+    println!("{:?}", tokay::value::Str::str_replace(vec![
+        tokay::value::RefValue::from("Hello World"),
+        tokay::value::RefValue::from("World")
+    ], None));
+    return;
+    */
+
     let yaml = load_yaml!("main.yaml");
     let opts = App::from(yaml)
         .bin_name(crate_name!())

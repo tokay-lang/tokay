@@ -368,20 +368,17 @@ tokay_token!("Word(min=void max=void)", {
 #[distributed_slice(BUILTINS)]
 static IDENTIFIER: Builtin = Builtin {
     name: "Identifier",
-    signature: "",
     func: tokay_token_identifier,
 };
 
 #[distributed_slice(BUILTINS)]
 static INTEGER: Builtin = Builtin {
     name: "Integer",
-    signature: "",
     func: tokay_token_integer,
 };
 
 #[distributed_slice(BUILTINS)]
 static WORD: Builtin = Builtin {
     name: "Word", // Matching words made of letters
-    signature: "? min max",
     func: tokay_token_word,
 };

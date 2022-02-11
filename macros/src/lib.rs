@@ -102,40 +102,58 @@ impl syn::parse::Parse for BuiltinDef {
 }
 
 fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2::TokenStream> {
-    if arguments.len() > 0 {
-        arguments
-            .into_iter()
-            .enumerate()
-            .map(|(idx, (arg, default))| {
-                //println!("{} => {} = {}", idx, arg, default);
+    let mut ret = Vec::new();
 
-                if default.is_empty() {
-                    quote! {
-                        let mut #arg = args.get(#idx).unwrap().clone();
-                    }
-                } else {
-                    let default = match &default[..] {
-                        "void" => stringify!(Value::Void),
-                        "null" => stringify!(Value::Null),
-                        "true" => stringify!(Value::True),
-                        "false" => stringify!(Value::False),
-                        _ => unreachable!(),
-                    };
+    for (arg, default) in arguments {
+        ret.push({
+            let required = default.is_empty();
+            let default = match &default[..] {
+                "void" | "" => quote!(Value::Void),
+                "null" => quote!(Value::Null),
+                "true" => quote!(Value::True),
+                "false" => quote!(Value::False),
+                _ => unreachable!(),
+            };
 
-                    quote! {
-                        let mut #arg = args
-                            .get(#idx)
-                            .and_then(|x| Some(x.clone()))
-                            .unwrap_or_else(|| crate::value::RefValue::from(#default));
+            quote! {
+                let mut #arg =
+                    if !args.is_empty() {
+                        args.remove(0)
                     }
-                }
-            })
-            .collect()
-    } else {
-        vec![quote! {
-            assert!(args.is_empty());
-        }]
+                    else {
+                        let mut value = None;
+
+                        if let Some(nargs) = &mut nargs {
+                            value = nargs.remove(stringify!(#arg));
+                        }
+
+                        if value.is_none() {
+                            if #required {
+                                return Err(format!("Expected parameter {} is missing", stringify!(#arg)).into()).into();
+                            }
+                            else {
+                                crate::value::RefValue::from(#default)
+                            }
+                        }
+                        else {
+                            value.unwrap()
+                        }
+                    }
+                ;
+
+                //println!("{} = {}", stringify!(#arg), #arg);
+            }
+        });
     }
+
+    ret.push(quote! {
+        assert!(args.is_empty());
+        if let Some(nargs) = nargs {
+            assert!(nargs.is_empty());
+        }
+    });
+
+    ret
 }
 
 #[proc_macro]
@@ -168,7 +186,8 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     // instead of an Result<Accept, Reject>.
     let gen = quote! {
         pub fn #name(
-            args: Vec<crate::value::RefValue>
+            mut args: Vec<crate::value::RefValue>,
+            mut nargs: Option<crate::value::Dict>
         ) -> Result<crate::value::RefValue, String> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
@@ -182,9 +201,10 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
 
         pub fn #callable(
             _context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>
+            args: Vec<crate::value::RefValue>,
+            nargs: Option<crate::value::Dict>
         ) -> Result<crate::vm::Accept, crate::vm::Reject> {
-            let ret = Self::#name(args)?;
+            let ret = Self::#name(args, nargs)?;
             Ok(crate::vm::Accept::Push(crate::vm::Capture::Value(ret, None, 10)))
         }
     };
@@ -222,7 +242,8 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
     let gen = quote! {
         pub fn #callable(
             context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>
+            mut args: Vec<crate::value::RefValue>,
+            mut nargs: Option<crate::value::Dict>
         ) -> Result<crate::vm::Accept, crate::vm::Reject> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
@@ -274,7 +295,8 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
     let gen = quote! {
         pub fn #function(
             context: &mut crate::vm::Context,
-            args: Vec<crate::value::RefValue>
+            mut args: Vec<crate::value::RefValue>,
+            mut nargs: Option<crate::value::Dict>
         ) -> Result<crate::vm::Accept, crate::vm::Reject> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
@@ -288,9 +310,10 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
 
         pub fn #callable(
             context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>
+            args: Vec<crate::value::RefValue>,
+            nargs: Option<crate::value::Dict>
         ) -> Result<crate::vm::Accept, crate::vm::Reject> {
-            #function(context.unwrap(), args)
+            #function(context.unwrap(), args, nargs)
         }
     };
 

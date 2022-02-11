@@ -11,8 +11,7 @@ pub static BUILTINS: [Builtin] = [..];
 // Abstraction of a built-in function
 pub struct Builtin {
     pub name: &'static str,      // Function's external name
-    pub signature: &'static str, // Argument signature as a string, where each argument name is separated by space
-    pub func: fn(Option<&mut Context>, Vec<RefValue>) -> Result<Accept, Reject>, // Function
+    pub func: fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>, // Function
 }
 
 impl Builtin {
@@ -27,107 +26,14 @@ impl Builtin {
         None
     }
 
-    /** Maps args and nargs to a builtin's signature string.
-
-    A builtin signature string is e.g. `a b ? c d`, where `a` and `b` are mandatory parameters,
-    but `c` and `d` are optional. The arguments can be provided by position (args) or by name (nargs).
-
-    The returned vector contains all items, but optionals may be None.
-    */
-    pub fn map_args_and_nargs(
-        &self,
-        mut args: Vec<RefValue>,
-        mut nargs: Option<Dict>,
-    ) -> Result<Vec<RefValue>, String> {
-        // Match arguments to signature's names
-        let mut count = 0;
-        let mut required = true;
-        let mut required_count = -1;
-
-        for name in self.signature.split(" ") {
-            //println!("{:?}", name);
-            if name.len() == 0 {
-                continue;
-            }
-
-            if name == "?" {
-                assert!(required);
-                required = false;
-                continue;
-            }
-
-            if required {
-                if required_count < 0 {
-                    required_count = 1
-                } else {
-                    required_count += 1;
-                }
-            }
-
-            if count < args.len() {
-                count += 1;
-                continue;
-            }
-
-            let mut found_in_nargs = false;
-
-            if let Some(nargs) = &mut nargs {
-                if let Some(value) = nargs.remove(name) {
-                    args.push(value);
-                    found_in_nargs = true;
-                }
-            }
-
-            if !found_in_nargs {
-                // Report required parameter which is also not found in nargs
-                if required {
-                    return Err(format!("{}() requires parameter '{}'", self.name, name));
-                }
-
-                args.push(RefValue::from(Value::Void));
-            }
-
-            count += 1;
-        }
-
-        //println!("args = {}, count = {}", args.len(), count);
-
-        // Check for correct argument alignment
-        if required_count >= 0 && args.len() > count {
-            if count == 0 {
-                return Err(format!("{}() does not accept any arguments", self.name));
-            } else {
-                return Err(format!(
-                    "{}() does accept {} arguments only",
-                    self.name, count
-                ));
-            }
-        }
-
-        // Check for remaining nargs not consumed
-        if let Some(nargs) = nargs {
-            if nargs.len() > 0 {
-                return Err(format!(
-                    "{}() called with unknown named argument '{}'",
-                    self.name,
-                    nargs.keys().nth(0).unwrap()
-                ));
-            }
-        }
-
-        Ok(args)
-    }
-
     /// Directly call builtin without context and specified parameters.
     pub fn call(
         &self,
         context: Option<&mut Context>,
         args: Vec<RefValue>,
     ) -> Result<Option<RefValue>, String> {
-        let args = self.map_args_and_nargs(args, None)?;
-
         // Call the builtin directly.
-        match (self.func)(context, args) {
+        match (self.func)(context, args, None) {
             Ok(Accept::Next | Accept::Hold) => Ok(None),
             Ok(Accept::Push(capture)) => Ok(Some(capture.get_value())),
             Err(Reject::Error(error)) => Err(error.message),
@@ -163,8 +69,8 @@ impl Object for BuiltinRef {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         // todo!!
-        let args = self.0.map_args_and_nargs(context.drain(args), nargs)?;
-        (self.0.func)(Some(context), args)
+        let args = context.drain(args);
+        (self.0.func)(Some(context), args, nargs)
     }
 }
 
@@ -230,20 +136,17 @@ tokay_function!(
 #[distributed_slice(BUILTINS)]
 static CHR: Builtin = Builtin {
     name: "chr",
-    signature: "i",
     func: tokay_function_chr,
 };
 
 #[distributed_slice(BUILTINS)]
 static ORD: Builtin = Builtin {
     name: "ord",
-    signature: "c",
     func: tokay_function_ord,
 };
 
 #[distributed_slice(BUILTINS)]
 static PRINT: Builtin = Builtin {
     name: "print",
-    signature: "?",
     func: tokay_function_print,
 };

@@ -150,27 +150,23 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
 #[distributed_slice(BUILTINS)]
 static STR_JOIN: Builtin = Builtin {
     name: "str_join",
-    signature: "self list",
     func: Str::tokay_method_str_join,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_LOWER: Builtin = Builtin {
     name: "str_lower",
-    signature: "self",
     func: Str::tokay_method_str_lower,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_REPLACE: Builtin = Builtin {
     name: "str_replace",
-    signature: "self from ? to n",
     func: Str::tokay_method_str_replace,
 };
 
 #[distributed_slice(BUILTINS)]
 static STR_UPPER: Builtin = Builtin {
     name: "str_upper",
-    signature: "self",
     func: Str::tokay_method_str_upper,
 };

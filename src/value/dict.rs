@@ -128,13 +128,11 @@ impl From<Dict> for RefValue {
 #[distributed_slice(BUILTINS)]
 static DICT: Builtin = Builtin {
     name: "dict",
-    signature: "",
     func: Dict::tokay_method_dict_new,
 };
 
 #[distributed_slice(BUILTINS)]
 static DICT_UPDATE: Builtin = Builtin {
     name: "dict_update",
-    signature: "self other",
     func: Dict::tokay_method_dict_update,
 };

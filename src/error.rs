@@ -68,6 +68,5 @@ tokay_function!("error(msg, collect=false)", {
 #[distributed_slice(BUILTINS)]
 static ERROR: Builtin = Builtin {
     name: "error",
-    signature: "msg ? collect",
     func: tokay_function_error,
 };

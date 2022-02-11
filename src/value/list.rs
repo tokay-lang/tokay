@@ -34,7 +34,7 @@ impl List {
     tokay_method!("list_push(list, item)", {
         // If list is not a list, turn it into a list and push list as first element
         if !list.is("list") {
-            list = Self::list_new(vec![list.clone()])?;
+            list = Self::list_new(vec![list.clone()], None)?;
         }
 
         // Push the item to the list
@@ -145,13 +145,11 @@ impl From<List> for RefValue {
 #[distributed_slice(BUILTINS)]
 static LIST: Builtin = Builtin {
     name: "list",
-    signature: "?",
     func: List::tokay_method_list_new,
 };
 
 #[distributed_slice(BUILTINS)]
 static LIST_PUSH: Builtin = Builtin {
     name: "list_push",
-    signature: "self item",
     func: List::tokay_method_list_push,
 };
