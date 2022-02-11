@@ -44,7 +44,7 @@ fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, Stri
 /// Describes a builtin function and its arguments.
 struct BuiltinDef {
     name: syn::Ident,
-    arguments: Vec<(syn::Ident, String)>,
+    arguments: Vec<(String, String)>,
     body: syn::Expr,
 }
 
@@ -73,19 +73,13 @@ impl syn::parse::Parse for BuiltinDef {
                 if let Some(arg) = arg.get_list() {
                     //println!("{} {:?}", name, item);
                     arguments.push((
-                        syn::Ident::new(
-                            arg[0].borrow().get_string().unwrap(),
-                            proc_macro2::Span::call_site(),
-                        ),
+                        arg[0].borrow().to_string(),
                         arg[1].borrow().to_string(),
                     ));
                 } else {
                     //println!("{} {:?}", name, args);
                     arguments.push((
-                        syn::Ident::new(
-                            args[0].borrow().get_string().unwrap(),
-                            proc_macro2::Span::call_site(),
-                        ),
+                        args[0].borrow().to_string(),
                         args[1].borrow().to_string(),
                     ));
                     break; // Tokay v0.4 special case... don't ask for this.
@@ -101,10 +95,41 @@ impl syn::parse::Parse for BuiltinDef {
     }
 }
 
-fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2::TokenStream> {
+fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::TokenStream> {
     let mut ret = Vec::new();
 
+    let mut args = false;
+    let mut nargs = false;
+
     for (arg, default) in arguments {
+        if arg == "*args" {
+            // fixme: This must be handled by signature.tok later...
+            if args {
+                ret.push(quote! {
+                    compile_error!("Multiple usage of *args");
+                });
+            }
+
+            args = true;
+            continue;
+        }
+        else if arg == "**nargs" {
+            // fixme: This must be handled by signature.tok later...
+            if nargs {
+                ret.push(quote! {
+                    compile_error!("Multiple usage of *nargs");
+                });
+            }
+
+            nargs = true;
+            continue;
+        }
+
+        let arg = syn::Ident::new(
+            &arg,
+            proc_macro2::Span::call_site(),  // todo: this can be specified more specific
+        );
+
         ret.push({
             let required = default.is_empty();
             let default = match &default[..] {
@@ -146,12 +171,19 @@ fn gen_assign_arguments(arguments: Vec<(syn::Ident, String)>) -> Vec<proc_macro2
         });
     }
 
-    ret.push(quote! {
-        assert!(args.is_empty());
-        if let Some(nargs) = nargs {
-            assert!(nargs.is_empty());
-        }
-    });
+    if !args {
+        ret.push(quote! {
+            assert!(args.is_empty());
+        });
+    }
+
+    if !nargs {
+        ret.push(quote! {
+            if let Some(nargs) = nargs {
+                assert!(nargs.is_empty());
+            }
+        });
+    }
 
     ret
 }

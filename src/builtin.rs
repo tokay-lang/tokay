@@ -112,7 +112,7 @@ tokay_function!("ord(c)", {
 });
 
 tokay_function!(
-    "print(msg=void)", //fixme: print() allowed for dynamic parameters, msg is a placeholder
+    "print(*args, **nargs)", //fixme: print() allowed for dynamic parameters, msg is a placeholder
     {
         if args.len() == 0 && context.is_some() {
             if let Some(capture) = context.unwrap().get_capture(0) {
