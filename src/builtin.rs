@@ -10,7 +10,7 @@ pub static BUILTINS: [Builtin] = [..];
 
 // Abstraction of a built-in function
 pub struct Builtin {
-    pub name: &'static str,      // Function's external name
+    pub name: &'static str, // Function's external name
     pub func: fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>, // Function
 }
 

@@ -5,7 +5,9 @@
 Current main branch.
 
 - Self-hosted tokay parser in `examples/tokay.tok`
-
+- JSON parser in `examples/json.tok`
+- Entire redesign of value system and objects [wip]
+- Entire redesign of builtins using proc-macro [wip]
 
 ## [v0.4]
 

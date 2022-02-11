@@ -1,7 +1,7 @@
 name: Tokay
 template: |
     {bin} {version}
-    © 2021 by {author}
+    © 2021, 2022 by {author}
 
     {about}
 
