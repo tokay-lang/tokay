@@ -34,6 +34,7 @@ fn main() {
                         for func in matches {
                             let func = func.borrow().to_dict();
                             let kind = func["kind"].borrow().to_string();
+                            let name = func["name"].borrow().to_string();
 
                             // Generate module prefix from path...
                             let module = path
@@ -68,12 +69,18 @@ fn main() {
 
                             // Generate full qualified function name
                             res.insert(
-                                func["name"].borrow().to_string(),
+                                // new methods represent the object themself, therefore cut away the "_new"
+                                if kind == "method" && name.ends_with("_new") {
+                                    name[..name.len() - 4].to_string()
+                                }
+                                else {
+                                    name.clone()
+                                },
                                 format!(
                                     "{}::tokay_{}_{}",
                                     module,
                                     kind,
-                                    func["name"].borrow().to_string().to_lowercase()
+                                    name.to_lowercase()
                                 ),
                             );
                         }

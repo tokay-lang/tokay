@@ -31,7 +31,7 @@ pub static BUILTINS: [Builtin; 17] = [
         func: crate::builtin::tokay_function_chr
     },
     Builtin{
-        name: "dict_new",
+        name: "dict",
         func: crate::value::dict::Dict::tokay_method_dict_new
     },
     Builtin{
@@ -43,7 +43,7 @@ pub static BUILTINS: [Builtin; 17] = [
         func: crate::error::tokay_function_error
     },
     Builtin{
-        name: "list_new",
+        name: "list",
         func: crate::value::list::List::tokay_method_list_new
     },
     Builtin{
