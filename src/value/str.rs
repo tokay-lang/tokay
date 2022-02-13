@@ -1,9 +1,6 @@
 //! String object
-use linkme::distributed_slice;
-use macros::tokay_method;
-
 use super::{List, RefValue, Value};
-use crate::builtin::{Builtin, BUILTINS};
+use macros::tokay_method;
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct Str {
@@ -146,27 +143,3 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
     }
 }
 */
-
-#[distributed_slice(BUILTINS)]
-static STR_JOIN: Builtin = Builtin {
-    name: "str_join",
-    func: Str::tokay_method_str_join,
-};
-
-#[distributed_slice(BUILTINS)]
-static STR_LOWER: Builtin = Builtin {
-    name: "str_lower",
-    func: Str::tokay_method_str_lower,
-};
-
-#[distributed_slice(BUILTINS)]
-static STR_REPLACE: Builtin = Builtin {
-    name: "str_replace",
-    func: Str::tokay_method_str_replace,
-};
-
-#[distributed_slice(BUILTINS)]
-static STR_UPPER: Builtin = Builtin {
-    name: "str_upper",
-    func: Str::tokay_method_str_upper,
-};

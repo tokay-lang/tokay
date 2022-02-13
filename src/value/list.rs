@@ -1,9 +1,6 @@
 //! List object
-use linkme::distributed_slice;
-use macros::tokay_method;
-
 use super::{RefValue, Value};
-use crate::builtin::{Builtin, BUILTINS};
+use macros::tokay_method;
 
 /// Alias for the inner list definition
 type InnerList = Vec<RefValue>;
@@ -28,7 +25,7 @@ impl List {
             List { list: args }
         };
 
-        Ok(list.into())
+        Ok(RefValue::from(list))
     });
 
     tokay_method!("list_push(list, item)", {
@@ -141,15 +138,3 @@ impl From<List> for RefValue {
         Value::List(Box::new(value)).into()
     }
 }
-
-#[distributed_slice(BUILTINS)]
-static LIST: Builtin = Builtin {
-    name: "list",
-    func: List::tokay_method_list_new,
-};
-
-#[distributed_slice(BUILTINS)]
-static LIST_PUSH: Builtin = Builtin {
-    name: "list_push",
-    func: List::tokay_method_list_push,
-};

@@ -1,13 +1,10 @@
 //! Token callables represented by Value::Token
-use linkme::distributed_slice;
 use macros::tokay_token;
 
 use super::{Dict, Object, RefValue, Value};
 use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
-
-use crate::builtin::{Builtin, BUILTINS};
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -364,21 +361,3 @@ tokay_token!("Word(min=void max=void)", {
         Err(Reject::Next)
     }
 });
-
-#[distributed_slice(BUILTINS)]
-static IDENTIFIER: Builtin = Builtin {
-    name: "Identifier",
-    func: tokay_token_identifier,
-};
-
-#[distributed_slice(BUILTINS)]
-static INTEGER: Builtin = Builtin {
-    name: "Integer",
-    func: tokay_token_integer,
-};
-
-#[distributed_slice(BUILTINS)]
-static WORD: Builtin = Builtin {
-    name: "Word", // Matching words made of letters
-    func: tokay_token_word,
-};

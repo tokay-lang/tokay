@@ -9,6 +9,7 @@
     Visit [https://tokay.dev](https://tokay.dev) for more information.
 */
 
+mod _builtins; // Generated builtin registry
 pub mod builtin;
 pub mod compiler;
 pub mod error;

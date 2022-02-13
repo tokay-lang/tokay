@@ -12,20 +12,12 @@ edition = "2021"
 default = ["static_expression_evaluation"]
 static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
 
+[build-dependencies]
+tokay = "0.4"
+glob = "0.3.0"
+
 [dependencies]
 macros = { path = "macros" }
 clap = { version = "2", features = ["yaml"] }
 rustyline = "8.2.0"
-linkme = "0.2"
 charclass = "0.1"
-
-# codegen-units is set to 1 as workaround for the issues
-# https://github.com/dtolnay/linkme/issues/31
-# https://github.com/dtolnay/inventory/issues/32
-#
-
-[profile.dev]
-codegen-units = 1
-
-[profile.release]
-codegen-units = 1

@@ -1,11 +1,7 @@
 //! Dictionary object
-use linkme::distributed_slice;
-use macros::tokay_method;
-
-use std::collections::BTreeMap;
-
 use super::{RefValue, Value};
-use crate::builtin::{Builtin, BUILTINS};
+use macros::tokay_method;
+use std::collections::BTreeMap;
 
 // Alias for the inner dict
 type InnerDict = BTreeMap<String, RefValue>;
@@ -124,15 +120,3 @@ impl From<Dict> for RefValue {
         Value::Dict(Box::new(value)).into()
     }
 }
-
-#[distributed_slice(BUILTINS)]
-static DICT: Builtin = Builtin {
-    name: "dict",
-    func: Dict::tokay_method_dict_new,
-};
-
-#[distributed_slice(BUILTINS)]
-static DICT_UPDATE: Builtin = Builtin {
-    name: "dict_update",
-    func: Dict::tokay_method_dict_update,
-};

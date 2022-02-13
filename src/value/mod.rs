@@ -6,20 +6,20 @@ use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::vm::{Accept, Context, Reject};
 
-mod dict;
-mod list;
+pub mod dict;
+pub mod list;
 mod method;
 mod object;
 mod parselet;
-mod string;
-mod token;
+pub mod str;
+pub mod token;
 
+pub use self::str::Str;
 pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
 pub use object::Object;
 pub use parselet::{Parselet, ParseletRef};
-pub use string::Str;
 pub use token::Token;
 
 // RefValue

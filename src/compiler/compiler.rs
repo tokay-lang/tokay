@@ -112,9 +112,9 @@ impl Compiler {
     }
 
     /// Shortcut to compile a Tokay program from a &str.
-    pub fn compile_str(&mut self, src: &'static str) -> Result<Program, Vec<Error>> {
+    pub fn compile_str(&mut self, src: &str) -> Result<Program, Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
-            src,
+            src.to_owned(),
         )))))
     }
 

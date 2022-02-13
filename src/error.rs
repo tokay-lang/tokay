@@ -1,10 +1,7 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
-use linkme::distributed_slice;
-use macros::tokay_function;
-
-use crate::builtin::{Builtin, BUILTINS};
 use crate::reader::Offset;
 use crate::value::Value;
+use macros::tokay_function;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
@@ -64,9 +61,3 @@ tokay_function!("error(msg, collect=false)", {
 
     Error::new(Some(context.runtime.reader.tell()), msg).into()
 });
-
-#[distributed_slice(BUILTINS)]
-static ERROR: Builtin = Builtin {
-    name: "error",
-    func: tokay_function_error,
-};

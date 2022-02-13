@@ -1,12 +1,9 @@
 //! Tokay built-in functions
+use crate::_builtins::BUILTINS;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Context, Reject};
 
-use linkme::distributed_slice;
 use macros::tokay_function;
-
-#[distributed_slice]
-pub static BUILTINS: [Builtin] = [..];
 
 // Abstraction of a built-in function
 pub struct Builtin {
@@ -17,7 +14,7 @@ pub struct Builtin {
 impl Builtin {
     /// Retrieve builtin by name
     pub fn get(ident: &str) -> Option<&'static Builtin> {
-        for builtin in BUILTINS {
+        for builtin in &BUILTINS {
             if builtin.name == ident {
                 return Some(builtin);
             }
@@ -111,42 +108,21 @@ tokay_function!("ord(c)", {
     }
 });
 
-tokay_function!(
-    "print(*args)",
-    {
-        if args.len() == 0 && context.is_some() {
-            if let Some(capture) = context.unwrap().get_capture(0) {
-                print!("{}", capture);
-            }
-        } else {
-            for i in 0..args.len() {
-                if i > 0 {
-                    print!(" ");
-                }
-
-                print!("{}", args[i].to_string());
-            }
+tokay_function!("print(*args)", {
+    if args.len() == 0 && context.is_some() {
+        if let Some(capture) = context.unwrap().get_capture(0) {
+            print!("{}", capture);
         }
+    } else {
+        for i in 0..args.len() {
+            if i > 0 {
+                print!(" ");
+            }
 
-        print!("\n");
-        Value::Void.into()
+            print!("{}", args[i].to_string());
+        }
     }
-);
 
-#[distributed_slice(BUILTINS)]
-static CHR: Builtin = Builtin {
-    name: "chr",
-    func: tokay_function_chr,
-};
-
-#[distributed_slice(BUILTINS)]
-static ORD: Builtin = Builtin {
-    name: "ord",
-    func: tokay_function_ord,
-};
-
-#[distributed_slice(BUILTINS)]
-static PRINT: Builtin = Builtin {
-    name: "print",
-    func: tokay_function_print,
-};
+    print!("\n");
+    Value::Void.into()
+});

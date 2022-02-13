@@ -3,10 +3,8 @@ use std::collections::HashSet;
 
 use ::macros::tokay_function;
 use charclass::CharClass;
-use linkme::distributed_slice;
 
 use super::*;
-use crate::builtin::{Builtin, BUILTINS};
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
@@ -1439,15 +1437,3 @@ tokay_function!("ast_print(ast)", {
     print(&ast);
     Value::Void.into()
 });
-
-#[distributed_slice(BUILTINS)]
-static AST: Builtin = Builtin {
-    name: "ast",
-    func: tokay_function_ast,
-};
-
-#[distributed_slice(BUILTINS)]
-static AST_PRINT: Builtin = Builtin {
-    name: "ast_print",
-    func: tokay_function_ast_print,
-};

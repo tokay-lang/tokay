@@ -22,7 +22,7 @@ use quote::{quote, quote_spanned};
 use syn;
 use tokay;
 
-/* Tokay v0.4 compat, the function must be reworked in v0.5 */
+/* Tokay v0.4 compat, the function has been reworked in v0.5 */
 fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {
     let mut compiler = tokay::compiler::Compiler::new();
     let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(
