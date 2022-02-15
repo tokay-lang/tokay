@@ -333,9 +333,21 @@ impl From<bool> for RefValue {
     }
 }
 
+impl From<i32> for RefValue {
+    fn from(value: i32) -> Self {
+        Value::Integer(value as i64).into()
+    }
+}
+
 impl From<i64> for RefValue {
     fn from(value: i64) -> Self {
         Value::Integer(value).into()
+    }
+}
+
+impl From<f32> for RefValue {
+    fn from(value: f32) -> Self {
+        Value::Float(value as f64).into()
     }
 }
 
@@ -411,43 +423,7 @@ macro_rules! value {
     };
 
     ( $value:expr ) => {
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<bool>()
-        {
-            if *value {
-                RefValue::from(Value::True)
-            }
-            else {
-                RefValue::from(Value::False)
-            }
-        }
-        else
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f32>()
-        {
-            RefValue::from(Value::Float(*value as f64))
-        }
-        else
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<f64>()
-        {
-            RefValue::from(Value::Float(*value))
-        }
-        else
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i32>()
-        {
-            RefValue::from(Value::Integer(*value as i64))
-        }
-        else
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<i64>()
-        {
-            RefValue::from(Value::Integer(*value))
-        }
-        else
-        if let Some(value) = (&$value as &dyn std::any::Any).downcast_ref::<usize>()
-        {
-            RefValue::from(Value::Addr(*value))
-        }
-        else {
-            RefValue::from(Value::Str($value.to_string().into()))
-        }
+        RefValue::from($value)
     }
 }
 
