@@ -20,3 +20,8 @@ pub mod test;
 pub mod utils;
 pub mod value;
 pub mod vm;
+
+pub use compiler::Compiler;
+pub use reader::Reader;
+pub use value::RefValue;
+pub use vm::Program;

@@ -10,7 +10,7 @@ pub struct Error {
 }
 
 impl Error {
-    /// Creates a new Reject::Error with a message.
+    /// Creates a new Error object with a message.
     pub fn new(offset: Option<Offset>, message: String) -> Error {
         Error { offset, message }
     }

@@ -72,16 +72,10 @@ fn main() {
                                 // new methods represent the object themself, therefore cut away the "_new"
                                 if kind == "method" && name.ends_with("_new") {
                                     name[..name.len() - 4].to_string()
-                                }
-                                else {
+                                } else {
                                     name.clone()
                                 },
-                                format!(
-                                    "{}::tokay_{}_{}",
-                                    module,
-                                    kind,
-                                    name.to_lowercase()
-                                ),
+                                format!("{}::tokay_{}_{}", module, kind, name.to_lowercase()),
                             );
                         }
                     }
@@ -112,7 +106,12 @@ pub static BUILTINS: [Builtin; ##count] = [
         "##defs",
         &keys
             .into_iter()
-            .map(|key| format!("    Builtin{{\n        name: \"{}\",\n        func: {}\n    }},\n", key, res[&key]))
+            .map(|key| {
+                format!(
+                    "    Builtin{{\n        name: \"{}\",\n        func: {}\n    }},\n",
+                    key, res[&key]
+                )
+            })
             .collect::<Vec<String>>()
             .concat(),
     )
