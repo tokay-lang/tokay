@@ -6,72 +6,72 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 use crate::builtin::Builtin;
 
 pub static BUILTINS: [Builtin; 17] = [
-    Builtin{
+    Builtin {
         name: "Identifier",
-        func: crate::value::token::tokay_token_identifier
+        func: crate::value::token::tokay_token_identifier,
     },
-    Builtin{
+    Builtin {
         name: "Integer",
-        func: crate::value::token::tokay_token_integer
+        func: crate::value::token::tokay_token_integer,
     },
-    Builtin{
+    Builtin {
         name: "Word",
-        func: crate::value::token::tokay_token_word
+        func: crate::value::token::tokay_token_word,
     },
-    Builtin{
+    Builtin {
         name: "ast",
-        func: crate::compiler::ast::tokay_function_ast
+        func: crate::compiler::ast::tokay_function_ast,
     },
-    Builtin{
+    Builtin {
         name: "ast_print",
-        func: crate::compiler::ast::tokay_function_ast_print
+        func: crate::compiler::ast::tokay_function_ast_print,
     },
-    Builtin{
+    Builtin {
         name: "chr",
-        func: crate::builtin::tokay_function_chr
+        func: crate::builtin::tokay_function_chr,
     },
-    Builtin{
+    Builtin {
         name: "dict",
-        func: crate::value::dict::Dict::tokay_method_dict_new
+        func: crate::value::dict::Dict::tokay_method_dict_new,
     },
-    Builtin{
+    Builtin {
         name: "dict_update",
-        func: crate::value::dict::Dict::tokay_method_dict_update
+        func: crate::value::dict::Dict::tokay_method_dict_update,
     },
-    Builtin{
+    Builtin {
         name: "error",
-        func: crate::error::tokay_function_error
+        func: crate::error::tokay_function_error,
     },
-    Builtin{
+    Builtin {
         name: "list",
-        func: crate::value::list::List::tokay_method_list_new
+        func: crate::value::list::List::tokay_method_list_new,
     },
-    Builtin{
+    Builtin {
         name: "list_push",
-        func: crate::value::list::List::tokay_method_list_push
+        func: crate::value::list::List::tokay_method_list_push,
     },
-    Builtin{
+    Builtin {
         name: "ord",
-        func: crate::builtin::tokay_function_ord
+        func: crate::builtin::tokay_function_ord,
     },
-    Builtin{
+    Builtin {
         name: "print",
-        func: crate::builtin::tokay_function_print
+        func: crate::builtin::tokay_function_print,
     },
-    Builtin{
+    Builtin {
         name: "str_join",
-        func: crate::value::str::Str::tokay_method_str_join
+        func: crate::value::str::Str::tokay_method_str_join,
     },
-    Builtin{
+    Builtin {
         name: "str_lower",
-        func: crate::value::str::Str::tokay_method_str_lower
+        func: crate::value::str::Str::tokay_method_str_lower,
     },
-    Builtin{
+    Builtin {
         name: "str_replace",
-        func: crate::value::str::Str::tokay_method_str_replace
+        func: crate::value::str::Str::tokay_method_str_replace,
     },
-    Builtin{
+    Builtin {
         name: "str_upper",
-        func: crate::value::str::Str::tokay_method_str_upper
+        func: crate::value::str::Str::tokay_method_str_upper,
     },
 ];

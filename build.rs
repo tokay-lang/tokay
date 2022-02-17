@@ -108,7 +108,7 @@ pub static BUILTINS: [Builtin; ##count] = [
             .into_iter()
             .map(|key| {
                 format!(
-                    "    Builtin{{\n        name: \"{}\",\n        func: {}\n    }},\n",
+                    "    Builtin {{\n        name: \"{}\",\n        func: {},\n    }},\n",
                     key, res[&key]
                 )
             })
