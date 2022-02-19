@@ -1,7 +1,11 @@
 # Tokay
 
 ![Tokay Logo](assets/tokay.svg)
-[![Rust](https://github.com/tokay-lang/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/tokay-lang/tokay/actions/workflows/main.yml)
+[![Build status](https://github.com/tokay-lang/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/tokay-lang/tokay/actions/workflows/main.yml)
+[![docs.rs](https://img.shields.io/docsrs/tokay)](https://docs.rs/tokay/latest/tokay/)
+[![crates.io](https://img.shields.io/crates/v/tokay)](https://crates.io/crates/tokay)
+[![tokay.dev](https://img.shields.io/website?down_color=red&down_message=offline&up_color=green&up_message=online&url=https%3A%2F%2Ftokay.dev%2F)](https://tokay.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
