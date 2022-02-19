@@ -395,35 +395,42 @@ This macro is used to easily construct Tokay values in Rust code.
 
 Examples:
 ```
-use tokay::value::*;
 use tokay::value;
 
-let i = value![1];
+let i = value!(1);
 let s = value!("String");
-let l = value![[1, 2, 3]];
-let d = value![["a" => 1, "b" => 2, "c" => 3]];
+let l = value!([1, 2, 3]);
+let d = value!(["a" => 1, "b" => 2, "c" => 3]);
 ```
 */
 #[macro_export]
 macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {
         {
-            let mut dict = Dict::new();
-            $( dict.insert($key.to_string(), value!($value).into()); )*
-            RefValue::from(Value::Dict(Box::new(dict)))
+            let mut dict = $crate::value::Dict::new();
+            $( dict.insert($key.to_string(), value!($value)); )*
+            $crate::RefValue::from(dict)
         }
     };
 
     ( [ $($value:tt),* ] ) => {
         {
-            let mut list = List::new();
-            $( list.push(value!($value).into()); )*
-            RefValue::from(Value::List(Box::new(list)))
+            let mut list = $crate::value::List::new();
+            $( list.push(value!($value)); )*
+            $crate::RefValue::from(list)
         }
     };
 
+    ( void ) => {
+        $crate::RefValue::from($crate::value::Value::Void)
+    };
+
+    ( null ) => {
+        $crate::RefValue::from($crate::value::Value::Null)
+    };
+
     ( $value:expr ) => {
-        RefValue::from($value)
+        $crate::RefValue::from($value)
     }
 }
 

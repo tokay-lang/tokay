@@ -22,12 +22,9 @@ impl Program {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
-            // todo: This is unhandy.
-            if let Value::Object(object) = &*statics[i].borrow() {
-                if let Some(_) = object.as_ref().downcast_ref::<ParseletRef>() {
-                    main = Some(i);
-                    break;
-                }
+            if statics[i].is("parselet") {
+                main = Some(i);
+                break;
             }
         }
 
@@ -55,10 +52,13 @@ impl Program {
                 }
                 _ => panic!(),
             } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => match &*value.borrow() {
-                    Value::Void => Ok(None),
-                    _ => Ok(Some(value.clone())),
-                },
+                Ok(Accept::Push(Capture::Value(value, ..))) => {
+                    if value.is_void() {
+                        Ok(None)
+                    } else {
+                        Ok(Some(value.clone()))
+                    }
+                }
                 Ok(_) => Ok(None),
                 Err(Reject::Error(error)) => Err(*error),
                 Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),

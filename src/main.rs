@@ -1,7 +1,7 @@
 //! Tokay main executable
 
-use ::tokay::compiler::Compiler;
-use ::tokay::repl::{repl, Stream};
+use tokay::compiler::Compiler;
+use tokay::repl::{repl, Stream};
 
 #[macro_use]
 extern crate clap;

@@ -4,7 +4,7 @@ use std::iter::FromIterator;
 
 use super::*;
 use crate::reader::Offset;
-use crate::value::{Dict, List, Parselet, RefValue, Value};
+use crate::value::{Dict, List, Parselet, RefValue};
 
 /** Contexts represent stack frames for parselet calls.
 
@@ -290,7 +290,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    if !matches!(&*value.borrow(), Value::Void) {
+                    if !value.is_void() {
                         if let Some(alias) = alias {
                             dict.insert(alias, value);
                         } else if inherit {

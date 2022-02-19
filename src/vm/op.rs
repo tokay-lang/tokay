@@ -4,6 +4,7 @@ use std::io::prelude::*;
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
+use crate::value;
 use crate::value::{Dict, Value};
 
 // --- Op ----------------------------------------------------------------------
@@ -471,18 +472,18 @@ impl Op {
                     let value = &context.runtime.program.statics[*addr];
                     context.push(value.borrow().clone().into())
                 }
-                Op::Push0 => context.push(Value::Integer(0).into()),
-                Op::Push1 => context.push(Value::Integer(1).into()),
-                Op::PushVoid => context.push(Value::Void.into()),
-                Op::PushNull => context.push(Value::Null.into()),
-                Op::PushTrue => context.push(Value::True.into()),
-                Op::PushFalse => context.push(Value::False.into()),
+                Op::Push0 => context.push(value!(0 as i64)),
+                Op::Push1 => context.push(value!(1 as i64)),
+                Op::PushVoid => context.push(value!(void)),
+                Op::PushNull => context.push(value!(null)),
+                Op::PushTrue => context.push(value!(true)),
+                Op::PushFalse => context.push(value!(false)),
 
                 Op::LoadGlobal(addr) => context.load(*addr),
                 Op::LoadFast(addr) => context.load(context.stack_start + *addr),
 
                 Op::LoadFastCapture(index) => {
-                    let value = context.get_capture(*index).unwrap_or(Value::Void.into());
+                    let value = context.get_capture(*index).unwrap_or(value!(void));
                     context.push(value)
                 }
 
@@ -490,23 +491,15 @@ impl Op {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    match &*index {
-                        Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
-                            let value = context
-                                .get_capture(index.to_usize())
-                                .unwrap_or(Value::Void.into());
-                            context.push(value)
-                        }
+                    let value = if let Some(alias) = index.str() {
+                        context.get_capture_by_name(alias).unwrap_or(value!(void))
+                    } else {
+                        context
+                            .get_capture(index.to_usize())
+                            .unwrap_or(value!(void))
+                    };
 
-                        Value::Str(alias) => {
-                            let value = context
-                                .get_capture_by_name(alias)
-                                .unwrap_or(Value::Void.into());
-                            context.push(value)
-                        }
-
-                        _ => Ok(Accept::Next),
-                    }
+                    context.push(value)
                 }
 
                 Op::LoadAttr => {
@@ -585,33 +578,26 @@ impl Op {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    match &*index {
-                        Value::Addr(_) | Value::Integer(_) | Value::Float(_) => {
-                            if matches!(op, Op::StoreCapture) {
-                                let value = context.pop();
-                                context.set_capture(index.to_usize(), value);
-                                Ok(Accept::Push(Capture::Empty))
-                            } else {
-                                let value = context.peek();
-                                context
-                                    .set_capture(index.to_usize(), value.borrow().clone().into());
-                                Ok(Accept::Next)
-                            }
+                    if let Some(alias) = index.str() {
+                        if matches!(op, Op::StoreCapture) {
+                            let value = context.pop();
+                            context.set_capture_by_name(alias, value);
+                            Ok(Accept::Push(Capture::Empty))
+                        } else {
+                            let value = context.peek();
+                            context.set_capture_by_name(alias, value.borrow().clone().into());
+                            Ok(Accept::Next)
                         }
-
-                        Value::Str(alias) => {
-                            if matches!(op, Op::StoreCapture) {
-                                let value = context.pop();
-                                context.set_capture_by_name(alias, value);
-                                Ok(Accept::Push(Capture::Empty))
-                            } else {
-                                let value = context.peek();
-                                context.set_capture_by_name(alias, value.borrow().clone().into());
-                                Ok(Accept::Next)
-                            }
+                    } else {
+                        if matches!(op, Op::StoreCapture) {
+                            let value = context.pop();
+                            context.set_capture(index.to_usize(), value);
+                            Ok(Accept::Push(Capture::Empty))
+                        } else {
+                            let value = context.peek();
+                            context.set_capture(index.to_usize(), value.borrow().clone().into());
+                            Ok(Accept::Next)
                         }
-
-                        _ => unimplemented!(),
                     }
                 }
 
@@ -647,7 +633,7 @@ impl Op {
                         }
 
                         empty => {
-                            *empty = Capture::Value(Value::Void.into(), Some(name.to_string()), 0);
+                            *empty = Capture::Value(value!(void), Some(name.to_string()), 0);
                         }
                     }
 
@@ -664,7 +650,7 @@ impl Op {
                         dict.insert(key.to_string(), value);
                     }
 
-                    context.push(Value::Dict(Box::new(dict)).into())
+                    context.push(RefValue::from(dict))
                 }
 
                 // Operations
@@ -742,7 +728,7 @@ impl Op {
 
                     //println!("c = {:?}", c);
 
-                    context.push((if c { Value::True } else { Value::False }).into())
+                    context.push(RefValue::from(c))
                 }
 
                 Op::Not => {
@@ -779,7 +765,7 @@ impl Op {
                 Op::InlineInc => {
                     let value = context.pop();
 
-                    let res = value.add(Value::Integer(1).into())?; // todo: perform inc by bit-shift
+                    let res = value.add(value!(1 as i64))?; // todo: perform inc by bit-shift
                     *value.borrow_mut() = res.into();
 
                     context.push(value.clone().into())
@@ -788,7 +774,7 @@ impl Op {
                 Op::InlineDec => {
                     let value = context.pop();
 
-                    let res = value.sub(Value::Integer(1).into())?; // todo: perform dec by bit-shift
+                    let res = value.sub(value!(1 as i64))?; // todo: perform dec by bit-shift
                     *value.borrow_mut() = res.into();
 
                     context.push(value.clone().into())

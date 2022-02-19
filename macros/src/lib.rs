@@ -133,10 +133,10 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
         ret.push({
             let required = default.is_empty();
             let default = match &default[..] {
-                "void" | "" => quote!(Value::Void),
-                "null" => quote!(Value::Null),
-                "true" => quote!(Value::True),
-                "false" => quote!(Value::False),
+                "void" | "" => quote!(crate::value!(void)),
+                "null" => quote!(crate::value!(null)),
+                "true" => quote!(crate::value!(true)),
+                "false" => quote!(crate::value!(false)),
                 _ => unreachable!(),
             };
 
@@ -157,7 +157,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
                                 return Err(format!("Expected parameter {} is missing", stringify!(#arg)).into()).into();
                             }
                             else {
-                                crate::value::RefValue::from(#default)
+                                #default
                             }
                         }
                         else {

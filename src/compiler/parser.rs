@@ -4,7 +4,7 @@ use charclass::charclass;
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{RefValue, Token, Value};
+use crate::value::{RefValue, Token};
 use crate::{tokay, value};
 
 /**
@@ -499,7 +499,7 @@ impl Parser {
                     Err(Error::new(None, "Parse error".to_string()))
                 }
             }
-            Ok(None) => Ok(Value::Void.into()),
+            Ok(None) => Ok(value!(void)),
             Err(error) => Err(error),
         }
     }

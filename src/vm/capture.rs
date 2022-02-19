@@ -1,5 +1,6 @@
 use crate::reader::{Range, Reader};
-use crate::value::{RefValue, Value};
+use crate::value;
+use crate::value::RefValue;
 
 /// Captures are stack items where the VM operates on.
 #[derive(Debug, Clone)]
@@ -15,7 +16,7 @@ impl Capture {
     In case the capture is a range, the range is extracted as a string from the reader. */
     pub(super) fn extract(&mut self, reader: &Reader) -> RefValue {
         match self {
-            Capture::Empty => Value::Void.into(),
+            Capture::Empty => value!(void),
             Capture::Range(range, alias, severity) => {
                 let value = RefValue::from(reader.extract(range));
                 *self = Capture::Value(value.clone(), alias.clone(), *severity);
@@ -27,7 +28,7 @@ impl Capture {
 
     pub fn get_value(&self) -> RefValue {
         match self {
-            Capture::Empty => Value::Void.into(),
+            Capture::Empty => value!(void),
             Capture::Range(..) => {
                 panic!("Cannot retrieve value of Capture::Range, use self.extract() first!")
             }
@@ -60,12 +61,6 @@ impl Capture {
             }
             _ => {}
         }
-    }
-}
-
-impl From<Value> for Capture {
-    fn from(value: Value) -> Self {
-        Capture::Value(value.into(), None, 10)
     }
 }
 

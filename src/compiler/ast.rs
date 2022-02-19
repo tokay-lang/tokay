@@ -8,6 +8,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
+use crate::value;
 use crate::value::{Dict, List, RefValue, Token, Value};
 use crate::vm::*;
 
@@ -84,31 +85,17 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => ImlValue::from(RefValue::from(node["value"].borrow().str().unwrap())),
-        "value_integer" => {
-            let value = node["value"].borrow().str().unwrap().to_string();
-            RefValue::from(match value.parse::<i64>() {
-                Ok(i) => i,
-                Err(_) => 0,
-            })
-            .into()
-        }
-        "value_float" => {
-            let value = node["value"].borrow().str().unwrap().to_string();
-            RefValue::from(match value.parse::<f64>() {
-                Ok(f) => f,
-                Err(_) => 0.0,
-            })
-            .into()
-        }
-        "value_true" => RefValue::from(true).into(),
-        "value_false" => RefValue::from(false).into(),
-        "value_null" => ImlValue::from(Value::Null),
-        "value_void" => ImlValue::from(Value::Void),
+        "value_string" => ImlValue::from(node["value"].clone()),
+        "value_integer" => RefValue::from(node["value"].to_i64()).into(),
+        "value_float" => RefValue::from(node["value"].to_f64()).into(),
+        "value_true" => value!(true).into(),
+        "value_false" => value!(false).into(),
+        "value_null" => value!(null).into(),
+        "value_void" => value!(void).into(),
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
-            let mut value = node["value"].borrow().str().unwrap().to_string();
+            let mut value = node["value"].to_string();
 
             if value.len() == 0 {
                 compiler.errors.push(Error::new(
@@ -265,7 +252,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
     match traverse_node(compiler, node) {
         ImlResult::Empty => {
             compiler.pop_parselet(None, Vec::new(), ImlOp::from(Op::Nop));
-            Value::Void.into()
+            value!(void).into()
         }
         ImlResult::Value(value) => {
             compiler.pop_parselet(None, Vec::new(), ImlOp::from(Op::Nop));
@@ -1005,25 +992,19 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlResult::Value(
-                            if match parts[2] {
-                                "equal" => left == right,
-                                "unequal" => left != right,
-                                "lowerequal" => left <= right,
-                                "greaterequal" => left >= right,
-                                "lower" => left < right,
-                                "greater" => left > right,
-                                "and" => left.is_true() && right.is_true(),
-                                "or" => left.is_true() || right.is_true(),
-                                _ => {
-                                    unimplemented!("op_compare_{}", parts[2]);
-                                }
-                            } {
-                                Value::True.into()
-                            } else {
-                                Value::False.into()
-                            },
-                        );
+                        return ImlResult::Value(ImlValue::Value(RefValue::from(match parts[2] {
+                            "equal" => left == right,
+                            "unequal" => left != right,
+                            "lowerequal" => left <= right,
+                            "greaterequal" => left >= right,
+                            "lower" => left < right,
+                            "greater" => left > right,
+                            "and" => left.is_true() && right.is_true(),
+                            "or" => left.is_true() || right.is_true(),
+                            _ => {
+                                unimplemented!("op_compare_{}", parts[2]);
+                            }
+                        })));
                     }
 
                     // Otherwise, generate operational code
@@ -1176,7 +1157,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                             return else_;
                         }
 
-                        return ImlResult::Value(Value::Void.into());
+                        return ImlResult::Value(ImlValue::from(value!(void)));
                     }
 
                     ops.extend(condition.into_ops(compiler, false));
@@ -1318,59 +1299,57 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 /// Debug function to print an AST to stdout.
 pub fn print(ast: &RefValue) {
     fn print(value: &RefValue, indent: usize) {
-        match &*value.borrow() {
-            Value::Dict(d) => {
-                let emit = d["emit"].borrow();
-                let emit = emit.str().unwrap();
+        let value = value.borrow();
 
-                let row = d.get("row").and_then(|row| Some(row.borrow().to_usize()));
-                let col = d.get("col").and_then(|col| Some(col.borrow().to_usize()));
-                let stop_row = d
-                    .get("stop_row")
-                    .and_then(|row| Some(row.borrow().to_usize()));
-                let stop_col = d
-                    .get("stop_col")
-                    .and_then(|col| Some(col.borrow().to_usize()));
+        if let Some(d) = value.dict() {
+            let emit = d["emit"].borrow();
+            let emit = emit.str().unwrap();
 
-                let value = d.get("value");
-                let children = d.get("children");
+            let row = d.get("row").and_then(|row| Some(row.borrow().to_usize()));
+            let col = d.get("col").and_then(|col| Some(col.borrow().to_usize()));
+            let stop_row = d
+                .get("stop_row")
+                .and_then(|row| Some(row.borrow().to_usize()));
+            let stop_col = d
+                .get("stop_col")
+                .and_then(|col| Some(col.borrow().to_usize()));
 
-                if let (Some(row), Some(col), Some(stop_row), Some(stop_col)) =
-                    (row, col, stop_row, stop_col)
-                {
-                    print!(
-                        "{:indent$}{} [start {}:{}, end {}:{}]",
-                        "",
-                        emit,
-                        row,
-                        col,
-                        stop_row,
-                        stop_col,
-                        indent = indent
-                    );
-                } else if let (Some(row), Some(col)) = (row, col) {
-                    print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
-                } else {
-                    print!("{:indent$}{}", "", emit, indent = indent);
-                }
+            let value = d.get("value");
+            let children = d.get("children");
 
-                if let Some(value) = value {
-                    print!(" {:?}", value.borrow());
-                }
-                print!("\n");
-
-                if let Some(children) = children {
-                    print(children, indent + 1);
-                }
+            if let (Some(row), Some(col), Some(stop_row), Some(stop_col)) =
+                (row, col, stop_row, stop_col)
+            {
+                print!(
+                    "{:indent$}{} [start {}:{}, end {}:{}]",
+                    "",
+                    emit,
+                    row,
+                    col,
+                    stop_row,
+                    stop_col,
+                    indent = indent
+                );
+            } else if let (Some(row), Some(col)) = (row, col) {
+                print!("{:indent$}{} [{}:{}]", "", emit, row, col, indent = indent);
+            } else {
+                print!("{:indent$}{}", "", emit, indent = indent);
             }
 
-            Value::List(l) => {
-                for item in l.iter() {
-                    print(item, indent);
-                }
+            if let Some(value) = value {
+                print!(" {:?}", value.borrow());
             }
+            print!("\n");
 
-            other => print!("{}", other.repr()),
+            if let Some(children) = children {
+                print(children, indent + 1);
+            }
+        } else if let Some(l) = value.list() {
+            for item in l.iter() {
+                print(item, indent);
+            }
+        } else {
+            print!("{}", value.repr());
         }
     }
 
@@ -1401,39 +1380,21 @@ tokay_function!("ast(emit, value=void)", {
     }
 
     // Store positions of reader start
-    ret.insert(
-        "offset".to_string(),
-        Value::Addr(context.reader_start.offset).into(),
-    );
-    ret.insert(
-        "row".to_string(),
-        Value::Addr(context.reader_start.row as usize).into(),
-    );
-    ret.insert(
-        "col".to_string(),
-        Value::Addr(context.reader_start.col as usize).into(),
-    );
+    ret.insert("offset".to_string(), value!(context.reader_start.offset));
+    ret.insert("row".to_string(), value!(context.reader_start.row as usize));
+    ret.insert("col".to_string(), value!(context.reader_start.col as usize));
 
     // Store positions of reader stop
     let current = context.runtime.reader.tell();
 
-    ret.insert(
-        "stop_offset".to_string(),
-        Value::Addr(current.offset).into(),
-    );
-    ret.insert(
-        "stop_row".to_string(),
-        Value::Addr(current.row as usize).into(),
-    );
-    ret.insert(
-        "stop_col".to_string(),
-        Value::Addr(current.col as usize).into(),
-    );
+    ret.insert("stop_offset".to_string(), value!(current.offset));
+    ret.insert("stop_row".to_string(), value!(current.row as usize));
+    ret.insert("stop_col".to_string(), value!(current.col as usize));
 
-    Value::Dict(Box::new(ret)).into()
+    RefValue::from(ret).into()
 });
 
 tokay_function!("ast_print(ast)", {
     print(&ast);
-    Value::Void.into()
+    value!(void).into()
 });

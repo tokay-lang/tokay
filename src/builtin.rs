@@ -1,5 +1,6 @@
 //! Tokay built-in functions
 use crate::_builtins::BUILTINS;
+use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Context, Reject};
 
@@ -124,5 +125,5 @@ tokay_function!("print(*args)", {
     }
 
     print!("\n");
-    Value::Void.into()
+    value!(void).into()
 });
