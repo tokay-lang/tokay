@@ -4,7 +4,7 @@ use std::io::{self, BufReader};
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{ParseletRef, RefValue, Value};
+use crate::value::{ParseletRef, RefValue};
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
@@ -39,29 +39,27 @@ impl Program {
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
         if let Some(main) = self.main {
-            match match &*self.statics[main].borrow() {
-                // todo: This is absolutely unhandy.
-                Value::Object(main) => {
-                    if let Some(main) = main.as_ref().downcast_ref::<ParseletRef>() {
-                        main.0
-                            .borrow()
-                            .run(runtime, runtime.stack.len(), None, true, 0)
-                    } else {
-                        panic!()
+            let main = self.statics[main].borrow();
+
+            if let Some(main) = main.object::<ParseletRef>() {
+                match main
+                    .0
+                    .borrow()
+                    .run(runtime, runtime.stack.len(), None, true, 0)
+                {
+                    Ok(Accept::Push(Capture::Value(value, ..))) => {
+                        if value.is_void() {
+                            Ok(None)
+                        } else {
+                            Ok(Some(value.clone()))
+                        }
                     }
+                    Ok(_) => Ok(None),
+                    Err(Reject::Error(error)) => Err(*error),
+                    Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
                 }
-                _ => panic!(),
-            } {
-                Ok(Accept::Push(Capture::Value(value, ..))) => {
-                    if value.is_void() {
-                        Ok(None)
-                    } else {
-                        Ok(Some(value.clone()))
-                    }
-                }
-                Ok(_) => Ok(None),
-                Err(Reject::Error(error)) => Err(*error),
-                Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
+            } else {
+                panic!("main does not refer to a ParseletRef");
             }
         } else {
             Ok(None)

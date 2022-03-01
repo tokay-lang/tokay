@@ -1,5 +1,5 @@
 //! String object
-use super::{List, RefValue, Value};
+use super::{BoxedObject, List, Object, RefValue};
 use macros::tokay_method;
 
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -7,12 +7,12 @@ pub struct Str {
     string: String,
 }
 
-impl Str {
-    pub fn as_str(&self) -> &str {
-        &self.string
+impl Object for Str {
+    fn name(&self) -> &'static str {
+        "str"
     }
 
-    pub fn repr(&self) -> String {
+    fn repr(&self) -> String {
         let mut ret = String::with_capacity(self.string.len() + 2);
         ret.push('"');
 
@@ -28,6 +28,49 @@ impl Str {
 
         ret.push('"');
         ret
+    }
+
+    fn is_true(&self) -> bool {
+        self.len() > 0
+    }
+
+    fn to_i64(&self) -> i64 {
+        // todo: JavaScript-style parseInt-like behavior?
+        match self.string.parse::<i64>() {
+            Ok(i) => i,
+            Err(_) => 0,
+        }
+    }
+
+    fn to_f64(&self) -> f64 {
+        // todo: JavaScript-style parseFloat-like behavior?
+        match self.string.parse::<f64>() {
+            Ok(f) => f,
+            Err(_) => 0.0,
+        }
+    }
+
+    fn to_usize(&self) -> usize {
+        // todo: JavaScript-style parseInt-like behavior?
+        match self.string.parse::<usize>() {
+            Ok(i) => i,
+            Err(_) => 0,
+        }
+    }
+
+    fn to_string(&self) -> String {
+        self.string.clone()
+    }
+
+    /// Object as &str, if possible
+    fn str(&self) -> Option<&Str> {
+        Some(self)
+    }
+}
+
+impl Str {
+    pub fn str(&self) -> &str {
+        &self.string
     }
 
     tokay_method!("str_join(str, list)", {
@@ -110,16 +153,19 @@ impl From<&str> for Str {
 
 impl From<&str> for RefValue {
     fn from(string: &str) -> Self {
-        Value::Str(Str {
-            string: string.to_string(),
-        })
-        .into()
+        RefValue::from(string.to_string())
     }
 }
 
 impl From<String> for RefValue {
     fn from(string: String) -> Self {
-        Value::Str(Str { string: string }).into()
+        RefValue::from(Str { string })
+    }
+}
+
+impl From<Str> for RefValue {
+    fn from(string: Str) -> Self {
+        RefValue::from(Box::new(string) as BoxedObject)
     }
 }
 

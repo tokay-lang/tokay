@@ -3,8 +3,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::{Dict, List, Object, RefValue, Value};
+use super::{BoxedObject, Dict, List, Object, RefValue};
+
 use crate::error::Error;
+use crate::value;
 use crate::vm::*;
 
 /** Parselet is the conceptual building block of a Tokay program.
@@ -363,7 +365,7 @@ impl Parselet {
         for i in 0..self.locals {
             if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
                 context.runtime.stack[context.stack_start + i] =
-                    Capture::Value(Value::Void.into(), None, 0);
+                    Capture::Value(value!(void), None, 0);
             }
         }
 
@@ -475,7 +477,7 @@ impl Parselet {
 
 impl From<Parselet> for RefValue {
     fn from(parselet: Parselet) -> Self {
-        Value::Object(Box::new(ParseletRef(Rc::new(RefCell::new(parselet))))).into()
+        RefValue::from(Box::new(ParseletRef(Rc::new(RefCell::new(parselet)))) as BoxedObject)
     }
 }
 

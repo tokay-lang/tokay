@@ -1,7 +1,6 @@
-use std::any::{Any, TypeId};
-
-use super::{Dict, RefValue, Value};
+use super::{Dict, List, Str};
 use crate::vm::{Accept, Context, Reject};
+use std::any::Any;
 
 // BoxedObject
 // ----------------------------------------------------------------------------
@@ -11,16 +10,37 @@ pub type BoxedObject = Box<dyn Object>;
 // CloneBoxedObject
 // ----------------------------------------------------------------------------
 
-pub trait CloneBoxedObject {
+pub trait AnyBoxedObject {
     fn clone_dyn(&self) -> BoxedObject;
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any>;
 }
 
-impl<T> CloneBoxedObject for T
+impl<T> AnyBoxedObject for T
 where
     T: 'static + Object + Clone,
 {
     fn clone_dyn(&self) -> BoxedObject {
         Box::new(self.clone())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
+    }
+}
+
+impl Clone for BoxedObject {
+    fn clone(&self) -> Self {
+        self.clone_dyn()
     }
 }
 
@@ -28,7 +48,7 @@ where
 // ----------------------------------------------------------------------------
 
 /// Describes an interface to a callable object.
-pub trait Object: CloneBoxedObject + std::any::Any + std::fmt::Debug {
+pub trait Object: AnyBoxedObject + std::any::Any + std::fmt::Debug {
     /// Object ID (unique memory address)
     fn id(&self) -> usize {
         self as *const Self as *const () as usize
@@ -67,18 +87,37 @@ pub trait Object: CloneBoxedObject + std::any::Any + std::fmt::Debug {
         self.repr()
     }
 
-    /// Check whether the callable accepts any arguments.
-    fn is_callable(&self, with_arguments: bool) -> bool;
+    /// Object as &Str, if possible
+    fn str(&self) -> Option<&Str> {
+        None
+    }
 
-    /// Check whether the callable is consuming
-    fn is_consuming(&self) -> bool;
+    /// Object as &List, if possible
+    fn list(&self) -> Option<&List> {
+        None
+    }
 
-    /// Check whether the callable is nullable
+    /// Object as &Dict, if possible
+    fn dict(&self) -> Option<&Dict> {
+        None
+    }
+
+    /// Check whether the object is callable and accepts any arguments.
+    fn is_callable(&self, _with_arguments: bool) -> bool {
+        false
+    }
+
+    /// Check whether the object is consuming
+    fn is_consuming(&self) -> bool {
+        false
+    }
+
+    /// Check whether the object is nullable
     fn is_nullable(&self) -> bool {
         false
     }
 
-    /// Call a value with a given context, argument and named argument set.
+    /// Call object with a given context, argument and named argument set.
     fn call(
         &self,
         _context: &mut Context,
@@ -86,38 +125,6 @@ pub trait Object: CloneBoxedObject + std::any::Any + std::fmt::Debug {
         _nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         panic!("{} cannot be called.", self.name())
-    }
-}
-
-// The next piece of code including the comment was kindly borrowed from
-// https://gitlab.freedesktop.org/dbus/zbus/-/blob/main/zbus/src/interface.rs#L123
-//
-// Note: while it is possible to implement this without `unsafe`, it currently requires a helper
-// trait with a blanket impl that creates `dyn Any` refs.  It's simpler (and more performant) to
-// just check the type ID and do the downcast ourself.
-//
-// See https://github.com/rust-lang/rust/issues/65991 for a rustc feature that will make it
-// possible to get a `dyn Any` ref directly from a `dyn Interface` ref; once that is stable, we can
-// remove this unsafe code.
-impl dyn Object {
-    /// Return Any of self
-    pub(crate) fn downcast_ref<T: Any>(&self) -> Option<&T> {
-        if <dyn Object as Any>::type_id(self) == TypeId::of::<T>() {
-            // SAFETY: If type ID matches, it means object is of type T
-            Some(unsafe { &*(self as *const dyn Object as *const T) })
-        } else {
-            None
-        }
-    }
-
-    /// Return Any of self
-    pub(crate) fn downcast_mut<T: Any>(&mut self) -> Option<&mut T> {
-        if <dyn Object as Any>::type_id(self) == TypeId::of::<T>() {
-            // SAFETY: If type ID matches, it means object is of type T
-            Some(unsafe { &mut *(self as *mut dyn Object as *mut T) })
-        } else {
-            None
-        }
     }
 }
 
@@ -131,12 +138,6 @@ https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=4d7fda9b
 
 fixme: Need help with this!
 */
-
-impl Clone for BoxedObject {
-    fn clone(&self) -> Self {
-        self.clone_dyn()
-    }
-}
 
 impl PartialEq for BoxedObject {
     fn eq(&self, other: &Self) -> bool {
@@ -157,8 +158,10 @@ impl PartialEq<&Self> for BoxedObject {
     }
 }
 
+/*
 impl<T: Object> From<Box<T>> for RefValue {
     fn from(value: Box<T>) -> Self {
         Value::Object(value).into()
     }
 }
+*/

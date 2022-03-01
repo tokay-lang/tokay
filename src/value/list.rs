@@ -1,5 +1,5 @@
 //! List object
-use super::{RefValue, Value};
+use super::{BoxedObject, Object, RefValue};
 use macros::tokay_method;
 
 /// Alias for the inner list definition
@@ -9,6 +9,39 @@ type InnerList = Vec<RefValue>;
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct List {
     list: InnerList,
+}
+
+impl Object for List {
+    fn name(&self) -> &'static str {
+        "list"
+    }
+
+    fn repr(&self) -> String {
+        let mut ret = "(".to_string();
+        for item in self.iter() {
+            if ret.len() > 1 {
+                ret.push_str(", ");
+            }
+
+            ret.push_str(&item.borrow().repr());
+        }
+
+        if self.len() == 1 {
+            ret.push_str(", ");
+        }
+
+        ret.push(')');
+        ret
+    }
+
+    fn is_true(&self) -> bool {
+        self.len() > 0
+    }
+
+    /// Object as &List if possible
+    fn list(&self) -> Option<&List> {
+        Some(self)
+    }
 }
 
 impl List {
@@ -29,36 +62,17 @@ impl List {
     });
 
     tokay_method!("list_push(list, item)", {
-        // If list is not a list, turn it into a list and push list as first element
-        if !list.is("list") {
-            list = Self::list_new(vec![list.clone()], None)?;
-        }
-
         // Push the item to the list
-        if let Value::List(list) = &mut *list.borrow_mut() {
-            list.push(item);
+        if list.is("list") {
+            list.borrow_mut().object_mut::<List>().unwrap().push(item);
+        }
+        // If list is not a list, turn it into a list and push list as first element
+        else {
+            list = Self::list_new(vec![list.clone()], None)?;
         }
 
         Ok(list)
     });
-
-    pub fn repr(&self) -> String {
-        let mut ret = "(".to_string();
-        for item in self.iter() {
-            if ret.len() > 1 {
-                ret.push_str(", ");
-            }
-
-            ret.push_str(&item.borrow().repr());
-        }
-
-        if self.len() == 1 {
-            ret.push_str(", ");
-        }
-
-        ret.push(')');
-        ret
-    }
 }
 
 impl std::ops::Deref for List {
@@ -84,39 +98,21 @@ impl std::iter::IntoIterator for List {
     }
 }
 
-impl From<Value> for List {
-    fn from(value: Value) -> Self {
-        if let Value::List(list) = value {
-            *list
-        } else {
-            Self {
-                list: vec![value.into()],
-            }
-        }
-    }
-}
-
-impl From<&Value> for List {
-    fn from(value: &Value) -> Self {
-        if let Value::List(list) = value {
-            *list.clone()
-        } else {
-            Self {
-                list: vec![value.clone().into()],
-            }
-        }
-    }
-}
-
 impl From<RefValue> for List {
     fn from(refvalue: RefValue) -> Self {
-        if let Value::List(list) = &*refvalue.borrow() {
-            *list.clone()
+        if let Some(list) = refvalue.borrow().object::<List>() {
+            (*list).clone()
         } else {
             Self {
                 list: vec![refvalue.clone()],
             }
         }
+    }
+}
+
+impl From<&RefValue> for List {
+    fn from(refvalue: &RefValue) -> Self {
+        List::from(refvalue.clone())
     }
 }
 
@@ -135,6 +131,6 @@ impl<'list> From<&'list Value> for Option<&'list List> {
 
 impl From<List> for RefValue {
     fn from(value: List) -> Self {
-        Value::List(Box::new(value)).into()
+        RefValue::from(Box::new(value) as BoxedObject)
     }
 }

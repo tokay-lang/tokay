@@ -1,4 +1,5 @@
 //! Tokay value and object representation
+use std::any::Any;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
@@ -18,7 +19,7 @@ pub use self::str::Str;
 pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
-pub use object::Object;
+pub use object::{BoxedObject, Object};
 pub use parselet::{Parselet, ParseletRef};
 pub use token::Token;
 
@@ -106,6 +107,7 @@ impl RefValue {
 
     /// Get a value's boolean meaning.
     pub fn is_void(&self) -> bool {
+        //self.is("void")
         matches!(&*self.borrow(), Value::Void)
     }
 
@@ -197,14 +199,26 @@ impl RefValue {
     }
     */
 
+    /*
+    TODO:
+    All stuff below in this impl is not finalized yet and is revised later.
+    It currently keeps up the test cases, but not very well.
+    */
+
     // Addition
     pub fn add(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        // todo: This must be moved to trait Object...
-        match (&*self.borrow(), &*rhs.borrow()) {
-            // When one is String...
-            (Value::Str(a), b) => Ok(RefValue::from(a.as_str().to_owned() + &b.to_string())),
-            (a, Value::Str(b)) => Ok(RefValue::from(a.to_string() + &b.as_str())),
+        let left = &*self.borrow();
+        let right = &*rhs.borrow();
 
+        // When one is String...
+        match (left.object::<Str>(), right.object::<Str>()) {
+            (Some(a), _) => return Ok(RefValue::from(a.as_str().to_owned() + &right.to_string())),
+            (_, Some(b)) => return Ok(RefValue::from(left.to_string() + &b.as_str())),
+            _ => {}
+        }
+
+        // todo: This must be moved to trait Object...
+        match (left, right) {
             // When one is Float...
             (Value::Float(a), b) => Ok(Value::Float(a + b.to_f64()).into()),
             (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() + b).into()),
@@ -229,13 +243,18 @@ impl RefValue {
 
     // Multiplication
     pub fn mul(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        // todo: This must be moved to trait Object...
-        match (&*self.borrow(), &*rhs.borrow()) {
-            // When one is String and one is something else...
-            (Value::Str(s), n) | (n, Value::Str(s)) => {
-                Ok(RefValue::from(s.as_str().to_owned().repeat(n.to_usize())))
-            }
+        let left = &*self.borrow();
+        let right = &*rhs.borrow();
 
+        // When one is String...
+        match (left.object::<Str>(), right.object::<Str>()) {
+            (Some(s), _) => return Ok(RefValue::from(s.as_str().to_owned().repeat(right.to_usize()))),
+            (_, Some(s)) => return Ok(RefValue::from(s.as_str().to_owned().repeat(left.to_usize()))),
+            _ => {}
+        }
+
+        // todo: This must be moved to trait Object...
+        match (left, right) {
             // When one is Float...
             (Value::Float(a), _) => Ok(Value::Float(a * rhs.to_f64()).into()),
             (_, Value::Float(b)) => Ok(Value::Float(self.to_f64() * b).into()),
@@ -321,6 +340,14 @@ impl From<Value> for RefValue {
     }
 }
 
+impl From<BoxedObject> for RefValue {
+    fn from(value: BoxedObject) -> Self {
+        RefValue {
+            value: Rc::new(RefCell::new(Value::Object(value))),
+        }
+    }
+}
+
 // Conversion from native types into Value
 
 impl From<bool> for RefValue {
@@ -381,11 +408,6 @@ pub enum Value {
     Addr(usize),  // addr
 
     // Objects
-    Str(Str),        // str
-    List(Box<List>), // list
-    Dict(Box<Dict>), // dict
-
-    // Callables
     Object(Box<dyn Object>),
 }
 
@@ -453,9 +475,6 @@ impl Value {
             Self::Integer(_) => "int",
             Self::Float(_) => "float",
             Self::Addr(_) => "addr",
-            Self::Str(_) => "str",
-            Self::List(_) => "list",
-            Self::Dict(_) => "dict",
             Self::Object(object) => object.name(),
         }
     }
@@ -470,9 +489,6 @@ impl Value {
             Self::Integer(i) => format!("{}", i),
             Self::Addr(a) => format!("{}", a),
             Self::Float(f) => format!("{}", f),
-            Self::Str(s) => s.repr(),
-            Self::List(l) => l.repr(),
-            Self::Dict(d) => d.repr(),
             Self::Object(object) => object.repr(),
         }
     }
@@ -483,9 +499,6 @@ impl Value {
             Self::Void | Self::Null | Self::False => false,
             Self::Integer(i) => *i != 0,
             Self::Float(f) => *f != 0.0,
-            Self::Str(s) => s.len() > 0,
-            Self::List(l) => l.len() > 0,
-            Self::Dict(d) => d.len() > 0,
             _ => true, // everything else is just true as it exists.
         }
     }
@@ -496,13 +509,8 @@ impl Value {
             Self::True => 1,
             Self::Integer(i) => *i,
             Self::Float(f) => *f as i64,
-            Self::Str(s) => {
-                // todo: JavaScript-style parseInt-like behavior?
-                match s.parse::<i64>() {
-                    Ok(i) => i,
-                    Err(_) => 0,
-                }
-            }
+            // fixme: whats with Self::Addr(a)?
+            Self::Object(o) => o.to_i64(),
             _ => 0,
         }
     }
@@ -513,13 +521,8 @@ impl Value {
             Self::True => 1.0,
             Self::Integer(i) => *i as f64,
             Self::Float(f) => *f,
-            Self::Str(s) => {
-                // todo: JavaScript-style parseFloat-like behavior?
-                match s.parse::<f64>() {
-                    Ok(f) => f,
-                    Err(_) => 0.0,
-                }
-            }
+            // fixme: with Self::Addr(a)?
+            Self::Object(o) => o.to_f64(),
             _ => 0.0,
         }
     }
@@ -531,13 +534,7 @@ impl Value {
             Self::Integer(i) => *i as usize,
             Self::Float(f) => *f as usize,
             Self::Addr(a) => *a,
-            Self::Str(s) => {
-                // todo: JavaScript-style parseInt-like behavior?
-                match s.parse::<usize>() {
-                    Ok(i) => i,
-                    Err(_) => 0,
-                }
-            }
+            Self::Object(o) => o.to_usize(),
             _ => self as *const Self as usize,
         }
     }
@@ -545,36 +542,66 @@ impl Value {
     pub fn to_string(&self) -> String {
         match self {
             Value::Void => "".to_string(),
-            Value::Str(s) => s.as_str().to_string(),
+            Value::Object(obj) => obj.to_string(),
             _ => self.repr(),
         }
     }
 
     /// Retrieve &str from a value in case it is a string.
     pub fn str(&self) -> Option<&str> {
-        if let Self::Str(s) = self {
-            Some(&s)
-        } else {
-            None
+        if let Value::Object(obj) = self {
+            // todo: use &Str or &str ?
+            return obj.str().and_then(|s| Some(s.str()));
         }
+
+        None
     }
 
     /// Retrieve &List from a value in case it is a list.
     pub fn list(&self) -> Option<&List> {
-        if let Self::List(l) = self {
-            Some(&l)
-        } else {
-            None
+        if let Value::Object(obj) = self {
+            return obj.list();
         }
+
+        None
     }
 
     /// Retrieve &Dict from a value in case it is a dict.
     pub fn dict(&self) -> Option<&Dict> {
-        if let Self::Dict(d) = self {
-            Some(&d)
-        } else {
-            None
+        if let Value::Object(obj) = self {
+            return obj.dict();
         }
+
+        None
+    }
+
+    /// Return reference to object of type T.
+    pub fn object<T: Any>(&self) -> Option<&T> {
+        if let Value::Object(obj) = self {
+            return obj.as_any().downcast_ref::<T>();
+        }
+
+        None
+    }
+
+    /// Return mutable reference to object of type T.
+    pub fn object_mut<T: Any>(&mut self) -> Option<&mut T> {
+        if let Value::Object(obj) = self {
+            return obj.as_any_mut().downcast_mut::<T>();
+        }
+
+        None
+    }
+
+    /// Extract object of type T from Val.
+    pub fn object_into<T: Any>(self) -> Option<T> {
+        if let Value::Object(obj) = self {
+            if let Ok(inner) = obj.into_any().downcast::<T>() {
+                return Some(*inner);
+            }
+        }
+
+        None
     }
 
     /// Check whether a value is object, and when its object if with or without arguments.

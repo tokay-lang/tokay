@@ -1,5 +1,5 @@
 //! Dictionary object
-use super::{RefValue, Value};
+use super::{BoxedObject, Object, RefValue};
 use macros::tokay_method;
 use std::collections::BTreeMap;
 
@@ -12,14 +12,12 @@ pub struct Dict {
     dict: InnerDict,
 }
 
-impl Dict {
-    pub fn new() -> Self {
-        Self {
-            dict: InnerDict::new(),
-        }
+impl Object for Dict {
+    fn name(&self) -> &'static str {
+        "dict"
     }
 
-    pub fn repr(&self) -> String {
+    fn repr(&self) -> String {
         let mut ret = "(".to_string();
 
         for (key, value) in self.iter() {
@@ -52,6 +50,22 @@ impl Dict {
         ret
     }
 
+    fn is_true(&self) -> bool {
+        self.len() > 0
+    }
+
+    fn dict(&self) -> Option<&Dict> {
+        Some(self)
+    }
+}
+
+impl Dict {
+    pub fn new() -> Self {
+        Self {
+            dict: InnerDict::new(),
+        }
+    }
+
     tokay_method!("dict_new()", Ok(RefValue::from(Dict::new())));
 
     tokay_method!("dict_update(dict, other)", {
@@ -59,8 +73,8 @@ impl Dict {
             let dict = &mut *dict.borrow_mut();
             let other = &*other.borrow();
 
-            if let Value::Dict(dict) = dict {
-                if let Value::Dict(other) = other {
+            if let Some(dict) = dict.object_mut::<Dict>() {
+                if let Some(other) = other.object::<Dict>() {
                     for (k, v) in other.iter() {
                         dict.insert(k.clone(), v.clone());
                     }
@@ -117,6 +131,6 @@ impl std::ops::DerefMut for Dict {
 
 impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
-        Value::Dict(Box::new(value)).into()
+        RefValue::from(Box::new(value) as BoxedObject)
     }
 }

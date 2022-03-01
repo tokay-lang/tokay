@@ -9,7 +9,7 @@ use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value;
-use crate::value::{Dict, List, RefValue, Token, Value};
+use crate::value::{Dict, List, RefValue, Token};
 use crate::vm::*;
 
 /// Checks whether identifier's name is the name of a reserved word.
@@ -119,7 +119,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let emit = node["emit"].borrow();
             let emit = emit.str().unwrap();
 
-            let children = List::from(&*node["children"].borrow());
+            let children = List::from(&node["children"]);
 
             let mut ccl = CharClass::new();
 
@@ -166,7 +166,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let (args, body) = if let Some(children) = children.list() {
                 assert!(children.len() == 2);
-                (Some(children[0].borrow()), children[1].borrow())
+                (Some(&children[0]), children[1].borrow())
             } else {
                 (None, children)
             };
@@ -176,11 +176,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let mut sig_names = HashSet::new();
 
             if let Some(args) = args {
-                for node in List::from(&*args).iter() {
+                for node in List::from(args).iter() {
                     let node = node.borrow();
                     let node = node.dict().unwrap();
 
-                    let children = List::from(&*node["children"].borrow());
+                    let children = List::from(node["children"].clone());
                     let ident = children[0].borrow().dict().unwrap()["value"]
                         .borrow()
                         .str()
@@ -294,7 +294,7 @@ fn traverse_node_lvalue(
     let emit = emit.str().unwrap();
     assert!(emit == "lvalue");
 
-    let children = List::from(&*node["children"].borrow());
+    let children = List::from(&node["children"]);
 
     let mut ops: Vec<ImlOp> = Vec::new();
 
@@ -577,15 +577,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // call -----------------------------------------------------------
         "call" => {
-            let children = node["children"].borrow();
-            let children = List::from(&*children);
+            let children = List::from(&node["children"]);
 
             let mut ops = Vec::new();
             let mut args = 0;
             let mut nargs = 0;
 
             if children.len() > 1 {
-                let params = List::from(&*children[1].borrow());
+                let params = List::from(&children[1]);
 
                 for param in params.iter() {
                     let param = param.borrow();
@@ -614,7 +613,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         }
 
                         "param_named" => {
-                            let children = List::from(&*param["children"].borrow());
+                            let children = List::from(&param["children"]);
 
                             ops.extend(
                                 traverse_node_or_list(compiler, &children[1])
@@ -1058,37 +1057,35 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                         // In case of a token, try to replace it with a repeating counterpart.
                         if let ImlValue::Value(value) = value {
-                            // todo: will be removed when Box<dyn Object> is standard
-                            if let Value::Object(object) = &*value.borrow() {
-                                if let Some(token) = object.as_ref().downcast_ref::<Token>() {
-                                    if let Token::Char(ccl) = token.clone() {
-                                        match parts[2] {
-                                            // mod_pos on Token::Char becomes Token::Chars
-                                            "pos" | "kle" => {
-                                                let chars = ImlResult::Value(
-                                                    RefValue::from(Token::Chars(ccl)).into(),
-                                                );
+                            let value = value.borrow();
 
-                                                if parts[2] == "pos" {
-                                                    return chars;
-                                                }
+                            if let Some(token) = value.object::<Token>() {
+                                if let Token::Char(ccl) = token.clone() {
+                                    match parts[2] {
+                                        // mod_pos on Token::Char becomes Token::Chars
+                                        "pos" | "kle" => {
+                                            let chars = ImlResult::Value(
+                                                RefValue::from(Token::Chars(ccl)).into(),
+                                            );
 
-                                                // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                                return ImlResult::Ops(vec![ImlOp::from_vec(
-                                                    chars.into_ops(compiler, true),
-                                                )
-                                                .into_optional()]);
+                                            if parts[2] == "pos" {
+                                                return chars;
                                             }
 
-                                            // mod_not on Token::Char becomes negated Token::Char
-                                            "not" => {
-                                                return ImlResult::Value(
-                                                    RefValue::from(Token::Char(ccl.negate()))
-                                                        .into(),
-                                                );
-                                            }
-                                            _ => {}
+                                            // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                            return ImlResult::Ops(vec![ImlOp::from_vec(
+                                                chars.into_ops(compiler, true),
+                                            )
+                                            .into_optional()]);
                                         }
+
+                                        // mod_not on Token::Char becomes negated Token::Char
+                                        "not" => {
+                                            return ImlResult::Value(
+                                                RefValue::from(Token::Char(ccl.negate())).into(),
+                                            );
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
@@ -1200,8 +1197,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 }
 
                 "loop" => {
-                    let children = node["children"].borrow();
-                    let children = List::from(&*children);
+                    let children = List::from(&node["children"]);
 
                     compiler.push_loop();
 
@@ -1244,8 +1240,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // rvalue ---------------------------------------------------------
         "rvalue" => {
-            let children = node["children"].borrow();
-            let children = List::from(&*children);
+            let children = List::from(&node["children"]);
 
             let mut ops = Vec::new();
 
@@ -1259,8 +1254,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // sequence  ------------------------------------------------------
         "sequence" => {
-            let children = node["children"].borrow();
-            let children = List::from(&*children);
+            let children = List::from(&node["children"]);
 
             let mut ops = Vec::new();
 

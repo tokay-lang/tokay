@@ -1,8 +1,10 @@
 //! Token callables represented by Value::Token
 use macros::tokay_token;
 
-use super::{Dict, Object, RefValue, Value};
+use super::{BoxedObject, Dict, Object, RefValue};
+
 use crate::reader::Reader;
+use crate::value;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 
@@ -231,7 +233,7 @@ impl Object for Token {
 
 impl From<Token> for RefValue {
     fn from(token: Token) -> Self {
-        Value::Object(Box::new(token)).into()
+        RefValue::from(Box::new(token) as BoxedObject)
     }
 }
 
@@ -302,7 +304,7 @@ tokay_token!("Integer", {
         }
 
         Ok(Accept::Push(Capture::Value(
-            Value::Integer(value).into(),
+            RefValue::from(value!(value)),
             None,
             5,
         )))
