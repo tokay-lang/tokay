@@ -72,6 +72,18 @@ impl Object for BuiltinRef {
     }
 }
 
+impl PartialEq for BuiltinRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.id() == other.id()
+    }
+}
+
+impl PartialOrd for BuiltinRef {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id().partial_cmp(&other.id())
+    }
+}
+
 impl std::fmt::Debug for BuiltinRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         //write!(f, "<Builtin {}>", self.name)

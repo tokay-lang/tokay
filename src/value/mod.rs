@@ -416,7 +416,7 @@ pub enum Value {
     Addr(usize),  // addr
 
     // Objects
-    Object(Box<dyn Object>),
+    Object(BoxedObject),
 }
 
 /** Value construction helper-macro

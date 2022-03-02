@@ -11,7 +11,6 @@ pub type BoxedObject = Box<dyn Object>;
 // ----------------------------------------------------------------------------
 
 pub trait AnyBoxedObject {
-    fn clone_dyn(&self) -> BoxedObject;
     fn as_any(&self) -> &dyn std::any::Any;
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
     fn into_any(self: Box<Self>) -> Box<dyn std::any::Any>;
@@ -19,12 +18,8 @@ pub trait AnyBoxedObject {
 
 impl<T> AnyBoxedObject for T
 where
-    T: 'static + Object + Clone,
+    T: 'static + Object,
 {
-    fn clone_dyn(&self) -> BoxedObject {
-        Box::new(self.clone())
-    }
-
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -38,9 +33,85 @@ where
     }
 }
 
+// CloneBoxedObject
+// ----------------------------------------------------------------------------
+
+pub trait CloneBoxedObject {
+    fn dyn_clone(&self) -> BoxedObject;
+}
+
+impl<T> CloneBoxedObject for T
+where
+    T: 'static + Object + Clone,
+{
+    fn dyn_clone(&self) -> BoxedObject {
+        Box::new(self.clone())
+    }
+}
+
 impl Clone for BoxedObject {
     fn clone(&self) -> Self {
-        self.clone_dyn()
+        self.dyn_clone()
+    }
+}
+
+// PartialEqBoxedObject
+// ----------------------------------------------------------------------------
+
+pub trait PartialEqBoxedObject {
+    fn dyn_eq(&self, other: &BoxedObject) -> bool;
+}
+
+impl<T> PartialEqBoxedObject for T
+where
+    T: 'static + Object + PartialEq,
+{
+    fn dyn_eq(&self, other: &BoxedObject) -> bool {
+        if let Some(other) = other.as_any().downcast_ref::<T>() {
+            self.eq(other)
+        } else {
+            false
+        }
+    }
+}
+
+impl PartialEq for BoxedObject {
+    fn eq(&self, other: &Self) -> bool {
+        self.dyn_eq(other)
+    }
+}
+
+// fix for `move occurs because `*__arg_1_0` has type `Box<dyn Obj>`, which does not implement the `Copy` trait`
+// https://github.com/rust-lang/rust/issues/31740#issuecomment-700950186
+impl PartialEq<&Self> for BoxedObject {
+    fn eq(&self, other: &&Self) -> bool {
+        self.dyn_eq(other)
+    }
+}
+
+// PartialOrdBoxedObject
+// ----------------------------------------------------------------------------
+
+pub trait PartialOrdBoxedObject {
+    fn dyn_partial_cmp(&self, other: &BoxedObject) -> Option<std::cmp::Ordering>;
+}
+
+impl<T> PartialOrdBoxedObject for T
+where
+    T: 'static + Object + PartialEq + PartialOrd,
+{
+    fn dyn_partial_cmp(&self, other: &BoxedObject) -> Option<std::cmp::Ordering> {
+        if let Some(other) = other.as_any().downcast_ref::<T>() {
+            self.partial_cmp(other)
+        } else {
+            None
+        }
+    }
+}
+
+impl PartialOrd for BoxedObject {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.dyn_partial_cmp(other)
     }
 }
 
@@ -48,7 +119,14 @@ impl Clone for BoxedObject {
 // ----------------------------------------------------------------------------
 
 /// Describes an interface to a callable object.
-pub trait Object: AnyBoxedObject + std::any::Any + std::fmt::Debug {
+pub trait Object:
+    AnyBoxedObject
+    + CloneBoxedObject
+    + PartialEqBoxedObject
+    + PartialOrdBoxedObject
+    + std::any::Any
+    + std::fmt::Debug
+{
     /// Object ID (unique memory address)
     fn id(&self) -> usize {
         self as *const Self as *const () as usize
@@ -112,41 +190,3 @@ pub trait Object: AnyBoxedObject + std::any::Any + std::fmt::Debug {
         panic!("{} cannot be called.", self.name())
     }
 }
-
-/*
-Value could make use of BoxedObject as a trait object, but this requires implementation
-of several other trait on BoxedObject. But this looses the possibility of doing PartialEq
-and PartialOrd on the current implementation, which IS important.
-
-Here is the link for a playground started on this:
-https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=4d7fda9b8391506736837f93124a16f4
-
-fixme: Need help with this!
-*/
-
-impl PartialEq for BoxedObject {
-    fn eq(&self, other: &Self) -> bool {
-        self.id() == other.id()
-    }
-}
-
-impl PartialOrd for BoxedObject {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id().partial_cmp(&other.id())
-    }
-}
-
-// https://github.com/rust-lang/rust/issues/31740#issuecomment-700950186
-impl PartialEq<&Self> for BoxedObject {
-    fn eq(&self, other: &&Self) -> bool {
-        self.id() == other.id()
-    }
-}
-
-/*
-impl<T: Object> From<Box<T>> for RefValue {
-    fn from(value: Box<T>) -> Self {
-        Value::Object(value).into()
-    }
-}
-*/

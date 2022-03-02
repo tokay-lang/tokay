@@ -516,3 +516,15 @@ impl Object for ParseletRef {
             .run(context.runtime, args, nargs, false, context.depth + 1)
     }
 }
+
+impl PartialEq for ParseletRef {
+    fn eq(&self, other: &Self) -> bool {
+        self.id() == other.id()
+    }
+}
+
+impl PartialOrd for ParseletRef {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id().partial_cmp(&other.id())
+    }
+}

@@ -8,7 +8,7 @@ use crate::value;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Token {
     Void,                               // Matches the empty word
     EOF,                                // Matches End of File
