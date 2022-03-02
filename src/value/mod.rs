@@ -248,8 +248,16 @@ impl RefValue {
 
         // When one is String...
         match (left.object::<Str>(), right.object::<Str>()) {
-            (Some(s), _) => return Ok(RefValue::from(s.as_str().to_owned().repeat(right.to_usize()))),
-            (_, Some(s)) => return Ok(RefValue::from(s.as_str().to_owned().repeat(left.to_usize()))),
+            (Some(s), _) => {
+                return Ok(RefValue::from(
+                    s.as_str().to_owned().repeat(right.to_usize()),
+                ))
+            }
+            (_, Some(s)) => {
+                return Ok(RefValue::from(
+                    s.as_str().to_owned().repeat(left.to_usize()),
+                ))
+            }
             _ => {}
         }
 
@@ -545,34 +553,6 @@ impl Value {
             Value::Object(obj) => obj.to_string(),
             _ => self.repr(),
         }
-    }
-
-    /// Retrieve &str from a value in case it is a string.
-    pub fn str(&self) -> Option<&str> {
-        if let Value::Object(obj) = self {
-            // todo: use &Str or &str ?
-            return obj.str().and_then(|s| Some(s.str()));
-        }
-
-        None
-    }
-
-    /// Retrieve &List from a value in case it is a list.
-    pub fn list(&self) -> Option<&List> {
-        if let Value::Object(obj) = self {
-            return obj.list();
-        }
-
-        None
-    }
-
-    /// Retrieve &Dict from a value in case it is a dict.
-    pub fn dict(&self) -> Option<&Dict> {
-        if let Value::Object(obj) = self {
-            return obj.dict();
-        }
-
-        None
     }
 
     /// Return reference to object of type T.

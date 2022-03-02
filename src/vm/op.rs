@@ -5,7 +5,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
-use crate::value::{Dict, Value};
+use crate::value::{Dict, Str, Value};
 
 // --- Op ----------------------------------------------------------------------
 
@@ -494,8 +494,10 @@ impl Op {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    let value = if let Some(alias) = index.str() {
-                        context.get_capture_by_name(alias).unwrap_or(value!(void))
+                    let value = if let Some(alias) = index.object::<Str>() {
+                        context
+                            .get_capture_by_name(alias.str())
+                            .unwrap_or(value!(void))
                     } else {
                         context
                             .get_capture(index.to_usize())
@@ -510,7 +512,7 @@ impl Op {
                     let attr = attr.borrow();
                     let value = context.pop();
 
-                    match value.create_method(attr.str().unwrap()) {
+                    match value.create_method(attr.object::<Str>().unwrap().str()) {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into(),
                     }
@@ -581,7 +583,7 @@ impl Op {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    if let Some(alias) = index.str() {
+                    if let Some(alias) = index.object::<Str>() {
                         if matches!(op, Op::StoreCapture) {
                             let value = context.pop();
                             context.set_capture_by_name(alias, value);

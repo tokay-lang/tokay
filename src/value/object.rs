@@ -1,4 +1,4 @@
-use super::{Dict, List, Str};
+use super::Dict;
 use crate::vm::{Accept, Context, Reject};
 use std::any::Any;
 
@@ -7,7 +7,7 @@ use std::any::Any;
 
 pub type BoxedObject = Box<dyn Object>;
 
-// CloneBoxedObject
+// AnyBoxedObject
 // ----------------------------------------------------------------------------
 
 pub trait AnyBoxedObject {
@@ -85,21 +85,6 @@ pub trait Object: AnyBoxedObject + std::any::Any + std::fmt::Debug {
     /// Object as String
     fn to_string(&self) -> String {
         self.repr()
-    }
-
-    /// Object as &Str, if possible
-    fn str(&self) -> Option<&Str> {
-        None
-    }
-
-    /// Object as &List, if possible
-    fn list(&self) -> Option<&List> {
-        None
-    }
-
-    /// Object as &Dict, if possible
-    fn dict(&self) -> Option<&Dict> {
-        None
     }
 
     /// Check whether the object is callable and accepts any arguments.

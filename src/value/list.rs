@@ -37,11 +37,6 @@ impl Object for List {
     fn is_true(&self) -> bool {
         self.len() > 0
     }
-
-    /// Object as &List if possible
-    fn list(&self) -> Option<&List> {
-        Some(self)
-    }
 }
 
 impl List {

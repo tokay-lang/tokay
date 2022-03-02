@@ -1,5 +1,6 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
 use crate::reader::Offset;
+use crate::value::Str;
 use macros::tokay_function;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,7 +51,7 @@ tokay_function!("error(msg, collect=false)", {
         if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
             let value = value.borrow();
 
-            if let Some(s) = value.str() {
+            if let Some(s) = value.object::<Str>() {
                 msg.push_str(&format!(": '{}'", s))
             } else {
                 msg.push_str(&format!(": {}", value.repr()))

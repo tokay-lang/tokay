@@ -53,10 +53,6 @@ impl Object for Dict {
     fn is_true(&self) -> bool {
         self.len() > 0
     }
-
-    fn dict(&self) -> Option<&Dict> {
-        Some(self)
-    }
 }
 
 impl Dict {

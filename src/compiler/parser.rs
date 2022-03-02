@@ -4,7 +4,7 @@ use charclass::charclass;
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{RefValue, Token};
+use crate::value::{Dict, RefValue, Str, Token};
 use crate::{tokay, value};
 
 /**
@@ -493,7 +493,7 @@ impl Parser {
 
         match self.0.run(&mut runtime) {
             Ok(Some(ast)) => {
-                if ast.borrow().dict().is_some() {
+                if ast.borrow().object::<Dict>().is_some() {
                     Ok(ast)
                 } else {
                     Err(Error::new(None, "Parse error".to_string()))
@@ -508,7 +508,7 @@ impl Parser {
 fn code_to_char(context: &mut Context, skip: u8, base: u32) -> Result<Accept, Reject> {
     let value = context.get_capture(0).unwrap();
     let value = value.borrow();
-    let slice = &value.str().unwrap()[skip as usize..];
+    let slice = &value.object::<Str>().unwrap().str()[skip as usize..];
 
     let code = if slice.len() <= 2 {
         u8::from_str_radix(slice, base).unwrap_or_default() as char

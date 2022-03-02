@@ -61,14 +61,10 @@ impl Object for Str {
     fn to_string(&self) -> String {
         self.string.clone()
     }
-
-    /// Object as &str, if possible
-    fn str(&self) -> Option<&Str> {
-        Some(self)
-    }
 }
 
 impl Str {
+    /// Returns the &str slice of the Str object.
     pub fn str(&self) -> &str {
         &self.string
     }
