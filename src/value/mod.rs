@@ -319,12 +319,7 @@ impl RefValue {
 
     // Logical not
     pub fn not(&self) -> Result<RefValue, Error> {
-        Ok(if self.is_true() {
-            Value::False
-        } else {
-            Value::True
-        }
-        .into())
+        Ok(RefValue::from(!self.is_true()))
     }
 }
 
@@ -360,11 +355,7 @@ impl From<BoxedObject> for RefValue {
 
 impl From<bool> for RefValue {
     fn from(value: bool) -> Self {
-        if value {
-            Value::True.into()
-        } else {
-            Value::False.into()
-        }
+        RefValue::from(if value { Value::True } else { Value::False })
     }
 }
 
