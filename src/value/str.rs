@@ -69,6 +69,20 @@ impl Str {
         &self.string
     }
 
+    tokay_method!("str_new(str)", { Ok(RefValue::from(str.to_string())) });
+
+    tokay_method!("str_concat(str, append)", {
+        let mut str = str.to_string();
+
+        if let Some(append) = append.borrow().object::<Str>() {
+            str.push_str(append.str());
+        } else {
+            str.push_str(&append.to_string()); // todo: this might me done more memory saving
+        }
+
+        Ok(RefValue::from(str))
+    });
+
     tokay_method!("str_join(str, list)", {
         let delimiter = str.to_string();
         let list = List::from(list);
