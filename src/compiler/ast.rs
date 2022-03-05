@@ -915,6 +915,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
+                        todo!();
+                        /*
                         if let Ok(value) = match parts[2] {
                             "add" => left.add(right),
                             "sub" => left.sub(right),
@@ -926,6 +928,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         } {
                             return ImlResult::Value(value.into());
                         }
+                        */
                     }
 
                     // Push operation position here
@@ -952,6 +955,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                     let res = traverse_node(compiler, children);
                     if let Ok(value) = res.get_evaluable_value() {
+                        todo!();
+                        /*
                         if let Ok(value) = match parts[2] {
                             "not" => value.not(),
                             "neg" => value.neg(),
@@ -961,6 +966,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         } {
                             return ImlResult::Value(value.into());
                         }
+                        */
                     }
 
                     // Push operation position here

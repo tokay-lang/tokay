@@ -686,6 +686,13 @@ impl Op {
                 }
 
                 // Operations
+
+                /*
+                Op::Add => context.push(context.pop().binary_op('+', context.pop())),
+                Op::Sub => context.push(context.pop().binary_op('-', context.pop())),
+                Op::Mul => context.push(context.pop().binary_op('*', context.pop())),
+                Op::Div => context.push(context.pop().binary_op('/', context.pop())),
+                */
                 Op::Add | Op::Sub | Op::Mul | Op::Div => {
                     let b = context.pop();
                     let a = context.pop();
@@ -696,15 +703,15 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
-                    let c = match op {
-                        Op::Add => a.add(b)?.into(),
-                        Op::Sub => a.sub(b)?.into(),
-                        Op::Mul => a.mul(b)?.into(),
-                        Op::Div => a.div(b)?.into(),
+                    let res = match op {
+                        Op::Add => a.binary_op('+', b)?,
+                        Op::Sub => a.binary_op('-', b)?,
+                        Op::Mul => a.binary_op('*', b)?,
+                        Op::Div => a.binary_op('/', b)?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
-                    context.push(c)
+                    context.push(res)
                 }
 
                 Op::Equal
@@ -737,11 +744,11 @@ impl Op {
                 }
 
                 Op::Not => {
-                    let value = context.pop().not()?.into();
+                    let value = context.pop().unary_op('!')?.into();
                     context.push(value)
                 }
                 Op::Neg => {
-                    let value = context.pop().neg()?.into();
+                    let value = context.pop().unary_op('-')?.into();
                     context.push(value)
                 }
                 Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
@@ -755,33 +762,30 @@ impl Op {
                     */
 
                     let res = match op {
-                        Op::InlineAdd => value.add(b)?,
-                        Op::InlineSub => value.sub(b)?,
-                        Op::InlineMul => value.mul(b)?,
-                        Op::InlineDiv => value.div(b)?,
+                        Op::Add => value.binary_op('+', b)?,
+                        Op::Sub => value.binary_op('-', b)?,
+                        Op::Mul => value.binary_op('*', b)?,
+                        Op::Div => value.binary_op('/', b)?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
                     *value.borrow_mut() = res.into();
-
                     context.push(value.clone().into())
                 }
 
                 Op::InlineInc => {
                     let value = context.pop();
+                    let res = value.binary_op('+', value!(1 as i64))?; // todo: perform inc by bit-shift
 
-                    let res = value.add(value!(1 as i64))?; // todo: perform inc by bit-shift
                     *value.borrow_mut() = res.into();
-
                     context.push(value.clone().into())
                 }
 
                 Op::InlineDec => {
                     let value = context.pop();
+                    let res = value.binary_op('-', value!(1 as i64))?; // todo: perform dec by bit-shift
 
-                    let res = value.sub(value!(1 as i64))?; // todo: perform dec by bit-shift
                     *value.borrow_mut() = res.into();
-
                     context.push(value.clone().into())
                 }
             };

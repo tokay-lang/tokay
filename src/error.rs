@@ -37,9 +37,15 @@ impl std::fmt::Display for Error {
     }
 }
 
+impl From<String> for Error {
+    fn from(error: String) -> Self {
+        Error::new(None, error)
+    }
+}
+
 impl From<&str> for Error {
     fn from(error: &str) -> Self {
-        Error::new(None, error.to_string())
+        error.to_string().into()
     }
 }
 

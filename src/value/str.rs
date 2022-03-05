@@ -8,6 +8,10 @@ pub struct Str {
 }
 
 impl Object for Str {
+    fn severity(&self) -> u8 {
+        2
+    }
+
     fn name(&self) -> &'static str {
         "str"
     }
@@ -69,7 +73,7 @@ impl Str {
         &self.string
     }
 
-    tokay_method!("str_new(str)", { Ok(RefValue::from(str.to_string())) });
+    tokay_method!("str_new(str)", Ok(RefValue::from(str.to_string())));
 
     tokay_method!("str_concat(str, append)", {
         let mut str = str.to_string();

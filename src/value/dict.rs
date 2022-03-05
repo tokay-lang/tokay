@@ -13,6 +13,10 @@ pub struct Dict {
 }
 
 impl Object for Dict {
+    fn severity(&self) -> u8 {
+        3
+    }
+
     fn name(&self) -> &'static str {
         "dict"
     }

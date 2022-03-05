@@ -10,6 +10,7 @@ use crate::vm::{Accept, Context, Reject};
 pub mod dict;
 pub mod list;
 mod method;
+pub mod numeric;
 mod object;
 mod parselet;
 pub mod str;
@@ -19,9 +20,55 @@ pub use self::str::Str;
 pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
+pub use numeric::Numeric;
 pub use object::{BoxedObject, Object};
 pub use parselet::{Parselet, ParseletRef};
 pub use token::Token;
+
+/** Value construction helper-macro
+
+This macro is used to easily construct Tokay values in Rust code.
+
+Examples:
+```
+use tokay::value;
+
+let i = value!(1);
+let s = value!("String");
+let l = value!([1, 2, 3]);
+let d = value!(["a" => 1, "b" => 2, "c" => 3]);
+```
+*/
+#[macro_export]
+macro_rules! value {
+    ( [ $($key:literal => $value:tt),* ] ) => {
+        {
+            let mut dict = $crate::value::Dict::new();
+            $( dict.insert($key.to_string(), value!($value)); )*
+            $crate::RefValue::from(dict)
+        }
+    };
+
+    ( [ $($value:tt),* ] ) => {
+        {
+            let mut list = $crate::value::List::new();
+            $( list.push(value!($value)); )*
+            $crate::RefValue::from(list)
+        }
+    };
+
+    ( void ) => {
+        $crate::RefValue::from($crate::value::Value::Void)
+    };
+
+    ( null ) => {
+        $crate::RefValue::from($crate::value::Value::Null)
+    };
+
+    ( $value:expr ) => {
+        $crate::RefValue::from($value)
+    }
+}
 
 // RefValue
 // ----------------------------------------------------------------------------
@@ -165,161 +212,12 @@ impl RefValue {
         }
     }
 
-    // The following functions where previously solved by std::ops::*, etc. but this
-    // is now changed as error handling must work with Tokay's VM.
-    // Fixme: For better integration with Rust, std::ops::* could be re-implemented
-    // by wrapping these operational functions.
-
-    // Equality
-    /*
-    pub fn eq(&self, rhs: &RefValue) -> Result<bool, Error> {
-        Some(match (self, rhs) {
-            (Self::Void, Self::Void) => true,
-            (Self::Null, Self::Null) => true,
-            (Self::True, Self::True) => true,
-            (Self::False, Self::False) => true,
-
-            (Self::Integer(_), _) | (_, Self::Integer(_)) => self.to_i64() == rhs.to_i64(),
-            (Self::Float(_), _) | (_, Self::Float(_)) => self.to_f64() == rhs.to_f64(),
-
-            (Self::String(a), Self::String(b)) => a == b,
-            (Self::String(a), b) => a == &b.to_string(),
-            (a, Self::String(b)) => &a.to_string() == b,
-
-            (Self::List(a), Self::List(b)) => a == b,
-            (Self::List(a), b) => a == List::from(b),
-            (a, Self::List(b)) => List::from(a) == b,
-
-            (Self::Dict(a), Self::Dict(b)) => a == b,
-            (Self::Dict(a), b) => a == Dict::from(b),
-            (a, Self::Dict(b)) => Dict::from(a) == b,
-
-            (a, b) => a.to_usize() == b.to_usize()
-        })
-    }
-    */
-
-    /*
-    TODO:
-    All stuff below in this impl is not finalized yet and is revised later.
-    It currently keeps up the test cases, but not very well.
-    */
-
-    // Addition
-    pub fn add(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        let left = &*self.borrow();
-        let right = &*rhs.borrow();
-
-        // When one is String...
-        match (left.object::<Str>(), right.object::<Str>()) {
-            (Some(a), _) => return Ok(RefValue::from(a.as_str().to_owned() + &right.to_string())),
-            (_, Some(b)) => return Ok(RefValue::from(left.to_string() + &b.as_str())),
-            _ => {}
-        }
-
-        // todo: This must be moved to trait Object...
-        match (left, right) {
-            // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a + b.to_f64()).into()),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() + b).into()),
-
-            // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_i64() + b.to_i64()).into()),
-        }
+    pub fn unary_op(&self, op: char) -> Result<RefValue, Error> {
+        self.borrow().unary_op(op)
     }
 
-    // Substraction
-    pub fn sub(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        // todo: This must be moved to trait Object...
-        match (&*self.borrow(), &*rhs.borrow()) {
-            // When one is Float...
-            (Value::Float(a), b) => Ok(Value::Float(a - b.to_f64()).into()),
-            (a, Value::Float(b)) => Ok(Value::Float(a.to_f64() - b).into()),
-
-            // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_i64() - b.to_i64()).into()),
-        }
-    }
-
-    // Multiplication
-    pub fn mul(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        let left = &*self.borrow();
-        let right = &*rhs.borrow();
-
-        // When one is String...
-        match (left.object::<Str>(), right.object::<Str>()) {
-            (Some(s), _) => {
-                return Ok(RefValue::from(
-                    s.as_str().to_owned().repeat(right.to_usize()),
-                ))
-            }
-            (_, Some(s)) => {
-                return Ok(RefValue::from(
-                    s.as_str().to_owned().repeat(left.to_usize()),
-                ))
-            }
-            _ => {}
-        }
-
-        // todo: This must be moved to trait Object...
-        match (left, right) {
-            // When one is Float...
-            (Value::Float(a), _) => Ok(Value::Float(a * rhs.to_f64()).into()),
-            (_, Value::Float(b)) => Ok(Value::Float(self.to_f64() * b).into()),
-
-            // All is threatened as Integer
-            (a, b) => Ok(Value::Integer(a.to_i64() * b.to_i64()).into()),
-        }
-    }
-
-    // Division
-    pub fn div(&self, rhs: RefValue) -> Result<RefValue, Error> {
-        // todo: This must be moved to trait Object...
-        match (&*self.borrow(), &*rhs.borrow()) {
-            // When one is Float...
-            (Value::Float(_), _) | (_, Value::Float(_)) => {
-                let a = self.to_f64();
-                let b = rhs.to_f64();
-
-                if b == 0.0 {
-                    return Err("Cannot divide by zero".into());
-                }
-
-                Ok(Value::Float(a / b).into())
-            }
-
-            // ...otherwise, all is assumed as integer.
-            (a, b) => {
-                let a = a.to_i64();
-                let b = b.to_i64();
-
-                if b == 0 {
-                    return Err("Cannot divide by zero".into());
-                }
-
-                // If there's no remainder, perform an integer division
-                if a % b == 0 {
-                    Ok(Value::Integer(a / b).into())
-                }
-                // Otherwise a floating point division
-                else {
-                    Ok(Value::Float(a as f64 / b as f64).into())
-                }
-            }
-        }
-    }
-
-    // Negation
-    pub fn neg(&self) -> Result<RefValue, Error> {
-        match &*self.borrow() {
-            Value::Float(v) => Ok(Value::Float(-v).into()),
-            _ => Ok(Value::Integer(-self.to_i64()).into()),
-        }
-    }
-
-    // Logical not
-    pub fn not(&self) -> Result<RefValue, Error> {
-        Ok(RefValue::from(!self.is_true()))
+    pub fn binary_op(&self, op: char, operand: RefValue) -> Result<RefValue, Error> {
+        self.borrow().binary_op(op, &*operand.borrow())
     }
 }
 
@@ -351,44 +249,6 @@ impl From<BoxedObject> for RefValue {
     }
 }
 
-// Conversion from native types into Value
-
-impl From<bool> for RefValue {
-    fn from(value: bool) -> Self {
-        RefValue::from(if value { Value::True } else { Value::False })
-    }
-}
-
-impl From<i32> for RefValue {
-    fn from(value: i32) -> Self {
-        Value::Integer(value as i64).into()
-    }
-}
-
-impl From<i64> for RefValue {
-    fn from(value: i64) -> Self {
-        Value::Integer(value).into()
-    }
-}
-
-impl From<f32> for RefValue {
-    fn from(value: f32) -> Self {
-        Value::Float(value as f64).into()
-    }
-}
-
-impl From<f64> for RefValue {
-    fn from(value: f64) -> Self {
-        Value::Float(value).into()
-    }
-}
-
-impl From<usize> for RefValue {
-    fn from(value: usize) -> Self {
-        Value::Addr(value).into()
-    }
-}
-
 // Value
 // ----------------------------------------------------------------------------
 
@@ -401,58 +261,8 @@ pub enum Value {
     True,  // true
     False, // false
 
-    // Primitives
-    Integer(i64), // int
-    Float(f64),   // float
-    Addr(usize),  // addr
-
     // Objects
     Object(BoxedObject),
-}
-
-/** Value construction helper-macro
-
-This macro is used to easily construct Tokay values in Rust code.
-
-Examples:
-```
-use tokay::value;
-
-let i = value!(1);
-let s = value!("String");
-let l = value!([1, 2, 3]);
-let d = value!(["a" => 1, "b" => 2, "c" => 3]);
-```
-*/
-#[macro_export]
-macro_rules! value {
-    ( [ $($key:literal => $value:tt),* ] ) => {
-        {
-            let mut dict = $crate::value::Dict::new();
-            $( dict.insert($key.to_string(), value!($value)); )*
-            $crate::RefValue::from(dict)
-        }
-    };
-
-    ( [ $($value:tt),* ] ) => {
-        {
-            let mut list = $crate::value::List::new();
-            $( list.push(value!($value)); )*
-            $crate::RefValue::from(list)
-        }
-    };
-
-    ( void ) => {
-        $crate::RefValue::from($crate::value::Value::Void)
-    };
-
-    ( null ) => {
-        $crate::RefValue::from($crate::value::Value::Null)
-    };
-
-    ( $value:expr ) => {
-        $crate::RefValue::from($value)
-    }
 }
 
 impl Value {
@@ -471,9 +281,6 @@ impl Value {
             Self::Null => "null",
             Self::True => "true",
             Self::False => "false",
-            Self::Integer(_) => "int",
-            Self::Float(_) => "float",
-            Self::Addr(_) => "addr",
             Self::Object(object) => object.name(),
         }
     }
@@ -485,9 +292,6 @@ impl Value {
             Self::Null => "null".to_string(),
             Self::True => "true".to_string(),
             Self::False => "false".to_string(),
-            Self::Integer(i) => format!("{}", i),
-            Self::Addr(a) => format!("{}", a),
-            Self::Float(f) => format!("{}", f),
             Self::Object(object) => object.repr(),
         }
     }
@@ -495,10 +299,9 @@ impl Value {
     /// Get a value's boolean meaning.
     pub fn is_true(&self) -> bool {
         match self {
-            Self::Void | Self::Null | Self::False => false,
-            Self::Integer(i) => *i != 0,
-            Self::Float(f) => *f != 0.0,
-            _ => true, // everything else is just true as it exists.
+            Self::True => true,
+            Self::Object(obj) => obj.is_true(),
+            _ => false,
         }
     }
 
@@ -506,10 +309,7 @@ impl Value {
     pub fn to_i64(&self) -> i64 {
         match self {
             Self::True => 1,
-            Self::Integer(i) => *i,
-            Self::Float(f) => *f as i64,
-            // fixme: whats with Self::Addr(a)?
-            Self::Object(o) => o.to_i64(),
+            Self::Object(obj) => obj.to_i64(),
             _ => 0,
         }
     }
@@ -518,10 +318,7 @@ impl Value {
     pub fn to_f64(&self) -> f64 {
         match self {
             Self::True => 1.0,
-            Self::Integer(i) => *i as f64,
-            Self::Float(f) => *f,
-            // fixme: with Self::Addr(a)?
-            Self::Object(o) => o.to_f64(),
+            Self::Object(obj) => obj.to_f64(),
             _ => 0.0,
         }
     }
@@ -529,12 +326,9 @@ impl Value {
     /// Get value's usize representation.
     pub fn to_usize(&self) -> usize {
         match self {
-            Self::True => 1,
-            Self::Integer(i) => *i as usize,
-            Self::Float(f) => *f as usize,
-            Self::Addr(a) => *a,
-            Self::Object(o) => o.to_usize(),
-            _ => self as *const Self as usize,
+            Self::True => 1 as usize,
+            Self::Object(obj) => obj.to_usize(),
+            _ => 0 as usize,
         }
     }
 
@@ -601,6 +395,37 @@ impl Value {
             false
         }
     }
+
+    pub fn unary_op(&self, op: char) -> Result<RefValue, Error> {
+        if let Value::Object(obj) = self {
+            obj.unary_op(op)
+        } else {
+            value!(self.to_i64()).borrow().unary_op(op) // todo: Temporary.
+        }
+    }
+
+    pub fn binary_op(&self, op: char, operand: &Value) -> Result<RefValue, Error> {
+        match (self, operand) {
+            (Value::Object(a), Value::Object(b)) => {
+                // Check for operand precedence
+                if a.severity() < b.severity() {
+                    b.binary_op(op, self, operand)
+                // If equal, use first operand's type
+                } else {
+                    a.binary_op(op, self, operand)
+                }
+            }
+            (Value::Object(obj), _) |  (_, Value::Object(obj)) => obj.binary_op(op, self, operand),
+            _ => {
+                let value = value!(self.to_i64()); // todo: Temporary.
+                let value = value.borrow();
+                value
+                    .object::<Numeric>()
+                    .unwrap()
+                    .binary_op(op, self, operand)
+            }
+        }
+    }
 }
 
 /// Convert a RefValue into a Value
@@ -613,114 +438,10 @@ impl From<RefValue> for Value {
     }
 }
 
-// This is bat country...
-/*
-#[test]
-fn test_literal() {
-    assert_eq!(Value::Integer(1337).to_i64().unwrap(), Some(1337));
-    assert_eq!(Value::Integer(-1337).to_i64().unwrap(), Some(-1337));
-    //assert_eq!(Value::Float(13.37).to_f64(), 13.37);
-    //assert_eq!(Value::Float(-13.37).to_f64(), -13.37);
-    assert_eq!(Value::Str("hello world".to_string()).to_string().unwrap(), Some("hello world".to_string()));
-    assert_eq!(Value::Void.to_string().unwrap(), Some("void".to_string()));
-    assert_eq!(Value::True.to_string().unwrap(), Some("true".to_string()));
-    assert_eq!(Value::False.to_string().unwrap(), Some("false".to_string()));
-}
+// Conversion from native types into Value
 
-#[test]
-fn test_conversion() {
-    let v = Value::Void;
-    assert_eq!(v.to_string(), Some("void".to_string()));
-    assert_eq!(v.to_i64(), None);
-    assert_eq!(v.to_bool(), Some(false));
-
-    /*
-    let f = Value::Float(1.337);
-    assert_eq!(f.to_f64(), 1.337);
-    assert_eq!(f.to_string(), "1.337");
-    assert_eq!(f.to_f64(), 1.337);
-    assert_eq!(f.to_i64(), 1);
-    */
-
-    let s = Value::Str("42".to_string());
-    assert_eq!(s.to_string(), Some("42".to_string()));
-    assert_eq!(s.to_i64(), Some(42));
-    assert_eq!(s.to_f64(), Some(42.0));
-    assert_eq!(s.to_string(), Some("42".to_string()));
-
-    let s = Value::Str("gunshot42".to_string());
-    assert_eq!(s.to_string(), Some("gunshot42".to_string()));
-    assert_eq!(s.to_i64(), Some(0));
-}
-
-#[test]
-fn test_add() {
-    let x = Value::Integer(42);
-    let y = Value::Str("hello".to_string());
-    assert_eq!(x + y, Value::Str("42hello".to_string()));
-
-    let x = Value::Integer(42);
-    let y = Value::Str("hello".to_string());
-    assert_eq!(y + x, Value::Str("hello42".to_string()));
-
-    let x = Value::Integer(42);
-    let y = Value::Integer(23);
-    assert_eq!(x + y, Value::Integer(65));
-
-    //let x = Value::Integer(42);
-    //let y = Value::Float(1.337);
-    //assert_eq!(x + y, Value::Float(43.337));
-}
-
-
-#[test]
-fn test_mul() {
-    let x = Value::Integer(42);
-    let y = Value::Integer(23);
-    assert_eq!(x * y, Value::Integer(966));
-
-    let x = Value::Integer(3);
-    let y = Value::Str("hello".to_string());
-    assert_eq!(x * y, Value::Str("hellohellohello".to_string()));
-
-    assert_eq!(Value::Bool(true) * Value::Str("hello".to_string()), Value::Str("hello".to_string()));
-    assert_eq!(Value::Bool(false) * Value::Str("hello".to_string()), Value::Str("".to_string()));
-
-    //let x = Value::Integer(42);
-    //let y = Value::Float(1.337);
-    //assert_eq!(x + y, Value::Float(43.337));
-}
-
-*/
-
-/*
-#[derive(Clone, PartialEq)]
-pub struct RefValue(Rc<RefCell<Value>>);
-
-impl RefValue {
-    pub fn new(value: Value) -> Self {
-        Self(Rc::new(RefCell::new(value)))
-    }
-
-    pub fn borrow(&self) -> Ref<Value> {
-        self.0.borrow()
-    }
-
-    pub fn borrow_mut(&self) -> RefMut<Value> {
-        self.0.borrow_mut()
-    }
-
-    pub fn into_value(this: RefValue) -> Result<Value, RefValue> {
-        match Rc::try_unwrap(this.0) {
-            Ok(this) => Ok(this.into_inner()),
-            Err(this) => Err(RefValue(this))
-        }
+impl From<bool> for RefValue {
+    fn from(value: bool) -> Self {
+        RefValue::from(if value { Value::True } else { Value::False })
     }
 }
-
-impl std::fmt::Debug for RefValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.borrow())
-    }
-}
-*/

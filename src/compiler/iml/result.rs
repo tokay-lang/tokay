@@ -1,6 +1,6 @@
 use crate::compiler::*;
 use crate::reader::Offset;
-use crate::value::{RefValue, Value};
+use crate::value::{Numeric, Object, RefValue, Value};
 
 /** Intermediate traversal result.
 
@@ -37,13 +37,21 @@ impl ImlResult {
 
                     if let ImlValue::Value(value) = &value {
                         op = match &*value.borrow() {
-                            Value::Integer(0) => Some(Op::Push0),
-                            Value::Integer(1) => Some(Op::Push1),
                             Value::Void => Some(Op::PushVoid),
                             Value::Null => Some(Op::PushNull),
                             Value::True => Some(Op::PushTrue),
                             Value::False => Some(Op::PushFalse),
-                            _ => None,
+                            value => {
+                                if let Some(numeric) = value.object::<Numeric>() {
+                                    match numeric.to_i64() {
+                                        0 => Some(Op::Push0),
+                                        1 => Some(Op::Push1),
+                                        _ => None,
+                                    }
+                                } else {
+                                    None
+                                }
+                            }
                         }
                     }
 
