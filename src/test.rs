@@ -96,6 +96,16 @@ fn run_testcase(filename: &'static str) {
 // Tests expression basics ------------------------------------------------------------------------
 
 #[test]
+// EOL
+fn eol() {
+    for eol in ["\n", "\r", "\r\n", ";", "|"] {
+        let tok = format!("a = 1{}a + 2", eol);
+        println!("EOL test {:?}", tok);
+        assert_eq!(compile_and_run(&tok, ""), Ok(Some(value!(3))));
+    }
+}
+
+#[test]
 // Test for literals
 fn literal() {
     assert_eq!(
