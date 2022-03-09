@@ -23,5 +23,5 @@ pub mod vm;
 
 pub use compiler::Compiler;
 pub use reader::Reader;
-pub use value::RefValue;
+pub use value::{Object, RefValue};
 pub use vm::Program;

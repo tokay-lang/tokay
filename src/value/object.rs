@@ -127,7 +127,7 @@ pub trait Object:
     + PartialEqBoxedObject
     + PartialOrdBoxedObject
     + std::any::Any
-    + std::fmt::Debug
+    + std::fmt::Debug //+ std::fmt::Display
 {
     /// Object ID (unique memory address)
     fn id(&self) -> usize {
@@ -142,9 +142,19 @@ pub trait Object:
     /// Object type name.
     fn name(&self) -> &'static str;
 
+    /// Check for value type name.
+    fn is(&self, name: &str) -> bool {
+        self.name() == name
+    }
+
     /// Object representation in Tokay code
     fn repr(&self) -> String {
         format!("<{} {:p}>", self.name(), self)
+    }
+
+    /// Object as void
+    fn is_void(&self) -> bool {
+        false
     }
 
     /// Object as bool

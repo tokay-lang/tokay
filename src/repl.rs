@@ -9,7 +9,7 @@ use rustyline::Editor;
 
 use crate::compiler::Compiler;
 use crate::reader::Reader;
-use crate::value::RefValue;
+use crate::value::{Object, RefValue};
 use crate::vm::Runtime;
 
 // Helper enum to allow for different input types
@@ -103,7 +103,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                                     print!("\n")
                                 }
                             }
-                            Ok(Some(value)) => println!("{}", value),
+                            Ok(Some(value)) => println!("{}", value.to_string()),
                             Err(error) => println!("{}", error),
                         }
 

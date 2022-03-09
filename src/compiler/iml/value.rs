@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::*;
-use crate::value::RefValue;
+use crate::value::{Object, RefValue};
 
 /** Compile-time constant value */
 #[derive(Clone, Debug, PartialEq)]

@@ -4,7 +4,7 @@ use std::iter::FromIterator;
 
 use super::*;
 use crate::reader::Offset;
-use crate::value::{Dict, List, Parselet, RefValue};
+use crate::value::{Dict, List, Object, Parselet, RefValue};
 
 /** Contexts represent stack frames for parselet calls.
 

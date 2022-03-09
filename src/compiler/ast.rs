@@ -9,7 +9,7 @@ use crate::error::Error;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value;
-use crate::value::{Dict, List, RefValue, Str, Token};
+use crate::value::{Dict, List, Object, RefValue, Str, Token};
 use crate::vm::*;
 
 /// Checks whether identifier's name is the name of a reserved word.
@@ -55,13 +55,9 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &RefValue) -> ImlResult {
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
     let offset = node
         .get("offset")
-        .and_then(|offset| Some(offset.borrow().to_usize()));
-    let row = node
-        .get("row")
-        .and_then(|row| Some(row.borrow().to_usize() as u32));
-    let col = node
-        .get("col")
-        .and_then(|col| Some(col.borrow().to_usize() as u32));
+        .and_then(|offset| Some(offset.to_usize()));
+    let row = node.get("row").and_then(|row| Some(row.to_usize() as u32));
+    let col = node.get("col").and_then(|col| Some(col.to_usize() as u32));
 
     if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
         Some(Offset { offset, row, col })

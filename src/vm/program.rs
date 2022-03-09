@@ -4,7 +4,7 @@ use std::io::{self, BufReader};
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{ParseletRef, RefValue};
+use crate::value::{Object, ParseletRef, RefValue};
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 

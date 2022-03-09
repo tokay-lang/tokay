@@ -124,7 +124,7 @@ tokay_function!("ord(c)", {
 tokay_function!("print(*args)", {
     if args.len() == 0 && context.is_some() {
         if let Some(capture) = context.unwrap().get_capture(0) {
-            print!("{}", capture);
+            print!("{}", capture.to_string());
         }
     } else {
         for i in 0..args.len() {

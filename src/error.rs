@@ -1,6 +1,6 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
 use crate::reader::Offset;
-use crate::value::Str;
+use crate::value::{Object, Str};
 use macros::tokay_function;
 
 #[derive(Debug, Clone, PartialEq)]

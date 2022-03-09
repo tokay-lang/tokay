@@ -5,7 +5,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
-use crate::value::{Dict, Str, Value};
+use crate::value::{Dict, Object, Str, Value};
 
 // --- Op ----------------------------------------------------------------------
 
@@ -703,6 +703,9 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
+                    todo!();
+
+                    /*
                     let res = match op {
                         Op::Add => a.binary_op('+', b)?,
                         Op::Sub => a.binary_op('-', b)?,
@@ -712,6 +715,7 @@ impl Op {
                     };
 
                     context.push(res)
+                    */
                 }
 
                 Op::Equal
@@ -761,6 +765,9 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
+                    todo!();
+
+                    /*
                     let res = match op {
                         Op::Add => value.binary_op('+', b)?,
                         Op::Sub => value.binary_op('-', b)?,
@@ -771,22 +778,29 @@ impl Op {
 
                     *value.borrow_mut() = res.into();
                     context.push(value.clone().into())
+                    */
                 }
 
                 Op::InlineInc => {
                     let value = context.pop();
+                    todo!();
+                    /*
                     let res = value.binary_op('+', value!(1 as i64))?; // todo: perform inc by bit-shift
 
                     *value.borrow_mut() = res.into();
                     context.push(value.clone().into())
+                    */
                 }
 
                 Op::InlineDec => {
                     let value = context.pop();
+                    todo!();
+                    /*
                     let res = value.binary_op('-', value!(1 as i64))?; // todo: perform dec by bit-shift
 
                     *value.borrow_mut() = res.into();
                     context.push(value.clone().into())
+                    */
                 }
             };
 

@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 23] = [
+pub static BUILTINS: [Builtin; 24] = [
     Builtin {
         name: "Identifier",
         func: crate::value::token::tokay_token_identifier,
@@ -20,7 +20,7 @@ pub static BUILTINS: [Builtin; 23] = [
     },
     Builtin {
         name: "addr",
-        func: crate::value::numeric::Numeric::tokay_method_addr_new,
+        func: crate::value::value::Value::tokay_method_addr_new,
     },
     Builtin {
         name: "ast",
@@ -29,6 +29,10 @@ pub static BUILTINS: [Builtin; 23] = [
     Builtin {
         name: "ast_print",
         func: crate::compiler::ast::tokay_function_ast_print,
+    },
+    Builtin {
+        name: "bool",
+        func: crate::value::value::Value::tokay_method_bool_new,
     },
     Builtin {
         name: "chr",
@@ -48,11 +52,11 @@ pub static BUILTINS: [Builtin; 23] = [
     },
     Builtin {
         name: "float",
-        func: crate::value::numeric::Numeric::tokay_method_float_new,
+        func: crate::value::value::Value::tokay_method_float_new,
     },
     Builtin {
         name: "int",
-        func: crate::value::numeric::Numeric::tokay_method_int_new,
+        func: crate::value::value::Value::tokay_method_int_new,
     },
     Builtin {
         name: "list",

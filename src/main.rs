@@ -2,6 +2,7 @@
 
 use tokay::compiler::Compiler;
 use tokay::repl::{repl, Stream};
+use tokay::Object;
 
 #[macro_use]
 extern crate clap;
@@ -101,7 +102,7 @@ fn main() {
                             print!("\n")
                         }
                     }
-                    Ok(Some(value)) => println!("{}", value),
+                    Ok(Some(value)) => println!("{}", value.to_string()),
                     Err(error) => eprintln!("{}", error),
                 }
             }
