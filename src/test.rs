@@ -972,6 +972,11 @@ fn builtins() {
                 .to_string()
         )
     );
+
+    assert_eq!(
+        compile_and_run("repr(\"Hello World\")", ""),
+        Ok(Some(value!("\"Hello World\"")))
+    );
 }
 
 #[test]

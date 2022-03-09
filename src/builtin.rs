@@ -127,3 +127,5 @@ tokay_function!("print(*args)", {
     print!("\n");
     value!(void).into()
 });
+
+tokay_function!("repr(value)", value!(value.repr()).into());
