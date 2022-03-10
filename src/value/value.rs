@@ -289,12 +289,3 @@ impl From<usize> for RefValue {
         RefValue::from(Value::Addr(addr))
     }
 }
-
-impl From<RefValue> for Value {
-    fn from(value: RefValue) -> Self {
-        match std::rc::Rc::try_unwrap(value.value) {
-            Ok(value) => value.into_inner(),
-            Err(value) => value.borrow().clone(),
-        }
-    }
-}
