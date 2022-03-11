@@ -726,7 +726,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     compiler.errors.push(Error::new(
                         traverse_node_offset(node),
                         format!(
-                            "Cannot assign constant '{}' as consumable. Use identifier starting in upper-case, e.g. '{}{}'",
+                            "Cannot assign constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
                             ident, &ident[0..1].to_uppercase(), &ident[1..]
                         )
                     ));
@@ -734,10 +734,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             } else if utils::identifier_is_consumable(ident) {
                 compiler.errors.push(Error::new(
                     traverse_node_offset(node),
-                    format!(
-                        "Cannot assign to constant '{}'. Use identifier starting in lower-case, e.g. '{}{}'",
-                        ident, &ident[0..1].to_lowercase(), &ident[1..]
-                    ),
+                    if ident.starts_with("_") {
+                        format!(
+                            "Cannot assign to constant '{}', because it must be consumable. Use an identifier not starting with '_'.",
+                            ident
+                        )
+                    }
+                    else {
+                        format!(
+                            "Cannot assign to constant '{}', because it must be consumable. Use an identifier starting in lower-case, e.g. '{}{}'",
+                            ident, &ident[0..1].to_lowercase(), &ident[1..]
+                        )
+                    }
                 ));
             }
 
