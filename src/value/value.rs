@@ -59,6 +59,13 @@ impl Value {
 }
 
 impl Object for Value {
+    fn severity(&self) -> u8 {
+        match self {
+            Self::Object(o) => o.severity(),
+            _ => 0,
+        }
+    }
+
     fn name(&self) -> &'static str {
         match self {
             Self::Void => "void",

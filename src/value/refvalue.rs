@@ -61,28 +61,14 @@ impl RefValue {
         let addend = &*operand.borrow();
 
         Ok(match (augend, addend) {
-            // Object and object? Let precedence decide.
-            (Value::Object(augend), Value::Object(addend)) => {
-                if augend.severity() < addend.severity() {
-                    let builtin = operand.get_method("add")?;
-                    builtin
-                        .call(None, vec![self.clone(), operand.clone()])?
-                        .unwrap()
-                } else {
-                    let builtin = self.get_method("add")?;
-                    builtin
-                        .call(None, vec![self.clone(), operand.clone()])?
-                        .unwrap()
-                }
-            }
-            // Object and other? Object takes precedence.
-            (Value::Object(augend), _) => {
+            // Have an object? Let's decide by precedence.
+            (Value::Object(augend), addend) if augend.severity() >= addend.severity() => {
                 let builtin = self.get_method("add")?;
                 builtin
                     .call(None, vec![self.clone(), operand.clone()])?
                     .unwrap()
             }
-            (_, Value::Object(addend)) => {
+            (augend, Value::Object(addend)) if augend.severity() <= addend.severity() => {
                 let builtin = operand.get_method("add")?;
                 builtin
                     .call(None, vec![self.clone(), operand.clone()])?

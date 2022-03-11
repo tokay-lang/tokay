@@ -9,7 +9,7 @@ pub struct Str {
 
 impl Object for Str {
     fn severity(&self) -> u8 {
-        2
+        1
     }
 
     fn name(&self) -> &'static str {

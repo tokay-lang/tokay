@@ -13,7 +13,7 @@ pub struct List {
 
 impl Object for List {
     fn severity(&self) -> u8 {
-        4
+        3
     }
 
     fn name(&self) -> &'static str {
