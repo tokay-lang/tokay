@@ -79,15 +79,15 @@ fn main() {
         }
     }
 
-    // In case no stream is specified, use empty string as default input stream.
-    if streams.len() == 0 {
-        streams.push(("", RefCell::new(Stream::String("".to_string()))));
-    }
-
     if let Some(mut program) = program {
         let mut compiler = Compiler::new();
 
         if let Ok(program) = compiler.compile(program.get_reader()) {
+            // In case no stream but a program is specified, use stdin as input stream.
+            if streams.len() == 0 {
+                streams.push(("", RefCell::new(Stream::Stdin)));
+            }
+
             for (name, stream) in &streams {
                 let ret = program.run_from_reader(stream.borrow_mut().get_reader());
 
@@ -108,6 +108,12 @@ fn main() {
         }
     } else {
         print_version();
+
+        // In case no stream was specified and REPL fires up, use empty string as input stream.
+        if streams.len() == 0 {
+            streams.push(("", RefCell::new(Stream::String("".to_string()))));
+        }
+
         repl(streams);
     }
 }

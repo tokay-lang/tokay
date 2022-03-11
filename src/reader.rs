@@ -24,7 +24,7 @@ pub struct Reader {
 impl Reader {
     /// Creates a new reader on buffer read.
     pub fn new(reader: Box<dyn BufRead>) -> Self {
-        let mut ret = Self {
+        Self {
             reader,
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             offset: Offset {
@@ -33,10 +33,7 @@ impl Reader {
                 col: 1,
             },
             eof: false,
-        };
-
-        ret.peek(); // Peek one character to find out if we're immediately EOF
-        ret
+        }
     }
 
     /// Internal function for reading a line.
@@ -95,10 +92,14 @@ impl Reader {
         self.offset
     }
 
-    pub fn eof(&self) -> bool {
+    pub fn eof(&mut self) -> bool {
         if self.buffer[self.offset.offset..].chars().next().is_some() {
             false
         } else {
+            if !self.eof {
+                self.peek();
+            }
+
             self.eof
         }
     }

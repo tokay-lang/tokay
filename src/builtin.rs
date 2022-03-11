@@ -3,8 +3,8 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Context, Reject};
-
 use macros::tokay_function;
+use std::io::{self, Write};
 
 // Abstraction of a built-in function
 pub struct Builtin {
@@ -125,6 +125,8 @@ tokay_function!("print(*args)", {
     }
 
     print!("\n");
+    io::stdout().flush().unwrap();
+
     value!(void).into()
 });
 
