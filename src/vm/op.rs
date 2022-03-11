@@ -703,19 +703,15 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
-                    todo!();
-
-                    /*
                     let res = match op {
-                        Op::Add => a.binary_op('+', b)?,
-                        Op::Sub => a.binary_op('-', b)?,
-                        Op::Mul => a.binary_op('*', b)?,
-                        Op::Div => a.binary_op('/', b)?,
+                        Op::Add => a.add(b)?,
+                        //Op::Sub => a.binary_op('-', b)?,
+                        //Op::Mul => a.binary_op('*', b)?,
+                        //Op::Div => a.binary_op('/', b)?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
                     context.push(res)
-                    */
                 }
 
                 Op::Equal

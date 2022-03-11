@@ -86,6 +86,29 @@ impl List {
         Ok(list)
     });
 
+    tokay_method!("list_add(list, append)", {
+        if !list.is("list") {
+            list = Self::list_new(vec![list.clone()], None)?;
+        }
+
+        let list = list.borrow();
+        let mut list = list.object::<List>().unwrap().clone();
+
+        // When append is a list, append all items to list
+        if let Some(append) = append.borrow().object::<List>() {
+            list.reserve(append.len());
+
+            for item in append.iter() {
+                list.push(item.clone());
+            }
+        // Otherwise, just push append to the list.
+        } else {
+            list.push(append.clone());
+        }
+
+        Ok(RefValue::from(list))
+    });
+
     tokay_method!("list_push(list, item)", {
         // Push the item to the list
         if list.is("list") {

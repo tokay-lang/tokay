@@ -1,5 +1,6 @@
 use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
+use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -52,6 +53,52 @@ impl RefValue {
 
         // Call the builtin directly.
         builtin.call(None, args)
+    }
+
+    // Addition
+    pub fn add(self, operand: RefValue) -> Result<RefValue, String> {
+        let augend = &*self.borrow();
+        let addend = &*operand.borrow();
+
+        Ok(match (augend, addend) {
+            // Object and object? Let precedence decide.
+            (Value::Object(augend), Value::Object(addend)) => {
+                if augend.severity() < addend.severity() {
+                    let builtin = operand.get_method("add")?;
+                    builtin
+                        .call(None, vec![self.clone(), operand.clone()])?
+                        .unwrap()
+                } else {
+                    let builtin = self.get_method("add")?;
+                    builtin
+                        .call(None, vec![self.clone(), operand.clone()])?
+                        .unwrap()
+                }
+            }
+            // Object and other? Object takes precedence.
+            (Value::Object(augend), _) => {
+                let builtin = self.get_method("add")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            (_, Value::Object(addend)) => {
+                let builtin = operand.get_method("add")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            // Fallback for any basic types.
+            (Value::Float(_), _) | (_, Value::Float(_)) => {
+                value!(augend.to_f64() + addend.to_f64())
+            }
+            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
+                value!(augend.to_usize() + addend.to_usize())
+            }
+            _ => {
+                value!(augend.to_i64() + addend.to_i64())
+            }
+        })
     }
 }
 

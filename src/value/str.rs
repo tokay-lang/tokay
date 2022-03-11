@@ -75,7 +75,7 @@ impl Str {
 
     tokay_method!("str_new(str)", Ok(RefValue::from(str.to_string())));
 
-    tokay_method!("str_concat(str, append)", {
+    tokay_method!("str_add(str, append)", {
         let mut str = str.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
