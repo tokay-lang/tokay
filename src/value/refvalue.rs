@@ -55,6 +55,16 @@ impl RefValue {
         builtin.call(None, args)
     }
 
+    fn call_binary_method(self, operand: RefValue, name: &str) -> Result<RefValue, String> {
+        if self.severity() > operand.severity() {
+            let builtin = self.get_method(name)?;
+            Ok(builtin.call(None, vec![self, operand])?.unwrap())
+        } else {
+            let builtin = operand.get_method(name)?;
+            Ok(builtin.call(None, vec![self, operand])?.unwrap())
+        }
+    }
+
     // Addition
     pub fn binary_add(self, operand: RefValue) -> Result<RefValue, String> {
         let augend = &*self.borrow();
@@ -62,17 +72,8 @@ impl RefValue {
 
         Ok(match (augend, addend) {
             // Have an object? Let's decide by precedence.
-            (Value::Object(augend), addend) if augend.severity() >= addend.severity() => {
-                let builtin = self.get_method("add")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
-            }
-            (augend, Value::Object(addend)) if augend.severity() <= addend.severity() => {
-                let builtin = operand.get_method("add")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
+            (Value::Object(_), _) | (_, Value::Object(_)) => {
+                self.clone().call_binary_method(operand.clone(), "add")?
             }
             // Fallback for any basic types.
             (Value::Float(_), _) | (_, Value::Float(_)) => {
@@ -94,17 +95,8 @@ impl RefValue {
 
         Ok(match (minuend, subtrahend) {
             // Have an object? Let's decide by precedence.
-            (Value::Object(minuend), subtrahend) if minuend.severity() >= subtrahend.severity() => {
-                let builtin = self.get_method("sub")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
-            }
-            (minuend, Value::Object(subtrahend)) if minuend.severity() <= subtrahend.severity() => {
-                let builtin = operand.get_method("sub")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
+            (Value::Object(_), _) | (_, Value::Object(_)) => {
+                self.clone().call_binary_method(operand.clone(), "sub")?
             }
             // Fallback for any basic types.
             (Value::Float(_), _) | (_, Value::Float(_)) => {
@@ -115,7 +107,9 @@ impl RefValue {
                 let subtrahend = subtrahend.to_usize();
 
                 if subtrahend > minuend {
-                    return Err(String::from("Attemt to substract with overflow (addr-value)"))
+                    return Err(String::from(
+                        "Attemt to substract with overflow (addr-value)",
+                    ));
                 }
 
                 value!(minuend - subtrahend)
@@ -133,17 +127,8 @@ impl RefValue {
 
         Ok(match (multiplier, multiplicant) {
             // Have an object? Let's decide by precedence.
-            (Value::Object(multiplier), multiplicant) if multiplier.severity() >= multiplicant.severity() => {
-                let builtin = self.get_method("mul")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
-            }
-            (multiplier, Value::Object(multiplicant)) if multiplier.severity() <= multiplicant.severity() => {
-                let builtin = operand.get_method("mul")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
+            (Value::Object(_), _) | (_, Value::Object(_)) => {
+                self.clone().call_binary_method(operand.clone(), "mul")?
             }
             // Fallback for any basic types.
             (Value::Float(_), _) | (_, Value::Float(_)) => {
@@ -165,17 +150,8 @@ impl RefValue {
 
         Ok(match (dividend, divisor) {
             // Have an object? Let's decide by precedence.
-            (Value::Object(dividend), divisor) if dividend.severity() >= divisor.severity() => {
-                let builtin = self.get_method("div")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
-            }
-            (dividend, Value::Object(divisor)) if dividend.severity() <= divisor.severity() => {
-                let builtin = operand.get_method("div")?;
-                builtin
-                    .call(None, vec![self.clone(), operand.clone()])?
-                    .unwrap()
+            (Value::Object(_), _) | (_, Value::Object(_)) => {
+                self.clone().call_binary_method(operand.clone(), "div")?
             }
             // Fallback for any basic types.
             (Value::Float(_), _) | (_, Value::Float(_)) => {
@@ -183,7 +159,7 @@ impl RefValue {
                 let divisor = divisor.to_f64();
 
                 if divisor == 0.0 {
-                    return Err(String::from("Division by zero"))
+                    return Err(String::from("Division by zero"));
                 }
 
                 value!(dividend / divisor)
@@ -193,7 +169,7 @@ impl RefValue {
                 let divisor = divisor.to_usize();
 
                 if divisor == 0 {
-                    return Err(String::from("Division by zero"))
+                    return Err(String::from("Division by zero"));
                 }
 
                 // If there's no remainder, perform an integer division
@@ -210,7 +186,7 @@ impl RefValue {
                 let divisor = divisor.to_i64();
 
                 if divisor == 0 {
-                    return Err(String::from("Division by zero"))
+                    return Err(String::from("Division by zero"));
                 }
 
                 // If there's no remainder, perform an integer division

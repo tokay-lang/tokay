@@ -686,7 +686,6 @@ impl Op {
                 }
 
                 // Operations
-
                 Op::Add | Op::Sub | Op::Mul | Op::Div => {
                     let b = context.pop();
                     let a = context.pop();
