@@ -56,7 +56,7 @@ impl RefValue {
     }
 
     // Addition
-    pub fn add(self, operand: RefValue) -> Result<RefValue, String> {
+    pub fn binary_add(self, operand: RefValue) -> Result<RefValue, String> {
         let augend = &*self.borrow();
         let addend = &*operand.borrow();
 
@@ -83,6 +83,144 @@ impl RefValue {
             }
             _ => {
                 value!(augend.to_i64() + addend.to_i64())
+            }
+        })
+    }
+
+    // Subtraction
+    pub fn binary_sub(self, operand: RefValue) -> Result<RefValue, String> {
+        let minuend = &*self.borrow();
+        let subtrahend = &*operand.borrow();
+
+        Ok(match (minuend, subtrahend) {
+            // Have an object? Let's decide by precedence.
+            (Value::Object(minuend), subtrahend) if minuend.severity() >= subtrahend.severity() => {
+                let builtin = self.get_method("sub")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            (minuend, Value::Object(subtrahend)) if minuend.severity() <= subtrahend.severity() => {
+                let builtin = operand.get_method("sub")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            // Fallback for any basic types.
+            (Value::Float(_), _) | (_, Value::Float(_)) => {
+                value!(minuend.to_f64() - subtrahend.to_f64())
+            }
+            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
+                let minuend = minuend.to_usize();
+                let subtrahend = subtrahend.to_usize();
+
+                if subtrahend > minuend {
+                    return Err(String::from("Attemt to substract with overflow (addr-value)"))
+                }
+
+                value!(minuend - subtrahend)
+            }
+            _ => {
+                value!(minuend.to_i64() - subtrahend.to_i64())
+            }
+        })
+    }
+
+    // Multiplication
+    pub fn binary_mul(self, operand: RefValue) -> Result<RefValue, String> {
+        let multiplier = &*self.borrow();
+        let multiplicant = &*operand.borrow();
+
+        Ok(match (multiplier, multiplicant) {
+            // Have an object? Let's decide by precedence.
+            (Value::Object(multiplier), multiplicant) if multiplier.severity() >= multiplicant.severity() => {
+                let builtin = self.get_method("mul")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            (multiplier, Value::Object(multiplicant)) if multiplier.severity() <= multiplicant.severity() => {
+                let builtin = operand.get_method("mul")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            // Fallback for any basic types.
+            (Value::Float(_), _) | (_, Value::Float(_)) => {
+                value!(multiplier.to_f64() * multiplicant.to_f64())
+            }
+            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
+                value!(multiplier.to_usize() * multiplicant.to_usize())
+            }
+            _ => {
+                value!(multiplier.to_i64() * multiplicant.to_i64())
+            }
+        })
+    }
+
+    // Division
+    pub fn binary_div(self, operand: RefValue) -> Result<RefValue, String> {
+        let dividend = &*self.borrow();
+        let divisor = &*operand.borrow();
+
+        Ok(match (dividend, divisor) {
+            // Have an object? Let's decide by precedence.
+            (Value::Object(dividend), divisor) if dividend.severity() >= divisor.severity() => {
+                let builtin = self.get_method("div")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            (dividend, Value::Object(divisor)) if dividend.severity() <= divisor.severity() => {
+                let builtin = operand.get_method("div")?;
+                builtin
+                    .call(None, vec![self.clone(), operand.clone()])?
+                    .unwrap()
+            }
+            // Fallback for any basic types.
+            (Value::Float(_), _) | (_, Value::Float(_)) => {
+                let dividend = dividend.to_f64();
+                let divisor = divisor.to_f64();
+
+                if divisor == 0.0 {
+                    return Err(String::from("Division by zero"))
+                }
+
+                value!(dividend / divisor)
+            }
+            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
+                let dividend = dividend.to_usize();
+                let divisor = divisor.to_usize();
+
+                if divisor == 0 {
+                    return Err(String::from("Division by zero"))
+                }
+
+                // If there's no remainder, perform an integer division
+                if dividend % divisor == 0 {
+                    value!(dividend / divisor)
+                }
+                // Otherwise do a floating point division
+                else {
+                    value!(dividend as f64 / divisor as f64)
+                }
+            }
+            _ => {
+                let dividend = dividend.to_i64();
+                let divisor = divisor.to_i64();
+
+                if divisor == 0 {
+                    return Err(String::from("Division by zero"))
+                }
+
+                // If there's no remainder, perform an integer division
+                if dividend % divisor == 0 {
+                    value!(dividend / divisor)
+                }
+                // Otherwise do a floating point division
+                else {
+                    value!(dividend as f64 / divisor as f64)
+                }
             }
         })
     }

@@ -687,12 +687,6 @@ impl Op {
 
                 // Operations
 
-                /*
-                Op::Add => context.push(context.pop().binary_op('+', context.pop())),
-                Op::Sub => context.push(context.pop().binary_op('-', context.pop())),
-                Op::Mul => context.push(context.pop().binary_op('*', context.pop())),
-                Op::Div => context.push(context.pop().binary_op('/', context.pop())),
-                */
                 Op::Add | Op::Sub | Op::Mul | Op::Div => {
                     let b = context.pop();
                     let a = context.pop();
@@ -704,10 +698,10 @@ impl Op {
                     */
 
                     let res = match op {
-                        Op::Add => a.add(b)?,
-                        //Op::Sub => a.binary_op('-', b)?,
-                        //Op::Mul => a.binary_op('*', b)?,
-                        //Op::Div => a.binary_op('/', b)?,
+                        Op::Add => a.binary_add(b)?,
+                        Op::Sub => a.binary_sub(b)?,
+                        Op::Mul => a.binary_mul(b)?,
+                        Op::Div => a.binary_div(b)?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
