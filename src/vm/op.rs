@@ -697,10 +697,10 @@ impl Op {
                     */
 
                     let res = match op {
-                        Op::Add => a.binary_add(b)?,
-                        Op::Sub => a.binary_sub(b)?,
-                        Op::Mul => a.binary_mul(b)?,
-                        Op::Div => a.binary_div(b)?,
+                        Op::Add => a.binary_op(b, "add")?,
+                        Op::Sub => a.binary_op(b, "sub")?,
+                        Op::Mul => a.binary_op(b, "mul")?,
+                        Op::Div => a.binary_op(b, "div")?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 

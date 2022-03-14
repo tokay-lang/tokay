@@ -24,6 +24,28 @@ impl Builtin {
         None
     }
 
+    /** Checks for a method on a value given by value type and method name.
+
+    Methods are currently only native Rust functions provided via builtins.
+
+    A method follows the naming convention <type>_<method>, so that the
+    calls `"hello".upper()` and `str_upper("hello")` are calls to the
+    same function.
+    */
+    pub fn get_method(type_name: &str, method_name: &str) -> Result<&'static Builtin, String> {
+        for builtin in &BUILTINS {
+            if builtin.name.starts_with(type_name)
+                && builtin.name.ends_with(method_name)
+                && builtin.name.len() == type_name.len() + method_name.len() + 1
+                && builtin.name.chars().nth(type_name.len()) == Some('_')
+            {
+                return Ok(builtin);
+            }
+        }
+
+        Err(format!("Method '{}_{}' not found", type_name, method_name))
+    }
+
     /// Directly call builtin without context and specified parameters.
     pub fn call(
         &self,

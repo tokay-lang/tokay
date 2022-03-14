@@ -1,6 +1,5 @@
 use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
-use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -11,27 +10,9 @@ pub struct RefValue {
 }
 
 impl RefValue {
-    /** Checks for a method on a value given by value type and method name.
-
-    Methods are currently only native Rust functions provided via builtins.
-
-    A method follows the naming convention <type>_<method>, so that the
-    calls `"hello".upper()` and `str_upper("hello")` are calls to the
-    same function.
-    */
-    pub fn get_method(&self, name: &str) -> Result<&'static Builtin, String> {
-        let name = format!("{}_{}", self.value.borrow().name(), name);
-
-        if let Some(builtin) = Builtin::get(&name) {
-            Ok(builtin)
-        } else {
-            Err(format!("Method '{}' not found", name))
-        }
-    }
-
-    /** Creates a callable Method object from a value and a given builtin. */
-    pub fn create_method(&self, name: &str) -> Result<RefValue, String> {
-        let builtin = self.get_method(name)?;
+    /** Creates a callable Method object from a RefValue and a given method name. */
+    pub fn create_method(&self, method_name: &str) -> Result<RefValue, String> {
+        let builtin = Builtin::get_method(self.name(), method_name)?;
         return Ok(RefValue::from(Method {
             object: self.clone(),
             method: RefValue::from(builtin),
@@ -46,7 +27,7 @@ impl RefValue {
         name: &str,
         mut args: Vec<RefValue>,
     ) -> Result<Option<RefValue>, String> {
-        let builtin = self.get_method(name)?;
+        let builtin = Builtin::get_method(self.name(), name)?;
 
         // Inject own value as first parameter.
         args.insert(0, self.clone());
@@ -55,150 +36,35 @@ impl RefValue {
         builtin.call(None, args)
     }
 
-    fn call_binary_method(self, operand: RefValue, name: &str) -> Result<RefValue, String> {
-        if self.severity() > operand.severity() {
-            let builtin = self.get_method(name)?;
+    pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {
+        // Obtain tuple of name and severity
+        let compare = {
+            let this = self.borrow();
+            let other = operand.borrow();
+
+            (
+                // Any severity of 0 falls back to int
+                if this.severity() == 0 {
+                    ("int", 0)
+                } else {
+                    (this.name(), this.severity())
+                },
+                // Any severity of 0 falls back to int
+                if other.severity() == 0 {
+                    ("int", 0)
+                } else {
+                    (other.name(), other.severity())
+                },
+            )
+        };
+
+        if compare.0 .1 > compare.1 .1 {
+            let builtin = Builtin::get_method(compare.0 .0, op)?;
             Ok(builtin.call(None, vec![self, operand])?.unwrap())
         } else {
-            let builtin = operand.get_method(name)?;
+            let builtin = Builtin::get_method(compare.1 .0, op)?;
             Ok(builtin.call(None, vec![self, operand])?.unwrap())
         }
-    }
-
-    // Addition
-    pub fn binary_add(self, operand: RefValue) -> Result<RefValue, String> {
-        let augend = &*self.borrow();
-        let addend = &*operand.borrow();
-
-        Ok(match (augend, addend) {
-            // Have an object? Let's decide by precedence.
-            (Value::Object(_), _) | (_, Value::Object(_)) => {
-                self.clone().call_binary_method(operand.clone(), "add")?
-            }
-            // Fallback for any basic types.
-            (Value::Float(_), _) | (_, Value::Float(_)) => {
-                value!(augend.to_f64() + addend.to_f64())
-            }
-            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
-                value!(augend.to_usize() + addend.to_usize())
-            }
-            _ => {
-                value!(augend.to_i64() + addend.to_i64())
-            }
-        })
-    }
-
-    // Subtraction
-    pub fn binary_sub(self, operand: RefValue) -> Result<RefValue, String> {
-        let minuend = &*self.borrow();
-        let subtrahend = &*operand.borrow();
-
-        Ok(match (minuend, subtrahend) {
-            // Have an object? Let's decide by precedence.
-            (Value::Object(_), _) | (_, Value::Object(_)) => {
-                self.clone().call_binary_method(operand.clone(), "sub")?
-            }
-            // Fallback for any basic types.
-            (Value::Float(_), _) | (_, Value::Float(_)) => {
-                value!(minuend.to_f64() - subtrahend.to_f64())
-            }
-            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
-                let minuend = minuend.to_usize();
-                let subtrahend = subtrahend.to_usize();
-
-                if subtrahend > minuend {
-                    return Err(String::from(
-                        "Attemt to substract with overflow (addr-value)",
-                    ));
-                }
-
-                value!(minuend - subtrahend)
-            }
-            _ => {
-                value!(minuend.to_i64() - subtrahend.to_i64())
-            }
-        })
-    }
-
-    // Multiplication
-    pub fn binary_mul(self, operand: RefValue) -> Result<RefValue, String> {
-        let multiplier = &*self.borrow();
-        let multiplicant = &*operand.borrow();
-
-        Ok(match (multiplier, multiplicant) {
-            // Have an object? Let's decide by precedence.
-            (Value::Object(_), _) | (_, Value::Object(_)) => {
-                self.clone().call_binary_method(operand.clone(), "mul")?
-            }
-            // Fallback for any basic types.
-            (Value::Float(_), _) | (_, Value::Float(_)) => {
-                value!(multiplier.to_f64() * multiplicant.to_f64())
-            }
-            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
-                value!(multiplier.to_usize() * multiplicant.to_usize())
-            }
-            _ => {
-                value!(multiplier.to_i64() * multiplicant.to_i64())
-            }
-        })
-    }
-
-    // Division
-    pub fn binary_div(self, operand: RefValue) -> Result<RefValue, String> {
-        let dividend = &*self.borrow();
-        let divisor = &*operand.borrow();
-
-        Ok(match (dividend, divisor) {
-            // Have an object? Let's decide by precedence.
-            (Value::Object(_), _) | (_, Value::Object(_)) => {
-                self.clone().call_binary_method(operand.clone(), "div")?
-            }
-            // Fallback for any basic types.
-            (Value::Float(_), _) | (_, Value::Float(_)) => {
-                let dividend = dividend.to_f64();
-                let divisor = divisor.to_f64();
-
-                if divisor == 0.0 {
-                    return Err(String::from("Division by zero"));
-                }
-
-                value!(dividend / divisor)
-            }
-            (Value::Addr(_), _) | (_, Value::Addr(_)) => {
-                let dividend = dividend.to_usize();
-                let divisor = divisor.to_usize();
-
-                if divisor == 0 {
-                    return Err(String::from("Division by zero"));
-                }
-
-                // If there's no remainder, perform an integer division
-                if dividend % divisor == 0 {
-                    value!(dividend / divisor)
-                }
-                // Otherwise do a floating point division
-                else {
-                    value!(dividend as f64 / divisor as f64)
-                }
-            }
-            _ => {
-                let dividend = dividend.to_i64();
-                let divisor = divisor.to_i64();
-
-                if divisor == 0 {
-                    return Err(String::from("Division by zero"));
-                }
-
-                // If there's no remainder, perform an integer division
-                if dividend % divisor == 0 {
-                    value!(dividend / divisor)
-                }
-                // Otherwise do a floating point division
-                else {
-                    value!(dividend as f64 / divisor as f64)
-                }
-            }
-        })
     }
 }
 

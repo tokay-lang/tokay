@@ -14,7 +14,7 @@ pub struct Dict {
 
 impl Object for Dict {
     fn severity(&self) -> u8 {
-        2
+        20
     }
 
     fn name(&self) -> &'static str {

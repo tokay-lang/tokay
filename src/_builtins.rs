@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 25] = [
+pub static BUILTINS: [Builtin; 37] = [
     Builtin {
         name: "Identifier",
         func: crate::value::token::tokay_token_identifier,
@@ -21,6 +21,22 @@ pub static BUILTINS: [Builtin; 25] = [
     Builtin {
         name: "addr",
         func: crate::value::value::Value::tokay_method_addr_new,
+    },
+    Builtin {
+        name: "addr_add",
+        func: crate::value::value::Value::tokay_method_addr_add,
+    },
+    Builtin {
+        name: "addr_div",
+        func: crate::value::value::Value::tokay_method_addr_div,
+    },
+    Builtin {
+        name: "addr_mul",
+        func: crate::value::value::Value::tokay_method_addr_mul,
+    },
+    Builtin {
+        name: "addr_sub",
+        func: crate::value::value::Value::tokay_method_addr_sub,
     },
     Builtin {
         name: "ast",
@@ -55,8 +71,40 @@ pub static BUILTINS: [Builtin; 25] = [
         func: crate::value::value::Value::tokay_method_float_new,
     },
     Builtin {
+        name: "float_add",
+        func: crate::value::value::Value::tokay_method_float_add,
+    },
+    Builtin {
+        name: "float_div",
+        func: crate::value::value::Value::tokay_method_float_div,
+    },
+    Builtin {
+        name: "float_mul",
+        func: crate::value::value::Value::tokay_method_float_mul,
+    },
+    Builtin {
+        name: "float_sub",
+        func: crate::value::value::Value::tokay_method_float_sub,
+    },
+    Builtin {
         name: "int",
         func: crate::value::value::Value::tokay_method_int_new,
+    },
+    Builtin {
+        name: "int_add",
+        func: crate::value::value::Value::tokay_method_int_add,
+    },
+    Builtin {
+        name: "int_div",
+        func: crate::value::value::Value::tokay_method_int_div,
+    },
+    Builtin {
+        name: "int_mul",
+        func: crate::value::value::Value::tokay_method_int_mul,
+    },
+    Builtin {
+        name: "int_sub",
+        func: crate::value::value::Value::tokay_method_int_sub,
     },
     Builtin {
         name: "list",

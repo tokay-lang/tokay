@@ -1,9 +1,9 @@
 //! Tokay value
-use std::any::Any;
-
 use super::{BoxedObject, Dict, Object, RefValue};
+use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use macros::tokay_method;
+use std::any::Any;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
@@ -52,15 +52,108 @@ impl Value {
         None
     }
 
+    // Constructors
     tokay_method!("bool_new(b)", Ok(RefValue::from(b.is_true())));
     tokay_method!("int_new(i)", Ok(RefValue::from(i.to_i64())));
     tokay_method!("float_new(f)", Ok(RefValue::from(f.to_f64())));
     tokay_method!("addr_new(a)", Ok(RefValue::from(a.to_usize())));
+
+    // Addition methods
+    tokay_method!("int_add(i, j)", Ok(RefValue::from(i.to_i64() + j.to_i64())));
+    tokay_method!(
+        "float_add(f, g)",
+        Ok(RefValue::from(f.to_f64() + g.to_f64()))
+    );
+    tokay_method!(
+        "addr_add(a, b)",
+        Ok(RefValue::from(a.to_usize() + b.to_usize()))
+    );
+
+    // Multiplication methods
+    tokay_method!("int_mul(i, j)", Ok(RefValue::from(i.to_i64() + j.to_i64())));
+    tokay_method!(
+        "float_mul(f, g)",
+        Ok(RefValue::from(f.to_f64() + g.to_f64()))
+    );
+    tokay_method!(
+        "addr_mul(a, b)",
+        Ok(RefValue::from(a.to_usize() + b.to_usize()))
+    );
+
+    // Subtraction methods
+    tokay_method!("int_sub(i, j)", Ok(RefValue::from(i.to_i64() - j.to_i64())));
+    tokay_method!(
+        "float_sub(f, g)",
+        Ok(RefValue::from(f.to_f64() - g.to_f64()))
+    );
+    tokay_method!("addr_sub(a, b)", {
+        let minuend = a.to_usize();
+        let subtrahend = b.to_usize();
+
+        if subtrahend > minuend {
+            return Err(String::from(
+                "Attemt to substract with overflow (addr-value)",
+            ));
+        }
+
+        Ok(value!(minuend - subtrahend))
+    });
+
+    // Division methods
+    tokay_method!("int_div(i, j)", {
+        let dividend = i.to_i64();
+        let divisor = j.to_i64();
+
+        if divisor == 0 {
+            return Err(String::from("Division by zero"));
+        }
+
+        // If there's no remainder, perform an integer division
+        if dividend % divisor == 0 {
+            Ok(value!(dividend / divisor))
+        }
+        // Otherwise do a floating point division
+        else {
+            Ok(value!(dividend as f64 / divisor as f64))
+        }
+    });
+
+    tokay_method!("float_div(f, g)", {
+        let dividend = f.to_f64();
+        let divisor = g.to_f64();
+
+        if divisor == 0.0 {
+            return Err(String::from("Division by zero"));
+        }
+
+        Ok(value!(dividend / divisor))
+    });
+
+    tokay_method!("addr_div(a, b)", {
+        let dividend = a.to_usize();
+        let divisor = b.to_usize();
+
+        if divisor == 0 {
+            return Err(String::from("Division by zero"));
+        }
+
+        // If there's no remainder, perform an integer division
+        if dividend % divisor == 0 {
+            Ok(value!(dividend / divisor))
+        }
+        // Otherwise do a floating point division
+        else {
+            Ok(value!(dividend as f64 / divisor as f64))
+        }
+    });
 }
 
 impl Object for Value {
     fn severity(&self) -> u8 {
         match self {
+            Self::Int(_) => 1,
+            Self::Float(_) => 2,
+            Self::Addr(_) => 3,
             Self::Object(o) => o.severity(),
             _ => 0,
         }
@@ -181,84 +274,6 @@ impl Object for Value {
             Err(format!("'{}' cannot be called", self.repr()).into())
         }
     }
-
-    /*
-    fn unary_op(&self, op: char) -> Result<RefValue, Error> {
-        match op {
-            '!' => Ok(RefValue::from(!self.is_true())),
-            '-' => match self {
-                Self::Int(i) => Ok(RefValue::from(-i)),
-                Self::Float(f) => Ok(RefValue::from(-f)),
-                Self::Addr(_) => self.unsupported_unary_op(op),
-            },
-            op => self.unsupported_unary_op(op),
-        }
-    }
-
-    /// Unary op
-    fn binary_op(&self, op: char, a: &Value, b: &Value) -> Result<RefValue, Error> {
-        println!("{:?} {} {:?}", a, op, b);
-        match op {
-            '+' => match self {
-                Self::Int(_) => Ok(RefValue::from(a.to_i64() + b.to_i64())),
-                Self::Float(_) => Ok(RefValue::from(a.to_f64() + b.to_f64())),
-                Self::Addr(_) => Ok(RefValue::from(a.to_usize() + b.to_usize())),
-            },
-            '-' => match self {
-                Self::Int(_) => Ok(RefValue::from(a.to_i64() - b.to_i64())),
-                Self::Float(_) => Ok(RefValue::from(a.to_f64() - b.to_f64())),
-                Self::Addr(_) => Ok(RefValue::from(a.to_usize() - b.to_usize())),
-            },
-            '*' => match self {
-                Self::Int(_) => Ok(RefValue::from(a.to_i64() * b.to_i64())),
-                Self::Float(_) => Ok(RefValue::from(a.to_f64() * b.to_f64())),
-                Self::Addr(_) => Ok(RefValue::from(a.to_usize() * b.to_usize())),
-            },
-            '/' => match self {
-                Self::Int(_) => {
-                    let dividend = a.to_i64();
-                    let divisor = b.to_i64();
-
-                    if divisor == 0 {
-                        return Err(Error::from("Division by zero"));
-                    }
-
-                    // If there's no remainder, perform an integer division
-                    if dividend % divisor == 0 {
-                        Ok(RefValue::from(dividend / divisor))
-                    }
-                    // Otherwise do a floating point division
-                    else {
-                        Ok(RefValue::from(dividend as f64 / divisor as f64))
-                    }
-                }
-                Self::Float(_) => {
-                    let dividend = a.to_f64();
-                    let divisor = b.to_f64();
-
-                    if divisor == 0.0 {
-                        return Err(Error::from("Division by zero"));
-                    }
-
-                    Ok(RefValue::from(dividend / divisor))
-                }
-                Self::Addr(_) => {
-                    // todo...
-                    let dividend = a.to_usize();
-                    let divisor = b.to_usize();
-
-                    if divisor == 0 {
-                        return Err(Error::from("Division by zero"));
-                    }
-
-                    Ok(RefValue::from(dividend / divisor))
-                }
-            },
-
-            op => self.unsupported_binary_op(op, a, b),
-        }
-    }
-    */
 }
 
 impl From<bool> for RefValue {
