@@ -34,6 +34,8 @@ impl Builtin {
     */
     pub fn get_method(type_name: &str, method_name: &str) -> Result<&'static Builtin, String> {
         for builtin in &BUILTINS {
+            // todo: This stupid stuff finds the method name without allocating a string.
+            // I'm sure this could be done better in some way...
             if builtin.name.starts_with(type_name)
                 && builtin.name.ends_with(method_name)
                 && builtin.name.len() == type_name.len() + method_name.len() + 1

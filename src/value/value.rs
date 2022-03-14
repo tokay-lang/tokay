@@ -163,8 +163,7 @@ impl Object for Value {
         match self {
             Self::Void => "void",
             Self::Null => "null",
-            Self::True => "true",
-            Self::False => "false",
+            Self::True | Self::False => "bool",
             Self::Int(_) => "int",
             Self::Float(_) => "float",
             Self::Addr(_) => "addr",
@@ -174,6 +173,8 @@ impl Object for Value {
 
     fn repr(&self) -> String {
         match self {
+            Self::True => "true".to_string(),
+            Self::False => "false".to_string(),
             Self::Int(i) => format!("{}", i),
             Self::Float(f) => format!("{}", f),
             Self::Addr(a) => format!("{}", a),
