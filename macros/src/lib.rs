@@ -25,6 +25,8 @@ use tokay;
 /* Tokay v0.4 compat, the function has been reworked in v0.5 */
 fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {
     let mut compiler = tokay::compiler::Compiler::new();
+    compiler.debug = 0; // Silence any debug.
+
     let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(
         src.to_owned(),
     ))));
@@ -72,16 +74,10 @@ impl syn::parse::Parse for BuiltinDef {
                 let arg = &*item.borrow();
                 if let Some(arg) = arg.get_list() {
                     //println!("{} {:?}", name, item);
-                    arguments.push((
-                        arg[0].borrow().to_string(),
-                        arg[1].borrow().to_string(),
-                    ));
+                    arguments.push((arg[0].borrow().to_string(), arg[1].borrow().to_string()));
                 } else {
                     //println!("{} {:?}", name, args);
-                    arguments.push((
-                        args[0].borrow().to_string(),
-                        args[1].borrow().to_string(),
-                    ));
+                    arguments.push((args[0].borrow().to_string(), args[1].borrow().to_string()));
                     break; // Tokay v0.4 special case... don't ask for this.
                 }
             }
@@ -112,8 +108,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
 
             args = true;
             continue;
-        }
-        else if arg == "**nargs" {
+        } else if arg == "**nargs" {
             // fixme: This must be handled by signature.tok later...
             if nargs {
                 ret.push(quote! {
@@ -127,7 +122,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
 
         let arg = syn::Ident::new(
             &arg,
-            proc_macro2::Span::call_site(),  // todo: this can be specified more specific
+            proc_macro2::Span::call_site(), // todo: this can be specified more specific
         );
 
         ret.push({
@@ -154,7 +149,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
 
                         if value.is_none() {
                             if #required {
-                                return Err(format!("Expected parameter {} is missing", stringify!(#arg)).into()).into();
+                                return Err(format!("{}: Expected parameter '{}' is missing", __function, stringify!(#arg)).into()).into();
                             }
                             else {
                                 #default
