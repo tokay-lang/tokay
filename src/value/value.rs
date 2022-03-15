@@ -53,42 +53,53 @@ impl Value {
     }
 
     // Constructors
-    tokay_method!("bool_new(b)", Ok(RefValue::from(b.is_true())));
-    tokay_method!("int_new(i)", Ok(RefValue::from(i.to_i64())));
-    tokay_method!("float_new(f)", Ok(RefValue::from(f.to_f64())));
-    tokay_method!("addr_new(a)", Ok(RefValue::from(a.to_usize())));
+    tokay_method!("bool(value)", Ok(RefValue::from(value.is_true())));
+    tokay_method!("int(value)", Ok(RefValue::from(value.to_i64())));
+    tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
+    tokay_method!("addr(value)", Ok(RefValue::from(value.to_usize())));
 
     // Addition methods
-    tokay_method!("int_add(i, j)", Ok(RefValue::from(i.to_i64() + j.to_i64())));
     tokay_method!(
-        "float_add(f, g)",
-        Ok(RefValue::from(f.to_f64() + g.to_f64()))
+        "int_add(augend, addend)",
+        Ok(RefValue::from(augend.to_i64() + addend.to_i64()))
     );
     tokay_method!(
-        "addr_add(a, b)",
-        Ok(RefValue::from(a.to_usize() + b.to_usize()))
+        "float_add(augend, addend)",
+        Ok(RefValue::from(augend.to_f64() + addend.to_f64()))
+    );
+    tokay_method!(
+        "addr_add(augend, addend)",
+        Ok(RefValue::from(augend.to_usize() + addend.to_usize()))
     );
 
     // Multiplication methods
-    tokay_method!("int_mul(i, j)", Ok(RefValue::from(i.to_i64() + j.to_i64())));
     tokay_method!(
-        "float_mul(f, g)",
-        Ok(RefValue::from(f.to_f64() + g.to_f64()))
+        "int_mul(multiplier, multiplicant)",
+        Ok(RefValue::from(multiplier.to_i64() + multiplicant.to_i64()))
     );
     tokay_method!(
-        "addr_mul(a, b)",
-        Ok(RefValue::from(a.to_usize() + b.to_usize()))
+        "float_mul(multiplier, multiplicant)",
+        Ok(RefValue::from(multiplier.to_f64() + multiplicant.to_f64()))
+    );
+    tokay_method!(
+        "addr_mul(multiplier, multiplicant)",
+        Ok(RefValue::from(
+            multiplier.to_usize() + multiplicant.to_usize()
+        ))
     );
 
     // Subtraction methods
-    tokay_method!("int_sub(i, j)", Ok(RefValue::from(i.to_i64() - j.to_i64())));
     tokay_method!(
-        "float_sub(f, g)",
-        Ok(RefValue::from(f.to_f64() - g.to_f64()))
+        "int_sub(minuend, subtrahend)",
+        Ok(RefValue::from(minuend.to_i64() - subtrahend.to_i64()))
     );
-    tokay_method!("addr_sub(a, b)", {
-        let minuend = a.to_usize();
-        let subtrahend = b.to_usize();
+    tokay_method!(
+        "float_sub(minuend, subtrahend)",
+        Ok(RefValue::from(minuend.to_f64() - subtrahend.to_f64()))
+    );
+    tokay_method!("addr_sub(minuend, subtrahend)", {
+        let minuend = minuend.to_usize();
+        let subtrahend = subtrahend.to_usize();
 
         if subtrahend > minuend {
             return Err(String::from(
@@ -100,9 +111,9 @@ impl Value {
     });
 
     // Division methods
-    tokay_method!("int_div(i, j)", {
-        let dividend = i.to_i64();
-        let divisor = j.to_i64();
+    tokay_method!("int_div(dividend, divisor)", {
+        let dividend = dividend.to_i64();
+        let divisor = divisor.to_i64();
 
         if divisor == 0 {
             return Err(String::from("Division by zero"));
@@ -118,9 +129,9 @@ impl Value {
         }
     });
 
-    tokay_method!("float_div(f, g)", {
-        let dividend = f.to_f64();
-        let divisor = g.to_f64();
+    tokay_method!("float_div(dividend, divisor)", {
+        let dividend = dividend.to_f64();
+        let divisor = divisor.to_f64();
 
         if divisor == 0.0 {
             return Err(String::from("Division by zero"));
@@ -129,9 +140,9 @@ impl Value {
         Ok(value!(dividend / divisor))
     });
 
-    tokay_method!("addr_div(a, b)", {
-        let dividend = a.to_usize();
-        let divisor = b.to_usize();
+    tokay_method!("addr_div(dividend, divisor)", {
+        let dividend = dividend.to_usize();
+        let divisor = divisor.to_usize();
 
         if divisor == 0 {
             return Err(String::from("Division by zero"));

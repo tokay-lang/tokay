@@ -77,7 +77,7 @@ impl Object for BuiltinRef {
     }
 
     fn is_callable(&self, _with_arguments: bool) -> bool {
-        true // fixme
+        true // fixme: This is currently entirely handled by the builtin's own parameter checking...
     }
 
     fn is_consuming(&self) -> bool {

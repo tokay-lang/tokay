@@ -20,7 +20,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "addr",
-        func: crate::value::value::Value::tokay_method_addr_new,
+        func: crate::value::value::Value::tokay_method_addr,
     },
     Builtin {
         name: "addr_add",
@@ -48,7 +48,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "bool",
-        func: crate::value::value::Value::tokay_method_bool_new,
+        func: crate::value::value::Value::tokay_method_bool,
     },
     Builtin {
         name: "chr",
@@ -68,7 +68,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "float",
-        func: crate::value::value::Value::tokay_method_float_new,
+        func: crate::value::value::Value::tokay_method_float,
     },
     Builtin {
         name: "float_add",
@@ -88,7 +88,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "int",
-        func: crate::value::value::Value::tokay_method_int_new,
+        func: crate::value::value::Value::tokay_method_int,
     },
     Builtin {
         name: "int_add",

@@ -73,7 +73,7 @@ impl Str {
         &self.string
     }
 
-    tokay_method!("str_new(str)", Ok(RefValue::from(str.to_string())));
+    tokay_method!("str_new(value)", Ok(RefValue::from(value.to_string())));
 
     tokay_method!("str_add(str, append)", {
         let mut str = str.to_string();
