@@ -102,7 +102,12 @@ impl Compileable for ImlSequence {
             ret.extend(item.compile(parselet));
         }
 
-        if ret.len() > 1 {
+        if ret
+            .iter()
+            .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
+            .sum::<usize>()
+            > 1
+        {
             ret.insert(0, Op::Frame(0));
             ret.push(Op::Collect(0));
             ret.push(Op::Close);

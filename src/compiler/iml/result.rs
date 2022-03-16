@@ -51,19 +51,13 @@ impl ImlResult {
                 })]
             }
             ImlResult::Identifier(name, offset) => {
-                // In case there is a use of a known constant,
-                // directly return its value as ImlResult.
-                if let Some(value) = compiler.get_constant(&name) {
-                    ImlResult::Value(value).into_ops(compiler, call)
+                let usage = if call {
+                    Usage::CallOrCopy { name, offset }
                 } else {
-                    let usage = if call {
-                        Usage::CallOrCopy { name, offset }
-                    } else {
-                        Usage::Load { name, offset }
-                    };
+                    Usage::Load { name, offset }
+                };
 
-                    usage.resolve_or_dispose(compiler)
-                }
+                usage.resolve_or_dispose(compiler)
             }
             ImlResult::Ops(ops) => {
                 // Filter any Op::Nop from the ops.

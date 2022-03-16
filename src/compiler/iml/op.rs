@@ -7,7 +7,7 @@ pub enum ImlOp {
     Nop,
     Usage(usize),                      // (yet) unresolved usage
     Compileable(Box<dyn Compileable>), // Compileable item
-    Ops(Vec<ImlOp>),                   // ImlSequence of ImlOps
+    Ops(Vec<ImlOp>),                   // Sequence of ImlOps
     Op(Op),                            // VM Operation
 }
 

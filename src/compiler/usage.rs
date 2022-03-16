@@ -30,28 +30,44 @@ pub enum Usage {
 
 impl Usage {
     pub fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<ImlOp>> {
+        let mut ret: Vec<ImlOp> = Vec::new();
+
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    return Some(vec![Op::LoadStatic(compiler.define_value(value)).into()]);
+                    ret.push(Op::LoadStatic(compiler.define_value(value)).into());
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr).into()]);
+                    ret.push(Op::LoadFast(addr).into())
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr).into()]);
+                    ret.push(Op::LoadGlobal(addr).into())
                 }
             }
 
-            Usage::CallOrCopy { name, offset: _ } => {
+            Usage::CallOrCopy { name, offset } => {
                 if let Some(value) = compiler.get_constant(&name) {
                     if value.is_callable(false) {
-                        return Some(vec![Op::CallStatic(compiler.define_value(value)).into()]);
+                        if let Some(offset) = offset {
+                            ret.push(Op::Offset(Box::new(*offset)).into());
+                        }
+
+                        ret.push(Op::CallStatic(compiler.define_value(value)).into());
                     } else {
-                        return Some(vec![Op::LoadStatic(compiler.define_value(value)).into()]);
+                        ret.push(Op::LoadStatic(compiler.define_value(value)).into());
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    return Some(vec![Op::LoadFast(addr).into(), Op::CallOrCopy.into()]);
+                    if let Some(offset) = offset {
+                        ret.push(Op::Offset(Box::new(*offset)).into());
+                    }
+
+                    ret.push(Op::LoadFast(addr).into());
+                    ret.push(Op::CallOrCopy.into());
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    return Some(vec![Op::LoadGlobal(addr).into(), Op::CallOrCopy.into()]);
+                    if let Some(offset) = offset {
+                        ret.push(Op::Offset(Box::new(*offset)).into());
+                    }
+
+                    ret.push(Op::LoadGlobal(addr).into());
+                    ret.push(Op::CallOrCopy.into());
                 }
             }
 
@@ -67,12 +83,20 @@ impl Usage {
                         let addr = compiler.define_value(value);
 
                         if *args == 0 && *nargs == 0 {
-                            return Some(vec![Op::CallStatic(addr).into()]);
-                        } else if *args > 0 && *nargs == 0 {
-                            return Some(vec![Op::CallStaticArg(Box::new((addr, *args))).into()]);
-                        }
+                            if let Some(offset) = offset {
+                                ret.push(Op::Offset(Box::new(*offset)).into());
+                            }
 
-                        return Some(vec![Op::CallStaticArgNamed(Box::new((addr, *args))).into()]);
+                            ret.push(Op::CallStatic(addr).into());
+                        } else if *args > 0 && *nargs == 0 {
+                            if let Some(offset) = offset {
+                                ret.push(Op::Offset(Box::new(*offset)).into());
+                            }
+
+                            ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
+                        } else {
+                            ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
+                        }
                     } else if *args == 0 && *nargs == 0 {
                         *self = Usage::Error(Error::new(
                             *offset,
@@ -85,36 +109,51 @@ impl Usage {
                         ));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
-                    if *args == 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadFast(addr).into(), Op::Call.into()]);
-                    } else if *args > 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadFast(addr).into(), Op::CallArg(*args).into()]);
+                    if let Some(offset) = offset {
+                        ret.push(Op::Offset(Box::new(*offset)).into());
                     }
 
-                    return Some(vec![
-                        Op::LoadFast(addr).into(),
-                        Op::CallArgNamed(*args).into(),
-                    ]);
+                    if *args == 0 && *nargs == 0 {
+                        ret.push(Op::LoadFast(addr).into());
+                        ret.push(Op::Call.into());
+                    } else if *args > 0 && *nargs == 0 {
+                        ret.push(Op::LoadFast(addr).into());
+                        ret.push(Op::CallArg(*args).into());
+                    } else {
+                        ret.push(Op::LoadFast(addr).into());
+                        ret.push(Op::CallArgNamed(*args).into());
+                    }
                 } else if let Some(addr) = compiler.get_global(&name) {
-                    if *args == 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadGlobal(addr).into(), Op::Call.into()]);
-                    } else if *args > 0 && *nargs == 0 {
-                        return Some(vec![Op::LoadGlobal(addr).into(), Op::CallArg(*args).into()]);
+                    if let Some(offset) = offset {
+                        ret.push(Op::Offset(Box::new(*offset)).into());
                     }
 
-                    return Some(vec![
-                        Op::LoadGlobal(addr).into(),
-                        Op::CallArgNamed(*args).into(),
-                    ]);
+                    if *args == 0 && *nargs == 0 {
+                        ret.push(Op::LoadGlobal(addr).into());
+                        ret.push(Op::Call.into());
+                    } else if *args > 0 && *nargs == 0 {
+                        ret.push(Op::LoadGlobal(addr).into());
+                        ret.push(Op::CallArg(*args).into());
+                    } else {
+                        ret.push(Op::LoadGlobal(addr).into());
+                        ret.push(Op::CallArgNamed(*args).into());
+                    }
                 }
             }
 
-            Usage::Error(_) => {}
+            Usage::Error(_) => {
+                // Just ignore already errored usage.
+            }
         }
 
-        None
+        if ret.len() > 0 {
+            Some(ret)
+        } else {
+            None
+        }
     }
 
+    /// Try to resolve immediatelly, otherwise push a ImlOp::Usage placeholder for later resolve.
     pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> Vec<ImlOp> {
         if let Some(res) = self.try_resolve(compiler) {
             res

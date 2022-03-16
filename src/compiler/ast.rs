@@ -242,8 +242,7 @@ The name attribute is optional and can be used to assign an identifier to parsel
 fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> ImlValue {
     compiler.push_parselet(); // yep, we push a parselet scope here...
 
-    // ... because when case ImlResult::Ops is returned here,
-    // it would be nice to have it in a separate scope.
+    // ... because in case ImlResult::Ops is returned here, it would be nice to have it in a separate scope.
     match traverse_node(compiler, node) {
         ImlResult::Empty => {
             compiler.pop_parselet(None, Vec::new(), ImlOp::from(Op::Nop));
@@ -637,9 +636,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             if nargs > 0 {
                 ops.push(Op::MakeDict(nargs).into());
             }
-
-            // Push call position here
-            insert_offset(&mut ops, node);
 
             // Perform static call or resolved rvalue call
             let callee = traverse_node_or_list(compiler, &children[0]);
