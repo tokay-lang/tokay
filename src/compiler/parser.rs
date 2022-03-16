@@ -508,7 +508,7 @@ impl Parser {
 fn code_to_char(context: &mut Context, skip: u8, base: u32) -> Result<Accept, Reject> {
     let value = context.get_capture(0).unwrap();
     let value = value.borrow();
-    let slice = &value.object::<Str>().unwrap().str()[skip as usize..];
+    let slice = &value.object::<Str>().unwrap().as_str()[skip as usize..];
 
     let code = if slice.len() <= 2 {
         u8::from_str_radix(slice, base).unwrap_or_default() as char

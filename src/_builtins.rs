@@ -56,7 +56,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "dict",
-        func: crate::value::dict::Dict::tokay_method_dict_new,
+        func: crate::value::dict::Dict::tokay_method_dict,
     },
     Builtin {
         name: "dict_update",
@@ -108,7 +108,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "list",
-        func: crate::value::list::List::tokay_method_list_new,
+        func: crate::value::list::List::tokay_method_list,
     },
     Builtin {
         name: "list_add",
@@ -132,7 +132,7 @@ pub static BUILTINS: [Builtin; 37] = [
     },
     Builtin {
         name: "str",
-        func: crate::value::str::Str::tokay_method_str_new,
+        func: crate::value::str::Str::tokay_method_str,
     },
     Builtin {
         name: "str_add",

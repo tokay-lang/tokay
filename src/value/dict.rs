@@ -66,7 +66,7 @@ impl Dict {
         }
     }
 
-    tokay_method!("dict_new()", Ok(RefValue::from(Dict::new())));
+    tokay_method!("dict()", Ok(RefValue::from(Dict::new())));
 
     tokay_method!("dict_update(dict, other)", {
         {

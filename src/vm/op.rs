@@ -496,7 +496,7 @@ impl Op {
 
                     let value = if let Some(alias) = index.object::<Str>() {
                         context
-                            .get_capture_by_name(alias.str())
+                            .get_capture_by_name(alias.as_str())
                             .unwrap_or(value!(void))
                     } else {
                         context
@@ -512,7 +512,7 @@ impl Op {
                     let attr = attr.borrow();
                     let value = context.pop();
 
-                    match value.create_method(attr.object::<Str>().unwrap().str()) {
+                    match value.create_method(attr.object::<Str>().unwrap().as_str()) {
                         Ok(value) => context.push(value),
                         Err(msg) => Error::new(None, msg).into(),
                     }

@@ -71,12 +71,7 @@ fn main() {
 
                             // Generate full qualified function name
                             res.insert(
-                                // new methods represent the object themself, therefore cut away the "_new"
-                                if kind == "method" && name.ends_with("_new") {
-                                    name[..name.len() - 4].to_string()
-                                } else {
-                                    name.clone()
-                                },
+                                name.clone(),
                                 format!("{}::tokay_{}_{}", module, kind, name.to_lowercase()),
                             );
                         }

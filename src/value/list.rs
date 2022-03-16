@@ -50,7 +50,7 @@ impl List {
         }
     }
 
-    tokay_method!("list_new(*args)", {
+    tokay_method!("list(*args)", {
         let list = if args.len() == 1 {
             List::from(args[0].clone())
         } else {
@@ -63,7 +63,7 @@ impl List {
     tokay_method!("list_concat(list, append)", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
-            list = Self::list_new(vec![list.clone()], None)?;
+            list = Self::list(vec![list.clone()], None)?;
         }
 
         {
@@ -88,7 +88,7 @@ impl List {
 
     tokay_method!("list_add(list, append)", {
         if !list.is("list") {
-            list = Self::list_new(vec![list.clone()], None)?;
+            list = Self::list(vec![list.clone()], None)?;
         }
 
         let list = list.borrow();
@@ -116,7 +116,7 @@ impl List {
         }
         // If list is not a list, turn it into a list and push list as first element
         else {
-            list = Self::list_new(vec![list.clone()], None)?;
+            list = Self::list(vec![list.clone()], None)?;
         }
 
         Ok(list)

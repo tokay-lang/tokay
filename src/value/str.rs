@@ -69,17 +69,17 @@ impl Object for Str {
 
 impl Str {
     /// Returns the &str slice of the Str object.
-    pub fn str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         &self.string
     }
 
-    tokay_method!("str_new(value)", Ok(RefValue::from(value.to_string())));
+    tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
     tokay_method!("str_add(str, append)", {
         let mut str = str.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
-            str.push_str(append.str());
+            str.push_str(append.as_str());
         } else {
             str.push_str(&append.to_string()); // todo: this might me done more memory saving
         }
