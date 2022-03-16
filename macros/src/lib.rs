@@ -24,9 +24,9 @@ use tokay;
 
 /* Tokay v0.4 compat, the function has been reworked in v0.5 */
 fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {
-    let mut compiler = tokay::compiler::Compiler::new();
-    compiler.debug = 0; // Silence any debug.
+    std::env::set_var("TOKAY_DEBUG", "0"); // disable any debug here.
 
+    let mut compiler = tokay::compiler::Compiler::new();
     let program = compiler.compile(tokay::reader::Reader::new(Box::new(std::io::Cursor::new(
         src.to_owned(),
     ))));

@@ -5,9 +5,9 @@ use tokay; // This is Tokay v0.4
 fn main() {
     let mut res: HashMap<String, String> = HashMap::new();
 
-    // Use Tokay v0.4 to
+    // Use Tokay v0.4
+    std::env::set_var("TOKAY_DEBUG", "0"); // disable any debug here.
     let mut compiler = tokay::compiler::Compiler::new();
-    compiler.debug = 0; // Silence any debug.
 
     let program = compiler
         // todo: use Compiler::compile_str() later here...
