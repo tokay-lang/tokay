@@ -96,6 +96,16 @@ fn run_testcase(filename: &'static str) {
 // Tests expression basics ------------------------------------------------------------------------
 
 #[test]
+// EOL
+fn eol() {
+    for eol in ["\n", "\r", "\r\n", ";", "|"] {
+        let tok = format!("a = 1{}a + 2", eol);
+        println!("EOL test {:?}", tok);
+        assert_eq!(compile_and_run(&tok, ""), Ok(Some(value!(3))));
+    }
+}
+
+#[test]
 // Test for literals
 fn literal() {
     assert_eq!(
@@ -961,6 +971,11 @@ fn builtins() {
             "Line 1, column 1: ord() expects a single character, but received string of length 0"
                 .to_string()
         )
+    );
+
+    assert_eq!(
+        compile_and_run("repr(\"Hello World\")", ""),
+        Ok(Some(value!("\"Hello World\"")))
     );
 }
 

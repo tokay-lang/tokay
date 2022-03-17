@@ -32,11 +32,12 @@ impl Parser {
         }),
 
         (T_EOL = {  // end-of-line
-            ["\n", _, (Op::Skip)],
-            [";", _, (Op::Skip)],
-            ["|", _, (Op::Skip)],
-            [(token (Token::EOF)), (Op::Skip)],
-            [(peek "}"), (Op::Skip)]
+            ["\n", _, (Op::Skip)],  // unix/linux
+            ["\r", (opt "\n"), _, (Op::Skip)],  // classic mac & windows
+            [";", _, (Op::Skip)],  // allows for multiple lines in one row
+            ["|", _, (Op::Skip)],  // alternative EOL for BNF-style grammar expressioning
+            [(token (Token::EOF)), (Op::Skip)],  // Input file may end without a new line
+            [(peek "}"), (Op::Skip)]  // peek for '}' to allow for blocks in one line.
         }),
 
         // Escape sequences

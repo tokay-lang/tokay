@@ -59,27 +59,40 @@ end words
 
 By design, Tokay constructs syntax trees from consumed information automatically.
 
-The next example implements a grammar for parsing and evaluating simple mathematical expressions, like `1+2+3` or `7*(8+2)/5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features. There is [also a version of this program](examples/expr_with_spaces.tok) accepting whitespace between all tokens.
+The next example implements an entire command-line calculator, parsing and evaluating simple mathematical expressions, like `1 + 2 + 3` or `7 * (8 + 2) / 5`. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
 
 ```tokay
+_ : [ \t]+                # redefine whitespace to just tab and space
+
 Factor : @{
-    Integer             # built-in 64-bit signed integer token
-    '(' Expr ')'
+    Integer _             # built-in 64-bit signed integer token
+    '(' _ Expr ')' _
 }
 
 Term : @{
-    Term '*' Factor     $1 * $3
-    Term '/' Factor     $1 / $3
+    Term '*' _ Factor     $1 * $4
+    Term '/' _ Factor     $1 / $4
     Factor
 }
 
 Expr : @{
-    Expr '+' Term       $1 + $3
-    Expr '-' Term       $1 - $3
+    Expr '+' _ Term       $1 + $4
+    Expr '-' _ Term       $1 - $4
     Term
 }
 
-Expr
+Expr _ print("= " + $1)   # gives some neat result output
+```
+
+An example run of this program can be seen below. To exit, press Ctrl+C, or add `'exit' exit` after the last line to implement an exit-command as well. This program is also available in a full-featured version in [calc.tok](examples/calc.tok).
+
+```bash
+$ tokay calc.tok
+1 + 2 + 3
+= 6
+7 * (8 + 2) / 5
+= 14
+exit
 ```
 
 Tokay can also be used for programs without any parsing features.<br>
