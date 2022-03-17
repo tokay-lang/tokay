@@ -1,5 +1,6 @@
 use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
+use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -34,6 +35,16 @@ impl RefValue {
 
         // Call the builtin directly.
         builtin.call(None, args)
+    }
+
+    pub fn unary_op(self, op: &str) -> Result<RefValue, String> {
+        let res = Builtin::get_method(self.borrow().name(), op);
+
+        match res {
+            Ok(builtin) => Ok(builtin.call(None, vec![self])?.unwrap()),
+            Err(_) if op == "not" => Ok(value!(!self.is_true())),
+            Err(err) => Err(err),
+        }
     }
 
     pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {

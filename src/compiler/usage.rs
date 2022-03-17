@@ -80,13 +80,13 @@ impl Usage {
                 // Resolve constants
                 if let Some(value) = compiler.get_constant(&name) {
                     if value.is_callable(*args > 0 || *nargs > 0) {
+                        if let Some(offset) = offset {
+                            ret.push(Op::Offset(Box::new(*offset)).into());
+                        }
+
                         let addr = compiler.define_value(value);
 
                         if *args == 0 && *nargs == 0 {
-                            if let Some(offset) = offset {
-                                ret.push(Op::Offset(Box::new(*offset)).into());
-                            }
-
                             ret.push(Op::CallStatic(addr).into());
                         } else if *args > 0 && *nargs == 0 {
                             if let Some(offset) = offset {

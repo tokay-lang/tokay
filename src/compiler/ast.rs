@@ -907,20 +907,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        todo!();
-                        /*
-                        if let Ok(value) = match parts[2] {
-                            "add" => left.add(right),
-                            "sub" => left.sub(right),
-                            "mul" => left.mul(right),
-                            "div" => left.div(right),
-                            _ => {
-                                unimplemented!("op_binary_{}", parts[2]);
-                            }
-                        } {
-                            return ImlResult::Value(value.into());
-                        }
-                        */
+                        return ImlResult::Value(left.binary_op(right, parts[2]).unwrap().into());
                     }
 
                     // Push operation position here
@@ -947,18 +934,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                     let res = traverse_node(compiler, children);
                     if let Ok(value) = res.get_evaluable_value() {
-                        todo!();
-                        /*
-                        if let Ok(value) = match parts[2] {
-                            "not" => value.not(),
-                            "neg" => value.neg(),
-                            _ => {
-                                unimplemented!("op_unary_{}", parts[2]);
-                            }
-                        } {
-                            return ImlResult::Value(value.into());
-                        }
-                        */
+                        return ImlResult::Value(value.unary_op(parts[2]).unwrap().into());
                     }
 
                     // Push operation position here

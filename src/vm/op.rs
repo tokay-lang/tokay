@@ -737,16 +737,16 @@ impl Op {
                 }
 
                 Op::Not => {
-                    let value = context.pop().unary_op('!')?.into();
-                    context.push(value)
+                    let value = context.pop();
+                    context.push(value.unary_op("not")?)
                 }
                 Op::Neg => {
-                    let value = context.pop().unary_op('-')?.into();
-                    context.push(value)
+                    let value = context.pop();
+                    context.push(value.unary_op("neg")?)
                 }
                 Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
                     let b = context.pop();
-                    let value = context.pop();
+                    let a = context.pop();
 
                     /*
                     println!("{:?}", op);
@@ -754,42 +754,31 @@ impl Op {
                     println!("b = {:?}", b);
                     */
 
-                    todo!();
-
-                    /*
+                    // todo: use inline_add/sub/mul/div here?
                     let res = match op {
-                        Op::Add => value.binary_op('+', b)?,
-                        Op::Sub => value.binary_op('-', b)?,
-                        Op::Mul => value.binary_op('*', b)?,
-                        Op::Div => value.binary_op('/', b)?,
+                        Op::InlineAdd => a.clone().binary_op(b, "add")?,
+                        Op::InlineSub => a.clone().binary_op(b, "sub")?,
+                        Op::InlineMul => a.clone().binary_op(b, "mul")?,
+                        Op::InlineDiv => a.clone().binary_op(b, "div")?,
                         _ => unimplemented!("Unimplemented operator"),
                     };
 
-                    *value.borrow_mut() = res.into();
-                    context.push(value.clone().into())
-                    */
+                    *a.borrow_mut() = res.into();
+                    context.push(a.clone().into())
                 }
 
                 Op::InlineInc => {
                     let value = context.pop();
-                    todo!();
-                    /*
-                    let res = value.binary_op('+', value!(1 as i64))?; // todo: perform inc by bit-shift
-
+                    let res = value.clone().binary_op(value!(1 as i64), "add")?; // todo: perform inc by bit-shift
                     *value.borrow_mut() = res.into();
-                    context.push(value.clone().into())
-                    */
+                    context.push(value.into())
                 }
 
                 Op::InlineDec => {
                     let value = context.pop();
-                    todo!();
-                    /*
-                    let res = value.binary_op('-', value!(1 as i64))?; // todo: perform dec by bit-shift
-
+                    let res = value.clone().binary_op(value!(1 as i64), "sub")?; // todo: perform inc by bit-shift
                     *value.borrow_mut() = res.into();
-                    context.push(value.clone().into())
-                    */
+                    context.push(value.into())
                 }
             };
 

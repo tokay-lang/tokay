@@ -75,16 +75,26 @@ impl Str {
 
     tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
-    tokay_method!("str_add(str, append)", {
-        let mut str = str.to_string();
+    tokay_method!("str_add(string, append)", {
+        let mut string = string.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
-            str.push_str(append.as_str());
+            string.push_str(append.as_str());
         } else {
-            str.push_str(&append.to_string()); // todo: this might me done more memory saving
+            string.push_str(&append.to_string()); // todo: this might me done more memory saving
         }
 
-        Ok(RefValue::from(str))
+        Ok(RefValue::from(string))
+    });
+
+    tokay_method!("str_mul(string, count)", {
+        if let Some(string) = string.borrow().object::<Str>() {
+            // string * count
+            return Ok(RefValue::from(string.repeat(count.to_usize())));
+        }
+
+        // count * string is also possible
+        Ok(RefValue::from(count.to_string().repeat(string.to_usize())))
     });
 
     tokay_method!("str_join(str, list)", {

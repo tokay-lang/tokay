@@ -75,16 +75,16 @@ impl Value {
     // Multiplication methods
     tokay_method!(
         "int_mul(multiplier, multiplicant)",
-        Ok(RefValue::from(multiplier.to_i64() + multiplicant.to_i64()))
+        Ok(RefValue::from(multiplier.to_i64() * multiplicant.to_i64()))
     );
     tokay_method!(
         "float_mul(multiplier, multiplicant)",
-        Ok(RefValue::from(multiplier.to_f64() + multiplicant.to_f64()))
+        Ok(RefValue::from(multiplier.to_f64() * multiplicant.to_f64()))
     );
     tokay_method!(
         "addr_mul(multiplier, multiplicant)",
         Ok(RefValue::from(
-            multiplier.to_usize() + multiplicant.to_usize()
+            multiplier.to_usize() * multiplicant.to_usize()
         ))
     );
 
@@ -157,6 +157,10 @@ impl Value {
             Ok(value!(dividend as f64 / divisor as f64))
         }
     });
+
+    // Negation
+    tokay_method!("int_neg(int)", Ok(RefValue::from(-int.to_i64())));
+    tokay_method!("float_neg(float)", Ok(RefValue::from(-float.to_f64())));
 }
 
 impl Object for Value {
