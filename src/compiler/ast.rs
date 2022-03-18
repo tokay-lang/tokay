@@ -925,15 +925,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     ops.extend(left.into_ops(compiler, true));
                     ops.extend(right.into_ops(compiler, true));
 
-                    match parts[2] {
-                        "add" => Op::Add.into(),
-                        "sub" => Op::Sub.into(),
-                        "mul" => Op::Mul.into(),
-                        "div" => Op::Div.into(),
+                    ImlOp::from(match parts[2] {
+                        "add" => Op::BinaryOp("add"),
+                        "sub" => Op::BinaryOp("sub"),
+                        "mul" => Op::BinaryOp("mul"),
+                        "div" => Op::BinaryOp("div"),
                         _ => {
                             unimplemented!("op_binary_{}", parts[2]);
                         }
-                    }
+                    })
                 }
 
                 "unary" => {
@@ -950,13 +950,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                     ops.extend(res.into_ops(compiler, true));
 
-                    match parts[2] {
-                        "not" => Op::Not.into(),
-                        "neg" => Op::Neg.into(),
+                    ImlOp::from(match parts[2] {
+                        "not" => Op::UnaryOp("not"),
+                        "neg" => Op::UnaryOp("neg"),
                         _ => {
                             unimplemented!("op_unary_{}", parts[2]);
                         }
-                    }
+                    })
                 }
 
                 "compare" | "logical" => {

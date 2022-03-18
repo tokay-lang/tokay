@@ -107,13 +107,8 @@ pub enum Op {
     Dup,   // duplicate TOS
     Rot2,  // rotate TOS by 2
 
-    Add, // binary add
-    Sub, // binary sub
-    Mul, // binary mul
-    Div, // binary div
-
-    Not, // unary not (! operator)
-    Neg, // unary negation (- operator)
+    BinaryOp(&'static str),
+    UnaryOp(&'static str),
 
     InlineAdd, // Inline add (+= operator)
     InlineSub, // Inline sub (-= operator)
@@ -685,25 +680,16 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                // Operations
-                Op::Add | Op::Sub | Op::Mul | Op::Div => {
-                    let b = context.pop();
-                    let a = context.pop();
+                Op::UnaryOp(op) => {
+                    let value = context.pop();
+                    context.push(value.unary_op(op)?)
+                }
 
-                    /*
-                    println!("{:?}", op);
-                    println!("a = {:?}", a);
-                    println!("b = {:?}", b);
-                    */
+                Op::BinaryOp(op) => {
+                    let last = context.pop();
+                    let first = context.pop();
 
-                    let res = match op {
-                        Op::Add => a.binary_op(b, "add")?,
-                        Op::Sub => a.binary_op(b, "sub")?,
-                        Op::Mul => a.binary_op(b, "mul")?,
-                        Op::Div => a.binary_op(b, "div")?,
-                        _ => unimplemented!("Unimplemented operator"),
-                    };
-
+                    let res = first.binary_op(last, op)?;
                     context.push(res)
                 }
 
@@ -736,14 +722,6 @@ impl Op {
                     context.push(RefValue::from(c))
                 }
 
-                Op::Not => {
-                    let value = context.pop();
-                    context.push(value.unary_op("not")?)
-                }
-                Op::Neg => {
-                    let value = context.pop();
-                    context.push(value.unary_op("neg")?)
-                }
                 Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
                     let b = context.pop();
                     let a = context.pop();
@@ -769,14 +747,14 @@ impl Op {
 
                 Op::InlineInc => {
                     let value = context.pop();
-                    let res = value.clone().binary_op(value!(1 as i64), "add")?; // todo: perform inc by bit-shift
+                    let res = value.clone().binary_op(value!(1 as i64), "add")?; // todo: perform by bit-shift?
                     *value.borrow_mut() = res.into();
                     context.push(value.into())
                 }
 
                 Op::InlineDec => {
                     let value = context.pop();
-                    let res = value.clone().binary_op(value!(1 as i64), "sub")?; // todo: perform inc by bit-shift
+                    let res = value.clone().binary_op(value!(1 as i64), "sub")?; // todo: perform by bit-shift?
                     *value.borrow_mut() = res.into();
                     context.push(value.into())
                 }

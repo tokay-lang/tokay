@@ -145,7 +145,15 @@ impl Parser {
 
         (CclRange = {
             [CclChar, "-", CclChar,
-                (call ast[(value "range"), [(Op::LoadFastCapture(1)), (Op::LoadFastCapture(3)), (Op::Add)]])],
+                (call ast[
+                    (value "range"),
+                    [
+                        (Op::LoadFastCapture(1)),
+                        (Op::LoadFastCapture(3)),
+                        (Op::BinaryOp("add"))
+                    ]
+                ])
+            ],
             [CclChar, (call ast[(value "char")])]
         }),
 
