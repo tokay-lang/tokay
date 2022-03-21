@@ -100,13 +100,13 @@ impl RefValue {
                 // default fallback for not
                 "not" => Ok(value!(!self.is_true())),
                 // default fallback for inline inc is an inline add by 1
-                "iinc" => {
+                "iinc" if name == "int" => {
                     let ret = self.clone().binary_op(value!(1 as i64), "iadd")?;
                     *self.borrow_mut() = ret.into();
                     Ok(self)
                 }
                 // default fallback for inline dec is an inline sub by 1
-                "idec" => {
+                "idec" if name == "int" => {
                     let ret = self.clone().binary_op(value!(1 as i64), "isub")?;
                     *self.borrow_mut() = ret.into();
                     Ok(self)
