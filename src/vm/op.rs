@@ -107,16 +107,8 @@ pub enum Op {
     Dup,   // duplicate TOS
     Rot2,  // rotate TOS by 2
 
-    BinaryOp(&'static str),
-    UnaryOp(&'static str),
-
-    InlineAdd, // Inline add (+= operator)
-    InlineSub, // Inline sub (-= operator)
-    InlineMul, // Inline mul (*= operator)
-    InlineDiv, // Inline div (/= operator)
-
-    InlineInc, // Inline increment (++x and x++ operators)
-    InlineDec, // Inline decrement (--x and x-- operators)
+    UnaryOp(&'static str),  // Operation with one operand
+    BinaryOp(&'static str), // Operation with two operands
 
     Equal,        // Compare for equality (== operator)
     NotEqual,     // Compare for unequality (!= operator)
@@ -720,43 +712,6 @@ impl Op {
                     //println!("c = {:?}", c);
 
                     context.push(RefValue::from(c))
-                }
-
-                Op::InlineAdd | Op::InlineSub | Op::InlineMul | Op::InlineDiv => {
-                    let b = context.pop();
-                    let a = context.pop();
-
-                    /*
-                    println!("{:?}", op);
-                    println!("a = {:?}", a);
-                    println!("b = {:?}", b);
-                    */
-
-                    // todo: use inline_add/sub/mul/div here?
-                    let res = match op {
-                        Op::InlineAdd => a.clone().binary_op(b, "add")?,
-                        Op::InlineSub => a.clone().binary_op(b, "sub")?,
-                        Op::InlineMul => a.clone().binary_op(b, "mul")?,
-                        Op::InlineDiv => a.clone().binary_op(b, "div")?,
-                        _ => unimplemented!("Unimplemented operator"),
-                    };
-
-                    *a.borrow_mut() = res.into();
-                    context.push(a.clone().into())
-                }
-
-                Op::InlineInc => {
-                    let value = context.pop();
-                    let res = value.clone().binary_op(value!(1 as i64), "add")?; // todo: perform by bit-shift?
-                    *value.borrow_mut() = res.into();
-                    context.push(value.into())
-                }
-
-                Op::InlineDec => {
-                    let value = context.pop();
-                    let res = value.clone().binary_op(value!(1 as i64), "sub")?; // todo: perform by bit-shift?
-                    *value.borrow_mut() = res.into();
-                    context.push(value.into())
                 }
             };
 

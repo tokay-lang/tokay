@@ -38,43 +38,163 @@ impl RefValue {
     }
 
     pub fn unary_op(self, op: &str) -> Result<RefValue, String> {
-        let res = Builtin::get_method(self.borrow().name(), op);
+        let name = {
+            let this = &mut *self.borrow_mut();
 
-        match res {
+            match this {
+                Value::Object(this) => this.name(),
+                Value::Addr(addr) => {
+                    // addr fast lane iinc, idec
+                    match op {
+                        "iinc" => {
+                            *addr += 1;
+                            return Ok(self.clone());
+                        }
+                        "idec" => {
+                            if *addr > 0 {
+                                *addr -= 1;
+                            }
+                            return Ok(self.clone());
+                        }
+                        _ => "addr",
+                    }
+                }
+                Value::Float(float) => {
+                    // float fast lane neg, iinc, idec
+                    match op {
+                        "neg" => return Ok(value!(-*float)),
+                        "iinc" => {
+                            *float += 1.0;
+                            return Ok(self.clone());
+                        }
+                        "idec" => {
+                            *float -= 1.0;
+                            return Ok(self.clone());
+                        }
+                        _ => "float",
+                    }
+                }
+                Value::Int(int) => {
+                    // int fast lane neg, iinc, idec
+                    match op {
+                        "neg" => return Ok(value!(-*int)),
+                        "iinc" => {
+                            *int += 1;
+                            return Ok(self.clone());
+                        }
+                        "idec" => {
+                            *int -= 1;
+                            return Ok(self.clone());
+                        }
+                        _ => "int",
+                    }
+                }
+                _ => "int",
+            }
+        };
+
+        match Builtin::get_method(name, op) {
             Ok(builtin) => Ok(builtin.call(None, vec![self])?.unwrap()),
-            Err(_) if op == "not" => Ok(value!(!self.is_true())),
-            Err(err) => Err(err),
+            // Default "not"
+            Err(notfound) => match op {
+                // default fallback for not
+                "not" => Ok(value!(!self.is_true())),
+                // default fallback for inline inc is an inline add by 1
+                "iinc" => {
+                    let ret = self.clone().binary_op(value!(1 as i64), "iadd")?;
+                    *self.borrow_mut() = ret.into();
+                    Ok(self)
+                }
+                // default fallback for inline dec is an inline sub by 1
+                "idec" => {
+                    let ret = self.clone().binary_op(value!(1 as i64), "isub")?;
+                    *self.borrow_mut() = ret.into();
+                    Ok(self)
+                }
+                _ => Err(notfound),
+            },
         }
     }
 
     pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {
-        // Obtain tuple of name and severity
-        let compare = {
-            let this = self.borrow();
-            let other = operand.borrow();
+        let name = {
+            let this = &mut *self.borrow_mut();
+            let that = &*operand.borrow();
 
-            (
-                // Any severity of 0 falls back to int
-                if this.severity() == 0 {
-                    ("int", 0)
-                } else {
-                    (this.name(), this.severity())
+            //println!("{} {:?} {:?}", op, this, that);
+
+            match (this, that) {
+                (Value::Object(this), that) => {
+                    if that.severity() > this.severity() {
+                        that.name()
+                    } else {
+                        this.name()
+                    }
+                }
+                (this, Value::Object(that)) => {
+                    if that.severity() > this.severity() {
+                        that.name()
+                    } else {
+                        this.name()
+                    }
+                }
+                (Value::Addr(addr), _) => match op {
+                    // addr fast lane add, iadd, mul, imul
+                    "add" => return Ok(value!(*addr + that.to_usize())),
+                    "iadd" => {
+                        *addr += that.to_usize();
+                        return Ok(self.clone());
+                    }
+                    "mul" => return Ok(value!(*addr * that.to_usize())),
+                    "imul" => {
+                        *addr *= that.to_usize();
+                        return Ok(self.clone());
+                    }
+                    _ => "addr",
                 },
-                // Any severity of 0 falls back to int
-                if other.severity() == 0 {
-                    ("int", 0)
-                } else {
-                    (other.name(), other.severity())
+                (_, Value::Addr(_)) => "addr",
+                (Value::Float(float), _) => match op {
+                    // float fast lane add, iadd, mul, imul
+                    "add" => return Ok(value!(*float + that.to_f64())),
+                    "iadd" => {
+                        *float += that.to_f64();
+                        return Ok(self.clone());
+                    }
+                    "mul" => return Ok(value!(*float * that.to_f64())),
+                    "imul" => {
+                        *float *= that.to_f64();
+                        return Ok(self.clone());
+                    }
+                    _ => "float",
                 },
-            )
+                (_, Value::Float(_)) => "float",
+                (Value::Int(int), _) => match op {
+                    // int fast lane add, iadd, mul, imul
+                    "add" => return Ok(value!(*int + that.to_i64())),
+                    "iadd" => {
+                        *int += that.to_i64();
+                        return Ok(self.clone());
+                    }
+                    "mul" => return Ok(value!(*int * that.to_i64())),
+                    "imul" => {
+                        *int *= that.to_i64();
+                        return Ok(self.clone());
+                    }
+                    _ => "int",
+                },
+                _ => "int",
+            }
         };
 
-        if compare.0 .1 > compare.1 .1 {
-            let builtin = Builtin::get_method(compare.0 .0, op)?;
-            Ok(builtin.call(None, vec![self, operand])?.unwrap())
-        } else {
-            let builtin = Builtin::get_method(compare.1 .0, op)?;
-            Ok(builtin.call(None, vec![self, operand])?.unwrap())
+        match Builtin::get_method(name, op) {
+            Ok(builtin) => Ok(builtin.call(None, vec![self, operand])?.unwrap()),
+            // default "inline" operation is the non-inline operating assigning the result to itself
+            Err(_) if op.starts_with("i") => {
+                let res = self.clone().binary_op(operand, &op[1..])?;
+                *self.borrow_mut() = res.into();
+                return Ok(self.clone());
+            }
+            Err(err) => Err(err),
         }
     }
 }

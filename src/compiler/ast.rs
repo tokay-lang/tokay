@@ -501,13 +501,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 );
                 ops.extend(traverse_node(compiler, value).into_ops(compiler, false));
 
-                match parts[1] {
-                    "add" => ops.push(Op::InlineAdd.into()),
-                    "sub" => ops.push(Op::InlineSub.into()),
-                    "mul" => ops.push(Op::InlineMul.into()),
-                    "div" => ops.push(Op::InlineDiv.into()),
+                ops.push(match parts[1] {
+                    "add" => ImlOp::from(Op::BinaryOp("iadd")),
+                    "sub" => ImlOp::from(Op::BinaryOp("isub")),
+                    "mul" => ImlOp::from(Op::BinaryOp("imul")),
+                    "div" => ImlOp::from(Op::BinaryOp("idiv")),
                     _ => unreachable!(),
-                }
+                });
 
                 if *parts.last().unwrap() != "hold" {
                     ops.push(Op::Drop.into());
@@ -793,9 +793,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 "pre" => {
                     ops.push(
                         if parts[2] == "inc" {
-                            Op::InlineInc
+                            Op::UnaryOp("iinc")
                         } else {
-                            Op::InlineDec
+                            Op::UnaryOp("idec")
                         }
                         .into(),
                     );
@@ -805,9 +805,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         Op::Dup.into(),
                         Op::Rot2.into(),
                         if parts[2] == "inc" {
-                            Op::InlineInc
+                            Op::UnaryOp("iinc")
                         } else {
-                            Op::InlineDec
+                            Op::UnaryOp("idec")
                         }
                         .into(),
                         Op::Drop.into(),
