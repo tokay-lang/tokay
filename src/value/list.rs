@@ -63,7 +63,7 @@ impl List {
     tokay_method!("list_concat(list, append)", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
-            list = Self::list(vec![list.clone()], None)?;
+            list = Self::list(vec![list], None)?;
         }
 
         {
@@ -88,7 +88,8 @@ impl List {
 
     tokay_method!("list_add(list, append)", {
         if !list.is("list") {
-            list = Self::list(vec![list.clone()], None)?;
+            let item = RefValue::from(list.borrow().clone());
+            list = Self::list(vec![item], None)?;
         }
 
         let list = list.borrow();

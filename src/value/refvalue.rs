@@ -192,7 +192,7 @@ impl RefValue {
             Err(_) if op.starts_with("i") => {
                 let res = self.clone().binary_op(operand, &op[1..])?;
                 *self.borrow_mut() = res.into();
-                return Ok(self.clone());
+                return Ok(self);
             }
             Err(err) => Err(err),
         }
