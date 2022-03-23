@@ -316,6 +316,44 @@ fn operations() {
         ),
         Ok(Some(value![[1, 1, 3, 3, 4, 12, 2, 8, 3]]))
     );
+
+    // Inline add int to itself
+    assert_eq!(
+        compile_and_run(
+            "
+            i = 2 \
+            i *= i \
+            i
+            ",
+            ""
+        ),
+        Ok(Some(value!(4)))
+    );
+
+    // Inline add list to itself
+    // fixme: Should be put into the specific modules, e.g. value/list.rs
+    assert_eq!(
+        compile_and_run(
+            "
+            a = (1,2) \
+            b = (3,4) \
+            a + b \
+            a \
+            b \
+            a += b \
+            a \
+            b
+            ",
+            ""
+        ),
+        Ok(Some(value!([
+            [1, 2, 3, 4],
+            [1, 2],
+            [3, 4],
+            [1, 2, 3, 4],
+            [3, 4]
+        ])))
+    );
 }
 
 #[test]

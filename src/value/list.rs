@@ -83,7 +83,7 @@ impl List {
                 inner.push(append.clone());
             }
 
-            return Ok(list.clone())
+            return Ok(list.clone());
         }
 
         // Otherwise, perform ordinary add first, then re-assign to list

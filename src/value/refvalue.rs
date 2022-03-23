@@ -119,70 +119,77 @@ impl RefValue {
     pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {
         let name = {
             let this = &mut *self.borrow_mut();
-            let that = &*operand.borrow();
 
-            //println!("{} {:?} {:?}", op, this, that);
+            // If borrowing operand as that fails, that is probably self...
+            if let Ok(that) = operand.try_borrow() {
+                //println!("{} {:?} {:?}", op, this, that);
 
-            match (this, that) {
-                (Value::Object(this), that) => {
-                    if that.severity() > this.severity() {
-                        that.name()
-                    } else {
-                        this.name()
+                match (this, &*that) {
+                    (Value::Object(this), that) => {
+                        if that.severity() > this.severity() {
+                            that.name()
+                        } else {
+                            this.name()
+                        }
                     }
-                }
-                (this, Value::Object(that)) => {
-                    if that.severity() > this.severity() {
-                        that.name()
-                    } else {
-                        this.name()
+                    (this, Value::Object(that)) => {
+                        if that.severity() > this.severity() {
+                            that.name()
+                        } else {
+                            this.name()
+                        }
                     }
-                }
-                (Value::Addr(addr), _) => match op {
-                    // addr fast lane add, iadd, mul, imul
-                    "add" => return Ok(value!(*addr + that.to_usize())),
-                    "iadd" => {
-                        *addr += that.to_usize();
-                        return Ok(self.clone());
-                    }
-                    "mul" => return Ok(value!(*addr * that.to_usize())),
-                    "imul" => {
-                        *addr *= that.to_usize();
-                        return Ok(self.clone());
-                    }
-                    _ => "addr",
-                },
-                (_, Value::Addr(_)) => "addr",
-                (Value::Float(float), _) => match op {
-                    // float fast lane add, iadd, mul, imul
-                    "add" => return Ok(value!(*float + that.to_f64())),
-                    "iadd" => {
-                        *float += that.to_f64();
-                        return Ok(self.clone());
-                    }
-                    "mul" => return Ok(value!(*float * that.to_f64())),
-                    "imul" => {
-                        *float *= that.to_f64();
-                        return Ok(self.clone());
-                    }
-                    _ => "float",
-                },
-                (_, Value::Float(_)) => "float",
-                (Value::Int(int), _) => match op {
-                    // int fast lane add, iadd, mul, imul
-                    "add" => return Ok(value!(*int + that.to_i64())),
-                    "iadd" => {
-                        *int += that.to_i64();
-                        return Ok(self.clone());
-                    }
-                    "mul" => return Ok(value!(*int * that.to_i64())),
-                    "imul" => {
-                        *int *= that.to_i64();
-                        return Ok(self.clone());
-                    }
+                    (Value::Addr(addr), _) => match op {
+                        // addr fast lane add, iadd, mul, imul
+                        "add" => return Ok(value!(*addr + that.to_usize())),
+                        "iadd" => {
+                            *addr += that.to_usize();
+                            return Ok(self.clone());
+                        }
+                        "mul" => return Ok(value!(*addr * that.to_usize())),
+                        "imul" => {
+                            *addr *= that.to_usize();
+                            return Ok(self.clone());
+                        }
+                        _ => "addr",
+                    },
+                    (_, Value::Addr(_)) => "addr",
+                    (Value::Float(float), _) => match op {
+                        // float fast lane add, iadd, mul, imul
+                        "add" => return Ok(value!(*float + that.to_f64())),
+                        "iadd" => {
+                            *float += that.to_f64();
+                            return Ok(self.clone());
+                        }
+                        "mul" => return Ok(value!(*float * that.to_f64())),
+                        "imul" => {
+                            *float *= that.to_f64();
+                            return Ok(self.clone());
+                        }
+                        _ => "float",
+                    },
+                    (_, Value::Float(_)) => "float",
+                    (Value::Int(int), _) => match op {
+                        // int fast lane add, iadd, mul, imul
+                        "add" => return Ok(value!(*int + that.to_i64())),
+                        "iadd" => {
+                            *int += that.to_i64();
+                            return Ok(self.clone());
+                        }
+                        "mul" => return Ok(value!(*int * that.to_i64())),
+                        "imul" => {
+                            *int *= that.to_i64();
+                            return Ok(self.clone());
+                        }
+                        _ => "int",
+                    },
                     _ => "int",
-                },
-                _ => "int",
+                }
+            }
+            // When try_borrow fails, it's probably because the value is operated on itself.
+            // Therefore, just use this' name and let the builtin functions do the rest.
+            else {
+                this.name()
             }
         };
 
