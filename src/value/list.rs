@@ -60,40 +60,46 @@ impl List {
         Ok(RefValue::from(list))
     });
 
-    tokay_method!("list_concat(list, append)", {
+    tokay_method!("list_iadd(list, append)", {
         // In case list is not a list, make it a list.
-        if !list.is("list") {
-            list = Self::list(vec![list], None)?;
-        }
-
-        {
-            let mut list = list.borrow_mut();
-            let list = list.object_mut::<List>().unwrap();
-
-            // When append is a list, append all items to list
-            if let Some(append) = append.borrow().object::<List>() {
-                list.reserve(append.len());
-
-                for item in append.iter() {
-                    list.push(item.clone());
-                }
-            // Otherwise, just push append to the list.
-            } else {
-                list.push(append.clone());
-            }
-        }
-
-        Ok(list)
-    });
-
-    tokay_method!("list_add(list, append)", {
         if !list.is("list") {
             let item = RefValue::from(list.borrow().clone());
             list = Self::list(vec![item], None)?;
         }
 
-        let list = list.borrow();
-        let mut list = list.object::<List>().unwrap().clone();
+        // Extend in-place when possible.
+        if let (Ok(mut inner), Ok(to_append)) = (list.try_borrow_mut(), append.try_borrow()) {
+            let inner = inner.object_mut::<List>().unwrap();
+
+            // When append is a list, append all items to list
+            if let Some(append) = to_append.object::<List>() {
+                inner.reserve(append.len());
+
+                for item in append.iter() {
+                    inner.push(item.clone());
+                }
+            // Otherwise, just push append to the list.
+            } else {
+                inner.push(append.clone());
+            }
+
+            return Ok(list.clone())
+        }
+
+        // Otherwise, perform ordinary add first, then re-assign to list
+        let new = Self::list_add(vec![list.clone(), append.clone()], None)?;
+        *list.borrow_mut() = new.into();
+
+        Ok(list)
+    });
+
+    tokay_method!("list_add(list, append)", {
+        // In case list is not a list, make it a list.
+        if !list.is("list") {
+            list = Self::list(vec![list], None)?;
+        }
+
+        let mut list = list.borrow().object::<List>().unwrap().clone();
 
         // When append is a list, append all items to list
         if let Some(append) = append.borrow().object::<List>() {
@@ -110,14 +116,15 @@ impl List {
         Ok(RefValue::from(list))
     });
 
-    tokay_method!("list_push(list, item)", {
-        // Push the item to the list
-        if list.is("list") {
-            list.borrow_mut().object_mut::<List>().unwrap().push(item);
+    tokay_method!("list_push(list, append)", {
+        if !list.is("list") {
+            list = Self::list(vec![list], None)?;
         }
-        // If list is not a list, turn it into a list and push list as first element
-        else {
-            list = Self::list(vec![list.clone()], None)?;
+
+        {
+            let mut list = list.borrow_mut();
+            let list = list.object_mut::<List>().unwrap();
+            list.push(append.clone());
         }
 
         Ok(list)

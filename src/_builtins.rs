@@ -123,8 +123,8 @@ pub static BUILTINS: [Builtin; 41] = [
         func: crate::value::list::List::tokay_method_list_add,
     },
     Builtin {
-        name: "list_concat",
-        func: crate::value::list::List::tokay_method_list_concat,
+        name: "list_iadd",
+        func: crate::value::list::List::tokay_method_list_iadd,
     },
     Builtin {
         name: "list_push",
