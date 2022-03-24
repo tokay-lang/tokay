@@ -167,3 +167,4 @@ tokay_function!("print(*args)", {
 });
 
 tokay_function!("repr(value)", value!(value.repr()).into());
+tokay_function!("type(value)", value!(value.name()).into());

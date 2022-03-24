@@ -1015,6 +1015,16 @@ fn builtins() {
         compile_and_run("repr(\"Hello World\")", ""),
         Ok(Some(value!("\"Hello World\"")))
     );
+
+    assert_eq!(
+        compile_and_run(
+            "type(void) type(true) type(1) type(23.5) type(\"hello\") type((1,2))",
+            ""
+        ),
+        Ok(Some(value!([
+            "void", "bool", "int", "float", "str", "list"
+        ])))
+    );
 }
 
 #[test]

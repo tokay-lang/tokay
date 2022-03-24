@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 41] = [
+pub static BUILTINS: [Builtin; 42] = [
     Builtin {
         name: "Identifier",
         func: crate::value::token::tokay_token_identifier,
@@ -169,5 +169,9 @@ pub static BUILTINS: [Builtin; 41] = [
     Builtin {
         name: "str_upper",
         func: crate::value::str::Str::tokay_method_str_upper,
+    },
+    Builtin {
+        name: "type",
+        func: crate::builtin::tokay_function_type,
     },
 ];

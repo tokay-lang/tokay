@@ -1,11 +1,11 @@
 # Tokay Calc
-version : 0.1
+version : 0.2
 
-_ : [ \t]+                # redefine whitespace to just tab and space
+_ : [ \t]+                             # redefine whitespace to just tab and space
 
 Factor : @{
-    Integer _             # built-in 64-bit signed integer token
-    '(' _ Expr ')' _
+    Integer _                          # built-in 64-bit signed integer token
+    '(' _ Expr expect ')' _
 }
 
 Term : @{
@@ -21,8 +21,8 @@ Expr : @{
 }
 
 
-begin print("Tokay Calc v" + version)  # print at startup
+begin print("Tokay Calc" version)  # print at startup
 
-Expr _ print("= " + $1)   # execute each expression
-'exit' exit               # exit command
-                          # any other input is ignored by default
+Expr _ print("= " + $1)                # execute each expression
+'exit' exit                            # exit command
+                                       # any other input, e.g. newline, is ignored
