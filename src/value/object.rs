@@ -1,8 +1,6 @@
-use std::any::Any;
-
-use super::{Dict, RefValue, Value};
-use crate::error::Error;
+use super::Dict;
 use crate::vm::{Accept, Context, Reject};
+use std::any::Any;
 
 // BoxedObject
 // ----------------------------------------------------------------------------
@@ -205,37 +203,5 @@ pub trait Object:
         _nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         panic!("{} cannot be called.", self.name())
-    }
-
-    /// Error fallback for unary op.
-    fn unsupported_unary_op(&self, op: char) -> Result<RefValue, Error> {
-        Err(Error::from(format!(
-            "Unary operation '{}' not implemented for {}",
-            op,
-            self.name()
-        )))
-    }
-
-    /// Unary op
-    fn unary_op(&self, op: char) -> Result<RefValue, Error> {
-        match op {
-            '!' => Ok(RefValue::from(!self.is_true())),
-            op => self.unsupported_unary_op(op),
-        }
-    }
-
-    /// Error fallback for binary op.
-    fn unsupported_binary_op(&self, op: char, a: &Value, b: &Value) -> Result<RefValue, Error> {
-        Err(Error::from(format!(
-            "Binary operation '{}' not implemented between {} and {}",
-            op,
-            a.name(),
-            b.name()
-        )))
-    }
-
-    /// Unary op
-    fn binary_op(&self, op: char, a: &Value, b: &Value) -> Result<RefValue, Error> {
-        self.unsupported_binary_op(op, a, b)
     }
 }
