@@ -972,19 +972,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlResult::Value(ImlValue::Value(RefValue::from(match parts[2] {
-                            "equal" => left == right,
-                            "unequal" => left != right,
-                            "lowerequal" => left <= right,
-                            "greaterequal" => left >= right,
-                            "lower" => left < right,
-                            "greater" => left > right,
-                            "and" => left.is_true() && right.is_true(),
-                            "or" => left.is_true() || right.is_true(),
-                            _ => {
-                                unimplemented!("op_compare_{}", parts[2]);
-                            }
-                        })));
+                        return ImlResult::Value(left.binary_op(right, parts[2]).unwrap().into());
                     }
 
                     // Otherwise, generate operational code
@@ -1001,17 +989,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         ),
                         _ => {
                             ops.extend(right.into_ops(compiler, false));
-                            match parts[2] {
-                                "equal" => Op::Equal.into(),
-                                "unequal" => Op::NotEqual.into(),
-                                "lowerequal" => Op::LowerEqual.into(),
-                                "greaterequal" => Op::GreaterEqual.into(),
-                                "lower" => Op::Lower.into(),
-                                "greater" => Op::Greater.into(),
+                            ImlOp::from(match parts[2] {
+                                "eq" => Op::BinaryOp("eq"),
+                                "neq" => Op::BinaryOp("neq"),
+                                "lteq" => Op::BinaryOp("lteq"),
+                                "gteq" => Op::BinaryOp("gteq"),
+                                "lt" => Op::BinaryOp("lt"),
+                                "gt" => Op::BinaryOp("gt"),
                                 _ => {
                                     unimplemented!("op_compare_{}", parts[2]);
                                 }
-                            }
+                            })
                         }
                     }
                 }

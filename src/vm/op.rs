@@ -109,13 +109,6 @@ pub enum Op {
 
     UnaryOp(&'static str),  // Operation with one operand
     BinaryOp(&'static str), // Operation with two operands
-
-    Equal,        // Compare for equality (== operator)
-    NotEqual,     // Compare for unequality (!= operator)
-    LowerEqual,   // Compare for lower-equality (<= operator)
-    GreaterEqual, // Compare for greater-equality (>= operator)
-    Lower,        // Compare for lowerness (< operator)
-    Greater,      // Compare for greaterness (> operator)
 }
 
 impl Op {
@@ -683,35 +676,6 @@ impl Op {
 
                     let res = first.binary_op(last, op)?;
                     context.push(res)
-                }
-
-                Op::Equal
-                | Op::NotEqual
-                | Op::LowerEqual
-                | Op::GreaterEqual
-                | Op::Lower
-                | Op::Greater => {
-                    let b = context.pop();
-                    let a = context.pop();
-
-                    //println!("{:?}", op);
-                    //println!("a = {:?}", a);
-                    //println!("b = {:?}", b);
-
-                    let c = match op {
-                        Op::Equal => a == b,
-                        Op::NotEqual => a != b,
-                        Op::LowerEqual => a <= b,
-                        Op::GreaterEqual => a >= b,
-                        Op::Lower => a < b,
-                        Op::Greater => a > b,
-
-                        _ => unimplemented!("Unimplemented operator"),
-                    };
-
-                    //println!("c = {:?}", c);
-
-                    context.push(RefValue::from(c))
                 }
             };
 

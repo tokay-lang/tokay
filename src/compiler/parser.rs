@@ -328,12 +328,12 @@ impl Parser {
         }),
 
         (Compare = {
-            [Compare, "==", _, (expect AddSub), (call ast[(value "op_compare_equal")])],
-            [Compare, "!=", _, (expect AddSub), (call ast[(value "op_compare_unequal")])],
-            [Compare, "<=", _, (expect AddSub), (call ast[(value "op_compare_lowerequal")])],
-            [Compare, ">=", _, (expect AddSub), (call ast[(value "op_compare_greaterequal")])],
-            [Compare, "<", _, (expect AddSub), (call ast[(value "op_compare_lower")])],
-            [Compare, ">", _, (expect AddSub), (call ast[(value "op_compare_greater")])],
+            [Compare, "==", _, (expect AddSub), (call ast[(value "op_compare_eq")])],
+            [Compare, "!=", _, (expect AddSub), (call ast[(value "op_compare_neq")])],
+            [Compare, "<=", _, (expect AddSub), (call ast[(value "op_compare_lteq")])],
+            [Compare, ">=", _, (expect AddSub), (call ast[(value "op_compare_gteq")])],
+            [Compare, "<", _, (expect AddSub), (call ast[(value "op_compare_lt")])],
+            [Compare, ">", _, (expect AddSub), (call ast[(value "op_compare_gt")])],
             AddSub
         }),
 
