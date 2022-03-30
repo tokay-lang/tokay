@@ -19,7 +19,6 @@ T_EOL : @{
     '\n' _
     '\r' '\n'? _
     ';' _
-    '|' _
     EOF
     peek '}'
 }
@@ -315,16 +314,21 @@ Sequence : @{
     (SequenceItem (',' _)?)+  ast("sequence")
 }
 
+Sequences : @{
+    Sequence ('|' _ Sequence)+  ast("block")
+    Sequence
+}
+
 SequenceOrExpression : @{
     Expression peek T_EOL
-    Sequence
+    Sequences
 }
 
 Instruction : @{
     'begin' ___ Sequence expect T_EOL  ast("begin")
     'end' ___ Sequence expect T_EOL  ast("end")
     T_Identifier _ ':' _ expect SequenceOrExpression expect T_EOL  ast("constant")
-    Sequence
+    Sequences
     T_EOL
 }
 

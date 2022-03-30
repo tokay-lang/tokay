@@ -35,7 +35,6 @@ impl Parser {
             ["\n", _, (Op::Skip)],  // unix/linux
             ["\r", (opt "\n"), _, (Op::Skip)],  // classic mac & windows
             [";", _, (Op::Skip)],  // allows for multiple lines in one row
-            ["|", _, (Op::Skip)],  // alternative EOL for BNF-style grammar expressioning
             [(token (Token::EOF)), (Op::Skip)],  // Input file may end without a new line
             [(peek "}"), (Op::Skip)]  // peek for '}' to allow for blocks in one line.
         }),
@@ -420,9 +419,14 @@ impl Parser {
             [(pos [SequenceItem, (opt [",", _])]), (call ast[(value "sequence")])]
         }),
 
+        (Sequences = {
+            [Sequence, (pos ["|", _, Sequence]), (call ast[(value "block")])],
+            Sequence
+        }),
+
         (SequenceOrExpression = {
             [Expression, (peek T_EOL)],
-            Sequence
+            Sequences
         }),
 
         (Instruction = {
@@ -431,7 +435,7 @@ impl Parser {
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],
-            Sequence,
+            Sequences,
             [T_EOL, (Op::Skip)]
         }),
 

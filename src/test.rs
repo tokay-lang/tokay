@@ -744,6 +744,9 @@ fn examples() {
         compile_and_run(include_str!("../examples/faculty.tok"), ""),
         Ok(Some(value!(24)))
     );
+
+    // todo: Move this to a separate function
+    run_testcase("tests/test_piped_grammar.tok");
 }
 
 #[test]
