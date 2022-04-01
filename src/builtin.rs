@@ -131,6 +131,14 @@ tokay_function!("chr(i)", {
     .into()
 });
 
+#[test]
+fn test_chr() {
+    assert_eq!(
+        crate::utils::compile_and_run("i = ord(\"€\"); i chr(i)", ""),
+        Ok(Some(value![[(8364 as usize), "€"]]))
+    );
+}
+
 tokay_function!("ord(c)", {
     let c = c.to_string();
     if c.chars().count() != 1 {
@@ -144,6 +152,25 @@ tokay_function!("ord(c)", {
         RefValue::from(c.chars().next().unwrap() as usize).into()
     }
 });
+
+#[test]
+fn test_ord() {
+    assert_eq!(
+        crate::utils::compile_and_run("ord(\"12\")", ""),
+        Err(
+            "Line 1, column 1: ord() expects a single character, but received string of length 2"
+                .to_string()
+        )
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("ord(\"\")", ""),
+        Err(
+            "Line 1, column 1: ord() expects a single character, but received string of length 0"
+                .to_string()
+        )
+    );
+}
 
 tokay_function!("print(*args)", {
     if args.len() == 0 && context.is_some() {
@@ -167,4 +194,26 @@ tokay_function!("print(*args)", {
 });
 
 tokay_function!("repr(value)", value!(value.repr()).into());
+
+#[test]
+fn test_repr() {
+    assert_eq!(
+        crate::utils::compile_and_run("repr(\"Hello World\")", ""),
+        Ok(Some(value!("\"Hello World\"")))
+    );
+}
+
 tokay_function!("type(value)", value!(value.name()).into());
+
+#[test]
+fn test_type() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "type(void) type(true) type(1) type(23.5) type(\"hello\") type((1,2))",
+            ""
+        ),
+        Ok(Some(value!([
+            "void", "bool", "int", "float", "str", "list"
+        ])))
+    );
+}

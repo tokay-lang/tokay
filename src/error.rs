@@ -67,3 +67,11 @@ tokay_function!("error(msg, collect=false)", {
 
     Error::new(Some(context.runtime.reader.tell()), msg).into()
 });
+
+#[test]
+fn test_error() {
+    assert_eq!(
+        crate::utils::compile_and_run("'a'+ error(\"Error!\")", "aaa"),
+        Err("Line 1, column 4: Error!".to_string())
+    );
+}

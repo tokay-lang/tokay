@@ -248,3 +248,32 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
     }
 }
 */
+
+#[test]
+// Tests for builtin string functions
+fn test() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            \"abcäöü\".upper() \
+            \"ABCÄÖÜ\".lower() \
+            \"hello world\".replace(\"l\") \
+            \"hello world\".replace(\"l\", n=2) \
+            \"hello world\".replace(\"l\", \"x\") \
+            \"hello world\".replace(\"l\", \"x\", 2) \
+            \"hello world\".replace(\"l\").upper() \
+            #\"Tokay\".upper()[1]  # index is not implemented for now \
+            ",
+            ""
+        ),
+        Ok(Some(value![[
+            "ABCÄÖÜ",
+            "abcäöü",
+            "heo word",
+            "heo world",
+            "hexxo worxd",
+            "hexxo world",
+            "HEO WORD" //"O"
+        ]]))
+    );
+}

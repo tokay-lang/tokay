@@ -1,12 +1,9 @@
 //! Token callables represented by Value::Token
-use macros::tokay_token;
-
 use super::{BoxedObject, Dict, Object, RefValue};
-
 use crate::reader::Reader;
-use crate::value;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
+use macros::tokay_token;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Token {
@@ -303,11 +300,7 @@ tokay_token!("Integer", {
             value = -value;
         }
 
-        Ok(Accept::Push(Capture::Value(
-            RefValue::from(value!(value)),
-            None,
-            5,
-        )))
+        Ok(Accept::Push(Capture::Value(crate::value!(value), None, 5)))
     } else {
         context.runtime.reader.reset(start);
         Err(Reject::Next)
@@ -363,3 +356,37 @@ tokay_token!("Word(min=void max=void)", {
         Err(Reject::Next)
     }
 });
+
+#[test]
+// Test for built-in tokens
+fn builtin_tokens() {
+    let gliders = "Libelle 201b\tG102 Astir  \nVentus_2cT";
+
+    assert_eq!(
+        crate::utils::compile_and_run("Identifier", gliders),
+        Ok(Some(crate::value!([
+            "Libelle",
+            "b",
+            "G102",
+            "Astir",
+            "Ventus_2cT"
+        ])))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("Integer", gliders),
+        Ok(Some(crate::value!([201, 102, 2])))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("Whitespaces", gliders),
+        Ok(Some(crate::value!([" ", "\t", " ", "  \n"])))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("Word", gliders),
+        Ok(Some(crate::value!([
+            "Libelle", "b", "G", "Astir", "Ventus", "cT"
+        ])))
+    );
+}

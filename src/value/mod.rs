@@ -38,7 +38,7 @@ macro_rules! value {
     ( [ $($key:literal => $value:tt),* ] ) => {
         {
             let mut dict = $crate::value::Dict::new();
-            $( dict.insert($key.to_string(), value!($value)); )*
+            $( dict.insert($key.to_string(), $crate::value!($value)); )*
             $crate::RefValue::from(dict)
         }
     };
@@ -46,7 +46,7 @@ macro_rules! value {
     ( [ $($value:tt),* ] ) => {
         {
             let mut list = $crate::value::List::new();
-            $( list.push(value!($value)); )*
+            $( list.push($crate::value!($value)); )*
             $crate::RefValue::from(list)
         }
     };
