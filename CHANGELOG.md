@@ -25,7 +25,7 @@ Current main branch.
   - addr methods: `addr()`, `addr.add()`, `addr.sub()`, `addr.mul()`, `addr.div()`
   - dict methods: `dict()`, `dict.update()`
   - list methods: `list()`, `list.add()`, `list.iadd()`, `list.push()`
-  - str methods: `str()`, `str.add()`, `str.mul()`, `str.join()`, `str.replace()`, `str.lower()`, `str.upper()`
+  - str methods: `str()`, `str.add()`, `str.endswith()`, `str.mul()`, `str.join()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
 
 
 ## [v0.4]

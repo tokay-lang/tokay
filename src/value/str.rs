@@ -1,5 +1,6 @@
 //! String object
 use super::{BoxedObject, List, Object, RefValue};
+use crate::value;
 use macros::tokay_method;
 
 #[derive(Clone, PartialEq, PartialOrd)]
@@ -75,8 +76,8 @@ impl Str {
 
     tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
-    tokay_method!("str_add(string, append)", {
-        let mut string = string.to_string();
+    tokay_method!("str_add(str, append)", {
+        let mut string = str.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
             string.push_str(append.as_str());
@@ -87,14 +88,31 @@ impl Str {
         Ok(RefValue::from(string))
     });
 
-    tokay_method!("str_mul(string, count)", {
-        if let Some(string) = string.borrow().object::<Str>() {
+    tokay_method!("str_endswith(str, postfix)", {
+        let string = str.borrow();
+        let postfix = postfix.borrow();
+
+        Ok(if let Some(string) = string.object::<Str>() {
+            let string = string.as_str();
+
+            if let Some(postfix) = postfix.object::<Str>() {
+                value!(string.ends_with(postfix.as_str()))
+            } else {
+                value!(string.ends_with(&postfix.to_string()))
+            }
+        } else {
+            value!(string.to_string().ends_with(&postfix.to_string()))
+        })
+    });
+
+    tokay_method!("str_mul(str, count)", {
+        if let Some(string) = str.borrow().object::<Str>() {
             // string * count
             return Ok(RefValue::from(string.repeat(count.to_usize())));
         }
 
         // count * string is also possible
-        Ok(RefValue::from(count.to_string().repeat(string.to_usize())))
+        Ok(RefValue::from(count.to_string().repeat(str.to_usize())))
     });
 
     tokay_method!("str_join(str, list)", {
@@ -128,6 +146,23 @@ impl Str {
         } else {
             string.replacen(&from, &to, n.to_usize())
         }))
+    });
+
+    tokay_method!("str_startswith(str, prefix)", {
+        let string = str.borrow();
+        let prefix = prefix.borrow();
+
+        Ok(if let Some(string) = string.object::<Str>() {
+            let string = string.as_str();
+
+            if let Some(prefix) = prefix.object::<Str>() {
+                value!(string.starts_with(prefix.as_str()))
+            } else {
+                value!(string.starts_with(&prefix.to_string()))
+            }
+        } else {
+            value!(string.to_string().starts_with(&prefix.to_string()))
+        })
     });
 
     tokay_method!("str_upper(str)", {
