@@ -5,8 +5,6 @@ mod compiler;
 mod iml;
 mod macros;
 mod parser;
-#[cfg(test)]
-mod test;
 mod usage;
 
 pub use compiler::*;

@@ -224,7 +224,7 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::from(Op::LoadStatic($compiler.define_value(value!($value).into()))))
+        Some(ImlOp::from(Op::LoadStatic($compiler.define_value($crate::value!($value).into()))))
     };
 
     // Token

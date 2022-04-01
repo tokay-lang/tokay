@@ -6,7 +6,6 @@ use std::rc::Rc;
 use super::{BoxedObject, Dict, List, Object, RefValue};
 
 use crate::error::Error;
-use crate::value;
 use crate::vm::*;
 
 /** Parselet is the conceptual building block of a Tokay program.
@@ -365,7 +364,7 @@ impl Parselet {
         for i in 0..self.locals {
             if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
                 context.runtime.stack[context.stack_start + i] =
-                    Capture::Value(value!(void), None, 0);
+                    Capture::Value(crate::value!(void), None, 0);
             }
         }
 
@@ -527,4 +526,133 @@ impl PartialOrd for ParseletRef {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
     }
+}
+
+#[test]
+fn test_function_as_static_with_args() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            faculty : @x {
+                if !x return 1
+                x * faculty(x - 1)
+            }
+
+            faculty(4)
+            ",
+            ""
+        ),
+        Ok(Some(crate::value!(24)))
+    );
+}
+
+#[test]
+fn test_function_as_variable_with_args() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            faculty = @x {
+                if !x return 1
+                x * faculty(x - 1)
+            }
+
+            faculty(4)
+            ",
+            ""
+        ),
+        Ok(Some(crate::value!(24)))
+    );
+}
+
+#[test]
+fn test_parselet_call_error_reporting() {
+    // Tests for calling functions with wrong parameter counts
+    for (call, msg) in [
+        ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
+        (
+            "f()",
+            "Line 2, column 1: Call to 'f' doesn't accept any arguments",
+        ),
+        (
+            "f(1, 2, 3, 4)",
+            "Line 2, column 1: Too many parameters, 3 possible, 4 provided",
+        ),
+        ("f(c=10, d=3)", "Line 2, column 1: Parameter 'a' required"),
+        (
+            "f(1, c=10, d=3)",
+            "Line 2, column 1: Parameter 'd' provided to call but not used",
+        ),
+    ] {
+        let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
+        println!("calling {:?}, expecting {:?}", call, msg);
+
+        assert_eq!(
+            crate::utils::compile_and_run(&call, ""),
+            Err(msg.to_owned())
+        );
+    }
+}
+
+#[test]
+fn test_parselet_begin_end() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            begin { x = 0 1337 }
+            end 1338
+
+            P: @{ 'lol' x = x + 1 x }
+            P",
+            "lolalolaalolol"
+        ),
+        Ok(Some(crate::value!([1337, 1, 2, 3, 1338])))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            begin x = 1
+
+            'lol' $1 * x x x = x + 1",
+            "lolAlolBlol"
+        ),
+        Ok(Some(crate::value!([
+            ["lol", 1],
+            ["lollol", 2],
+            ["lollollol", 3]
+        ])))
+    );
+
+    // begin and end without any input
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "
+            begin 1
+            2 3 4
+            end 5
+            ",
+            ""
+        ),
+        Ok(Some(crate::value!([1, [2, 3, 4], 5])))
+    )
+}
+
+#[test]
+fn test_parselet_leftrec() {
+    assert_eq!(
+        crate::utils::compile_and_run("P: @{ P? ''a'' }\nP", "aaaa"),
+        Ok(Some(crate::value!([[["a", "a"], "a"], "a"])))
+    );
+
+    // todo: More examples here please!
+}
+
+#[test]
+fn test_parselet_repeat() {
+    assert_eq!(
+        crate::utils::compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa"),
+        Ok(Some(crate::value!(["a", "a", "a", "a"])))
+    );
+
+    // todo: More examples here please!
 }
