@@ -168,60 +168,58 @@ impl Value {
         Ok(RefValue::from(int.to_i64() == other.to_i64()))
     );
     tokay_method!(
-        "float_eq(float, other)",
-        Ok(RefValue::from(float.to_f64() == other.to_f64()))
+        "int_lt(int, other)",
+        Ok(RefValue::from(int.to_i64() < other.to_i64()))
     );
     tokay_method!(
-        "addr_eq(addr, other)",
-        Ok(RefValue::from(addr.to_usize() == other.to_usize()))
+        "int_lteq(int, other)",
+        Ok(RefValue::from(int.to_i64() <= other.to_i64()))
+    );
+    tokay_method!(
+        "int_gt(int, other)",
+        Ok(RefValue::from(int.to_i64() > other.to_i64()))
+    );
+    tokay_method!(
+        "int_gteq(int, other)",
+        Ok(RefValue::from(int.to_i64() >= other.to_i64()))
     );
 
     tokay_method!(
-        "int_lt(int, other)",
-        Ok(RefValue::from(int.to_i64() < other.to_i64()))
+        "float_eq(float, other)",
+        Ok(RefValue::from(float.to_f64() == other.to_f64()))
     );
     tokay_method!(
         "float_lt(float, other)",
         Ok(RefValue::from(float.to_f64() < other.to_f64()))
     );
     tokay_method!(
-        "addr_lt(addr, other)",
-        Ok(RefValue::from(addr.to_usize() < other.to_usize()))
-    );
-
-    tokay_method!(
-        "int_lteq(int, other)",
-        Ok(RefValue::from(int.to_i64() <= other.to_i64()))
-    );
-    tokay_method!(
         "float_lteq(float, other)",
         Ok(RefValue::from(float.to_f64() <= other.to_f64()))
-    );
-    tokay_method!(
-        "addr_lteq(addr, other)",
-        Ok(RefValue::from(addr.to_usize() <= other.to_usize()))
-    );
-
-    tokay_method!(
-        "int_gt(int, other)",
-        Ok(RefValue::from(int.to_i64() > other.to_i64()))
     );
     tokay_method!(
         "float_gt(float, other)",
         Ok(RefValue::from(float.to_f64() > other.to_f64()))
     );
     tokay_method!(
-        "addr_gt(addr, other)",
-        Ok(RefValue::from(addr.to_usize() > other.to_usize()))
+        "float_gteq(float, other)",
+        Ok(RefValue::from(float.to_f64() >= other.to_f64()))
     );
 
     tokay_method!(
-        "int_gteq(int, other)",
-        Ok(RefValue::from(int.to_i64() >= other.to_i64()))
+        "addr_eq(addr, other)",
+        Ok(RefValue::from(addr.to_usize() == other.to_usize()))
     );
     tokay_method!(
-        "float_gteq(float, other)",
-        Ok(RefValue::from(float.to_f64() >= other.to_f64()))
+        "addr_lt(addr, other)",
+        Ok(RefValue::from(addr.to_usize() < other.to_usize()))
+    );
+    tokay_method!(
+        "addr_lteq(addr, other)",
+        Ok(RefValue::from(addr.to_usize() <= other.to_usize()))
+    );
+    tokay_method!(
+        "addr_gt(addr, other)",
+        Ok(RefValue::from(addr.to_usize() > other.to_usize()))
     );
     tokay_method!(
         "addr_gteq(addr, other)",
