@@ -120,7 +120,7 @@ impl RefValue {
         let name = {
             let this = &mut *self.borrow_mut();
 
-            // If borrowing operand as that fails, that is probably self...
+            // If borrowing operand fails, it is probably self, and fast-lane cannot be used.
             if let Ok(that) = operand.try_borrow() {
                 //println!("{} {:?} {:?}", op, this, that);
 
@@ -187,7 +187,7 @@ impl RefValue {
                 }
             }
             // When try_borrow fails, it's probably because the value is operated on itself.
-            // Therefore, just use this' name and let the builtin functions do the rest.
+            // Therefore, just use the name of *this* and let the builtin functions do the rest.
             else {
                 this.name()
             }
@@ -195,7 +195,7 @@ impl RefValue {
 
         match Builtin::get_method(name, op) {
             Ok(builtin) => Ok(builtin.call(None, vec![self, operand])?.unwrap()),
-            // default "inline" operation is the non-inline operating assigning the result to itself
+            // default "inline" operation is the non-inline operation assigning the result to itself
             Err(_) if op.starts_with("i") => {
                 let res = self.clone().binary_op(operand, &op[1..])?;
                 *self.borrow_mut() = res.into();

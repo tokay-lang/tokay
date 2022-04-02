@@ -190,3 +190,48 @@ impl From<List> for RefValue {
         RefValue::from(Box::new(value) as BoxedObject)
     }
 }
+
+#[test]
+fn test_list_new() {
+    assert_eq!(
+        crate::utils::compile_and_run("list(true) list((1,2,3)) list(\"Tokay\")", ""),
+        Ok(Some(crate::value!([[true], [1, 2, 3], ["Tokay"]])))
+    )
+}
+
+#[test]
+fn test_list_iadd() {
+    assert_eq!(
+        crate::utils::compile_and_run("l = list(1); l += 2; l += (3, 4); l", ""),
+        Ok(Some(crate::value!([1, 2, 3, 4])))
+    )
+}
+
+#[test]
+fn test_list_add() {
+    assert_eq!(
+        crate::utils::compile_and_run("l = list(1); l + (2, 3) l", ""),
+        Ok(Some(crate::value!([[1, 2, 3], [1]])))
+    )
+}
+
+#[test]
+fn test_list_push() {
+    assert_eq!(
+        crate::utils::compile_and_run("l = list(1); l.push(2); l.push((3, 4)); l", ""),
+        Ok(Some(crate::value!([1, 2, [3, 4]])))
+    )
+}
+
+#[test]
+fn test_list_repr() {
+    assert_eq!(
+        crate::utils::compile_and_run("repr((1, ))", ""),
+        Ok(Some(crate::value!("(1, )")))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("repr((1, 2, 3, 4))", ""),
+        Ok(Some(crate::value!("(1, 2, 3, 4)")))
+    )
+}

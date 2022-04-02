@@ -80,15 +80,17 @@ impl Dict {
                     }
                 } else {
                     return Err(format!(
-                        "{} only accepts 'dict' as second parameter, not '{}'",
+                        "{} only accepts '{}' as second parameter, not '{}'",
                         __function,
+                        dict.name(),
                         other.name()
                     ));
                 }
             } else {
                 return Err(format!(
-                    "{} only accepts 'dict' as first parameter, not '{}'",
+                    "{} only accepts '{}' as first parameter, not '{}'",
                     __function,
+                    "dict",
                     dict.name()
                 ));
             }
@@ -133,4 +135,12 @@ impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
         RefValue::from(Box::new(value) as BoxedObject)
     }
+}
+
+#[test]
+fn test_dict_update() {
+    assert_eq!(
+        crate::utils::compile_and_run("d = (a => 1, b => 2); d.update((c => 3)); d", ""),
+        Ok(Some(crate::value!(["a" => 1, "b" => 2, "c" => 3])))
+    )
 }
