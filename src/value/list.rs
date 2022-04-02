@@ -129,6 +129,37 @@ impl List {
 
         Ok(list)
     });
+
+    tokay_method!("list_eq(list, other)", {
+        let ret = Ok(RefValue::from(
+            list.borrow().object::<List>() == other.borrow().object::<List>(),
+        ));
+        ret
+    });
+    tokay_method!("list_lt(list, other)", {
+        let ret = Ok(RefValue::from(
+            list.borrow().object::<List>() < other.borrow().object::<List>(),
+        ));
+        ret
+    });
+    tokay_method!("list_lteq(list, other)", {
+        let ret = Ok(RefValue::from(
+            list.borrow().object::<List>() <= other.borrow().object::<List>(),
+        ));
+        ret
+    });
+    tokay_method!("list_gt(list, other)", {
+        let ret = Ok(RefValue::from(
+            list.borrow().object::<List>() > other.borrow().object::<List>(),
+        ));
+        ret
+    });
+    tokay_method!("list_gteq(list, other)", {
+        let ret = Ok(RefValue::from(
+            list.borrow().object::<List>() >= other.borrow().object::<List>(),
+        ));
+        ret
+    });
 }
 
 impl std::ops::Deref for List {
