@@ -118,91 +118,194 @@ impl RefValue {
 
     pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {
         let name = {
-            let this = &mut *self.borrow_mut();
+            // Operations starting with "i" are inline
+            if op.starts_with("i") {
+                // For fast-lane inline operations, the self must be borrowed mutable.
+                let mut this = self.borrow_mut();
 
-            // If borrowing operand fails, it is probably self, and fast-lane cannot be used.
-            if let Ok(that) = operand.try_borrow() {
-                //println!("{} {:?} {:?}", op, this, that);
+                // In case the operand cannot be borrowed, self and operand might be the same.
+                if let Ok(that) = operand.try_borrow() {
+                    match (&mut *this, &*that) {
+                        // Object wins by severity.
+                        (Value::Object(_), _) | (_, Value::Object(_)) => {
+                            if that.severity() > this.severity() {
+                                Some(that.name())
+                            } else {
+                                Some(this.name())
+                            }
+                        }
 
-                match (this, &*that) {
-                    (Value::Object(this), that) => {
-                        if that.severity() > this.severity() {
-                            that.name()
-                        } else {
-                            this.name()
-                        }
+                        // Addr inline fast-lane
+                        (Value::Addr(addr), _) => match op {
+                            "iadd" => {
+                                *addr += that.to_usize();
+                                return Ok(self.clone());
+                            }
+                            "imul" => {
+                                *addr *= that.to_usize();
+                                return Ok(self.clone());
+                            }
+                            _ => None,
+                        },
+
+                        // Float inline fast-lane
+                        (Value::Float(float), _) => match op {
+                            "iadd" => {
+                                *float += that.to_f64();
+                                return Ok(self.clone());
+                            }
+                            "imul" => {
+                                *float *= that.to_f64();
+                                return Ok(self.clone());
+                            }
+                            "isub" => {
+                                *float -= that.to_f64();
+                                return Ok(self.clone());
+                            }
+                            _ => None,
+                        },
+
+                        // Int inline fast-lane
+                        (Value::Int(int), _) => match op {
+                            "iadd" => {
+                                *int += that.to_i64();
+                                return Ok(self.clone());
+                            }
+                            "imul" => {
+                                *int *= that.to_i64();
+                                return Ok(self.clone());
+                            }
+                            "isub" => {
+                                *int -= that.to_i64();
+                                return Ok(self.clone());
+                            }
+                            _ => None,
+                        },
+
+                        _ => None,
                     }
-                    (this, Value::Object(that)) => {
-                        if that.severity() > this.severity() {
-                            that.name()
-                        } else {
-                            this.name()
-                        }
-                    }
-                    (Value::Addr(addr), _) => match op {
-                        // addr fast lane add, iadd, mul, imul
-                        "add" => return Ok(value!(*addr + that.to_usize())),
-                        "iadd" => {
-                            *addr += that.to_usize();
-                            return Ok(self.clone());
-                        }
-                        "mul" => return Ok(value!(*addr * that.to_usize())),
-                        "imul" => {
-                            *addr *= that.to_usize();
-                            return Ok(self.clone());
-                        }
-                        _ => "addr",
-                    },
-                    (_, Value::Addr(_)) => "addr",
-                    (Value::Float(float), _) => match op {
-                        // float fast lane add, iadd, mul, imul
-                        "add" => return Ok(value!(*float + that.to_f64())),
-                        "iadd" => {
-                            *float += that.to_f64();
-                            return Ok(self.clone());
-                        }
-                        "mul" => return Ok(value!(*float * that.to_f64())),
-                        "imul" => {
-                            *float *= that.to_f64();
-                            return Ok(self.clone());
-                        }
-                        _ => "float",
-                    },
-                    (_, Value::Float(_)) => "float",
-                    (Value::Int(int), _) => match op {
-                        // int fast lane add, iadd, mul, imul
-                        "add" => return Ok(value!(*int + that.to_i64())),
-                        "iadd" => {
-                            *int += that.to_i64();
-                            return Ok(self.clone());
-                        }
-                        "mul" => return Ok(value!(*int * that.to_i64())),
-                        "imul" => {
-                            *int *= that.to_i64();
-                            return Ok(self.clone());
-                        }
-                        _ => "int",
-                    },
-                    _ => "int",
+                } else {
+                    None
                 }
-            }
-            // When try_borrow fails, it's probably because the value is operated on itself.
-            // Therefore, just use the name of *this* and let the builtin functions do the rest.
-            else {
-                this.name()
+            } else {
+                let this = &*self.borrow();
+                let that = &*operand.borrow();
+
+                // Try to match comaprion operation
+                match op {
+                    "eq" => return Ok(value!(this == that)),
+                    "neq" => return Ok(value!(this != that)),
+                    "lt" => return Ok(value!(this < that)),
+                    "lteq" => return Ok(value!(this <= that)),
+                    "gt" => return Ok(value!(this > that)),
+                    "gteq" => return Ok(value!(this >= that)),
+                    _ => {}
+                }
+
+                // Try to match operation by type
+                match (this, that) {
+                    // Object wins by severity.
+                    (Value::Object(_), _) | (_, Value::Object(_)) => {
+                        if that.severity() > this.severity() {
+                            Some(that.name())
+                        } else {
+                            Some(this.name())
+                        }
+                    }
+
+                    // Addr
+                    (Value::Addr(_), _) | (_, Value::Addr(_)) => match op {
+                        "add" => return Ok(value!(this.to_usize() + that.to_usize())),
+                        "mul" => return Ok(value!(this.to_usize() * that.to_usize())),
+                        "sub" => {
+                            let minuend = this.to_usize();
+                            let subtrahend = that.to_usize();
+
+                            if subtrahend > minuend {
+                                return Err(String::from(
+                                    "Attemt to substract with overflow (addr-value)",
+                                ));
+                            }
+
+                            return Ok(value!(minuend - subtrahend));
+                        }
+                        "div" => {
+                            let dividend = this.to_usize();
+                            let divisor = that.to_usize();
+
+                            if divisor == 0 {
+                                return Err(String::from("Division by zero"));
+                            }
+
+                            // If there's no remainder, perform an integer division
+                            if dividend % divisor == 0 {
+                                return Ok(value!(dividend / divisor));
+                            }
+                            // Otherwise do a floating point division
+                            else {
+                                return Ok(value!(dividend as f64 / divisor as f64));
+                            }
+                        }
+                        _ => None,
+                    },
+                    (Value::Float(_), _) | (_, Value::Float(_)) => match op {
+                        "add" => return Ok(value!(this.to_f64() + that.to_f64())),
+                        "mul" => return Ok(value!(this.to_f64() * that.to_f64())),
+                        "sub" => return Ok(value!(this.to_f64() - that.to_f64())),
+                        "div" => {
+                            let dividend = this.to_f64();
+                            let divisor = that.to_f64();
+
+                            if divisor == 0.0 {
+                                return Err(String::from("Division by zero"));
+                            }
+
+                            return Ok(value!(dividend / divisor));
+                        }
+                        _ => None,
+                    },
+                    (_, _) => match op {
+                        "add" => return Ok(value!(this.to_i64() + that.to_i64())),
+                        "mul" => return Ok(value!(this.to_i64() * that.to_i64())),
+                        "sub" => return Ok(value!(this.to_i64() - that.to_i64())),
+                        "div" => {
+                            let dividend = this.to_i64();
+                            let divisor = that.to_i64();
+
+                            if divisor == 0 {
+                                return Err(String::from("Division by zero"));
+                            }
+
+                            // If there's no remainder, perform an integer division
+                            if dividend % divisor == 0 {
+                                return Ok(value!(dividend / divisor));
+                            }
+                            // Otherwise do a floating point division
+                            else {
+                                return Ok(value!(dividend as f64 / divisor as f64));
+                            }
+                        }
+                        _ => None,
+                    },
+                }
             }
         };
 
-        match Builtin::get_method(name, op) {
-            Ok(builtin) => Ok(builtin.call(None, vec![self, operand])?.unwrap()),
-            // default "inline" operation is the non-inline operation assigning the result to itself
-            Err(_) if op.starts_with("i") => {
-                let res = self.clone().binary_op(operand, &op[1..])?;
-                *self.borrow_mut() = res.into();
-                return Ok(self);
+        // When a type name was emitted, try to call builtin-function for operation
+        if let Some(name) = name {
+            match Builtin::get_method(name, op) {
+                Ok(builtin) => return Ok(builtin.call(None, vec![self, operand])?.unwrap()),
+                // default "inline" operation is the non-inline operation assigning the result to itself
+                Err(_) if op.starts_with("i") => {}
+                Err(err) => return Err(err),
             }
-            Err(err) => Err(err),
         }
+
+        // Perform expensive inline operation
+        assert!(op.starts_with("i"));
+        let res = self.clone().binary_op(operand, &op[1..])?;
+        *self.borrow_mut() = res.into();
+        Ok(self)
     }
 }
 

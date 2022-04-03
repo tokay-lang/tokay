@@ -1,11 +1,11 @@
 //! Tokay value
 use super::{BoxedObject, Dict, Object, RefValue};
-use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use macros::tokay_method;
 use std::any::Any;
+use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     // Atomics
     Void,  // void
@@ -58,173 +58,9 @@ impl Value {
     tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
     tokay_method!("addr(value)", Ok(RefValue::from(value.to_usize())));
 
-    // Addition methods
-    tokay_method!(
-        "int_add(augend, addend)",
-        Ok(RefValue::from(augend.to_i64() + addend.to_i64()))
-    );
-    tokay_method!(
-        "float_add(augend, addend)",
-        Ok(RefValue::from(augend.to_f64() + addend.to_f64()))
-    );
-    tokay_method!(
-        "addr_add(augend, addend)",
-        Ok(RefValue::from(augend.to_usize() + addend.to_usize()))
-    );
-
-    // Multiplication methods
-    tokay_method!(
-        "int_mul(multiplier, multiplicant)",
-        Ok(RefValue::from(multiplier.to_i64() * multiplicant.to_i64()))
-    );
-    tokay_method!(
-        "float_mul(multiplier, multiplicant)",
-        Ok(RefValue::from(multiplier.to_f64() * multiplicant.to_f64()))
-    );
-    tokay_method!(
-        "addr_mul(multiplier, multiplicant)",
-        Ok(RefValue::from(
-            multiplier.to_usize() * multiplicant.to_usize()
-        ))
-    );
-
-    // Subtraction methods
-    tokay_method!(
-        "int_sub(minuend, subtrahend)",
-        Ok(RefValue::from(minuend.to_i64() - subtrahend.to_i64()))
-    );
-    tokay_method!(
-        "float_sub(minuend, subtrahend)",
-        Ok(RefValue::from(minuend.to_f64() - subtrahend.to_f64()))
-    );
-    tokay_method!("addr_sub(minuend, subtrahend)", {
-        let minuend = minuend.to_usize();
-        let subtrahend = subtrahend.to_usize();
-
-        if subtrahend > minuend {
-            return Err(String::from(
-                "Attemt to substract with overflow (addr-value)",
-            ));
-        }
-
-        Ok(value!(minuend - subtrahend))
-    });
-
-    // Division methods
-    tokay_method!("int_div(dividend, divisor)", {
-        let dividend = dividend.to_i64();
-        let divisor = divisor.to_i64();
-
-        if divisor == 0 {
-            return Err(String::from("Division by zero"));
-        }
-
-        // If there's no remainder, perform an integer division
-        if dividend % divisor == 0 {
-            Ok(value!(dividend / divisor))
-        }
-        // Otherwise do a floating point division
-        else {
-            Ok(value!(dividend as f64 / divisor as f64))
-        }
-    });
-
-    tokay_method!("float_div(dividend, divisor)", {
-        let dividend = dividend.to_f64();
-        let divisor = divisor.to_f64();
-
-        if divisor == 0.0 {
-            return Err(String::from("Division by zero"));
-        }
-
-        Ok(value!(dividend / divisor))
-    });
-
-    tokay_method!("addr_div(dividend, divisor)", {
-        let dividend = dividend.to_usize();
-        let divisor = divisor.to_usize();
-
-        if divisor == 0 {
-            return Err(String::from("Division by zero"));
-        }
-
-        // If there's no remainder, perform an integer division
-        if dividend % divisor == 0 {
-            Ok(value!(dividend / divisor))
-        }
-        // Otherwise do a floating point division
-        else {
-            Ok(value!(dividend as f64 / divisor as f64))
-        }
-    });
-
     // Negation methods
     tokay_method!("int_neg(int)", Ok(RefValue::from(-int.to_i64())));
     tokay_method!("float_neg(float)", Ok(RefValue::from(-float.to_f64())));
-
-    // Comparison methods
-    tokay_method!(
-        "int_eq(int, other)",
-        Ok(RefValue::from(int.to_i64() == other.to_i64()))
-    );
-    tokay_method!(
-        "int_lt(int, other)",
-        Ok(RefValue::from(int.to_i64() < other.to_i64()))
-    );
-    tokay_method!(
-        "int_lteq(int, other)",
-        Ok(RefValue::from(int.to_i64() <= other.to_i64()))
-    );
-    tokay_method!(
-        "int_gt(int, other)",
-        Ok(RefValue::from(int.to_i64() > other.to_i64()))
-    );
-    tokay_method!(
-        "int_gteq(int, other)",
-        Ok(RefValue::from(int.to_i64() >= other.to_i64()))
-    );
-
-    tokay_method!(
-        "float_eq(float, other)",
-        Ok(RefValue::from(float.to_f64() == other.to_f64()))
-    );
-    tokay_method!(
-        "float_lt(float, other)",
-        Ok(RefValue::from(float.to_f64() < other.to_f64()))
-    );
-    tokay_method!(
-        "float_lteq(float, other)",
-        Ok(RefValue::from(float.to_f64() <= other.to_f64()))
-    );
-    tokay_method!(
-        "float_gt(float, other)",
-        Ok(RefValue::from(float.to_f64() > other.to_f64()))
-    );
-    tokay_method!(
-        "float_gteq(float, other)",
-        Ok(RefValue::from(float.to_f64() >= other.to_f64()))
-    );
-
-    tokay_method!(
-        "addr_eq(addr, other)",
-        Ok(RefValue::from(addr.to_usize() == other.to_usize()))
-    );
-    tokay_method!(
-        "addr_lt(addr, other)",
-        Ok(RefValue::from(addr.to_usize() < other.to_usize()))
-    );
-    tokay_method!(
-        "addr_lteq(addr, other)",
-        Ok(RefValue::from(addr.to_usize() <= other.to_usize()))
-    );
-    tokay_method!(
-        "addr_gt(addr, other)",
-        Ok(RefValue::from(addr.to_usize() > other.to_usize()))
-    );
-    tokay_method!(
-        "addr_gteq(addr, other)",
-        Ok(RefValue::from(addr.to_usize() >= other.to_usize()))
-    );
 }
 
 impl Object for Value {
@@ -352,6 +188,25 @@ impl Object for Value {
             object.call(context, args, nargs)
         } else {
             Err(format!("'{}' cannot be called", self.repr()).into())
+        }
+    }
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Self::Object(i), Self::Object(j)) => i.partial_cmp(j),
+            (Self::Object(_), _) => Some(Ordering::Greater),
+            (_, Self::Object(_)) => Some(Ordering::Less),
+
+            (Self::Addr(i), j) => i.partial_cmp(&j.to_usize()),
+            (i, Self::Addr(j)) => i.to_usize().partial_cmp(j),
+
+            (Self::Float(i), j) => i.partial_cmp(&j.to_f64()),
+            (i, Self::Float(j)) => i.to_f64().partial_cmp(j),
+
+            (Self::Int(i), j) => i.partial_cmp(&j.to_i64()),
+            (i, j) => i.to_i64().partial_cmp(&j.to_i64()),
         }
     }
 }

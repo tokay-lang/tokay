@@ -21,9 +21,9 @@ Current main branch.
   - `repr()` to get string with Tokay object representation
   - `type()` to get string of Tokay value type
   - bool methods: `bool()`
-  - int methods: `int()`, `int.add()`, `int.sub()`, `int.mul()`, `int.div()`, `int.neg()`
-  - float methods: `float()`, `float.add()`, `float.sub()`, `float.mul()`, `float.div()`, `float.neg()`
-  - addr methods: `addr()`, `addr.add()`, `addr.sub()`, `addr.mul()`, `addr.div()`
+  - int methods: `int()`, `int.neg()`
+  - float methods: `float()`,`float.neg()`
+  - addr methods: `addr()`
   - dict methods: `dict()`, `dict.update()`
   - list methods: `list()`, `list.add()`, `list.iadd()`, `list.push()`
   - str methods: `str()`, `str.add()`, `str.endswith()`, `str.mul()`, `str.join()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
