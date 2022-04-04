@@ -46,6 +46,7 @@ impl RefValue {
                 Value::Addr(addr) => {
                     // addr fast lane iinc, idec
                     match op {
+                        "not" => return Ok(value!(*addr == 0)),
                         "iinc" => {
                             *addr += 1;
                             return Ok(self.clone());
@@ -63,6 +64,7 @@ impl RefValue {
                     // float fast lane neg, iinc, idec
                     match op {
                         "neg" => return Ok(value!(-*float)),
+                        "not" => return Ok(value!(*float == 0.0)),
                         "iinc" => {
                             *float += 1.0;
                             return Ok(self.clone());
@@ -78,6 +80,7 @@ impl RefValue {
                     // int fast lane neg, iinc, idec
                     match op {
                         "neg" => return Ok(value!(-*int)),
+                        "not" => return Ok(value!(*int == 0)),
                         "iinc" => {
                             *int += 1;
                             return Ok(self.clone());
@@ -89,28 +92,19 @@ impl RefValue {
                         _ => "int",
                     }
                 }
-                _ => "int",
+                _ => "int", // fallback for any other type (void, null, bool)
             }
         };
 
         match Builtin::get_method(name, op) {
             Ok(builtin) => Ok(builtin.call(None, vec![self])?.unwrap()),
-            // Default "not"
             Err(notfound) => match op {
                 // default fallback for not
                 "not" => Ok(value!(!self.is_true())),
                 // default fallback for inline inc is an inline add by 1
-                "iinc" if name == "int" => {
-                    let ret = self.clone().binary_op(value!(1 as i64), "iadd")?;
-                    *self.borrow_mut() = ret.into();
-                    Ok(self)
-                }
+                "iinc" if name == "int" => Ok(self.binary_op(value!(1 as i64), "iadd")?),
                 // default fallback for inline dec is an inline sub by 1
-                "idec" if name == "int" => {
-                    let ret = self.clone().binary_op(value!(1 as i64), "isub")?;
-                    *self.borrow_mut() = ret.into();
-                    Ok(self)
-                }
+                "idec" if name == "int" => Ok(self.binary_op(value!(1 as i64), "isub")?),
                 _ => Err(notfound),
             },
         }
@@ -120,7 +114,7 @@ impl RefValue {
         let name = {
             // Operations starting with "i" are inline
             if op.starts_with("i") {
-                // For fast-lane inline operations, the self must be borrowed mutable.
+                // For fast-lane inline operations, self must be borrowed mutable.
                 let mut this = self.borrow_mut();
 
                 // In case the operand cannot be borrowed, self and operand might be the same.
@@ -191,7 +185,7 @@ impl RefValue {
                 let this = &*self.borrow();
                 let that = &*operand.borrow();
 
-                // Try to match comaprion operation
+                // Try to match comparison operation
                 match op {
                     "eq" => return Ok(value!(this == that)),
                     "neq" => return Ok(value!(this != that)),

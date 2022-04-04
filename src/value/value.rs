@@ -57,10 +57,6 @@ impl Value {
     tokay_method!("int(value)", Ok(RefValue::from(value.to_i64())));
     tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
     tokay_method!("addr(value)", Ok(RefValue::from(value.to_usize())));
-
-    // Negation methods
-    tokay_method!("int_neg(int)", Ok(RefValue::from(-int.to_i64())));
-    tokay_method!("float_neg(float)", Ok(RefValue::from(-float.to_f64())));
 }
 
 impl Object for Value {
