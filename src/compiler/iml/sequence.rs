@@ -99,7 +99,18 @@ impl Compileable for ImlSequence {
         let mut ret = Vec::new();
 
         for item in self.items.iter() {
-            ret.extend(item.compile(parselet));
+            let mut ops = item.compile(parselet);
+
+            // In case there is an inline operation within a sequence, its result must be duplicated
+            // to stay consistent inside of the sequence's result.
+            match ops.last().unwrap() {
+                Op::UnaryOp(op) | Op::BinaryOp(op) if op.starts_with("i") => {
+                    ops.push(Op::Sep);
+                }
+                _ => {}
+            }
+
+            ret.extend(ops);
         }
 
         if ret

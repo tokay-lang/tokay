@@ -1,11 +1,11 @@
-use std::io;
-use std::io::prelude::*;
-
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
 use crate::value::{Dict, Object, Str, Value};
+use std::io;
+use std::io::prelude::*;
+use std::rc::Rc;
 
 // --- Op ----------------------------------------------------------------------
 
@@ -103,6 +103,7 @@ pub enum Op {
 
     // Operations
     Drop,  // drop TOS
+    Sep,   // separate, ensure TOS value is not shared
     Clone, // clone TOS
     Dup,   // duplicate TOS
     Rot2,  // rotate TOS by 2
@@ -644,6 +645,19 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                Op::Sep => {
+                    let mut value = context.pop();
+
+                    if Rc::strong_count(&value) > 1 {
+                        value = RefValue::from({
+                            let inner = value.borrow();
+                            inner.clone()
+                        });
+                    }
+
+                    context.push(value)
+                }
+
                 Op::Clone => {
                     let value = context.peek();
                     context.push(value.clone())
@@ -673,9 +687,7 @@ impl Op {
                 Op::BinaryOp(op) => {
                     let last = context.pop();
                     let first = context.pop();
-
-                    let res = first.binary_op(last, op)?;
-                    context.push(res)
+                    context.push(first.binary_op(last, op)?)
                 }
             };
 
