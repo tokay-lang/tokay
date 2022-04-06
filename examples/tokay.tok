@@ -13,6 +13,7 @@ _ : @{
 
 ___ : @{
     peek not [A-Z_a-z] _
+    EOF
 }
 
 T_EOL : @{
@@ -159,6 +160,7 @@ CollectionItem : @{
 }
 
 Collection : @{
+    '(' _ (T_EOL _)* ')'  ast("value_void", null)
     '(' _ (T_EOL _)* (Expression (',' _)? (T_EOL _)*)+ ')'  ast("sequence")
     '(' _ (T_EOL _)* (CollectionItem (',' _)? (T_EOL _)*)+ expect ')'  ast("sequence")
 }

@@ -30,11 +30,12 @@ impl Object for List {
             ret.push_str(&item.borrow().repr());
         }
 
-        if self.len() == 1 {
-            ret.push_str(", ");
+        ret.push(')');
+
+        if self.len() <= 1 {
+            ret = format!("list{}", ret);
         }
 
-        ret.push(')');
         ret
     }
 
@@ -225,9 +226,17 @@ fn test_list_push() {
 
 #[test]
 fn test_list_repr() {
+    /*
+    Currently under consideration, see https://github.com/tokay-lang/tokay/issues/45
     assert_eq!(
         crate::utils::compile_and_run("repr((1, ))", ""),
         Ok(Some(crate::value!("(1, )")))
+    );
+    */
+
+    assert_eq!(
+        crate::utils::compile_and_run("l = list(); l += 1; repr(l)", ""),
+        Ok(Some(crate::value!("list(1)")))
     );
 
     assert_eq!(
