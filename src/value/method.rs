@@ -15,10 +15,15 @@ impl Object for Method {
     }
 
     fn repr(&self) -> String {
+        let mut repr = self.method.repr();
+        if repr.starts_with("<") && repr.ends_with(">") {
+            repr = repr[1..repr.len() - 1].to_string();
+        }
+
         format!(
             "<{} {} of {} object at {:#x}>",
             self.name(),
-            self.method.repr(),
+            repr,
             self.object.name(),
             self.object.id()
         )
