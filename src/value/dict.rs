@@ -68,6 +68,21 @@ impl Dict {
 
     tokay_method!("dict()", Ok(RefValue::from(Dict::new())));
 
+    tokay_method!("dict_len(dict)", {
+        let dict = dict.borrow();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            Ok(RefValue::from(dict.len()))
+        } else {
+            Err(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            ))
+        }
+    });
+
     tokay_method!("dict_update(dict, other)", {
         {
             let dict = &mut *dict.borrow_mut();
@@ -135,6 +150,19 @@ impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
         RefValue::from(Box::new(value) as BoxedObject)
     }
+}
+
+#[test]
+fn test_dict_len() {
+    assert_eq!(
+        crate::utils::compile_and_run("dict().len(), (a => 1, b => 2).len()", ""),
+        Ok(Some(crate::value!([(0 as usize), (2 as usize)])))
+    );
+
+    assert_eq!(
+        crate::utils::compile_and_run("dict_len(\"Donkey\")", ""),
+        Err("Line 1, column 1: dict_len() only accepts 'dict' as parameter, not 'str'".to_string())
+    )
 }
 
 #[test]

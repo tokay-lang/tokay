@@ -61,6 +61,16 @@ impl List {
         Ok(RefValue::from(list))
     });
 
+    tokay_method!("list_len(list)", {
+        let list = list.borrow();
+
+        Ok(RefValue::from(if let Some(list) = list.object::<List>() {
+            list.len()
+        } else {
+            1
+        }))
+    });
+
     tokay_method!("list_iadd(list, append)", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
@@ -197,6 +207,22 @@ fn test_list_new() {
     assert_eq!(
         crate::utils::compile_and_run("list(true) list((1,2,3)) list(\"Tokay\")", ""),
         Ok(Some(crate::value!([[true], [1, 2, 3], ["Tokay"]])))
+    )
+}
+
+#[test]
+fn test_list_len() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            "list().len() list(1).len() list(1, 2, 3).len() list_len(5)",
+            ""
+        ),
+        Ok(Some(crate::value!([
+            (0 as usize),
+            (1 as usize),
+            (3 as usize),
+            (1 as usize)
+        ])))
     )
 }
 

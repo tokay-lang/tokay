@@ -76,6 +76,26 @@ impl Str {
 
     tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
+    tokay_method!("str_len(str)", {
+        let string = str.borrow();
+
+        if let Some(string) = string.object::<Str>() {
+            Ok(RefValue::from(string.chars().count()))
+        } else {
+            Ok(RefValue::from(string.to_string().chars().count()))
+        }
+    });
+
+    tokay_method!("str_byteslen(str)", {
+        let string = str.borrow();
+
+        if let Some(string) = string.object::<Str>() {
+            Ok(RefValue::from(string.len()))
+        } else {
+            Ok(RefValue::from(string.to_string().len()))
+        }
+    });
+
     tokay_method!("str_add(str, append)", {
         let mut string = str.to_string();
 
@@ -248,6 +268,22 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
     }
 }
 */
+
+#[test]
+fn test_str_len() {
+    assert_eq!(
+        crate::utils::compile_and_run("\"Hällo Wörld\".len() str_len(123.456)", ""),
+        Ok(Some(crate::value!([(11 as usize), (7 as usize)])))
+    )
+}
+
+#[test]
+fn test_str_byteslen() {
+    assert_eq!(
+        crate::utils::compile_and_run("\"Hällo Wörld\".byteslen()", ""),
+        Ok(Some(crate::value!(13 as usize)))
+    )
+}
 
 #[test]
 // Tests for builtin string functions

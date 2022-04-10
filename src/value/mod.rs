@@ -35,7 +35,7 @@ let d = value!(["a" => 1, "b" => 2, "c" => 3]);  // dict
 */
 #[macro_export]
 macro_rules! value {
-    ( [ $($key:literal => $value:tt),* ] ) => {
+    ( [ $( $key:literal => $value:tt ),* ] ) => {
         {
             let mut dict = $crate::value::Dict::new();
             $( dict.insert($key.to_string(), $crate::value!($value)); )*
@@ -43,7 +43,7 @@ macro_rules! value {
         }
     };
 
-    ( [ $($value:tt),* ] ) => {
+    ( [ $( $value:tt ),* ] ) => {
         {
             let mut list = $crate::value::List::new();
             $( list.push($crate::value!($value)); )*

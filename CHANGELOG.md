@@ -24,9 +24,9 @@ Current main branch.
   - int methods: `int()`
   - float methods: `float()`
   - addr methods: `addr()`
-  - dict methods: `dict()`, `dict.update()`
-  - list methods: `list()`, `list.add()`, `list.iadd()`, `list.push()`
-  - str methods: `str()`, `str.add()`, `str.endswith()`, `str.mul()`, `str.join()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
+  - dict methods: `dict()`, `dict.len()`, `dict.update()`
+  - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`
+  - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
 
 
 ## [v0.4]
