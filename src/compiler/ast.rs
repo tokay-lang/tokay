@@ -494,6 +494,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             let parts: Vec<&str> = assign.split("_").collect();
 
             let mut ops = Vec::new();
+            insert_offset(&mut ops, node);
 
             if parts.len() > 1 && parts[1] != "hold" {
                 ops.extend(
@@ -788,6 +789,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             );
 
             let parts: Vec<&str> = inplace.split("_").collect();
+
+            insert_offset(&mut ops, node);
 
             match parts[1] {
                 "pre" => {
