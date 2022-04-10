@@ -79,7 +79,7 @@ impl Compileable for ImlRepeat {
                     Op::Commit,
                     Op::Backward(body_len + 3), // repeat the body
                     Op::Close,
-                    Op::Collect(1), // collect only values with severity > 0
+                    Op::Collect(1, 5), // collect only values with severity > 0
                     Op::Close,
                 ]);
             }
@@ -88,7 +88,7 @@ impl Compileable for ImlRepeat {
                 ret.push(Op::Frame(0)); // The overall capture
                 ret.extend(body.clone()); // here comes the body for the first time
                 ret.extend(vec![
-                    Op::ForwardIfConsumed(2), // ImlIf nothing was consumed, then...
+                    Op::ForwardIfConsumed(2), // If nothing was consumed, then...
                     Op::Next,                 //...reject
                     Op::Frame(body_len + 5),  // The fused capture for repetition
                 ]);
@@ -99,7 +99,7 @@ impl Compileable for ImlRepeat {
                     Op::Commit,
                     Op::Backward(body_len + 3), // repeat the body
                     Op::Close,
-                    Op::Collect(1), // collect only values with severity > 0
+                    Op::Collect(1, 5), // collect only values with severity > 0
                     Op::Close,
                 ]);
             }
@@ -107,7 +107,7 @@ impl Compileable for ImlRepeat {
                 // Optional
                 ret.push(Op::Frame(body_len + 2));
                 ret.extend(body);
-                ret.push(Op::Collect(1)); // collect only values with severity > 0
+                ret.push(Op::Collect(1, 5)); // collect only values with severity > 0
                 ret.push(Op::Close);
             }
             (1, 1) => {}

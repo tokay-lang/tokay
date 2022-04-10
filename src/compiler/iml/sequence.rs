@@ -120,7 +120,7 @@ impl Compileable for ImlSequence {
             > 1
         {
             ret.insert(0, Op::Frame(0));
-            ret.push(Op::Collect(0));
+            ret.push(Op::Collect(0, 5));
             ret.push(Op::Close);
         }
 
