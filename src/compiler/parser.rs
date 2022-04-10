@@ -168,7 +168,7 @@ impl Parser {
         }),
 
         (Attribute = {
-            [".", _, T_Alias, (call ast[(value "attribute")])]
+            [".", _, (expect T_Alias), (call ast[(value "attribute")])]
         }),
 
         (Capture = {
@@ -297,7 +297,7 @@ impl Parser {
         }),
 
         (Rvalue = {
-            [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"), _,
+            [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"),
                 (call ast[(value "call")])],
             [Rvalue, (kle {
                 Attribute,
