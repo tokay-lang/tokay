@@ -89,6 +89,8 @@ impl PartialEq<&Self> for BoxedObject {
     }
 }
 
+impl Eq for BoxedObject {}
+
 // PartialOrdBoxedObject
 // ----------------------------------------------------------------------------
 

@@ -17,6 +17,7 @@ tokay = "0.4"
 glob = "0.3.0"
 
 [dependencies]
+indexmap = "1.8.0"
 macros = { path = "macros" }
 clap = { version = "2", features = ["yaml"] }
 rustyline = "8.2.0"
