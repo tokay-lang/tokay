@@ -159,6 +159,14 @@ impl From<Dict> for RefValue {
 }
 
 #[test]
+fn test_dict() {
+    assert_eq!(
+        crate::utils::compile_and_run("(b => 3, c => 1, a => 2)", ""),
+        Ok(Some(crate::value!(["a" => 2, "b" => 3, "c" => 1])))
+    );
+}
+
+#[test]
 fn test_dict_len() {
     assert_eq!(
         crate::utils::compile_and_run("dict().len() (a => 1, b => 2).len()", ""),
