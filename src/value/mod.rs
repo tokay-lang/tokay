@@ -1,5 +1,6 @@
 //! Tokay value and object representation
 pub mod dict;
+pub mod dict2;  // just for testing
 pub mod list;
 mod method;
 mod object;

@@ -3,9 +3,10 @@ use crate::builtin::Builtin;
 use crate::value;
 use crate::vm::{Accept, Context, Reject};
 use std::cell::RefCell;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Eq)]
 pub struct RefValue {
     value: Rc<RefCell<Value>>,
 }
@@ -363,6 +364,33 @@ impl Object for RefValue {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         self.borrow().call(context, args, nargs)
+    }
+}
+
+impl Hash for RefValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match &*self.borrow() {
+            Value::Void => state.write_u8(1),
+            Value::Null => state.write_u8(2),
+            Value::True => state.write_u8(3),
+            Value::False => state.write_u8(4),
+            Value::Int(i) => {
+                state.write_u8(5);
+                i.hash(state);
+            }
+            Value::Float(f) => {
+                state.write_u8(6);
+                f.to_bits().hash(state);
+            }
+            Value::Addr(i) => {
+                state.write_u8(7);
+                i.hash(state);
+            }
+            Value::Object(o) => {
+                state.write_u8(8);
+                o.id().hash(state);
+            }
+        }
     }
 }
 
