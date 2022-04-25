@@ -2,6 +2,8 @@ use glob::glob;
 use std::collections::HashMap;
 use tokay; // This is Tokay v0.4
 
+static PATTERN: &str = "src/**/*.rs";
+
 fn main() {
     let mut res: HashMap<String, String> = HashMap::new();
 
@@ -19,7 +21,7 @@ fn main() {
     // This is some little, naive attempt to run the build.tok script on all .rs-source files
     // and obtain the module path from the src/-file- and folder-structure. It surely can be done
     // better, but suffices the current requirements.
-    for entry in glob("src/**/*.rs").expect("Failed to read glob pattern") {
+    for entry in glob(PATTERN).expect("Failed to read glob pattern") {
         match entry {
             Ok(path) => {
                 match program.run_from_string(
@@ -28,6 +30,7 @@ fn main() {
                 ) {
                     Ok(None) => {}
                     Ok(Some(matches)) => {
+                        println!("cargo:rerun-if-changed={}", path.display());
                         //let path = path.into_iter().map(|part| part.to_str().unwrap().to_string()).collect::<Vec<String>>();
 
                         // Generate result entries from all matches of build.tok
