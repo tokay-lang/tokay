@@ -1040,15 +1040,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                                                 RefValue::from(Token::Chars(ccl)).into(),
                                             );
 
-                                            if parts[2] == "pos" {
-                                                return chars;
+                                            let mut ops =
+                                                ImlOp::from_vec(chars.into_ops(compiler, true));
+
+                                            if parts[2] == "kle" {
+                                                // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                                ops = ops.into_optional();
                                             }
 
-                                            // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                            return ImlResult::Ops(vec![ImlOp::from_vec(
-                                                chars.into_ops(compiler, true),
-                                            )
-                                            .into_optional()]);
+                                            return ImlResult::Ops(vec![ops]);
                                         }
 
                                         // mod_not on Token::Char becomes negated Token::Char
