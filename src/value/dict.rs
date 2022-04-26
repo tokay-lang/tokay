@@ -1,13 +1,13 @@
 //! Dictionary object
 use super::{BoxedObject, Object, RefValue};
+use indexmap::IndexMap;
 use macros::tokay_method;
-use std::collections::BTreeMap;
 
 // Alias for the inner dict
-type InnerDict = BTreeMap<String, RefValue>;
+type InnerDict = IndexMap<String, RefValue>;
 
 // Dict object type
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Dict {
     dict: InnerDict,
 }
@@ -132,6 +132,12 @@ impl Dict {
     */
 }
 
+impl PartialOrd for Dict {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        todo!();
+    }
+}
+
 impl std::ops::Deref for Dict {
     type Target = InnerDict;
 
@@ -150,6 +156,14 @@ impl From<Dict> for RefValue {
     fn from(value: Dict) -> Self {
         RefValue::from(Box::new(value) as BoxedObject)
     }
+}
+
+#[test]
+fn test_dict() {
+    assert_eq!(
+        crate::utils::compile_and_run("(b => 3, c => 1, a => 2)", ""),
+        Ok(Some(crate::value!(["a" => 2, "b" => 3, "c" => 1])))
+    );
 }
 
 #[test]
