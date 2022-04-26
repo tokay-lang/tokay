@@ -2,12 +2,13 @@
 use super::{BoxedObject, Object, RefValue};
 use indexmap::IndexMap;
 use macros::tokay_method;
+use std::cmp::Ordering;
 
 // Alias for the inner dict
 type InnerDict = IndexMap<String, RefValue>;
 
 // Dict object type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Dict {
     dict: InnerDict,
 }
@@ -132,9 +133,40 @@ impl Dict {
     */
 }
 
+// Implement PartialOrd and PartialEq on our own,
+// until https://github.com/bluss/indexmap/issues/153
+// may become resolved.
 impl PartialOrd for Dict {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        todo!();
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.len() < other.len() {
+            Some(Ordering::Less)
+        } else if self.len() > other.len() {
+            Some(Ordering::Greater)
+        } else {
+            for (a, b) in self.iter().zip(other.iter()) {
+                if a.0 < b.0 || a.1 < b.1 {
+                    return Some(Ordering::Less);
+                } else if a.0 > b.0 || a.1 > b.1 {
+                    return Some(Ordering::Greater);
+                }
+            }
+
+            Some(Ordering::Equal)
+        }
+    }
+}
+
+impl PartialEq for Dict {
+    fn eq(&self, other: &Self) -> bool {
+        if self.id() == other.id() {
+            return true;
+        }
+
+        if let Some(Ordering::Equal) = self.partial_cmp(other) {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -162,7 +194,26 @@ impl From<Dict> for RefValue {
 fn test_dict() {
     assert_eq!(
         crate::utils::compile_and_run("(b => 3, c => 1, a => 2)", ""),
-        Ok(Some(crate::value!(["a" => 2, "b" => 3, "c" => 1])))
+        Ok(Some(crate::value!(["b" => 3, "c" => 1, "a" => 2])))
+    );
+}
+
+#[test]
+fn test_dict_compare() {
+    assert_eq!(
+        crate::utils::compile_and_run(
+            r#"
+                a = (a => 1, b => 2)
+                b = (b => 2, a => 1)
+                c = (a => 1, b => 2, c => 3)
+                d = (c => 3, b => 2, a => 1)
+                a < c   a < b   c < d   a == a   a != b   c >= a   b > a   c > a   c > b
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([
+            true, true, true, true, true, true, true, true, true
+        ])))
     );
 }
 
