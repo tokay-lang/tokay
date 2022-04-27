@@ -217,3 +217,31 @@ fn test_type() {
         ])))
     );
 }
+
+#[test]
+fn test_buildin_call_error_reporting() {
+    // Tests for calling functions with wrong parameter counts
+    for (call, msg) in [
+        (
+            "str_replace()",
+            "Line 1, column 1: str_replace() expected argument 'str'",
+        ),
+        (
+            "str_replace(1, 2, 3, 4, 5)",
+            "Line 1, column 1: str_replace() expected at most 4 arguments (5 given)",
+        ),
+        (
+            "str_replace(1, 2, x=3)",
+            "Line 1, column 1: str_replace() doesn't accept named argument 'x'",
+        ),
+        (
+            "str_replace(1, 2, x=3, y=4)",
+            "Line 1, column 1: str_replace() doesn't accept named arguments (2 given)",
+        ),
+    ] {
+        assert_eq!(
+            crate::utils::compile_and_run(&call, ""),
+            Err(msg.to_owned())
+        );
+    }
+}

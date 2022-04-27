@@ -94,6 +94,7 @@ impl syn::parse::Parse for BuiltinDef {
 fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::TokenStream> {
     let mut ret = Vec::new();
 
+    let mut count: usize = 0;
     let mut args = false;
     let mut nargs = false;
 
@@ -119,6 +120,8 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
             nargs = true;
             continue;
         }
+
+        count += 1;
 
         let arg = syn::Ident::new(
             &arg,
@@ -149,7 +152,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
 
                         if value.is_none() {
                             if #required {
-                                return Err(format!("{}: Expected parameter '{}' is missing", __function, stringify!(#arg)).into()).into();
+                                return Err(format!("{} expected argument '{}'", __function, stringify!(#arg)).into()).into();
                             }
                             else {
                                 #default
@@ -168,14 +171,29 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
 
     if !args {
         ret.push(quote! {
-            assert!(args.is_empty());
+            if args.len() > 0 {
+                return Err(
+                    match #count {
+                        0 => format!("{} doesn't accept any arguments ({} given)", __function, args.len()),
+                        1 => format!("{} takes exactly one argument ({} given)", __function, #count + args.len()),
+                        _ => format!("{} expected at most {} arguments ({} given)", __function, #count, #count + args.len()),
+                    }.into()
+                ).into()
+            }
         });
     }
 
     if !nargs {
         ret.push(quote! {
-            if let Some(nargs) = nargs {
-                assert!(nargs.is_empty());
+            if let Some(mut nargs) = nargs {
+                if let Some((name, _)) = nargs.pop() {
+                    return Err(
+                        match nargs.len() {
+                            0 => format!("{} doesn't accept named argument '{}'", __function, name),
+                            n => format!("{} doesn't accept named arguments ({} given)", __function, n + 1),
+                        }.into()
+                    ).into()
+                }
             }
         });
     }

@@ -100,12 +100,16 @@ impl Usage {
                     } else if *args == 0 && *nargs == 0 {
                         *self = Usage::Error(Error::new(
                             *offset,
-                            format!("Call to '{}' doesn't accept any arguments", name),
+                            format!("{}() expects arguments for call", name),
                         ));
                     } else {
                         *self = Usage::Error(Error::new(
                             *offset,
-                            format!("'{}' cannot be called without arguments", name),
+                            format!(
+                                "{}() doesn't accept any arguments ({} given)",
+                                name,
+                                *args + *nargs
+                            ),
                         ));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {

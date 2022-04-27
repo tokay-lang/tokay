@@ -62,7 +62,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             "{}{}{:5} {}",
             ".".repeat(self.depth),
             //self.parselet.name.as_deref().unwrap_or("(unnamed)"), // fixme: TEMPORAL!
-            self.parselet.name.as_deref().unwrap_or("(unnamed)"),
+            self.parselet.name,
             //if self.parselet.consuming.is_some() {
             if self.parselet.consuming.is_some() {
                 format!("@{: <4}", self.runtime.reader.tell().offset)

@@ -23,14 +23,14 @@ the generated parse tree automatically until no more input can be consumed.
 
 #[derive(Debug)]
 pub struct Parselet {
-    pub(crate) name: Option<String>, // Parselet's name from source (for debugging)
+    pub(crate) name: String, // Parselet's name from source (for debugging)
     pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
-    pub(crate) severity: u8,         // Capture push severity
+    pub(crate) severity: u8, // Capture push severity
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    pub(crate) locals: usize,        // Number of local variables present
-    begin: Vec<Op>,                  // Begin-operations
-    end: Vec<Op>,                    // End-operations
-    body: Vec<Op>,                   // Operations
+    pub(crate) locals: usize, // Number of local variables present
+    begin: Vec<Op>,          // Begin-operations
+    end: Vec<Op>,            // End-operations
+    body: Vec<Op>,           // Operations
 }
 
 impl Parselet {
@@ -50,8 +50,8 @@ impl Parselet {
             "signature may not be longer than locals..."
         );
 
-        Self {
-            name,
+        let mut ret = Self {
+            name: name.unwrap_or(String::new()),
             consuming,
             severity,
             signature,
@@ -59,7 +59,13 @@ impl Parselet {
             begin,
             end,
             body,
+        };
+
+        if ret.name.is_empty() {
+            ret.name = format!("parselet_{:x}", &ret as *const Parselet as usize);
         }
+
+        ret
     }
 
     fn _run(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
@@ -75,9 +81,8 @@ impl Parselet {
         // Debugging
         let mut debug = context.runtime.debug;
         if debug < 3 {
-            if let (Ok(inspect), Some(name)) = (std::env::var("TOKAY_INSPECT"), self.name.as_ref())
-            {
-                if inspect.find(name).is_some() {
+            if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
+                if inspect.find(&self.name).is_some() {
                     debug = 6;
                 }
             }
@@ -307,50 +312,71 @@ impl Parselet {
             // Check for provided argument count bounds first
             // todo: Not executed when *args-catchall is implemented
             if args > self.signature.len() {
-                return Error::new(
-                    None,
-                    format!(
-                        "Too many parameters, {} possible, {} provided",
+                return Err(match self.signature.len() {
+                    0 => format!(
+                        "{}() doesn't accept any arguments ({} given)",
+                        self.name, args
+                    ),
+                    1 => format!(
+                        "{}() takes exactly one argument ({} given)",
+                        self.name, args
+                    ),
+                    _ => format!(
+                        "{}() expected at most {} arguments ({} given)",
+                        self.name,
                         self.signature.len(),
                         args
                     ),
-                )
+                }
+                .into())
                 .into();
             }
 
             // Set remaining parameters to their defaults
             for (i, arg) in (&self.signature[args..]).iter().enumerate() {
+                // args parameters are previously pushed onto the stack.
                 let var = &mut context.runtime.stack[context.stack_start + args + i];
+
                 //println!("{} {:?} {:?}", i, arg, var);
                 if matches!(var, Capture::Empty) {
-                    // Try to fill argument by named arguments dict
+                    // In case the parameter is empty, try to get it from nargs...
                     if let Some(ref mut nargs) = nargs {
                         if let Some(value) = nargs.remove(&arg.0) {
-                            *var = Capture::Value(value.clone(), None, 0);
+                            *var = Capture::Value(value, None, 0);
                             continue;
                         }
                     }
 
+                    // Otherwise, use default value if available.
                     if let Some(addr) = arg.1 {
-                        // fixme: This might leak the immutablestatic value to something mutable...
+                        // fixme: This might leak the immutable static value to something mutable...
                         *var =
                             Capture::Value(context.runtime.program.statics[addr].clone(), None, 0);
                         //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }
 
-                    return Error::new(None, format!("Parameter '{}' required", arg.0)).into();
+                    return Error::new(
+                        None,
+                        format!("{}() expected argument '{}'", self.name, arg.0),
+                    )
+                    .into();
                 }
             }
 
             // Check for remaining nargs
             // todo: Not executed when **nargs-catchall is implemented
-            if let Some(nargs) = nargs {
-                if let Some(narg) = nargs.iter().next() {
-                    return Error::new(
-                        None,
-                        format!("Parameter '{}' provided to call but not used", narg.0),
-                    )
+            if let Some(mut nargs) = nargs {
+                if let Some((name, _)) = nargs.pop() {
+                    return Err(match nargs.len() {
+                        0 => format!("{}() doesn't accept named argument '{}'", self.name, name),
+                        n => format!(
+                            "{}() doesn't accept named arguments ({} given)",
+                            self.name,
+                            n + 1
+                        ),
+                    }
+                    .into())
                     .into();
                 }
             }
@@ -566,25 +592,48 @@ fn test_function_as_variable_with_args() {
 
 #[test]
 fn test_parselet_call_error_reporting() {
-    // Tests for calling functions with wrong parameter counts
+    // Tests for calling single argument parselet
+    for (call, msg) in [
+        ("f()", "Line 2, column 1: f() expects arguments for call"),
+        (
+            "f(1, 2)",
+            "Line 2, column 1: f() takes exactly one argument (2 given)",
+        ),
+        (
+            "f(1, y=2)",
+            "Line 2, column 1: f() doesn't accept named argument 'y'",
+        ),
+    ] {
+        let call = format!("f : @x {{ x * x }}\n{}", call);
+
+        assert_eq!(
+            crate::utils::compile_and_run(&call, ""),
+            Err(msg.to_owned())
+        );
+    }
+
+    // Tests for calling mutli-argument parselet with wrong arguments counts
     for (call, msg) in [
         ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
-        (
-            "f()",
-            "Line 2, column 1: Call to 'f' doesn't accept any arguments",
-        ),
+        ("f()", "Line 2, column 1: f() expects arguments for call"),
         (
             "f(1, 2, 3, 4)",
-            "Line 2, column 1: Too many parameters, 3 possible, 4 provided",
+            "Line 2, column 1: f() expected at most 3 arguments (4 given)",
         ),
-        ("f(c=10, d=3)", "Line 2, column 1: Parameter 'a' required"),
+        (
+            "f(c=10, d=3, e=10)",
+            "Line 2, column 1: f() expected argument 'a'",
+        ),
         (
             "f(1, c=10, d=3)",
-            "Line 2, column 1: Parameter 'd' provided to call but not used",
+            "Line 2, column 1: f() doesn't accept named argument 'd'",
+        ),
+        (
+            "f(1, c=10, d=3, e=7)",
+            "Line 2, column 1: f() doesn't accept named arguments (2 given)",
         ),
     ] {
         let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
-        println!("calling {:?}, expecting {:?}", call, msg);
 
         assert_eq!(
             crate::utils::compile_and_run(&call, ""),
