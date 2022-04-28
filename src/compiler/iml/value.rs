@@ -23,17 +23,19 @@ impl ImlValue {
 
     /// Check whether intermediate value represents callable,
     /// and when its callable if with or without arguments.
-    pub fn is_callable(&self, with_arguments: bool) -> bool {
+    pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
             ImlValue::Parselet(parselet) => {
                 let parselet = parselet.borrow();
 
-                // Either without arguments and signature is empty or all arguments have default values
-                (!with_arguments && (parselet.signature.len() == 0 || parselet.signature.iter().all(|arg| arg.1.is_some())))
-                // or with arguments and signature exists
-                    || (with_arguments && parselet.signature.len() > 0)
+                if without_arguments {
+                    parselet.signature.len() == 0
+                        || parselet.signature.iter().all(|arg| arg.1.is_some())
+                } else {
+                    true
+                }
             }
-            ImlValue::Value(value) => value.is_callable(with_arguments),
+            ImlValue::Value(value) => value.is_callable(without_arguments),
         }
     }
 

@@ -24,7 +24,7 @@ impl ImlResult {
         match self {
             ImlResult::Empty => Vec::new(),
             ImlResult::Value(value) => {
-                vec![ImlOp::Op(if call && value.is_callable(false) {
+                vec![ImlOp::Op(if call && value.is_callable(true) {
                     if let ImlValue::Value(value) = &value {
                         if value.name() == "token" {
                             compiler.mark_consuming();
@@ -75,7 +75,7 @@ impl ImlResult {
     pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
             if let ImlResult::Value(ImlValue::Value(value)) = self {
-                if !value.is_callable(false) {
+                if !value.is_callable(true) {
                     return Ok(value.clone().into());
                 }
             }

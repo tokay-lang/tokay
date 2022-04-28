@@ -199,8 +199,8 @@ impl Object for Token {
     }
     */
 
-    fn is_callable(&self, with_arguments: bool) -> bool {
-        !with_arguments // Tokens don't support arguments
+    fn is_callable(&self, without_arguments: bool) -> bool {
+        without_arguments // Tokens don't support arguments
     }
 
     fn is_consuming(&self) -> bool {

@@ -182,8 +182,8 @@ pub trait Object:
         self.repr()
     }
 
-    /// Check whether the object is callable and accepts any arguments.
-    fn is_callable(&self, _with_arguments: bool) -> bool {
+    /// Check whether the object is callable.
+    fn is_callable(&self, _without_arguments: bool) -> bool {
         false
     }
 
@@ -204,6 +204,6 @@ pub trait Object:
         _args: usize,
         _nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        panic!("{} cannot be called.", self.name())
+        Err(format!("'{}' object is not callable", self.name()).into())
     }
 }

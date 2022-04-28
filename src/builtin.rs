@@ -76,8 +76,8 @@ impl Object for BuiltinRef {
         format!("<{} {}>", self.name(), self.0.name)
     }
 
-    fn is_callable(&self, _with_arguments: bool) -> bool {
-        true // fixme: This is currently entirely handled by the builtin's own parameter checking...
+    fn is_callable(&self, _without_arguments: bool) -> bool {
+        true // Always callable, arguments are being checked by the function.
     }
 
     fn is_consuming(&self) -> bool {

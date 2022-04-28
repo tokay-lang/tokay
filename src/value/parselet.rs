@@ -518,12 +518,14 @@ impl Object for ParseletRef {
         "parselet"
     }
 
-    fn is_callable(&self, with_arguments: bool) -> bool {
+    fn is_callable(&self, without_arguments: bool) -> bool {
         let parselet = self.0.borrow();
-        // Either without arguments and signature is empty or all arguments have default values
-        (!with_arguments && (parselet.signature.len() == 0 || parselet.signature.iter().all(|arg| arg.1.is_some())))
-        // or with arguments and signature exists
-            || (with_arguments && parselet.signature.len() > 0)
+
+        if without_arguments {
+            parselet.signature.len() == 0 || parselet.signature.iter().all(|arg| arg.1.is_some())
+        } else {
+            true
+        }
     }
 
     fn is_consuming(&self) -> bool {
@@ -594,7 +596,7 @@ fn test_function_as_variable_with_args() {
 fn test_parselet_call_error_reporting() {
     // Tests for calling single argument parselet
     for (call, msg) in [
-        ("f()", "Line 2, column 1: f() expects arguments for call"),
+        ("f()", "Line 2, column 1: f() expected argument 'x'"),
         (
             "f(1, 2)",
             "Line 2, column 1: f() takes exactly one argument (2 given)",
@@ -615,7 +617,7 @@ fn test_parselet_call_error_reporting() {
     // Tests for calling mutli-argument parselet with wrong arguments counts
     for (call, msg) in [
         ("foo()", "Line 2, column 1: Call to unresolved symbol 'foo'"),
-        ("f()", "Line 2, column 1: f() expects arguments for call"),
+        ("f()", "Line 2, column 1: f() expected argument 'a'"),
         (
             "f(1, 2, 3, 4)",
             "Line 2, column 1: f() expected at most 3 arguments (4 given)",

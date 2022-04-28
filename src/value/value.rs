@@ -150,9 +150,9 @@ impl Object for Value {
         }
     }
 
-    fn is_callable(&self, with_arguments: bool) -> bool {
+    fn is_callable(&self, without_arguments: bool) -> bool {
         if let Self::Object(object) = self {
-            object.is_callable(with_arguments)
+            object.is_callable(without_arguments)
         } else {
             false
         }
@@ -183,7 +183,7 @@ impl Object for Value {
         if let Value::Object(object) = self {
             object.call(context, args, nargs)
         } else {
-            Err(format!("'{}' cannot be called", self.repr()).into())
+            Err(format!("'{}' object is not callable", self.name()).into())
         }
     }
 }

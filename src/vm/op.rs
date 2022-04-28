@@ -398,7 +398,7 @@ impl Op {
                 Op::CallOrCopy => {
                     let value = context.pop();
 
-                    if value.is_callable(false) {
+                    if value.is_callable(true) {
                         // Call the value without parameters
                         value.call(context, 0, None)
                     } else {

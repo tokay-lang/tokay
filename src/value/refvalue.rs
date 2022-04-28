@@ -344,8 +344,8 @@ impl Object for RefValue {
         self.borrow().to_string()
     }
 
-    fn is_callable(&self, with_arguments: bool) -> bool {
-        self.borrow().is_callable(with_arguments)
+    fn is_callable(&self, without_arguments: bool) -> bool {
+        self.borrow().is_callable(without_arguments)
     }
 
     fn is_consuming(&self) -> bool {

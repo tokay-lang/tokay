@@ -6,6 +6,7 @@ use crate::reader::Offset;
 
 /** Unresolved symbols and calls */
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum Usage {
     // Qualified symbol load
     Load {
@@ -45,7 +46,7 @@ impl Usage {
 
             Usage::CallOrCopy { name, offset } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    if value.is_callable(false) {
+                    if value.is_callable(true) {
                         if let Some(offset) = offset {
                             ret.push(Op::Offset(Box::new(*offset)).into());
                         }
@@ -79,38 +80,22 @@ impl Usage {
             } => {
                 // Resolve constants
                 if let Some(value) = compiler.get_constant(&name) {
-                    if value.is_callable(*args > 0 || *nargs > 0) {
+                    if let Some(offset) = offset {
+                        ret.push(Op::Offset(Box::new(*offset)).into());
+                    }
+
+                    let addr = compiler.define_value(value);
+
+                    if *args == 0 && *nargs == 0 {
+                        ret.push(Op::CallStatic(addr).into());
+                    } else if *args > 0 && *nargs == 0 {
                         if let Some(offset) = offset {
                             ret.push(Op::Offset(Box::new(*offset)).into());
                         }
 
-                        let addr = compiler.define_value(value);
-
-                        if *args == 0 && *nargs == 0 {
-                            ret.push(Op::CallStatic(addr).into());
-                        } else if *args > 0 && *nargs == 0 {
-                            if let Some(offset) = offset {
-                                ret.push(Op::Offset(Box::new(*offset)).into());
-                            }
-
-                            ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
-                        } else {
-                            ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
-                        }
-                    } else if *args == 0 && *nargs == 0 {
-                        *self = Usage::Error(Error::new(
-                            *offset,
-                            format!("{}() expects arguments for call", name),
-                        ));
+                        ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
                     } else {
-                        *self = Usage::Error(Error::new(
-                            *offset,
-                            format!(
-                                "{}() doesn't accept any arguments ({} given)",
-                                name,
-                                *args + *nargs
-                            ),
-                        ));
+                        ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if let Some(offset) = offset {
