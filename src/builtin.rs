@@ -134,7 +134,7 @@ tokay_function!("chr(i)", {
 #[test]
 fn test_chr() {
     assert_eq!(
-        crate::utils::compile_and_run("i = ord(\"€\"); i chr(i)", ""),
+        crate::run("i = ord(\"€\"); i chr(i)", ""),
         Ok(Some(value![[(8364 as usize), "€"]]))
     );
 }
@@ -156,7 +156,7 @@ tokay_function!("ord(c)", {
 #[test]
 fn test_ord() {
     assert_eq!(
-        crate::utils::compile_and_run("ord(\"12\")", ""),
+        crate::run("ord(\"12\")", ""),
         Err(
             "Line 1, column 1: ord() expects a single character, but received string of length 2"
                 .to_string()
@@ -164,7 +164,7 @@ fn test_ord() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("ord(\"\")", ""),
+        crate::run("ord(\"\")", ""),
         Err(
             "Line 1, column 1: ord() expects a single character, but received string of length 0"
                 .to_string()
@@ -198,7 +198,7 @@ tokay_function!("repr(value)", value!(value.repr()).into());
 #[test]
 fn test_repr() {
     assert_eq!(
-        crate::utils::compile_and_run("repr(\"Hello World\")", ""),
+        crate::run("repr(\"Hello World\")", ""),
         Ok(Some(value!("\"Hello World\"")))
     );
 }
@@ -208,7 +208,7 @@ tokay_function!("type(value)", value!(value.name()).into());
 #[test]
 fn test_type() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "type(void) type(true) type(1) type(23.5) type(\"hello\") type((1,2))",
             ""
         ),
@@ -239,9 +239,6 @@ fn test_buildin_call_error_reporting() {
             "Line 1, column 1: str_replace() doesn't accept named arguments (2 given)",
         ),
     ] {
-        assert_eq!(
-            crate::utils::compile_and_run(&call, ""),
-            Err(msg.to_owned())
-        );
+        assert_eq!(crate::run(&call, ""), Err(msg.to_owned()));
     }
 }

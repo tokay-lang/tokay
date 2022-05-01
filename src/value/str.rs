@@ -272,7 +272,7 @@ fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
 #[test]
 fn test_str_len() {
     assert_eq!(
-        crate::utils::compile_and_run("\"Hällo Wörld\".len() str_len(123.456)", ""),
+        crate::run("\"Hällo Wörld\".len() str_len(123.456)", ""),
         Ok(Some(crate::value!([(11 as usize), (7 as usize)])))
     )
 }
@@ -280,7 +280,7 @@ fn test_str_len() {
 #[test]
 fn test_str_byteslen() {
     assert_eq!(
-        crate::utils::compile_and_run("\"Hällo Wörld\".byteslen()", ""),
+        crate::run("\"Hällo Wörld\".byteslen()", ""),
         Ok(Some(crate::value!(13 as usize)))
     )
 }
@@ -289,7 +289,7 @@ fn test_str_byteslen() {
 // Tests for builtin string functions
 fn test() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             \"abcäöü\".upper() \
             \"ABCÄÖÜ\".lower() \

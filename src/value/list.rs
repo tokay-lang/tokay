@@ -205,7 +205,7 @@ impl From<List> for RefValue {
 #[test]
 fn test_list_new() {
     assert_eq!(
-        crate::utils::compile_and_run("list(true) list((1,2,3)) list(\"Tokay\")", ""),
+        crate::run("list(true) list((1,2,3)) list(\"Tokay\")", ""),
         Ok(Some(crate::value!([[true], [1, 2, 3], ["Tokay"]])))
     )
 }
@@ -213,7 +213,7 @@ fn test_list_new() {
 #[test]
 fn test_list_len() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "list().len() list(1).len() list(1, 2, 3).len() list_len(5)",
             ""
         ),
@@ -229,7 +229,7 @@ fn test_list_len() {
 #[test]
 fn test_list_iadd() {
     assert_eq!(
-        crate::utils::compile_and_run("l = list(1); l += 2; l += (3, 4); l", ""),
+        crate::run("l = list(1); l += 2; l += (3, 4); l", ""),
         Ok(Some(crate::value!([1, 2, 3, 4])))
     )
 }
@@ -237,7 +237,7 @@ fn test_list_iadd() {
 #[test]
 fn test_list_add() {
     assert_eq!(
-        crate::utils::compile_and_run("l = list(1); l + (2, 3) l", ""),
+        crate::run("l = list(1); l + (2, 3) l", ""),
         Ok(Some(crate::value!([[1, 2, 3], [1]])))
     )
 }
@@ -245,7 +245,7 @@ fn test_list_add() {
 #[test]
 fn test_list_push() {
     assert_eq!(
-        crate::utils::compile_and_run("l = list(1); l.push(2); l.push((3, 4)); l", ""),
+        crate::run("l = list(1); l.push(2); l.push((3, 4)); l", ""),
         Ok(Some(crate::value!([1, 2, [3, 4]])))
     )
 }
@@ -255,18 +255,18 @@ fn test_list_repr() {
     /*
     Currently under consideration, see https://github.com/tokay-lang/tokay/issues/45
     assert_eq!(
-        crate::utils::compile_and_run("repr((1, ))", ""),
+        crate::run("repr((1, ))", ""),
         Ok(Some(crate::value!("(1, )")))
     );
     */
 
     assert_eq!(
-        crate::utils::compile_and_run("l = list(); l += 1; repr(l)", ""),
+        crate::run("l = list(); l += 1; repr(l)", ""),
         Ok(Some(crate::value!("list(1)")))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("repr((1, 2, 3, 4))", ""),
+        crate::run("repr((1, 2, 3, 4))", ""),
         Ok(Some(crate::value!("(1, 2, 3, 4)")))
     )
 }

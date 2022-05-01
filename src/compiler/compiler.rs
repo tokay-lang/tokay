@@ -589,14 +589,14 @@ fn test_whitespace() {
     let abc = "abc   \tdef  abcabc= ghi abcdef";
 
     assert_eq!(
-        crate::utils::compile_and_run("Word _; ", abc),
+        crate::run("Word _; ", abc),
         Ok(Some(crate::value![[
             "abc", "def", "abcabc", "ghi", "abcdef"
         ]]))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("Word __; ", abc),
+        crate::run("Word __; ", abc),
         Ok(Some(crate::value![["abc", "def", "ghi"]]))
     );
 }
@@ -605,37 +605,37 @@ fn test_whitespace() {
 // Testing several special parsing constructs and error reporting
 fn test_error_reporting() {
     // Test for programs which consist just of one comment
-    assert_eq!(crate::utils::compile_and_run("#tralala", ""), Ok(None));
+    assert_eq!(crate::run("#tralala", ""), Ok(None));
 
     // Test for whitespace
     assert_eq!(
-        crate::utils::compile_and_run("#normal comment\n#\n\t123", ""),
+        crate::run("#normal comment\n#\n\t123", ""),
         Ok(Some(crate::value!(123)))
     );
 
     // Test for invalid input when EOF is expected
     assert_eq!(
-        crate::utils::compile_and_run("{}}", ""),
+        crate::run("{}}", ""),
         Err("Line 1, column 3: Parse error, expecting end-of-file".to_string())
     );
 
     // Test on unclosed sequences `(1 `
     assert_eq!(
-        crate::utils::compile_and_run("(1", ""),
+        crate::run("(1", ""),
         Err("Line 1, column 3: Expecting \")\"".to_string())
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("(a => 1, b => 2", ""),
+        crate::run("(a => 1, b => 2", ""),
         Err("Line 1, column 16: Expecting \")\"".to_string())
     );
 
     // Test empty sequence
-    assert_eq!(crate::utils::compile_and_run("()", ""), Ok(None));
+    assert_eq!(crate::run("()", ""), Ok(None));
 
     // Tests on filled and empty blocks and empty blocks
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             a = {}
             b = {
@@ -664,7 +664,7 @@ fn test_identifier_naming() {
 // Tests for compiler string, match and ccl escaping
 fn test_unescaping() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "\"test\\\\yes\n\\xCA\\xFE\t\\100\\x5F\\u20ac\\U0001F98E\"",
             ""
         ),
@@ -672,7 +672,7 @@ fn test_unescaping() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "'hello\\nworld'", // double \ quotation required
             "hello\nworld"
         ),
@@ -680,7 +680,7 @@ fn test_unescaping() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "[0-9\\u20ac]+", // double \ quotation required
             "12345€ €12345"
         ),
@@ -688,7 +688,7 @@ fn test_unescaping() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "'hello\\nworld'", // double \ quotation required
             "hello\nworld"
         ),
@@ -696,7 +696,7 @@ fn test_unescaping() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "[0-9\\u20ac]+", // double \ quotation required
             "12345€ €12345"
         ),

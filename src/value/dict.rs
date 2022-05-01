@@ -193,7 +193,7 @@ impl From<Dict> for RefValue {
 #[test]
 fn test_dict() {
     assert_eq!(
-        crate::utils::compile_and_run("(b => 3, c => 1, a => 2)", ""),
+        crate::run("(b => 3, c => 1, a => 2)", ""),
         Ok(Some(crate::value!(["b" => 3, "c" => 1, "a" => 2])))
     );
 }
@@ -201,7 +201,7 @@ fn test_dict() {
 #[test]
 fn test_dict_compare() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             r#"
                 a = (a => 1, b => 2)
                 b = (b => 2, a => 1)
@@ -220,12 +220,12 @@ fn test_dict_compare() {
 #[test]
 fn test_dict_len() {
     assert_eq!(
-        crate::utils::compile_and_run("dict().len() (a => 1, b => 2).len()", ""),
+        crate::run("dict().len() (a => 1, b => 2).len()", ""),
         Ok(Some(crate::value!([(0 as usize), (2 as usize)])))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("dict_len(\"Donkey\")", ""),
+        crate::run("dict_len(\"Donkey\")", ""),
         Err("Line 1, column 1: dict_len() only accepts 'dict' as parameter, not 'str'".to_string())
     )
 }
@@ -233,7 +233,7 @@ fn test_dict_len() {
 #[test]
 fn test_dict_update() {
     assert_eq!(
-        crate::utils::compile_and_run("d = (a => 1, b => 2); d.update((c => 3)); d", ""),
+        crate::run("d = (a => 1, b => 2); d.update((c => 3)); d", ""),
         Ok(Some(crate::value!(["a" => 1, "b" => 2, "c" => 3])))
     )
 }

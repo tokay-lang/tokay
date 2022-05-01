@@ -9,7 +9,7 @@
 
 An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
 
-**Tokay is an alpha-state project; There are plenty of bugs and incomplete features. Please [help to improve it](#contribute)!**
+**Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete features and planned concepts. Please [help to improve it](#contribute)!**
 
 ## About
 
@@ -45,7 +45,7 @@ Tokay's implementation of "Hello World":
 print("Hello World")
 ```
 
-Tokay can also greet any wor(l)ds fed to it. The next program prints "Hello Venus", "Hello Earth" and "Hello Mars" when "Venus Earth Mars" is provided as input.
+Tokay can also greet any wor(l)ds that are being fed to it. The next program prints "Hello Venus", "Hello Earth" and "Hello Mars" when "Venus Earth Mars" is provided as input. Any other input is automatically omitted.
 
 ```tokay
 world => Word   print("Hello " + $world)
@@ -128,6 +128,8 @@ The Tokay programming language is named after the [Tokay gecko (Gekko gecko)](ht
 The Tokay logo and icon was thankfully designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl).
 
 ## License
+
+Copyright © 2022 by Jan Max Meyer, Phorward Software Technologies.
 
 Tokay is free software under the MIT license.<br>
 Please see the LICENSE file for details.

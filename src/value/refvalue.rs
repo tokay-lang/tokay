@@ -425,49 +425,46 @@ fn unary_op() {
 
     // unary not with primary
     assert_eq!(
-        crate::utils::compile_and_run("i = false !i !!i", ""),
+        crate::run("i = false !i !!i", ""),
         Ok(Some(value!([true, false])))
     );
 
     // unary not with object
     assert_eq!(
-        crate::utils::compile_and_run("l = list() !l l += 1 !l", ""),
+        crate::run("l = list() !l l += 1 !l", ""),
         Ok(Some(value!([true, false])))
     );
 
     // unary minus with primary
-    assert_eq!(
-        crate::utils::compile_and_run("i = 1, -i", ""),
-        Ok(Some(value!(-1)))
-    );
+    assert_eq!(crate::run("i = 1, -i", ""), Ok(Some(value!(-1))));
 
     // unary minus with object
     assert_eq!(
-        crate::utils::compile_and_run("l = list(), -l", ""),
+        crate::run("l = list(), -l", ""),
         Err("Line 1, column 14: Method 'list_neg' not found".to_string())
     );
 
     // inline pre-increment
     assert_eq!(
-        crate::utils::compile_and_run("i = 0; ++i ++i ++i", ""),
+        crate::run("i = 0; ++i ++i ++i", ""),
         Ok(Some(value!([1, 2, 3])))
     );
 
     // inline pre-decrement
     assert_eq!(
-        crate::utils::compile_and_run("i = 10; --i --i --i", ""),
+        crate::run("i = 10; --i --i --i", ""),
         Ok(Some(value!([9, 8, 7])))
     );
 
     // inline pre-increment with value conversion
     assert_eq!(
-        crate::utils::compile_and_run("i = false; i, ++i ++i", ""),
+        crate::run("i = false; i, ++i ++i", ""),
         Ok(Some(value!([false, 1, 2])))
     );
 
     // inline post-increment
     assert_eq!(
-        crate::utils::compile_and_run("i = 0; i++ i++ i++ i", ""),
+        crate::run("i = 0; i++ i++ i++ i", ""),
         Ok(Some(value!([0, 1, 2, 3])))
     );
 }
@@ -480,13 +477,13 @@ fn binary_op() {
     {
         // binary add with type conversion
         assert_eq!(
-            crate::utils::compile_and_run("b = true b + true b", ""),
+            crate::run("b = true b + true b", ""),
             Ok(Some(value!([2, true])))
         );
 
         // binary add with type conversion
         assert_eq!(
-            crate::utils::compile_and_run("b = true b b += true b", ""),
+            crate::run("b = true b b += true b", ""),
             Ok(Some(value!([true, 2])))
         );
     }
@@ -496,20 +493,17 @@ fn binary_op() {
         // add
         {
             // binary add
-            assert_eq!(
-                crate::utils::compile_and_run("i = 10 i + 1 i", ""),
-                Ok(Some(value!([11, 10])))
-            );
+            assert_eq!(crate::run("i = 10 i + 1 i", ""), Ok(Some(value!([11, 10]))));
 
             // binary inline add
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i i += 1 i", ""),
+                crate::run("i = 10 i i += 1 i", ""),
                 Ok(Some(value!([10, 11])))
             );
 
             // binary inline add with self
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i i += i i", ""),
+                crate::run("i = 10 i i += i i", ""),
                 Ok(Some(value!([10, 20])))
             );
         }
@@ -517,14 +511,11 @@ fn binary_op() {
         // sub
         {
             // binary sub
-            assert_eq!(
-                crate::utils::compile_and_run("i = 10 i - 1 i", ""),
-                Ok(Some(value!([9, 10])))
-            );
+            assert_eq!(crate::run("i = 10 i - 1 i", ""), Ok(Some(value!([9, 10]))));
 
             // binary inline sub
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i i -= 1 i", ""),
+                crate::run("i = 10 i i -= 1 i", ""),
                 Ok(Some(value!([10, 9])))
             );
         }
@@ -532,14 +523,11 @@ fn binary_op() {
         // mul
         {
             // binary mul
-            assert_eq!(
-                crate::utils::compile_and_run("i = 10 i * 3 i", ""),
-                Ok(Some(value!([30, 10])))
-            );
+            assert_eq!(crate::run("i = 10 i * 3 i", ""), Ok(Some(value!([30, 10]))));
 
             // binary inline mul
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i i *= 3 i", ""),
+                crate::run("i = 10 i i *= 3 i", ""),
                 Ok(Some(value!([10, 30])))
             );
         }
@@ -548,20 +536,20 @@ fn binary_op() {
         {
             // binary div
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i / 4 i", ""),
+                crate::run("i = 10 i / 4 i", ""),
                 Ok(Some(value!([2.5, 10])))
             );
 
             // binary inline div
             assert_eq!(
-                crate::utils::compile_and_run("i = 10 i i /= 4 i", ""),
+                crate::run("i = 10 i i /= 4 i", ""),
                 Ok(Some(value!([10, 2.5])))
             );
         }
 
         // Division by 0
         assert_eq!(
-            crate::utils::compile_and_run("i = 10 i / 0", ""),
+            crate::run("i = 10 i / 0", ""),
             Err("Line 1, column 8: Division by zero".to_string())
         );
     }
@@ -570,7 +558,7 @@ fn binary_op() {
     {
         // Substraction overflow
         assert_eq!(
-            crate::utils::compile_and_run("a = addr(10) a - 20", ""),
+            crate::run("a = addr(10) a - 20", ""),
             Err("Line 1, column 14: Attempt to substract with overflow (addr-value)".to_string())
         );
     }
@@ -579,13 +567,13 @@ fn binary_op() {
     {
         // Binary add
         assert_eq!(
-            crate::utils::compile_and_run("s = \"a\" s s + \"b\"", ""),
+            crate::run("s = \"a\" s s + \"b\"", ""),
             Ok(Some(value!(["a", "ab"])))
         );
 
         // Binary inline add
         assert_eq!(
-            crate::utils::compile_and_run("s = \"a\" s s += \"b\" s", ""),
+            crate::run("s = \"a\" s s += \"b\" s", ""),
             Ok(Some(value!(["a", "ab"])))
         );
     }

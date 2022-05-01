@@ -42,7 +42,7 @@ impl Value {
     }
 
     /// Extract object of type T from Val.
-    pub fn object_into<T: Any>(self) -> Option<T> {
+    pub fn into_object<T: Any>(self) -> Option<T> {
         if let Self::Object(o) = self {
             if let Ok(inner) = o.into_any().downcast::<T>() {
                 return Some(*inner);

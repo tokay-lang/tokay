@@ -77,17 +77,17 @@ impl From<RefValue> for Capture {
 // Testing sequence captures
 fn test_captures() {
     assert_eq!(
-        crate::utils::compile_and_run("'a' 'b' $1 * 2 + $2 * 3", "ab"),
+        crate::run("'a' 'b' $1 * 2 + $2 * 3", "ab"),
         Ok(Some(crate::value!("aabbb")))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab"),
+        crate::run("a=2 'a' 'b' $(a + 1) * 3+ $(a) * 2", "ab"),
         Ok(Some(crate::value!("bbbaa")))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("'a' $0 = \"yes\" 'b'+", "abbb"),
+        crate::run("'a' $0 = \"yes\" 'b'+", "abbb"),
         Ok(Some(crate::value!("yes")))
     );
 }

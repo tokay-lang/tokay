@@ -71,7 +71,7 @@ tokay_function!("error(msg, collect=false)", {
 #[test]
 fn test_error() {
     assert_eq!(
-        crate::utils::compile_and_run("'a'+ error(\"Error!\")", "aaa"),
+        crate::run("'a'+ error(\"Error!\")", "aaa"),
         Err("Line 1, column 4: Error!".to_string())
     );
 }

@@ -102,7 +102,7 @@ pub(crate) fn testcase(filename: &'static str) {
 // Test for literals
 fn literal() {
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             1337 \
             23.5 \
@@ -121,7 +121,7 @@ fn literal() {
 fn expression() {
     // Simple Integer expressions
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             1 + 2 \
             100 - 99 \
@@ -136,7 +136,7 @@ fn expression() {
 
     // Simple Float expressions
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             .2  + .3 \
             1.9 - 1.1 \
@@ -157,7 +157,7 @@ fn expression() {
 
     // Simple String expressions
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             \"a\" + \"b\" \
             \"a\" + 2 \
@@ -180,7 +180,7 @@ fn expression() {
 
     // Equality Comparisons
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             x = 42 \
             42 == 42 \
@@ -210,7 +210,7 @@ fn expression() {
 
     // Ordered Comparisons
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             42 >= 42 \
             42 <= 42 \
@@ -236,7 +236,7 @@ fn expression() {
 
     // Logical AND and OR
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             a = true
             b = false
@@ -257,7 +257,7 @@ fn expression() {
 
     // Unary operations
     assert_eq!(
-        compile_and_run(
+        run(
             "\
             -1 \
             (-(-1)) \
@@ -275,7 +275,7 @@ fn expression() {
 fn operations() {
     // Test assignment-operations
     assert_eq!(
-        compile_and_run(
+        run(
             "
             a = true a \
             a + 2 == 3 \
@@ -294,7 +294,7 @@ fn operations() {
     // Tests for pre- and post-increment and -decrements
     // These require spaces in some situations to find correct path throug meaning
     assert_eq!(
-        compile_and_run(
+        run(
             "
             a = 1 \
             a \
@@ -312,7 +312,7 @@ fn operations() {
 
     // Inline add int to itself
     assert_eq!(
-        compile_and_run(
+        run(
             "
             i = 2 \
             i *= i \
@@ -326,7 +326,7 @@ fn operations() {
     // Inline add list to itself
     // fixme: Should be put into the specific modules, e.g. value/list.rs
     assert_eq!(
-        compile_and_run(
+        run(
             "
             a = (1,2) \
             b = (3,4) \
@@ -354,7 +354,7 @@ fn operations() {
 fn variables() {
     // Test store-hold-global
     assert_eq!(
-        compile_and_run(
+        run(
             "
             a = b = 10
             a++
@@ -367,7 +367,7 @@ fn variables() {
 
     // Test store-hold-local
     assert_eq!(
-        compile_and_run(
+        run(
             "
             f : @{
                 a = b = 10
@@ -384,7 +384,7 @@ fn variables() {
 
     // Test store-hold-capture
     assert_eq!(
-        compile_and_run(
+        run(
             "
             10 20 $1 = $2 = 30 ++$1 $2
             ",
@@ -395,7 +395,7 @@ fn variables() {
 
     // Test store-hold-aliased-capture
     assert_eq!(
-        compile_and_run(
+        run(
             "
             a => 10 b => 20 $a = $b = 30 c => ++$a d => $b
             ",
@@ -409,7 +409,7 @@ fn variables() {
 // Test-case for scoping
 fn scoping() {
     assert_eq!(
-        compile_and_run(include_str!("../tests/test_scopes.tok"), ""),
+        run(include_str!("../tests/test_scopes.tok"), ""),
         Ok(Some(value![[10, 2000, 1072]]))
     );
 }
@@ -421,7 +421,7 @@ fn scoping() {
 fn collections() {
     // Lists
     assert_eq!(
-        compile_and_run(
+        run(
             "
             (1 2 3) \
             (1, 2, 3) \
@@ -438,7 +438,7 @@ fn collections() {
 
     // Dicts
     assert_eq!(
-        compile_and_run(
+        run(
             "
             x = 10
             (a => 1 b => 2 c => 3) \
@@ -464,25 +464,22 @@ fn token_modifiers() {
 
     // Simple touch
     assert_eq!(
-        compile_and_run("'a' 'b'", s),
+        run("'a' 'b'", s),
         Ok(Some(value![[["a", "b"], ["a", "b"]]]))
     );
 
     // Touch and match
-    assert_eq!(
-        compile_and_run("'a' ''b''", s),
-        Ok(Some(value![["b", "b"]]))
-    );
+    assert_eq!(run("'a' ''b''", s), Ok(Some(value![["b", "b"]])));
 
     // Match with positive modifier
     assert_eq!(
-        compile_and_run("'a' ''b''+", s),
+        run("'a' ''b''+", s),
         Ok(Some(value![["b", ["b", "b", "b"]]]))
     );
 
     // Match with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("''a''* ''b''+", s),
+        run("''a''* ''b''+", s),
         Ok(Some(value![[
             ["a", "b"],
             ["a", ["b", "b", "b"]],
@@ -492,55 +489,49 @@ fn token_modifiers() {
 
     // Touch with kleene and positive modifiers
     assert_eq!(
-        compile_and_run("'a'* ''b''+", s),
+        run("'a'* ''b''+", s),
         Ok(Some(value![["b", ["b", "b", "b"], ["b", "b"]]]))
     );
 
     // Character classes
-    assert_eq!(
-        compile_and_run("[a-z]", &s[..2]),
-        Ok(Some(value![["a", "b"]]))
-    );
+    assert_eq!(run("[a-z]", &s[..2]), Ok(Some(value![["a", "b"]])));
 
     assert_eq!(
-        compile_and_run("[a-z]+", s),
+        run("[a-z]+", s),
         Ok(Some(value![["ab", "abbb", "bb", "def"]]))
     );
 
     assert_eq!(
-        compile_and_run("[^ ']+", s),
+        run("[^ ']+", s),
         Ok(Some(value![[
             "ab", "abbb", "bb", "123", "ABC", "456", "def"
         ]]))
     );
 
     // Built-in token
-    assert_eq!(compile_and_run("Integer", s), Ok(Some(value![[123, 456]])));
+    assert_eq!(run("Integer", s), Ok(Some(value![[123, 456]])));
 
     // Parsing with sequences and modifiers
 
     assert_eq!(
-        compile_and_run("''a'' {''b'' ''c''}* ''d''", "abcbcd"),
+        run("''a'' {''b'' ''c''}* ''d''", "abcbcd"),
         Ok(Some(value![["a", [["b", "c"], ["b", "c"]], "d"]]))
     );
 
     assert_eq!(
-        compile_and_run("''a'' {''b'' ''c''}+ ''d''", "abcbcd"),
+        run("''a'' {''b'' ''c''}+ ''d''", "abcbcd"),
         Ok(Some(value![["a", [["b", "c"], ["b", "c"]], "d"]]))
     );
 
     assert_eq!(
-        compile_and_run("''a'' {''b'' ''c''}* ''d''", "ad"),
+        run("''a'' {''b'' ''c''}* ''d''", "ad"),
         Ok(Some(value![["a", "d"]]))
     );
 
-    assert_eq!(
-        compile_and_run("''a'' {''b'' ''c''}+ ''d''", "ad"),
-        Ok(None)
-    );
+    assert_eq!(run("''a'' {''b'' ''c''}+ ''d''", "ad"), Ok(None));
 
     assert_eq!(
-        compile_and_run("{ Word { ',' _ }? }+", "Hello,   World,  Beta,  Test"),
+        run("{ Word { ',' _ }? }+", "Hello,   World,  Beta,  Test"),
         Ok(Some(value![["Hello", "World", "Beta", "Test"]]))
     );
 
@@ -551,7 +542,7 @@ fn token_modifiers() {
 // Testing examples provided in the examples folder
 fn examples() {
     assert_eq!(
-        compile_and_run(
+        run(
             include_str!("../examples/planets.tok"),
             "Mercury Venus Earth Mars"
         ),
@@ -565,7 +556,7 @@ fn examples() {
 
     /*
     assert_eq!(
-        compile_and_run(
+        run(
             include_str!("../examples/planets2.tok"),
             "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune"
         ),
@@ -583,18 +574,18 @@ fn examples() {
     */
 
     assert_eq!(
-        compile_and_run(include_str!("../examples/expr.tok"), "1+2*3+4"),
+        run(include_str!("../examples/expr.tok"), "1+2*3+4"),
         Ok(Some(value!(11)))
     );
 
     // todo: Would be nice to test against stdout
     assert_eq!(
-        compile_and_run(include_str!("../examples/expr_with_ast.tok"), "1+2*3+4"),
+        run(include_str!("../examples/expr_with_ast.tok"), "1+2*3+4"),
         Ok(None)
     );
 
     assert_eq!(
-        compile_and_run(
+        run(
             include_str!("../examples/expr_with_spaces.tok"),
             "1 +  \t 2 \n *  3 + 4"
         ),
@@ -602,7 +593,7 @@ fn examples() {
     );
 
     assert_eq!(
-        compile_and_run(include_str!("../examples/faculty.tok"), ""),
+        run(include_str!("../examples/faculty.tok"), ""),
         Ok(Some(value!(24)))
     );
 
@@ -617,7 +608,7 @@ fn examples() {
 fn if_else() {
     // These expressions are optimized by the compiler
     assert_eq!(
-        compile_and_run(
+        run(
             "
             if true 1 \
             if false 2 \
@@ -630,7 +621,7 @@ fn if_else() {
 
     // These expressions are evaluated at compile time
     assert_eq!(
-        compile_and_run(
+        run(
             "
             b = true
             nb = false
@@ -651,7 +642,7 @@ fn if_else() {
 // tests for push and next
 fn push_next() {
     assert_eq!(
-        compile_and_run(
+        run(
             "
             1 2 3 next
             4 5 6 push 7

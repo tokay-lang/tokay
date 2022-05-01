@@ -1,5 +1,5 @@
 // Tokay
-// Copyright © 2021 by Jan Max Meyer, Phorward Software Technologies.
+// Copyright © 2022 by Jan Max Meyer, Phorward Software Technologies.
 // Licensed under the MIT license. See LICENSE for more information.
 
 /*! Tokay
@@ -17,11 +17,12 @@ pub mod reader;
 pub mod repl;
 #[cfg(test)]
 pub mod test;
-pub mod utils;
+mod utils;
 pub mod value;
 pub mod vm;
 
 pub use compiler::Compiler;
 pub use reader::Reader;
-pub use value::{Object, RefValue};
+pub use utils::run;
+pub use value::{Object, RefValue, Value};
 pub use vm::Program;

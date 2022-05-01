@@ -559,7 +559,7 @@ impl PartialOrd for ParseletRef {
 #[test]
 fn test_function_as_static_with_args() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             faculty : @x {
                 if !x return 1
@@ -577,7 +577,7 @@ fn test_function_as_static_with_args() {
 #[test]
 fn test_function_as_variable_with_args() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             faculty = @x {
                 if !x return 1
@@ -608,10 +608,7 @@ fn test_parselet_call_error_reporting() {
     ] {
         let call = format!("f : @x {{ x * x }}\n{}", call);
 
-        assert_eq!(
-            crate::utils::compile_and_run(&call, ""),
-            Err(msg.to_owned())
-        );
+        assert_eq!(crate::run(&call, ""), Err(msg.to_owned()));
     }
 
     // Tests for calling mutli-argument parselet with wrong arguments counts
@@ -637,17 +634,14 @@ fn test_parselet_call_error_reporting() {
     ] {
         let call = format!("f : @a, b=2, c {{ a b c }}\n{}", call);
 
-        assert_eq!(
-            crate::utils::compile_and_run(&call, ""),
-            Err(msg.to_owned())
-        );
+        assert_eq!(crate::run(&call, ""), Err(msg.to_owned()));
     }
 }
 
 #[test]
 fn test_parselet_begin_end() {
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             begin { x = 0 1337 }
             end 1338
@@ -660,7 +654,7 @@ fn test_parselet_begin_end() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             begin x = 1
 
@@ -676,7 +670,7 @@ fn test_parselet_begin_end() {
 
     // begin and end without any input
     assert_eq!(
-        crate::utils::compile_and_run(
+        crate::run(
             "
             begin 1
             2 3 4
@@ -691,7 +685,7 @@ fn test_parselet_begin_end() {
 #[test]
 fn test_parselet_leftrec() {
     assert_eq!(
-        crate::utils::compile_and_run("P: @{ P? ''a'' }\nP", "aaaa"),
+        crate::run("P: @{ P? ''a'' }\nP", "aaaa"),
         Ok(Some(crate::value!([[["a", "a"], "a"], "a"])))
     );
 
@@ -701,7 +695,7 @@ fn test_parselet_leftrec() {
 #[test]
 fn test_parselet_repeat() {
     assert_eq!(
-        crate::utils::compile_and_run("P: @{ 'a' repeat $1 }\nP", "aaaa"),
+        crate::run("P: @{ 'a' repeat $1 }\nP", "aaaa"),
         Ok(Some(crate::value!(["a", "a", "a", "a"])))
     );
 

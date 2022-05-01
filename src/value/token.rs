@@ -363,7 +363,7 @@ fn builtin_tokens() {
     let gliders = "Libelle 201b\tG102 Astir  \nVentus_2cT";
 
     assert_eq!(
-        crate::utils::compile_and_run("Identifier", gliders),
+        crate::run("Identifier", gliders),
         Ok(Some(crate::value!([
             "Libelle",
             "b",
@@ -374,17 +374,17 @@ fn builtin_tokens() {
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("Integer", gliders),
+        crate::run("Integer", gliders),
         Ok(Some(crate::value!([201, 102, 2])))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("Whitespaces", gliders),
+        crate::run("Whitespaces", gliders),
         Ok(Some(crate::value!([" ", "\t", " ", "  \n"])))
     );
 
     assert_eq!(
-        crate::utils::compile_and_run("Word", gliders),
+        crate::run("Word", gliders),
         Ok(Some(crate::value!([
             "Libelle", "b", "G", "Astir", "Ventus", "cT"
         ])))

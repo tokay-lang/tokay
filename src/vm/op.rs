@@ -421,7 +421,7 @@ impl Op {
                     let target = context.pop();
                     let nargs = Value::from(context.pop());
 
-                    if let Some(nargs) = nargs.object_into::<Dict>() {
+                    if let Some(nargs) = nargs.into_object::<Dict>() {
                         target.call(context, *args, Some(nargs))
                     } else {
                         panic!("nargs operand required to be dict")
@@ -440,7 +440,7 @@ impl Op {
                 Op::CallStaticArgNamed(addr_args) => {
                     let nargs = Value::from(context.pop());
 
-                    if let Some(nargs) = nargs.object_into::<Dict>() {
+                    if let Some(nargs) = nargs.into_object::<Dict>() {
                         context.runtime.program.statics[addr_args.0].call(
                             context,
                             addr_args.1,

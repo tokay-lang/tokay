@@ -4,10 +4,10 @@ use crate::compiler::Compiler;
 use crate::reader::Reader;
 use crate::value::*;
 
-/** Compiles and runs a source with an input.
+/** Compiles a Tokay source and runs the resulting program with an input stream from a &str.
 
-Used mostly in tests and for quick testing purposes. */
-pub fn compile_and_run(src: &str, input: &str) -> Result<Option<RefValue>, String> {
+This function is mostly used internally within tests, but can also be used from outside. */
+pub fn run(src: &str, input: &str) -> Result<Option<RefValue>, String> {
     let mut compiler = Compiler::new();
     let program = compiler.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))));
 

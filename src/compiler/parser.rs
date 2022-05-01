@@ -539,10 +539,7 @@ fn parser_eol() {
     for eol in ["\n", "\r", "\r\n", ";"] {
         let tok = format!("a = 1{}a + 2", eol);
         println!("EOL test {:?}", tok);
-        assert_eq!(
-            crate::utils::compile_and_run(&tok, ""),
-            Ok(Some(crate::value!(3)))
-        );
+        assert_eq!(crate::run(&tok, ""), Ok(Some(crate::value!(3))));
     }
 }
 
