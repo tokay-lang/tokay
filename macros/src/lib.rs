@@ -135,6 +135,10 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
                 "null" => quote!(crate::value!(null)),
                 "true" => quote!(crate::value!(true)),
                 "false" => quote!(crate::value!(false)),
+                int if int.parse::<i64>().is_ok() => {
+                    let int = int.parse::<i64>().unwrap();
+                    quote!(crate::value!(#int))
+                }
                 _ => unreachable!(),
             };
 

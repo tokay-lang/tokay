@@ -271,28 +271,42 @@ tokay_token!("Identifier", {
 });
 
 // Matching 64-bit integers directly
-tokay_token!("Integer", {
+tokay_token!("Integer(base=10, with_signs=true)", {
     let mut neg = false;
-    let mut value: i64 = 0;
 
     // Sign
-    if let Some(ch) = context.runtime.reader.peek() {
-        if ch == '-' || ch == '+' {
-            neg = ch == '-';
-            context.runtime.reader.next();
+    if with_signs.is_true() {
+        if let Some(ch) = context.runtime.reader.peek() {
+            if ch == '-' || ch == '+' {
+                neg = ch == '-';
+                context.runtime.reader.next();
+            }
         }
     }
 
     let start = context.runtime.reader.tell();
 
     // Digits
-    while let Some(ch) = context.runtime.reader.peek() {
-        if ch < '0' || ch > '9' {
-            break;
-        }
+    let base = base.to_i64();
+    if base < 1 || base > 36 {
+        // maximum radix = 10 digits + 26 letters
+        return Err(format!(
+            "{} base value is {}, allowed is only between 1 and 36",
+            __function, base
+        )
+        .into());
+    }
 
-        value = value * 10 + ch.to_digit(10).unwrap() as i64;
-        context.runtime.reader.next();
+    let mut value: i64 = 0;
+
+    while let Some(ch) = context.runtime.reader.peek() {
+        match ch.to_digit(base as u32) {
+            Some(dig) => {
+                value = value * base + dig as i64;
+                context.runtime.reader.next();
+            }
+            None => break,
+        }
     }
 
     if start.offset < context.runtime.reader.tell().offset {
@@ -360,22 +374,28 @@ tokay_token!("Word(min=void max=void)", {
 #[test]
 // Test for built-in tokens
 fn builtin_tokens() {
-    let gliders = "Libelle 201b\tG102 Astir  \nVentus_2cT";
+    let gliders = "Libelle 201b\tG102 Astir  \nVentus-2cT";
 
     assert_eq!(
         crate::run("Identifier", gliders),
         Ok(Some(crate::value!([
-            "Libelle",
-            "b",
-            "G102",
-            "Astir",
-            "Ventus_2cT"
+            "Libelle", "b", "G102", "Astir", "Ventus", "cT"
         ])))
     );
 
     assert_eq!(
         crate::run("Integer", gliders),
+        Ok(Some(crate::value!([201, 102, (-2)])))
+    );
+
+    assert_eq!(
+        crate::run("Integer(with_signs=false)", gliders),
         Ok(Some(crate::value!([201, 102, 2])))
+    );
+
+    assert_eq!(
+        crate::run("Integer(16)", gliders),
+        Ok(Some(crate::value!([190, 14, 8219, 258, 10, 14, (-44)])))
     );
 
     assert_eq!(
