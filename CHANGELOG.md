@@ -18,7 +18,7 @@ Current main branch.
     - `type()` to get string of Tokay value type
     - bool methods: `bool()`
     - int methods: `int()`
-    - float methods: `float()`
+    - float methods: `float()`, `float.ceil()`, `float.fract()`, `float.trunc()`
     - addr methods: `addr()`
     - dict methods: `dict()`, `dict.len()`, `dict.update()`
     - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`

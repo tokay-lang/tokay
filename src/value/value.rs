@@ -57,6 +57,20 @@ impl Value {
     tokay_method!("int(value)", Ok(RefValue::from(value.to_i64())));
     tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
     tokay_method!("addr(value)", Ok(RefValue::from(value.to_usize())));
+
+    // float methods
+    tokay_method!(
+        "float_ceil(float)",
+        Ok(RefValue::from(float.to_f64().ceil()))
+    );
+    tokay_method!(
+        "float_trunc(float)",
+        Ok(RefValue::from(float.to_f64().trunc()))
+    );
+    tokay_method!(
+        "float_fract(float)",
+        Ok(RefValue::from(float.to_f64().fract()))
+    );
 }
 
 impl Object for Value {
@@ -241,4 +255,31 @@ impl From<usize> for RefValue {
     fn from(addr: usize) -> Self {
         RefValue::from(Value::Addr(addr))
     }
+}
+
+#[test]
+fn builtin_value_constructors() {
+    assert_eq!(crate::run("bool(0)", ""), Ok(Some(crate::value!(false))));
+    assert_eq!(crate::run("bool(1)", ""), Ok(Some(crate::value!(true))));
+
+    assert_eq!(crate::run("int(13.37)", ""), Ok(Some(crate::value!(13))));
+    assert_eq!(crate::run("int(\"42\")", ""), Ok(Some(crate::value!(42))));
+    assert_eq!(crate::run("int(true)", ""), Ok(Some(crate::value!(1))));
+
+    assert_eq!(crate::run("float(1)", ""), Ok(Some(crate::value!(1.0))));
+    assert_eq!(
+        crate::run("float(\"42.5\")", ""),
+        Ok(Some(crate::value!(42.5)))
+    );
+    assert_eq!(crate::run("float(true)", ""), Ok(Some(crate::value!(1.0))));
+}
+
+#[test]
+fn builtin_float_methods() {
+    assert_eq!(crate::run("12.5.ceil()", ""), Ok(Some(crate::value!(13.0))));
+    assert_eq!(
+        crate::run("12.5.trunc()", ""),
+        Ok(Some(crate::value!(12.0)))
+    );
+    assert_eq!(crate::run("12.5.fract()", ""), Ok(Some(crate::value!(0.5))));
 }
