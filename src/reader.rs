@@ -141,4 +141,34 @@ impl Reader {
         self.buffer.drain(0..self.offset.offset);
         self.offset.offset = 0;
     }
+
+    /// Take one character accepted by callback
+    pub fn take<F>(&mut self, accept: F) -> Option<char>
+    where
+        F: Fn(char) -> bool,
+    {
+        if let Some(ch) = self.peek() {
+            if accept(ch) {
+                return Some(self.next().unwrap());
+            }
+        }
+
+        None
+    }
+
+    /// Read while conditional callback accepts characters
+    pub fn span<F>(&mut self, accept: F) -> Option<&str>
+    where
+        F: Fn(char) -> bool + Copy,
+    {
+        let start = self.offset;
+
+        while self.take(accept).is_some() {}
+
+        if start.offset < self.offset.offset {
+            Some(&self.buffer[start.offset..self.offset.offset])
+        } else {
+            None
+        }
+    }
 }

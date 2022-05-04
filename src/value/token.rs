@@ -238,54 +238,31 @@ impl From<Token> for RefValue {
 
 // Matching C-style identifiers
 tokay_token!("Identifier", {
-    if let Some(ch) = context.runtime.reader.peek() {
-        if !ch.is_alphabetic() && ch != '_' {
-            return Err(Reject::Next);
-        }
+    let start = context.runtime.reader.tell();
 
-        context.runtime.reader.next();
-    } else {
+    if context
+        .runtime
+        .reader
+        .take(|ch| ch.is_alphabetic() || ch == '_')
+        .is_none()
+    {
         return Err(Reject::Next);
     }
 
-    let mut count: usize = 1;
+    context
+        .runtime
+        .reader
+        .span(|ch| ch.is_alphanumeric() || ch == '_');
 
-    while let Some(ch) = context.runtime.reader.peek() {
-        if !ch.is_alphanumeric() && ch != '_' {
-            break;
-        }
-
-        context.runtime.reader.next();
-        count += ch.len_utf8();
-    }
-
-    if count > 0 {
-        Ok(Accept::Push(Capture::Range(
-            context.runtime.reader.capture_last(count),
-            None,
-            5,
-        )))
-    } else {
-        Err(Reject::Next)
-    }
+    Ok(Accept::Push(Capture::Range(
+        context.runtime.reader.capture_from(&start),
+        None,
+        5,
+    )))
 });
 
 // Matching 64-bit integers directly
 tokay_token!("Integer(base=10, with_signs=true)", {
-    let mut neg = false;
-
-    // Sign
-    if with_signs.is_true() {
-        if let Some(ch) = context.runtime.reader.peek() {
-            if ch == '-' || ch == '+' {
-                neg = ch == '-';
-                context.runtime.reader.next();
-            }
-        }
-    }
-
-    let start = context.runtime.reader.tell();
-
     // Digits
     let base = base.to_i64();
     if base < 1 || base > 36 {
@@ -297,28 +274,41 @@ tokay_token!("Integer(base=10, with_signs=true)", {
         .into());
     }
 
-    let mut value: i64 = 0;
+    let start = context.runtime.reader.tell();
 
-    while let Some(ch) = context.runtime.reader.peek() {
-        match ch.to_digit(base as u32) {
-            Some(dig) => {
-                value = value * base + dig as i64;
-                context.runtime.reader.next();
-            }
-            None => break,
+    // Sign
+    let mut neg = false;
+
+    if with_signs.is_true() {
+        if let Some(ch) = context
+            .runtime
+            .reader
+            .take(|ch: char| ch == '-' || ch == '+')
+        {
+            neg = ch == '-'
         }
     }
 
-    if start.offset < context.runtime.reader.tell().offset {
-        if neg {
-            value = -value;
+    if let Some(input) = context
+        .runtime
+        .reader
+        .span(|ch: char| ch.is_digit(base as u32))
+    {
+        let mut value: i64 = 0;
+
+        for dig in input.chars() {
+            value = value * base + dig.to_digit(base as u32).unwrap() as i64;
         }
 
-        Ok(Accept::Push(Capture::Value(crate::value!(value), None, 5)))
-    } else {
-        context.runtime.reader.reset(start);
-        Err(Reject::Next)
+        return Ok(Accept::Push(Capture::Value(
+            crate::value!(if neg { -value } else { value }),
+            None,
+            5,
+        )));
     }
+
+    context.runtime.reader.reset(start);
+    Err(Reject::Next)
 });
 
 // Words, optionally with limited length
@@ -335,34 +325,23 @@ tokay_token!("Word(min=void max=void)", {
         Some(max.to_usize())
     };
 
-    let mut count: usize = 0;
+    let start = context.runtime.reader.tell();
 
-    while let Some(ch) = context.runtime.reader.peek() {
-        if !ch.is_alphabetic() {
-            break;
-        }
-
-        context.runtime.reader.next();
-        count += ch.len_utf8();
-    }
-
-    if count > 0 {
+    if let Some(input) = context.runtime.reader.span(|ch| ch.is_alphabetic()) {
         if let Some(min) = min {
-            if count < min {
-                count = 0;
+            if input.chars().count() < min {
+                return Err(Reject::Next);
             }
         }
 
         if let Some(max) = max {
-            if count > max {
-                count = 0;
+            if input.chars().count() > max {
+                return Err(Reject::Next);
             }
         }
-    }
 
-    if count > 0 {
         Ok(Accept::Push(Capture::Range(
-            context.runtime.reader.capture_last(count),
+            context.runtime.reader.capture_from(&start),
             None,
             5,
         )))
