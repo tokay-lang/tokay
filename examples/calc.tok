@@ -4,7 +4,7 @@ version : 0.2
 _ : [ \t]+                             # redefine whitespace to just tab and space
 
 Factor : @{
-    Integer _                          # built-in 64-bit signed integer token
+    Float _                            # built-in 64-bit signed float token
     '(' _ Expr expect ')' _
 }
 

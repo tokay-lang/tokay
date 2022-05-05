@@ -12,7 +12,7 @@ faculty : @n {
 Faculty : faculty  # Error: Cannot assign non-consumable to consumable constant.
 
 IsOkay : @{
-    Integer if $1 > 100 && $1 < 1000 accept
+    Int if $1 > 100 && $1 < 1000 accept
 }  # Ok, because the function is a parselet as it calls Cident
 
 _ : "abc"

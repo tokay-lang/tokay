@@ -11,12 +11,12 @@ pub static BUILTINS: [Builtin; 38] = [
         func: crate::value::token::tokay_token_float,
     },
     Builtin {
-        name: "Identifier",
-        func: crate::value::token::tokay_token_identifier,
+        name: "Ident",
+        func: crate::value::token::tokay_token_ident,
     },
     Builtin {
-        name: "Integer",
-        func: crate::value::token::tokay_token_integer,
+        name: "Int",
+        func: crate::value::token::tokay_token_int,
     },
     Builtin {
         name: "Word",

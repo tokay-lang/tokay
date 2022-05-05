@@ -7,7 +7,7 @@ String : @{
 }
 
 Key : @{
-    Identifier
+    Ident
     String
 }
 
@@ -35,7 +35,8 @@ Values : @{
 
 Value : @{
     Identifier _
-    Integer _ # todo
+    Float _
+    Int _
     ''null'' _
     ''true'' _
     ''false'' _

@@ -1,5 +1,5 @@
 Factor : @{
-    Integer             # built-in 64-bit signed integer token
+    Int                 # built-in 64-bit signed integer token
     '(' Expr ')'
 }
 

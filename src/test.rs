@@ -509,7 +509,7 @@ fn token_modifiers() {
     );
 
     // Built-in token
-    assert_eq!(run("Integer", s), Ok(Some(value![[123, 456]])));
+    assert_eq!(run("Int", s), Ok(Some(value![[123, 456]])));
 
     // Parsing with sequences and modifiers
 

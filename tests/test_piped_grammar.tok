@@ -1,6 +1,6 @@
+Int: Int ast("int")
 Add: Add '+' Mul ast("add") | Mul
 Mul: Mul '*' Int ast("mul") | Int
-Int: Integer ast("int")
 
 Add ast_print($1)
 #---

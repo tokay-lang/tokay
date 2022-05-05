@@ -231,7 +231,7 @@ impl From<Token> for RefValue {
 // Hard-coded Tokens are builtins, but they are consumable.
 
 // Matching C-style identifiers
-tokay_token!("Identifier", {
+tokay_token!("Ident", {
     let reader = &mut context.runtime.reader;
     let start = reader.tell();
 
@@ -249,7 +249,7 @@ tokay_token!("Identifier", {
 });
 
 // Matching 64-bit integers directly
-tokay_token!("Integer(base=10, with_signs=true)", {
+tokay_token!("Int(base=10, with_signs=true)", {
     let reader = &mut context.runtime.reader;
 
     // Digits
@@ -333,34 +333,17 @@ tokay_token!("Float(with_signs=true)", {
 });
 
 // Words, optionally with limited length
-tokay_token!("Word(min=void max=void)", {
+tokay_token!("Word(min=1 max=void)", {
     let reader = &mut context.runtime.reader;
-
-    let min = if min.is_void() {
-        None
-    } else {
-        Some(min.to_usize())
-    };
-
-    let max = if max.is_void() {
-        None
-    } else {
-        Some(max.to_usize())
-    };
-
     let start = reader.tell();
 
     if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {
-        if let Some(min) = min {
-            if input.chars().count() < min {
-                return Err(Reject::Next);
-            }
+        if input.chars().count() < min.to_usize() {
+            return Ok(Accept::Next);
         }
 
-        if let Some(max) = max {
-            if input.chars().count() > max {
-                return Err(Reject::Next);
-            }
+        if !max.is_void() && input.chars().count() > max.to_usize() {
+            return Ok(Accept::Next);
         }
 
         Ok(Accept::Push(Capture::Range(
@@ -380,37 +363,54 @@ fn builtin_tokens_Integer_Word_Whitespaces() {
     let gliders = "Libelle 201b\tG102 Astir  \nVentus-2cT";
 
     assert_eq!(
-        crate::run("Identifier", gliders),
+        crate::run("Ident", gliders),
         Ok(Some(crate::value!([
             "Libelle", "b", "G102", "Astir", "Ventus", "cT"
         ])))
     );
 
+    // Integers
     assert_eq!(
-        crate::run("Integer", gliders),
+        crate::run("Int", gliders),
         Ok(Some(crate::value!([201, 102, (-2)])))
     );
 
+    // Integers, ignore signs, all values are positive
     assert_eq!(
-        crate::run("Integer(with_signs=false)", gliders),
+        crate::run("Int(with_signs=false)", gliders),
         Ok(Some(crate::value!([201, 102, 2])))
     );
 
+    // Integers, accept for hexadecimal values
     assert_eq!(
-        crate::run("Integer(16)", gliders),
+        crate::run("Int(16)", gliders),
         Ok(Some(crate::value!([190, 14, 8219, 258, 10, 14, (-44)])))
     );
 
+    // Whitespaces
     assert_eq!(
         crate::run("Whitespaces", gliders),
         Ok(Some(crate::value!([" ", "\t", " ", "  \n"])))
     );
 
+    // Word
     assert_eq!(
         crate::run("Word", gliders),
         Ok(Some(crate::value!([
             "Libelle", "b", "G", "Astir", "Ventus", "cT"
         ])))
+    );
+
+    // Word with min parameters
+    assert_eq!(
+        crate::run("Word(3)", gliders),
+        Ok(Some(crate::value!(["Libelle", "Astir", "Ventus"])))
+    );
+
+    // Word with min and max parameters
+    assert_eq!(
+        crate::run("Word(3, 6)", gliders),
+        Ok(Some(crate::value!(["Astir", "Ventus"])))
     );
 }
 

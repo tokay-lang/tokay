@@ -2,7 +2,7 @@
 # from the parsed input.
 
 Factor : @{
-    Integer _           ast("int")
+    Int _               ast("int")
     '(' _ Expr ')' _
 }
 

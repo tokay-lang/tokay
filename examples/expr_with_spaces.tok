@@ -1,7 +1,7 @@
 # This version of expr.tok does also accept for whitespace between tokens.
 
 Factor : @{
-    Integer _            # built-in 64-bit signed integer token
+    Int _                 # built-in 64-bit signed integer token
     '(' _ Expr ')' _
 }
 
