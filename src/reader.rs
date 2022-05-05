@@ -1,11 +1,11 @@
-//! Universal interface to let Tokay read input from anywhere
+//! Universal low-level interface to let Tokay read input from different sources.
 
 use std::io::prelude::*;
 
 /// Position inside a reader, with row and column counting.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Offset {
-    // fixme: Hold source filename information as well in the future?
+    // todo: Hold source filename information as well in the future?
     pub offset: usize,
     pub row: u32,
     pub col: u32,
@@ -132,8 +132,9 @@ impl Reader {
         println!("{:?}", &self.buffer[start..self.offset.offset])
     }
 
-    pub fn extract(&self, range: &Range) -> String {
-        self.buffer[range.start..range.end].to_string()
+    /// Get slice from range
+    pub fn get(&self, range: &Range) -> &str {
+        &self.buffer[range.start..range.end]
     }
 
     /// Commits current input buffer and removes cached content
@@ -161,12 +162,12 @@ impl Reader {
     where
         F: Fn(char) -> bool + Copy,
     {
-        let start = self.offset;
+        let start = self.offset.offset;
 
         while self.take(accept).is_some() {}
 
-        if start.offset < self.offset.offset {
-            Some(&self.buffer[start.offset..self.offset.offset])
+        if start < self.offset.offset {
+            Some(&self.buffer[start..self.offset.offset])
         } else {
             None
         }

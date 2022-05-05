@@ -77,29 +77,23 @@ impl Token {
                 }
             }
             Token::Char(ccl) => {
-                if let Some(ch) = reader.peek() {
-                    if ccl.test(&(ch..=ch)) {
-                        reader.next();
-                        return Ok(Accept::Push(Capture::Range(
-                            reader.capture_last(ch.len_utf8()),
-                            None,
-                            5,
-                        )));
-                    }
+                if let Some(ch) = reader.take(|ch| ccl.test(&(ch..=ch))) {
+                    return Ok(Accept::Push(Capture::Range(
+                        reader.capture_last(ch.len_utf8()),
+                        None,
+                        5,
+                    )));
                 }
 
                 Err(Reject::Next)
             }
             Token::BuiltinChar(f) => {
-                if let Some(ch) = reader.peek() {
-                    if f(ch) {
-                        reader.next();
-                        return Ok(Accept::Push(Capture::Range(
-                            reader.capture_last(ch.len_utf8()),
-                            None,
-                            5,
-                        )));
-                    }
+                if let Some(ch) = reader.take(f) {
+                    return Ok(Accept::Push(Capture::Range(
+                        reader.capture_last(ch.len_utf8()),
+                        None,
+                        5,
+                    )));
                 }
 
                 Err(Reject::Next)
@@ -238,24 +232,17 @@ impl From<Token> for RefValue {
 
 // Matching C-style identifiers
 tokay_token!("Identifier", {
-    let start = context.runtime.reader.tell();
+    let reader = &mut context.runtime.reader;
+    let start = reader.tell();
 
-    if context
-        .runtime
-        .reader
-        .take(|ch| ch.is_alphabetic() || ch == '_')
-        .is_none()
-    {
+    if reader.take(|ch| ch.is_alphabetic() || ch == '_').is_none() {
         return Err(Reject::Next);
     }
 
-    context
-        .runtime
-        .reader
-        .span(|ch| ch.is_alphanumeric() || ch == '_');
+    reader.span(|ch| ch.is_alphanumeric() || ch == '_');
 
     Ok(Accept::Push(Capture::Range(
-        context.runtime.reader.capture_from(&start),
+        reader.capture_from(&start),
         None,
         5,
     )))
@@ -263,6 +250,8 @@ tokay_token!("Identifier", {
 
 // Matching 64-bit integers directly
 tokay_token!("Integer(base=10, with_signs=true)", {
+    let reader = &mut context.runtime.reader;
+
     // Digits
     let base = base.to_i64();
     if base < 1 || base > 36 {
@@ -274,26 +263,16 @@ tokay_token!("Integer(base=10, with_signs=true)", {
         .into());
     }
 
-    let start = context.runtime.reader.tell();
-
     // Sign
     let mut neg = false;
 
     if with_signs.is_true() {
-        if let Some(ch) = context
-            .runtime
-            .reader
-            .take(|ch: char| ch == '-' || ch == '+')
-        {
+        if let Some(ch) = reader.take(|ch: char| ch == '-' || ch == '+') {
             neg = ch == '-'
         }
     }
 
-    if let Some(input) = context
-        .runtime
-        .reader
-        .span(|ch: char| ch.is_digit(base as u32))
-    {
+    if let Some(input) = reader.span(|ch: char| ch.is_digit(base as u32)) {
         let mut value: i64 = 0;
 
         for dig in input.chars() {
@@ -307,12 +286,56 @@ tokay_token!("Integer(base=10, with_signs=true)", {
         )));
     }
 
-    context.runtime.reader.reset(start);
     Err(Reject::Next)
+});
+
+// Matching 64-bit floats directly
+tokay_token!("Float(with_signs=true)", {
+    let reader = &mut context.runtime.reader;
+    let start = reader.tell();
+
+    // Sign
+    if with_signs.is_true() {
+        reader.take(|ch: char| ch == '-' || ch == '+');
+    }
+
+    // Integer part
+    let has_int = reader.span(|ch: char| ch.is_numeric()).is_some();
+
+    // Decimal point
+    if reader.take(|ch: char| ch == '.').is_none() {
+        return Err(Reject::Next);
+    }
+
+    // Fractional part
+    if reader.span(|ch: char| ch.is_numeric()).is_none() && !has_int {
+        // Either integer or fractional part must be available!
+        return Err(Reject::Next);
+    }
+
+    let mut range = reader.capture_from(&start);
+
+    // Exponential notation
+    if reader.take(|ch: char| ch == 'e' || ch == 'E').is_some() {
+        reader.take(|ch: char| ch == '-' || ch == '+');
+
+        if reader.span(|ch: char| ch.is_numeric()).is_some() {
+            // Extend range when exponentional value could be read!
+            range = reader.capture_from(&start)
+        }
+    }
+
+    Ok(Accept::Push(Capture::Value(
+        crate::value!(reader.get(&range).parse::<f64>().unwrap()),
+        None,
+        5,
+    )))
 });
 
 // Words, optionally with limited length
 tokay_token!("Word(min=void max=void)", {
+    let reader = &mut context.runtime.reader;
+
     let min = if min.is_void() {
         None
     } else {
@@ -325,9 +348,9 @@ tokay_token!("Word(min=void max=void)", {
         Some(max.to_usize())
     };
 
-    let start = context.runtime.reader.tell();
+    let start = reader.tell();
 
-    if let Some(input) = context.runtime.reader.span(|ch| ch.is_alphabetic()) {
+    if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {
         if let Some(min) = min {
             if input.chars().count() < min {
                 return Err(Reject::Next);
@@ -341,7 +364,7 @@ tokay_token!("Word(min=void max=void)", {
         }
 
         Ok(Accept::Push(Capture::Range(
-            context.runtime.reader.capture_from(&start),
+            reader.capture_from(&start),
             None,
             5,
         )))
@@ -351,8 +374,9 @@ tokay_token!("Word(min=void max=void)", {
 });
 
 #[test]
+#[allow(non_snake_case)]
 // Test for built-in tokens
-fn builtin_tokens() {
+fn builtin_tokens_Integer_Word_Whitespaces() {
     let gliders = "Libelle 201b\tG102 Astir  \nVentus-2cT";
 
     assert_eq!(
@@ -386,6 +410,28 @@ fn builtin_tokens() {
         crate::run("Word", gliders),
         Ok(Some(crate::value!([
             "Libelle", "b", "G", "Astir", "Ventus", "cT"
+        ])))
+    );
+}
+
+#[test]
+#[allow(non_snake_case)]
+// Test for built-in token Float
+fn builtin_tokens_Float() {
+    assert_eq!(
+        crate::run("Float", ". 13. .37 13.37 13.37e 13.37e+2 13.37E+2"),
+        Ok(Some(crate::value!([13., 0.37, 13.37, 13.37, 1337., 1337.])))
+    );
+
+    assert_eq!(
+        crate::run("Float", "-. -13. -.37 -13.37 -13.37e -13.37e+2 -13.37E+2"),
+        Ok(Some(crate::value!([
+            (-13.),
+            (-0.37),
+            (-13.37),
+            (-13.37),
+            (-1337.),
+            (-1337.)
         ])))
     );
 }

@@ -23,7 +23,8 @@ Current main branch.
     - dict methods: `dict()`, `dict.len()`, `dict.update()`
     - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`
     - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
-  - Improved builtin `Integer` allowing for different parsing options (base, with_signs)
+  - Improved builtin `Integer` allowing for different parsing options (`base`, `with_signs`)
+  - New builtin `Float` allowing for parsing floating point numbers into float values
 - Improved Tokay parser newline behavior to support Windows and classic Mac line ending as well
 - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation.
 - Read from stdin when no input stream but a program was specified

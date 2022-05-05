@@ -5,7 +5,11 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 37] = [
+pub static BUILTINS: [Builtin; 38] = [
+    Builtin {
+        name: "Float",
+        func: crate::value::token::tokay_token_float,
+    },
     Builtin {
         name: "Identifier",
         func: crate::value::token::tokay_token_identifier,
