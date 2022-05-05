@@ -69,14 +69,10 @@ impl Parser {
             Any
         }),
 
-        // Prime Tokens (might probably be replaced by something native, pluggable one)
+        // Prime Tokens
 
         (T_Identifier = {  // any identifier
-            [
-                (token (Token::Char(charclass!['A' => 'Z', 'a' => 'z'] + charclass!['_']))),
-                (opt (token (Token::Chars(charclass!['A' => 'Z', 'a' => 'z', '0' => '9'] + charclass!['_'])))),
-                (call ast[(value "identifier"), (Op::LoadFastCapture(0))])
-            ]
+            (call ast[(value "identifier"), (call Ident[])])
         }),
 
         (T_Consumable = {  // consumable identifier
@@ -122,16 +118,11 @@ impl Parser {
         }),
 
         (T_Integer = {
-            // todo: implement as built-in Parselet
-            [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
+            [(call ast[(value "value_integer"), (call Int[])])]
         }),
 
         (T_Float = {
-            // todo: implement as built-in Parselet
-            [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
-                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
-            [(opt (token (Token::Chars(charclass!['0' => '9'])))), ".", (token (Token::Chars(charclass!['0' => '9']))),
-                (call ast[(value "value_float"), (Op::LoadFastCapture(0))])]
+            [(call ast[(value "value_float"), (call Float[])])]
         }),
 
         // Character classes
@@ -459,7 +450,6 @@ impl Parser {
         }),
 
         (T_Integer = {
-            // todo: implement as built-in Parselet
             [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
         }),
 
@@ -480,7 +470,6 @@ impl Parser {
 
         /*
         (T_Float = {
-            // todo: implement as built-in Parselet
             [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
             [(opt (token (Token::Chars(charclass!['0' => '9'])))), ".", (token (Token::Chars(charclass!['0' => '9']))),

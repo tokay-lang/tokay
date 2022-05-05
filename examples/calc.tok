@@ -1,10 +1,11 @@
 # Tokay Calc
-version : 0.2
+version : 0.3
 
 _ : [ \t]+                             # redefine whitespace to just tab and space
 
 Factor : @{
     Float _                            # built-in 64-bit signed float token
+    Int _                              # built-in 64-bit signed int token
     '(' _ Expr expect ')' _
 }
 
