@@ -25,7 +25,7 @@ Current main branch.
     - float methods: `float()`, `float.ceil()`, `float.fract()`, `float.trunc()`
     - addr methods: `addr()`
     - dict methods: `dict()`, `dict.len()`, `dict.update()`
-    - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`
+    - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`, `list.pop()`
     - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
   - Builtin tokens
     - `Int` renamed (from `Integer`) and accepting parameters like a radix base

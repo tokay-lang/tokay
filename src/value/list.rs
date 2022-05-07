@@ -127,18 +127,71 @@ impl List {
         Ok(RefValue::from(list))
     });
 
-    tokay_method!("list_push(list, append)", {
+    tokay_method!("list_push(list, item, index=void)", {
+        // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
         }
 
+        // list_push returns the list itself, therefore this block.
         {
             let mut list = list.borrow_mut();
             let list = list.object_mut::<List>().unwrap();
-            list.push(append.clone());
+
+            if index.is_void() {
+                list.push(item);
+            } else {
+                let index = index.to_usize();
+                let len = list.len();
+                if index > len {
+                    return Err(format!(
+                        "{} index {} out of range in list sized {}",
+                        __function, index, len
+                    )
+                    .into());
+                }
+
+                list.insert(index, item);
+            }
         }
 
         Ok(list)
+    });
+
+    tokay_method!("list_pop(list, index=void)", {
+        let index = match index.to_usize() {
+            0 => None,
+            i => Some(i),
+        };
+
+        if !list.is("list") {
+            if index.is_none() {
+                return Ok(list); // "pops" the list, which is not a list
+            }
+
+            return Err(format!("{} index {} out of range", __function, index.unwrap()).into());
+        }
+
+        let mut list = list.borrow_mut();
+        let list = list.object_mut::<List>().unwrap();
+
+        // Either pop or remove, regarding index setting.
+        match index {
+            None => match list.pop() {
+                Some(item) => Ok(item),
+                None => {
+                    return Err(format!("{} can't pop off empty list", __function).into());
+                }
+            },
+            Some(index) => {
+                let len = list.len();
+                if index >= len {
+                    return Err(format!("{} index {} out of range", __function, index).into());
+                }
+
+                Ok(list.remove(len - index - 1))
+            }
+        }
     });
 }
 
@@ -247,7 +300,40 @@ fn test_list_push() {
     assert_eq!(
         crate::run("l = list(1); l.push(2); l.push((3, 4)); l", ""),
         Ok(Some(crate::value!([1, 2, [3, 4]])))
-    )
+    );
+
+    assert_eq!(
+        crate::run("list_push((1,2,3), 99, 1)", ""),
+        Ok(Some(crate::value!([1, 99, 2, 3])))
+    );
+
+    assert_eq!(
+        crate::run("list_push((1,2,3), 99, 4)", ""),
+        Err("Line 1, column 1: list_push() index 4 out of range in list sized 3".into())
+    );
+}
+
+#[test]
+fn test_list_pop() {
+    assert_eq!(
+        crate::run("l = (1,2,3,4); l.pop() l.pop(1)", ""),
+        Ok(Some(crate::value!([4, 2])))
+    );
+
+    assert_eq!(
+        crate::run("l = (1,2,3,4); l.pop(4)", ""),
+        Err("Line 1, column 17: list_pop() index 4 out of range".into())
+    );
+
+    assert_eq!(
+        crate::run("list_pop(1)", ""),
+        Ok(Some(crate::value!(1)))
+    );
+
+    assert_eq!(
+        crate::run("list_pop(1, 1)", ""),
+        Err("Line 1, column 1: list_pop() index 1 out of range".into())
+    );
 }
 
 #[test]
