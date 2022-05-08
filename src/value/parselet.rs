@@ -198,6 +198,9 @@ impl Parselet {
                             context.runtime.reader.next();
                         }
 
+                        // Update absolute start offset
+                        context.runtime.start = context.runtime.reader.tell().offset;
+
                         // Clear input buffer
                         context.runtime.reader.commit();
 

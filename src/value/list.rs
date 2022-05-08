@@ -325,10 +325,7 @@ fn test_list_pop() {
         Err("Line 1, column 17: list_pop() index 4 out of range".into())
     );
 
-    assert_eq!(
-        crate::run("list_pop(1)", ""),
-        Ok(Some(crate::value!(1)))
-    );
+    assert_eq!(crate::run("list_pop(1)", ""), Ok(Some(crate::value!(1))));
 
     assert_eq!(
         crate::run("list_pop(1, 1)", ""),

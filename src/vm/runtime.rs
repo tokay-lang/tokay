@@ -11,11 +11,13 @@ use crate::value::RefValue;
 Holds additional runtime information, like the stack or memoization table.
 */
 pub struct Runtime<'program, 'reader> {
-    pub(crate) program: &'program Program,
-    pub(crate) reader: &'reader mut Reader,
+    pub(crate) program: &'program Program,  // program to execute
+    pub(crate) reader: &'reader mut Reader, // reader to read from
+    pub(crate) start: usize,                // absolute start offset in relation to reader
 
-    pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>,
-    pub(crate) stack: Vec<Capture>,
+    pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // memoization table
+    pub(crate) stack: Vec<Capture>,                                             // value stack
+
     pub debug: u8, // Debug level
 }
 
@@ -24,6 +26,7 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
         Self {
             program,
             reader,
+            start: 0,
             memo: HashMap::new(),
             stack: Vec::new(),
             debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
