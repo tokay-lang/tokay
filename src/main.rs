@@ -86,7 +86,17 @@ fn main() {
         if let Ok(program) = compiler.compile(program.get_reader()) {
             // In case no stream but a program is specified, use stdin as input stream.
             if streams.len() == 0 {
-                streams.push(("", RefCell::new(Stream::Stdin)));
+                streams.push((
+                    "",
+                    // When program's main is consuming, read from stdin
+                    if program.main().is_consuming() {
+                        RefCell::new(Stream::Stdin)
+                    }
+                    // otherwise just work on an empty input
+                    else {
+                        RefCell::new(Stream::String("".to_string()))
+                    },
+                ));
             }
 
             for (name, stream) in &streams {

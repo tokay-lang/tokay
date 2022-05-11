@@ -7,7 +7,7 @@ Current main branch.
 - General
   - Improved Tokay parser newline behavior to support Windows and classic Mac line ending as well
   - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation.
-  - Read from stdin when no input stream but a program was specified
+  - Read from stdin when no input stream but a program that is consuming was specified
 - Values
   - New `Object` trait
   - Splitting `enum Value` into separate objects using `Box<dyn Object>`
@@ -28,8 +28,9 @@ Current main branch.
     - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`, `list.pop()`
     - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
   - Builtin tokens
-    - `Int` renamed (from `Integer`) and accepting parameters like a radix base
     - `Float` allowing for parsing floating point numbers into float values
+    - `Ident` renamed (from `Identifier`)
+    - `Int` renamed (from `Integer`) and accepting parameters like a radix base
     - `Word` skipping words not in the wanted word size, but not rejecting
 - New example files
   - Self-hosted Tokay parser in `examples/tokay.tok`

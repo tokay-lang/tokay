@@ -12,7 +12,7 @@ A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
-    main: Option<usize>,               // The main parselet to run
+    main: Option<ParseletRef>,         // The main parselet
 }
 
 impl Program {
@@ -22,13 +22,18 @@ impl Program {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
         for i in (0..statics.len()).rev() {
-            if statics[i].is("parselet") {
-                main = Some(i);
+            if let Some(parselet) = statics[i].borrow().object::<ParseletRef>() {
+                main = Some(parselet.clone());
                 break;
             }
         }
 
         Self { statics, main }
+    }
+
+    /// Returns a reference to the program's main parselet.
+    pub fn main(&self) -> &ParseletRef {
+        self.main.as_ref().unwrap()
     }
 
     pub fn dump(&self) {
@@ -38,28 +43,22 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        if let Some(main) = self.main {
-            let main = self.statics[main].borrow();
-
-            if let Some(main) = main.object::<ParseletRef>() {
-                match main
-                    .0
-                    .borrow()
-                    .run(runtime, runtime.stack.len(), None, true, 0)
-                {
-                    Ok(Accept::Push(Capture::Value(value, ..))) => {
-                        if value.is_void() {
-                            Ok(None)
-                        } else {
-                            Ok(Some(value.clone()))
-                        }
+        if let Some(main) = &self.main {
+            match main
+                .0
+                .borrow()
+                .run(runtime, runtime.stack.len(), None, true, 0)
+            {
+                Ok(Accept::Push(Capture::Value(value, ..))) => {
+                    if value.is_void() {
+                        Ok(None)
+                    } else {
+                        Ok(Some(value.clone()))
                     }
-                    Ok(_) => Ok(None),
-                    Err(Reject::Error(error)) => Err(*error),
-                    Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
                 }
-            } else {
-                panic!("main does not refer to a ParseletRef");
+                Ok(_) => Ok(None),
+                Err(Reject::Error(error)) => Err(*error),
+                Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
             }
         } else {
             Ok(None)

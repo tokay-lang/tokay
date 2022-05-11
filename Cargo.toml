@@ -7,6 +7,12 @@ homepage = "https://tokay.dev/"
 repository = "https://github.com/tokay-lang/tokay/"
 license = "MIT"
 edition = "2021"
+categories = [
+    "parsing",
+    "compilers",
+    "command-line-utilities",
+    "development-tools"
+]
 
 [features]
 default = ["static_expression_evaluation"]
