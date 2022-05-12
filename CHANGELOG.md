@@ -6,8 +6,9 @@ Current main branch.
 
 - General
   - Improved Tokay parser newline behavior to support Windows and classic Mac line ending as well
-  - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation.
+  - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation
   - Read from stdin when no input stream but a program that is consuming was specified
+  - Moved `ccl.rs` into separate [`charclass` crate](https://crates.io/crates/charclass)
 - Values
   - New `Object` trait
   - Splitting `enum Value` into separate objects using `Box<dyn Object>`
@@ -26,7 +27,7 @@ Current main branch.
     - addr methods: `addr()`
     - dict methods: `dict()`, `dict.len()`, `dict.update()`
     - list methods: `list()`, `list.add()`, `list.iadd()`, `list.len()`, `list.push()`, `list.pop()`
-    - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.upper()`
+    - str methods: `str()`, `str.add()`, `str.byteslen()` `str.endswith()`, `str.mul()`, `str.join()`, `str.len()`, `str.lower()`, `str.replace()`, `str.startswith()`, `str.substr()`, `str.upper()`
   - Builtin tokens
     - `Float` allowing for parsing floating point numbers into float values
     - `Ident` renamed (from `Identifier`)

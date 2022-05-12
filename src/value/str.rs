@@ -185,6 +185,25 @@ impl Str {
         })
     });
 
+    tokay_method!("str_substr(str, start=0, length=void)", {
+        if !str.is("str") {
+            str = RefValue::from(str.to_string());
+        }
+
+        let string = str.borrow();
+        let string = string.object::<Str>().unwrap().as_str();
+
+        Ok(RefValue::from(if length.is_void() {
+            string.chars().skip(start.to_usize()).collect::<String>()
+        } else {
+            string
+                .chars()
+                .skip(start.to_usize())
+                .take(length.to_usize())
+                .collect::<String>()
+        }))
+    });
+
     tokay_method!("str_upper(str)", {
         Ok(RefValue::from(str.to_string().to_uppercase()))
     });
@@ -282,6 +301,17 @@ fn test_str_byteslen() {
     assert_eq!(
         crate::run("\"Hällo Wörld\".byteslen()", ""),
         Ok(Some(crate::value!(13 as usize)))
+    )
+}
+
+#[test]
+fn test_str_substr() {
+    assert_eq!(
+        crate::run(
+            "s = \"Glasflügel\" s.substr(4) s.substr(4, 3) s.substr(length=4) s.substr(4, 10)",
+            ""
+        ),
+        Ok(Some(crate::value!(["flügel", "flü", "Glas", "flügel"])))
     )
 }
 
