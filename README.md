@@ -7,25 +7,23 @@
 [![tokay.dev](https://img.shields.io/website?down_color=red&down_message=offline&up_color=green&up_message=online&url=https%3A%2F%2Ftokay.dev%2F)](https://tokay.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
+Tokay is a programming language designed for ad-hoc parsing.
 
 **Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete features and planned concepts. Please [help to improve it](#contribute)!**
 
 ## About
 
-Tokay is a programming language designed for ad-hoc parsing.
+Tokay is a language to quickly implement solutions for text processing problems. This can either be just simple data extractions, but also parsing entire structures or parts of it, and turning information into structured parse trees or abstract syntax trees for further processing.
 
-Tokay is a language made for quickly implement solutions in text processing problems. This can either be just simple extractions from any data, but also parsing entire data or parts of it, turning information into structured parse trees or abstract syntax trees for further processing.
+Therefore, Tokay is both a tool for simple one-liners, but can also be used to implement code-analyzers, refactoring tools, interpreters, compilers or transpilers. Actually [Tokay's own language parser](examples/tokay.tok) is implemented in Tokay itself.
 
-Therefore, Tokay provides both a language for simple one-liners, but it can also be used to implement code-analyzers, refactoring tools, interpreters, compilers or transpilers for entire domain specific languages. Actually [Tokay's own language parser](examples/tokay.tok) is implemented in Tokay itself.
-
-Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy, design principles and ideas. Tokay might also serve as a general purpose scripting language, but it mainly focuses on parsing problems and quick data synthesis.
+Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), but follows its own philosophy, ideas and design principles. It might be usable as a common scripting language for various problems as well, but mainly focuses on the parsing features, which are a fundamental part built into the language.
 
 Tokay is still a very young project and gains much potential. [Volunteers are welcome!](#contribute)
 
 ## Highlights
 
-- Procedural, imperative scripting language
+- Interpreted, procedural and imperative scripting language
 - Concise and easy to learn syntax and object system
 - Stream-based input processing
 - Automatic parse tree construction and synthesis
@@ -39,23 +37,31 @@ Tokay is still a very young project and gains much potential. [Volunteers are we
 
 ## Examples
 
-Tokay's implementation of "Hello World":
+Tokay's version of "Hello World" is quite obvious:
 
 ```tokay
 print("Hello World")
 ```
 
-Tokay can also greet any wor(l)ds that are being fed to it. The next program prints "Hello Venus", "Hello Earth" and "Hello Mars" when "Venus Earth Mars" is provided as input. Any other input is automatically omitted.
+Tokay can also greet any wor(l)ds that are being fed to it. The next program prints "Hello Venus", "Hello Earth" or "Hello" followed by any other name previously parsed by the builtin `Word`-token. Any other input than a word is automatically omitted.
 
 ```tokay
 world => Word   print("Hello " + $world)
 ```
 
-A simple program for counting words and printing a total can be implemented like this:
+A simple program for counting words which exists of a least three characters and printing a total can be implemented like this:
+
+```tokay
+Word(min=3) ++words accept
+end words
+```
+
+This version of the program from counts all words and even numbers.
 
 ```tokay
 Word ++words accept
-end words
+{ Float ; Int } ++numbers accept
+end words numbers
 ```
 
 By design, Tokay constructs syntax trees from consumed information automatically.
@@ -66,7 +72,7 @@ The next program implements an expression calculator which is capable to parse a
 _ : [ \t]+                # redefine whitespace to just tab and space
 
 Factor : @{
-    Integer _             # built-in 64-bit signed integer token
+    Int     _             # built-in 64-bit signed integer token
     '(' _ Expr ')' _
 }
 
@@ -87,7 +93,7 @@ Expr _ print("= " + $1)   # gives some neat result output
 
 An example run of this program as provided is this:
 
-```bash
+```
 $ tokay calc.tok
 1 + 2 + 3
 = 6
@@ -96,7 +102,7 @@ $ tokay calc.tok
 ```
 
 Tokay can also be used for programs without any parsing features.<br>
-Next is a recursive attempt for calculating the faculty of a value.
+Next is a recursive attempt for calculating the faculty of an integer.
 
 ```
 faculty : @x {
@@ -109,7 +115,7 @@ faculty(4)
 
 ## Documentation
 
-Same as Tokay itself, the documentation is currently established and is growing. The latest version can be obtained on the website [tokay.dev](https://tokay.dev). The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
+Same as Tokay itself, the documentation is currently established. The latest version can be obtained on the website [tokay.dev](https://tokay.dev). The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
 
 ## Contribute
 

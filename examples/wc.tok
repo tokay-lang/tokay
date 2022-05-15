@@ -1,0 +1,3 @@
+Word ++words accept
+{ Float ; Int } ++numbers accept
+end words numbers
