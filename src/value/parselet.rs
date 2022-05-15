@@ -211,7 +211,13 @@ impl Parselet {
 
                 Err(reject) => {
                     match reject {
-                        Reject::Skip => break Some(Ok(Accept::Next)),
+                        Reject::Skip => {
+                            if main && state.is_none() {
+                                continue;
+                            }
+
+                            break Some(Ok(Accept::Next));
+                        }
                         Reject::Error(mut err) => {
                             // Patch source position on error, when no position already set
                             if let Some(source_offset) = context.source_offset {

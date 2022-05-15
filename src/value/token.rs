@@ -339,7 +339,7 @@ tokay_token!("Word(min=1 max=void)", {
 
     if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {
         if input.chars().count() < min.to_usize() {
-            return Ok(Accept::Next);
+            return Err(Reject::Skip); // Accept input but skip the result
         }
 
         if !max.is_void() && input.chars().count() > max.to_usize() {
