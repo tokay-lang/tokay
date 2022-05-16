@@ -4,7 +4,7 @@
 
 /*! Tokay
 
-    An imperative, procedural programming language dedicated to parsing and other text-processing tasks.
+    A programming language designed for ad-hoc parsing.
 
     Visit [https://tokay.dev](https://tokay.dev) for more information.
 */

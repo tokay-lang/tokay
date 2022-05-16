@@ -9,6 +9,7 @@ Current main branch.
   - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation
   - Read from stdin when no input stream but a program that is consuming was specified
   - Moved `ccl.rs` into separate [`charclass` crate](https://crates.io/crates/charclass)
+  - Equipped Reader struct with better tools for scanning (`Reader::take()`, `Reader::span()`)
 - Values
   - New `Object` trait
   - Splitting `enum Value` into separate objects using `Box<dyn Object>`

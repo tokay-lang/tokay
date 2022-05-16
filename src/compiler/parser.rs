@@ -1,4 +1,11 @@
-//! Parser and grammar for Tokay, implemented using Tokay itself.
+/*! Parser and grammar for Tokay, implemented using Tokay itself.
+
+This module implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
+This is the general place to change syntax and modify the design of the abstract syntax tree.
+
+There is also a grammar in examples/tokay.tok, which is this grammar expressed in Tokay.
+When changing things here, do it there as well as this might become the reference parser someday.
+*/
 use charclass::charclass;
 
 use super::*;
@@ -6,11 +13,6 @@ use crate::error::Error;
 use crate::reader::Reader;
 use crate::tokay;
 use crate::value::{Dict, RefValue, Str, Token};
-
-/**
-Implements a Tokay parser in Tokay itself, using the compiler macros from the macros-module.
-This is the general place to change syntax and modify the design of the abstract syntax tree.
-*/
 
 pub struct Parser(Program);
 

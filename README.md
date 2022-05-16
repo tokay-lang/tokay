@@ -56,7 +56,7 @@ Word(min=3) ++words accept
 end words
 ```
 
-This version of the program from counts all words and even numbers.
+The next, extended version of the program from above counts all words and even numbers.
 
 ```tokay
 Word ++words accept
@@ -66,13 +66,13 @@ end words numbers
 
 By design, Tokay constructs syntax trees from consumed information automatically.
 
-The next program implements an expression calculator which is capable to parse and evaluate simple mathematical expressions, like `1 + 2 + 3` or `7 * (8 + 2) / 5`, and print their result afterwards. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's special features.
+The next program directly implements a parser and interpreter for simple mathematical expressions, like `1 + 2 + 3` or `7 * (8 + 2) / 5`. The result of each expression is printed afterwards. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
 
 ```tokay
 _ : [ \t]+                # redefine whitespace to just tab and space
 
 Factor : @{
-    Int     _             # built-in 64-bit signed integer token
+    Int _                 # built-in 64-bit signed integer token
     '(' _ Expr ')' _
 }
 
@@ -104,7 +104,7 @@ $ tokay calc.tok
 Tokay can also be used for programs without any parsing features.<br>
 Next is a recursive attempt for calculating the faculty of an integer.
 
-```
+```tokay
 faculty : @x {
     if !x return 1
     x * faculty(x - 1)
@@ -116,6 +116,22 @@ faculty(4)
 ## Documentation
 
 Same as Tokay itself, the documentation is currently established. The latest version can be obtained on the website [tokay.dev](https://tokay.dev). The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
+
+## Repository
+
+This repository holds all required source files to provide Tokay with examples.
+
+```
+.                  # Build scripts, Cargo.toml, etc.
+├── assets         # Asset files (logo)
+├── examples       # Example programs
+├── macros         # Crate to provide compile-time macros
+├── src            # Tokay source, includes primary modules
+│   ├── compiler   # Compiler
+│   ├── value      # Values, objects and built-ins
+│   └── vm         # Virtual stack machine
+└── tests          # Contains some examples used by test suite
+```
 
 ## Contribute
 
@@ -132,6 +148,8 @@ Feel free to [contact me](https://phorward.info) directly on any questions, or [
 The Tokay programming language is named after the [Tokay gecko (Gekko gecko)](https://en.wikipedia.org/wiki/Tokay_gecko) from Asia, shouting out "token" in the night.
 
 The Tokay logo and icon was thankfully designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl).
+
+Check out the [tokay-artwork](https://github.com/tokay-lang/tokay-artwork) repository for different versions of the logo as well.
 
 ## License
 

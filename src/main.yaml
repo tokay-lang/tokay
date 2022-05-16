@@ -12,6 +12,7 @@ template: |
     to disable this behavior. Specify '-' to use stdin as input file.
 
     When no arguments are specified, {bin} turns into an interactive REPL.
+
     Visit https://tokay.dev for help and further information.
     {bin} is free software released under the MIT license.
 args:
