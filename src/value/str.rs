@@ -1,7 +1,8 @@
 //! String object
 use super::{BoxedObject, List, Object, RefValue};
 use crate::value;
-use macros::tokay_method;
+use tokay_macros::tokay_method;
+extern crate self as tokay;
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct Str {

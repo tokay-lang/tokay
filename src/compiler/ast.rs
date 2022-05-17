@@ -1,9 +1,7 @@
 //! Compiler's internal Abstract Syntax Tree traversal
 use std::collections::HashSet;
-
-use ::macros::tokay_function;
-use charclass::CharClass;
-
+use tokay_macros::tokay_function;
+extern crate self as tokay;
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
@@ -11,6 +9,7 @@ use crate::utils;
 use crate::value;
 use crate::value::{Dict, List, Object, RefValue, Str, Token};
 use crate::vm::*;
+use charclass::CharClass;
 
 /// Checks whether identifier's name is the name of a reserved word.
 fn identifier_is_valid(ident: &str) -> Result<(), Error> {

@@ -12,7 +12,8 @@ All macros require for two parameters:
 
 - *signature* is a Tokay-style function signature string, including default values.
   This can be `f`, `f()`, `f(a, b)`, `f(a b = void)` or similar.
-  Currently, this does only accept for a subset of Tokay atomics: void, null, true, false.
+  Currently, this does only accept for a subset of Tokay atomics: void, null, true, false,
+  and integer values.
 - *expression* is the Rust expression to be executed. This is the body of the function.
 */
 
@@ -131,13 +132,13 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
         ret.push({
             let required = default.is_empty();
             let default = match &default[..] {
-                "void" | "" => quote!(crate::value!(void)),
-                "null" => quote!(crate::value!(null)),
-                "true" => quote!(crate::value!(true)),
-                "false" => quote!(crate::value!(false)),
+                "void" | "" => quote!(tokay::value!(void)),
+                "null" => quote!(tokay::value!(null)),
+                "true" => quote!(tokay::value!(true)),
+                "false" => quote!(tokay::value!(false)),
                 int if int.parse::<i64>().is_ok() => {
                     let int = int.parse::<i64>().unwrap();
-                    quote!(crate::value!(#int))
+                    quote!(tokay::value!(#int))
                 }
                 _ => unreachable!(),
             };
@@ -235,9 +236,9 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     // instead of an Result<Accept, Reject>.
     let gen = quote! {
         pub fn #name(
-            mut args: Vec<crate::value::RefValue>,
-            mut nargs: Option<crate::value::Dict>
-        ) -> Result<crate::value::RefValue, String> {
+            mut args: Vec<tokay::RefValue>,
+            mut nargs: Option<tokay::Dict>
+        ) -> Result<tokay::RefValue, String> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
 
@@ -249,12 +250,12 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
         }
 
         pub fn #callable(
-            _context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>,
-            nargs: Option<crate::value::Dict>
-        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            _context: Option<&mut tokay::Context>,
+            args: Vec<tokay::RefValue>,
+            nargs: Option<tokay::Dict>
+        ) -> Result<tokay::Accept, tokay::Reject> {
             let ret = Self::#name(args, nargs)?;
-            Ok(crate::vm::Accept::Push(crate::vm::Capture::Value(ret, None, 10)))
+            Ok(tokay::Accept::Push(tokay::Capture::Value(ret, None, 10)))
         }
     };
 
@@ -290,10 +291,10 @@ pub fn tokay_function(input: TokenStream) -> TokenStream {
     // Generate function
     let gen = quote! {
         pub fn #callable(
-            context: Option<&mut crate::vm::Context>,
-            mut args: Vec<crate::value::RefValue>,
-            mut nargs: Option<crate::value::Dict>
-        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            context: Option<&mut tokay::vm::Context>,
+            mut args: Vec<tokay::RefValue>,
+            mut nargs: Option<tokay::Dict>
+        ) -> Result<tokay::vm::Accept, tokay::vm::Reject> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
 
@@ -343,10 +344,10 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
     // Generate function and wrapper
     let gen = quote! {
         pub fn #function(
-            context: &mut crate::vm::Context,
-            mut args: Vec<crate::value::RefValue>,
-            mut nargs: Option<crate::value::Dict>
-        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            context: &mut tokay::vm::Context,
+            mut args: Vec<tokay::RefValue>,
+            mut nargs: Option<tokay::Dict>
+        ) -> Result<tokay::Accept, tokay::Reject> {
             // The function's original name in Tokay
             let __function = stringify!(#name());
 
@@ -358,10 +359,10 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
         }
 
         pub fn #callable(
-            context: Option<&mut crate::vm::Context>,
-            args: Vec<crate::value::RefValue>,
-            nargs: Option<crate::value::Dict>
-        ) -> Result<crate::vm::Accept, crate::vm::Reject> {
+            context: Option<&mut tokay::Context>,
+            args: Vec<tokay::RefValue>,
+            nargs: Option<tokay::Dict>
+        ) -> Result<tokay::Accept, tokay::Reject> {
             #function(context.unwrap(), args, nargs)
         }
     };

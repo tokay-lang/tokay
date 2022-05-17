@@ -24,5 +24,5 @@ pub mod vm;
 pub use compiler::Compiler;
 pub use reader::Reader;
 pub use utils::run;
-pub use value::{Object, RefValue, Value};
-pub use vm::Program;
+pub use value::{Dict, List, Object, RefValue, Str, Value};
+pub use vm::{Accept, Capture, Context, Program, Reject};

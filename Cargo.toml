@@ -27,11 +27,11 @@ static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 dur
 
 [build-dependencies]
 tokay = "0.4"
-glob = "0.3.0"
+glob = "0.3"
 
 [dependencies]
-indexmap = "1.8.1"
-macros = { path = "macros" }
+indexmap = "1.8"
+tokay-macros = { path = "macros", version = "0.1" }
 clap = { version = "2", features = ["yaml"] }
-rustyline = "8.2.0"
+rustyline = "8.2"
 charclass = "0.1"

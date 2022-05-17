@@ -3,8 +3,9 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::vm::{Accept, Context, Reject};
-use macros::tokay_function;
+extern crate self as tokay;
 use std::io::{self, Write};
+use tokay_macros::tokay_function;
 
 // Abstraction of a built-in function
 pub struct Builtin {
@@ -90,7 +91,6 @@ impl Object for BuiltinRef {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        // todo!!
         let args = context.drain(args);
         (self.0.func)(Some(context), args, nargs)
     }

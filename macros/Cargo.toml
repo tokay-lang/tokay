@@ -1,9 +1,12 @@
 [package]
-name = "macros"
-version = "0.0.0"
+name = "tokay-macros"
+version = "0.1.0"
+description = "Macro support for Rust-native builtin functions for the Tokay programming language."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
+homepage = "https://tokay.dev/"
+repository = "https://github.com/tokay-lang/tokay/"
+license = "MIT"
 edition = "2021"
-publish = false
 
 [lib]
 proc-macro = true
@@ -11,5 +14,5 @@ proc-macro = true
 [dependencies]
 tokay = "0.4"
 quote = "1.0"
-syn = { version = "1.0.86 ", features = ["full", "fold", "extra-traits"] }
-proc-macro2 = "1.0.36"
+syn = { version = "1.0", features = ["full", "fold", "extra-traits"] }
+proc-macro2 = "1.0"

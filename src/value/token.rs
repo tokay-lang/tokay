@@ -3,7 +3,8 @@ use super::{BoxedObject, Dict, Object, RefValue};
 use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
-use macros::tokay_token;
+use tokay_macros::tokay_token;
+extern crate self as tokay;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Token {

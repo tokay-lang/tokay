@@ -11,7 +11,7 @@ Argument : {
             Word error($5 + " not allowed here")  # fixme: add more with Tokay v0.5 as base.
         } _
         ""  # required to produce a consistent AST in Tokay v0.4
-    } accept ($1 $3)  # omg this is this ugly, but it works... Tokay v0.4 hassle.
+    } accept ($1 $3)  # omg this is ugly, but it works... Tokay v0.4 hassle.
     ''*args'' ""   accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
     ''**nargs'' "" accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
 }

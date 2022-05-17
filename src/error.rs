@@ -1,7 +1,8 @@
 //! Implementation of an error object that can occur during Tokay's program compilation or execution
 use crate::reader::Offset;
 use crate::value::{Object, Str};
-use macros::tokay_function;
+extern crate self as tokay;
+use tokay_macros::tokay_function;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {

@@ -1,0 +1,23 @@
+# Grammar for REPL commands
+
+_ : @{
+    ' '
+    '\t'
+    '\n'
+}
+
+Set : @<Ident> emit=void {
+    if !emit {
+        emit = str(Ident)
+    }
+
+    Ident _ 'on'            ast(emit, true)
+    Ident _ 'off'           ast(emit, false)
+    Ident                   ast(emit, true)
+}
+
+
+'#' {
+    Set<'debug'>
+    'run' _ Name            ast("run")
+}

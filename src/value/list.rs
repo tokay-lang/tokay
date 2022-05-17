@@ -1,6 +1,7 @@
 //! List object
 use super::{BoxedObject, Object, RefValue};
-use macros::tokay_method;
+use tokay_macros::tokay_method;
+extern crate self as tokay;
 
 /// Alias for the inner list definition
 type InnerList = Vec<RefValue>;

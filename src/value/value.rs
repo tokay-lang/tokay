@@ -1,7 +1,8 @@
 //! Tokay value
 use super::{BoxedObject, Dict, Object, RefValue};
 use crate::vm::{Accept, Context, Reject};
-use macros::tokay_method;
+use tokay_macros::tokay_method;
+extern crate self as tokay;
 use std::any::Any;
 use std::cmp::Ordering;
 

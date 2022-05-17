@@ -4,6 +4,10 @@
 
 Current main branch.
 
+## [v0.5]
+
+Released on May 17, 2022
+
 - General
   - Improved Tokay parser newline behavior to support Windows and classic Mac line ending as well
   - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation
@@ -92,7 +96,8 @@ Released on Mar 4, 2021
 - Symbol resolving and scopes
 
 
-[main]: https://github.com/tokay-lang/tokay/compare/v0.4...main
+[main]: https://github.com/tokay-lang/tokay/compare/v0.5...main
+[v0.5]: https://github.com/tokay-lang/tokay/compare/v0.4...v0.5
 [v0.4]: https://github.com/tokay-lang/tokay/compare/v0.3...v0.4
 [v0.3]: https://github.com/tokay-lang/tokay/compare/v0.2...v0.3
 [v0.2]: https://github.com/tokay-lang/tokay/compare/v0.1...v0.2

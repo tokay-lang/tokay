@@ -9,7 +9,7 @@
 
 Tokay is a programming language designed for ad-hoc parsing.
 
-**Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete features and planned concepts. Please [help to improve it](#contribute)!**
+> Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete features and planned concepts. Please [help to improve it](#contribute)!
 
 ## About
 
@@ -147,8 +147,7 @@ Feel free to [contact me](https://phorward.info) directly on any questions, or [
 
 The Tokay programming language is named after the [Tokay gecko (Gekko gecko)](https://en.wikipedia.org/wiki/Tokay_gecko) from Asia, shouting out "token" in the night.
 
-The Tokay logo and icon was thankfully designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl).
-
+The Tokay logo and icon was thankfully designed by [Timmytiefkuehl](https://github.com/timmytiefkuehl).<br>
 Check out the [tokay-artwork](https://github.com/tokay-lang/tokay-artwork) repository for different versions of the logo as well.
 
 ## License

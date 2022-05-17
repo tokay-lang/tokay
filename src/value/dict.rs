@@ -1,7 +1,8 @@
 //! Dictionary object
 use super::{BoxedObject, Object, RefValue};
 use indexmap::IndexMap;
-use macros::tokay_method;
+use tokay_macros::tokay_method;
+extern crate self as tokay;
 use std::cmp::Ordering;
 
 // Alias for the inner dict
