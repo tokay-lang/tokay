@@ -117,5 +117,12 @@ pub static BUILTINS: [Builtin; ##count] = [
     )
     .replace("##count", &res.len().to_string());
 
+    // Exit when file exists and didn't change
+    if let Ok(c) = std::fs::read_to_string(f) {
+        if c == s {
+            std::process::exit(0);
+        }
+    }
+
     std::fs::write(f, s).expect(&format!("Unable to write '{}'", f));
 }
