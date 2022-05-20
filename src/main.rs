@@ -81,39 +81,41 @@ fn main() {
     }
 
     if let Some(mut program) = program {
-        let mut compiler = Compiler::new();
+        let mut compiler = Compiler::new(true);
 
-        if let Ok(program) = compiler.compile(program.get_reader()) {
-            // In case no stream but a program is specified, use stdin as input stream.
-            if streams.len() == 0 {
-                streams.push((
-                    "",
-                    // When program's main is consuming, read from stdin
-                    if program.main().is_consuming() {
-                        RefCell::new(Stream::Stdin)
-                    }
-                    // otherwise just work on an empty input
-                    else {
-                        RefCell::new(Stream::String("".to_string()))
-                    },
-                ));
-            }
-
-            for (name, stream) in &streams {
-                let ret = program.run_from_reader(stream.borrow_mut().get_reader());
-
-                if streams.len() > 1 {
-                    print!("{}: ", name);
+        if compiler.compile(program.get_reader()).is_ok() {
+            if let Ok(program) = compiler.finalize() {
+                // In case no stream but a program is specified, use stdin as input stream.
+                if streams.len() == 0 {
+                    streams.push((
+                        "",
+                        // When program's main is consuming, read from stdin
+                        if program.main().is_consuming() {
+                            RefCell::new(Stream::Stdin)
+                        }
+                        // otherwise just work on an empty input
+                        else {
+                            RefCell::new(Stream::String("".to_string()))
+                        },
+                    ));
                 }
 
-                match ret {
-                    Ok(None) => {
-                        if streams.len() > 1 {
-                            print!("\n")
-                        }
+                for (name, stream) in &streams {
+                    let ret = program.run_from_reader(stream.borrow_mut().get_reader());
+
+                    if streams.len() > 1 {
+                        print!("{}: ", name);
                     }
-                    Ok(Some(value)) => println!("{}", value.to_string()),
-                    Err(error) => eprintln!("{}", error),
+
+                    match ret {
+                        Ok(None) => {
+                            if streams.len() > 1 {
+                                print!("\n")
+                            }
+                        }
+                        Ok(Some(value)) => println!("{}", value.to_string()),
+                        Err(error) => eprintln!("{}", error),
+                    }
                 }
             }
         }

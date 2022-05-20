@@ -16,7 +16,7 @@ macro_rules! tokay {
     // Tokay
     ( { $( $items:tt ),+ } ) => {
         {
-            let mut compiler = Compiler::new();
+            let mut compiler = Compiler::new(false);
             compiler.debug = 0;  // unset debug always
 
             //tokay_dump!({ $( $items ),* });
@@ -34,7 +34,7 @@ macro_rules! tokay {
 
             compiler.define_value(parselet.into());  // Define main parselet
 
-            match compiler.to_program() {
+            match compiler.finalize() {
                 Ok(program) => {
                     if compiler.debug > 0 {
                         program.dump();

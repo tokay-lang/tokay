@@ -1,0 +1,3 @@
+# Tokay default prelude
+
+Number : Float | Int

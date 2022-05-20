@@ -4,10 +4,14 @@
 
 Current main branch.
 
+- Compiler
+  - Include `prelude.tok` with default parselets
+
 ## [v0.5]
 
 Released on May 17, 2022
 
+- v0.5.1: Improved `build.rs` to write builtin registry only when it changed.
 - General
   - Improved Tokay parser newline behavior to support Windows and classic Mac line ending as well
   - Moved tests from `test.rs` into their particular locations, so tests are written next to their implementation

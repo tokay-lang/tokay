@@ -44,7 +44,6 @@ won't be removed and can be accessed later on. This is useful in REPL mode.
 pub struct Compiler {
     parser: Option<parser::Parser>,   // Internal Tokay parser
     pub debug: u8,                    // Compiler debug mode
-    pub interactive: bool,            // Enable interactive mode (e.g. for REPL)
     pub(super) values: Vec<ImlValue>, // Constant values and parselets created during compile
     pub(super) scopes: Vec<Scope>,    // Current compilation scopes
     pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
@@ -52,27 +51,38 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new() -> Self {
-        // Initialize new compiler.
-        Self {
+    /** Initialize new compiler.
+
+    By default, the prelude should be loaded, otherwise several standard parselets are not available. */
+    pub fn new(with_prelude: bool) -> Self {
+        let mut compiler = Self {
             parser: None,
-            debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
-                level.parse::<u8>().unwrap_or_default()
-            } else {
-                0
-            },
-            interactive: false,
+            debug: 0,
             values: Vec::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
+        };
+
+        // Compile with the default prelude
+        if with_prelude {
+            compiler
+                .compile_from_str(include_str!("../prelude.tok"))
+                .unwrap(); // this should panic in case of an error!
         }
+
+        // Set compiler debug level afterwards
+        compiler.debug = if let Ok(level) = std::env::var("TOKAY_DEBUG") {
+            level.parse::<u8>().unwrap_or_default()
+        } else {
+            0
+        };
+
+        compiler
     }
 
-    /** Compile a Tokay program from source into a Program struct.
-
-    In case None is returend, causing errors where already reported to stdout. */
-    pub fn compile(&mut self, reader: Reader) -> Result<Program, Vec<Error>> {
+    /** Compile a Tokay program from a Reader source into the compiler. */
+    pub fn compile(&mut self, reader: Reader) -> Result<(), Vec<Error>> {
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -93,38 +103,30 @@ impl Compiler {
 
         ast::traverse(self, &ast);
 
-        let program = match self.to_program() {
-            Ok(program) => program,
-            Err(errors) => {
-                for error in &errors {
-                    eprintln!("{}", error);
-                }
-
-                return Err(errors);
+        if self.errors.len() > 0 {
+            for error in &self.errors {
+                eprintln!("{}", error);
             }
-        };
 
-        if self.debug > 0 {
-            program.dump();
+            return Err(self.errors.drain(..).collect());
         }
 
-        Ok(program)
+        Ok(())
     }
 
-    /// Shortcut to compile a Tokay program from a &str.
-    pub fn compile_str(&mut self, src: &str) -> Result<Program, Vec<Error>> {
+    /// Shortcut to compile a Tokay program from a &str into the compiler.
+    pub fn compile_from_str(&mut self, src: &str) -> Result<(), Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src.to_owned(),
         )))))
     }
 
-    /** Converts the compiled information into a Program. */
-    pub(super) fn to_program(&mut self) -> Result<Program, Vec<Error>> {
-        // Collect additional errors
-        let mut errors: Vec<Error> = self.errors.drain(..).collect();
+    /** Converts the current compiler state into a Program. */
+    pub fn finalize(&mut self) -> Result<Program, Vec<Error>> {
+        // Check for correct scope level
+        assert!(self.scopes.len() == 1);
 
-        // Close all scopes except main
-        assert!(self.scopes.len() == 0 || (self.scopes.len() == 1 && self.interactive));
+        let mut errors: Vec<Error> = Vec::new();
 
         // Check and report any unresolved usages
         let mut usages = self
@@ -159,13 +161,8 @@ impl Compiler {
             .collect();
 
         // Obtain intermediate values collected during compilation
-        let values = if self.interactive {
-            let values = self.values.clone();
-            self.values.pop(); // Remove last __main__ from interactive compiler.
-            values
-        } else {
-            self.values.drain(..).collect()
-        };
+        let values = self.values.clone();
+        self.values.pop(); // pop-off last value, which is always the last main parselet
 
         /*
             Finalize the program by resolving any unresolved usages according to a grammar's
@@ -233,13 +230,17 @@ impl Compiler {
 
         // Stop when any unresolved usages occured;
         // We do this here so that eventual undefined symbols are replaced by ImlOp::Nop,
-        // and later don't throw other errors especially when in interactive mode.
+        // and later don't throw other errors.
         if errors.len() > 0 {
+            for error in &errors {
+                eprintln!("{}", error);
+            }
+
             return Err(errors);
         }
 
-        // Compile values into program
-        Ok(Program::new(
+        // Compile values into a program
+        let program = Program::new(
             values
                 .into_iter()
                 .map(|value| match value {
@@ -249,7 +250,13 @@ impl Compiler {
                     ImlValue::Value(value) => value,
                 })
                 .collect(),
-        ))
+        );
+
+        if self.debug > 0 {
+            program.dump();
+        }
+
+        Ok(program)
     }
 
     /// Resolves usages from current scope
@@ -354,7 +361,7 @@ impl Compiler {
                 None
             };
 
-            if self.scopes.len() == 0 && self.interactive {
+            if self.scopes.len() == 0 {
                 *consuming = false;
                 self.scopes.push(scope);
             }
@@ -701,5 +708,14 @@ fn test_unescaping() {
             "12345€ €12345"
         ),
         Ok(Some(crate::value!(["12345€", "€12345"])))
+    );
+}
+
+#[test]
+// Tests for compiler string, match and ccl escaping
+fn test_prelude() {
+    assert_eq!(
+        crate::run("Number", "123 45.67 -8 -9.10"),
+        Ok(Some(crate::value!([123, 45.67, (-8), (-9.1)])))
     );
 }

@@ -1,6 +1,6 @@
 [package]
 name = "tokay"
-version = "0.5.1"
+version = "0.6.0"
 description = "Tokay is a programming language designed for ad-hoc parsing, inspired by awk."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"

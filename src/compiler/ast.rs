@@ -826,7 +826,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
             if let Some(children) = node.get("children") {
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
-                if compiler.scopes.len() != 1 || !compiler.interactive {
+                if compiler.scopes.len() != 1 {
                     compiler.push_parselet(); // Main
                 }
 
