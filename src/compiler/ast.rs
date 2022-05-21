@@ -720,6 +720,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                             ident, &ident[0..1].to_uppercase(), &ident[1..]
                         )
                     ));
+
+                    return ImlResult::Empty;
                 }
             } else if utils::identifier_is_consumable(ident) {
                 compiler.errors.push(Error::new(
@@ -737,6 +739,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         )
                     }
                 ));
+
+                return ImlResult::Empty;
             }
 
             //println!("{} : {:?}", ident, value);
