@@ -35,6 +35,16 @@ Tokay is still a very young project and gains much potential. [Volunteers are we
 - Import system to create modularized programs (*coming soon)
 - Embedded interoperability with other programs (*coming soon)
 
+## Installation
+
+Using Rusts dependency manager and build-tool `cargo`, simply install Tokay with
+
+```bash
+$ cargo install tokay
+```
+
+Alternatively, there's also a [`tokay`](https://aur.archlinux.org/packages/tokay) and [`tokay-git`](https://aur.archlinux.org/packages/tokay-git) package in the [Arch Linux AUR](https://aur.archlinux.org/).
+
 ## Examples
 
 Tokay's version of "Hello World" is quite obvious:
