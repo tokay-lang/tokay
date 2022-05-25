@@ -426,6 +426,8 @@ dependencies = [
 [[package]]
 name = "tokay-macros"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b73470cf675144cd6743c77ba426690e8a91ae5995080ec5b505939a10cf9c9e"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -30,8 +30,8 @@ tokay = "0.4"
 glob = "0.3"
 
 [dependencies]
-indexmap = "1.8"
-tokay-macros = { path = "macros", version = "0.1" }
-clap = { version = "2", features = ["yaml"] }
-rustyline = "8.2"
 charclass = "0.1"
+clap = { version = "2", features = ["yaml"] }
+indexmap = "1.8"
+rustyline = "8.2"
+tokay-macros = "0.1"
