@@ -81,8 +81,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     match emit {
         // Literals
         "value_string" => ImlValue::from(node["value"].clone()),
-        "value_integer" => RefValue::from(node["value"].to_i64()).into(),
-        "value_float" => RefValue::from(node["value"].to_f64()).into(),
+        "value_integer" => node["value"].clone().into(),
+        "value_float" => node["value"].clone().into(),
         "value_true" => value!(true).into(),
         "value_false" => value!(false).into(),
         "value_null" => value!(null).into(),

@@ -4,6 +4,7 @@ use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 use tokay_macros::tokay_token;
+use num_bigint::BigInt;
 extern crate self as tokay;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -274,7 +275,7 @@ tokay_token!("Int(base=10, with_signs=true)", {
     }
 
     if let Some(input) = reader.span(|ch: char| ch.is_digit(base as u32)) {
-        let mut value: i64 = 0;
+        let mut value = BigInt::from(0);
 
         for dig in input.chars() {
             value = value * base + dig.to_digit(base as u32).unwrap() as i64;

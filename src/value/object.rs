@@ -1,6 +1,7 @@
 use super::Dict;
 use crate::vm::{Accept, Context, Reject};
 use std::any::Any;
+use num_bigint::BigInt;
 
 // BoxedObject
 // ----------------------------------------------------------------------------
@@ -180,6 +181,11 @@ pub trait Object:
     /// Object as String
     fn to_string(&self) -> String {
         self.repr()
+    }
+
+    /// Object as BigInt
+    fn to_bigint(&self) -> BigInt {
+        BigInt::from(self.id())
     }
 
     /// Check whether the object is callable.
