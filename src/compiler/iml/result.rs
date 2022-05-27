@@ -42,13 +42,11 @@ impl ImlResult {
                             Value::Null => Some(Op::PushNull),
                             Value::True => Some(Op::PushTrue),
                             Value::False => Some(Op::PushFalse),
-                            Value::Int(i) => {
-                                match i.to_i64() {
-                                    Some(0) => Some(Op::Push0),
-                                    Some(1) => Some(Op::Push1),
-                                    _ => None,
-                                }
-                            }
+                            Value::Int(i) => match i.to_i64() {
+                                Some(0) => Some(Op::Push0),
+                                Some(1) => Some(Op::Push1),
+                                _ => None,
+                            },
                             _ => None,
                         }
                     }

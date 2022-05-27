@@ -2,9 +2,10 @@ use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
 use crate::value;
 use crate::vm::{Accept, Context, Reject};
+use num::{ToPrimitive, Zero};
+use num_bigint::BigInt;
 use std::cell::RefCell;
 use std::rc::Rc;
-use num::{ToPrimitive, Zero};
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub struct RefValue {
@@ -294,6 +295,10 @@ impl Object for RefValue {
 
     fn to_string(&self) -> String {
         self.borrow().to_string()
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        self.borrow().to_bigint()
     }
 
     fn is_callable(&self, without_arguments: bool) -> bool {

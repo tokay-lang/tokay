@@ -1,6 +1,8 @@
 //! String object
 use super::{BoxedObject, List, Object, RefValue};
 use crate::value;
+use num::Zero;
+use num_bigint::BigInt;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
@@ -66,6 +68,30 @@ impl Object for Str {
 
     fn to_string(&self) -> String {
         self.string.clone()
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        // JavaScript parseInt-style prefix parsing
+        let mut ret = BigInt::zero();
+        let mut neg = false;
+
+        for (i, digit) in self.string.trim().chars().enumerate() {
+            if i == 0 && (digit == '+' || digit == '-') {
+                neg = digit == '-';
+                continue;
+            }
+
+            match digit.to_digit(10) {
+                Some(digit) => ret = ret * 10 + digit,
+                None => break,
+            }
+        }
+
+        if neg {
+            -ret
+        } else {
+            ret
+        }
     }
 }
 

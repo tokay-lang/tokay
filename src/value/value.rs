@@ -3,11 +3,10 @@ use super::{BoxedObject, Dict, Object, RefValue};
 use crate::vm::{Accept, Context, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
+use num::{ToPrimitive, Zero};
+use num_bigint::BigInt;
 use std::any::Any;
 use std::cmp::Ordering;
-use num_bigint::BigInt;
-use num::{ToPrimitive, Zero};
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -18,11 +17,11 @@ pub enum Value {
     False, // false
 
     // Numerics
-    Int(BigInt),  // int
+    Int(BigInt), // int
     Float(f64),  // float
 
     // Objects
-    Object(BoxedObject),  // object
+    Object(BoxedObject), // object
 }
 
 impl Value {

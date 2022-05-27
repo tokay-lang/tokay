@@ -1,7 +1,7 @@
 use super::Dict;
 use crate::vm::{Accept, Context, Reject};
-use std::any::Any;
 use num_bigint::BigInt;
+use std::any::Any;
 
 // BoxedObject
 // ----------------------------------------------------------------------------
