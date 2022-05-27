@@ -1271,8 +1271,7 @@ pub fn print(ast: &RefValue) {
         let value = value.borrow();
 
         if let Some(d) = value.object::<Dict>() {
-            let emit = d["emit"].borrow();
-            let emit = emit.object::<Str>().unwrap().as_str();
+            let emit = d["emit"].to_string();
 
             let row = d.get("row").and_then(|row| Some(row.borrow().to_usize()));
             let col = d.get("col").and_then(|col| Some(col.borrow().to_usize()));
@@ -1306,7 +1305,7 @@ pub fn print(ast: &RefValue) {
             }
 
             if let Some(value) = value {
-                print!(" {:?}", value.borrow());
+                print!(" => {}", value.repr());
             }
             print!("\n");
 
@@ -1317,8 +1316,6 @@ pub fn print(ast: &RefValue) {
             for item in l.iter() {
                 print(item, indent);
             }
-        } else {
-            print!("{}", value.repr());
         }
     }
 
