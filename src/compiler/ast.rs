@@ -601,7 +601,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                             ops.extend(
                                 traverse_node_or_list(compiler, &param["children"])
-                                    .into_ops(compiler, false),
+                                    .into_ops(compiler, true),
                             );
                             args += 1;
                         }
@@ -611,7 +611,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                             ops.extend(
                                 traverse_node_or_list(compiler, &children[1])
-                                    .into_ops(compiler, false),
+                                    .into_ops(compiler, true),
                             );
 
                             let ident = children[0].borrow();
