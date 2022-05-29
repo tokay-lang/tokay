@@ -22,6 +22,7 @@ pub mod value;
 pub mod vm;
 
 pub use compiler::Compiler;
+pub use error::Error;
 pub use reader::Reader;
 pub use utils::run;
 pub use value::{Dict, List, Object, RefValue, Str, Value};

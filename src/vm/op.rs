@@ -382,7 +382,7 @@ impl Op {
                 }
                 Op::Reject => Err(Reject::Return),
                 Op::LoadExit => {
-                    std::process::exit(context.pop().to_i64() as i32);
+                    std::process::exit(context.pop().to_i64()? as i32);
                 }
                 Op::Exit => std::process::exit(0),
 
@@ -481,7 +481,7 @@ impl Op {
                             .unwrap_or(value!(void))
                     } else {
                         context
-                            .get_capture(index.to_usize())
+                            .get_capture(index.to_usize()?)
                             .unwrap_or(value!(void))
                     };
 
@@ -495,7 +495,7 @@ impl Op {
 
                     match value.create_method(attr.object::<Str>().unwrap().as_str()) {
                         Ok(value) => context.push(value),
-                        Err(msg) => Error::new(None, msg).into(),
+                        Err(err) => err.into(),
                     }
                 }
 
@@ -577,11 +577,11 @@ impl Op {
                     } else {
                         if matches!(op, Op::StoreCapture) {
                             let value = context.pop();
-                            context.set_capture(index.to_usize(), value);
+                            context.set_capture(index.to_usize()?, value);
                             Ok(Accept::Push(Capture::Empty))
                         } else {
                             let value = context.peek();
-                            context.set_capture(index.to_usize(), value.borrow().clone().into());
+                            context.set_capture(index.to_usize()?, value.borrow().clone().into());
                             Ok(Accept::Next)
                         }
                     }
