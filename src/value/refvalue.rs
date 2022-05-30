@@ -2,6 +2,8 @@ use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
 use crate::value;
 use crate::vm::{Accept, Context, Reject};
+use num::{ToPrimitive, Zero};
+use num_bigint::BigInt;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -43,23 +45,6 @@ impl RefValue {
 
             match this {
                 Value::Object(this) => this.name(),
-                Value::Addr(addr) => {
-                    // addr fast lane iinc, idec
-                    match op {
-                        "not" => return Ok(value!(*addr == 0)),
-                        "iinc" => {
-                            *addr += 1;
-                            return Ok(self.clone());
-                        }
-                        "idec" => {
-                            if *addr > 0 {
-                                *addr -= 1;
-                            }
-                            return Ok(self.clone());
-                        }
-                        _ => "addr",
-                    }
-                }
                 Value::Float(float) => {
                     // float fast lane neg, iinc, idec
                     match op {
@@ -79,8 +64,8 @@ impl RefValue {
                 Value::Int(int) => {
                     // int fast lane neg, iinc, idec
                     match op {
-                        "neg" => return Ok(value!(-*int)),
-                        "not" => return Ok(value!(*int == 0)),
+                        "neg" => return Ok(value!(-int.clone())),
+                        "not" => return Ok(value!(int.is_zero())),
                         "iinc" => {
                             *int += 1;
                             return Ok(self.clone());
@@ -128,19 +113,6 @@ impl RefValue {
                                 Some(this.name())
                             }
                         }
-
-                        // Addr inline fast-lane
-                        (Value::Addr(addr), _) => match op {
-                            "iadd" => {
-                                *addr += that.to_usize();
-                                return Ok(self.clone());
-                            }
-                            "imul" => {
-                                *addr *= that.to_usize();
-                                return Ok(self.clone());
-                            }
-                            _ => None,
-                        },
 
                         // Float inline fast-lane
                         (Value::Float(float), _) => match op {
@@ -207,41 +179,6 @@ impl RefValue {
                         }
                     }
 
-                    // Addr
-                    (Value::Addr(_), _) | (_, Value::Addr(_)) => match op {
-                        "add" => return Ok(value!(this.to_usize() + that.to_usize())),
-                        "mul" => return Ok(value!(this.to_usize() * that.to_usize())),
-                        "sub" => {
-                            let minuend = this.to_usize();
-                            let subtrahend = that.to_usize();
-
-                            if subtrahend > minuend {
-                                return Err(String::from(
-                                    "Attempt to substract with overflow (addr-value)",
-                                ));
-                            }
-
-                            return Ok(value!(minuend - subtrahend));
-                        }
-                        "div" => {
-                            let dividend = this.to_usize();
-                            let divisor = that.to_usize();
-
-                            if divisor == 0 {
-                                return Err(String::from("Division by zero"));
-                            }
-
-                            // If there's no remainder, perform an integer division
-                            if dividend % divisor == 0 {
-                                return Ok(value!(dividend / divisor));
-                            }
-                            // Otherwise do a floating point division
-                            else {
-                                return Ok(value!(dividend as f64 / divisor as f64));
-                            }
-                        }
-                        _ => None,
-                    },
                     (Value::Float(_), _) | (_, Value::Float(_)) => match op {
                         "add" => return Ok(value!(this.to_f64() + that.to_f64())),
                         "mul" => return Ok(value!(this.to_f64() * that.to_f64())),
@@ -258,25 +195,41 @@ impl RefValue {
                         }
                         _ => None,
                     },
-                    (_, _) => match op {
-                        "add" => return Ok(value!(this.to_i64() + that.to_i64())),
-                        "mul" => return Ok(value!(this.to_i64() * that.to_i64())),
-                        "sub" => return Ok(value!(this.to_i64() - that.to_i64())),
-                        "div" => {
-                            let dividend = this.to_i64();
-                            let divisor = that.to_i64();
 
-                            if divisor == 0 {
+                    (_, _) => match op {
+                        "add" => return Ok(value!(this.to_bigint() + that.to_bigint())),
+                        "mul" => return Ok(value!(this.to_bigint() * that.to_bigint())),
+                        "sub" => return Ok(value!(this.to_bigint() - that.to_bigint())),
+                        "div" => {
+                            let dividend = this.to_bigint();
+                            let divisor = that.to_bigint();
+
+                            if divisor.is_zero() {
                                 return Err(String::from("Division by zero"));
                             }
 
                             // If there's no remainder, perform an integer division
-                            if dividend % divisor == 0 {
+                            if (&dividend % &divisor).is_zero() {
                                 return Ok(value!(dividend / divisor));
                             }
                             // Otherwise do a floating point division
                             else {
-                                return Ok(value!(dividend as f64 / divisor as f64));
+                                let f_dividend = dividend.to_f64();
+                                let f_divisor = divisor.to_f64();
+
+                                if f_dividend.is_none() || f_divisor.is_none() {
+                                    // just do an integer division
+                                    return Ok(value!(dividend / divisor));
+                                }
+
+                                let f_dividend = f_dividend.unwrap();
+                                let f_divisor = f_divisor.unwrap();
+
+                                if f_divisor == 0.0 {
+                                    return Err(String::from("Division by zero"));
+                                }
+
+                                return Ok(value!(f_dividend / f_divisor));
                             }
                         }
                         _ => None,
@@ -342,6 +295,10 @@ impl Object for RefValue {
 
     fn to_string(&self) -> String {
         self.borrow().to_string()
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        self.borrow().to_bigint()
     }
 
     fn is_callable(&self, without_arguments: bool) -> bool {
@@ -551,15 +508,6 @@ fn binary_op() {
         assert_eq!(
             crate::run("i = 10 i / 0", ""),
             Err("Line 1, column 8: Division by zero".to_string())
-        );
-    }
-
-    // ADDR
-    {
-        // Substraction overflow
-        assert_eq!(
-            crate::run("a = addr(10) a - 20", ""),
-            Err("Line 1, column 14: Attempt to substract with overflow (addr-value)".to_string())
         );
     }
 

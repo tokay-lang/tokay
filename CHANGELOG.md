@@ -4,8 +4,12 @@
 
 Current main branch.
 
+- General
+  - Moved `macros` into separate repository [tokay-macros](https://github.com/tokay-lang/tokay-macros)
 - Compiler
   - Include `prelude.tok` with default parselets
+- Values
+  - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
 
 ## [v0.5]
 

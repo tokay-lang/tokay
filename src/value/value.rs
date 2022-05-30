@@ -3,6 +3,8 @@ use super::{BoxedObject, Dict, Object, RefValue};
 use crate::vm::{Accept, Context, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
+use num::{ToPrimitive, Zero};
+use num_bigint::BigInt;
 use std::any::Any;
 use std::cmp::Ordering;
 
@@ -15,12 +17,11 @@ pub enum Value {
     False, // false
 
     // Numerics
-    Int(i64),
-    Float(f64),
-    Addr(usize),
+    Int(BigInt), // int
+    Float(f64),  // float
 
     // Objects
-    Object(BoxedObject),
+    Object(BoxedObject), // object
 }
 
 impl Value {
@@ -55,9 +56,8 @@ impl Value {
 
     // Constructors
     tokay_method!("bool(value)", Ok(RefValue::from(value.is_true())));
-    tokay_method!("int(value)", Ok(RefValue::from(value.to_i64())));
+    tokay_method!("int(value)", Ok(RefValue::from(value.to_bigint())));
     tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
-    tokay_method!("addr(value)", Ok(RefValue::from(value.to_usize())));
 
     // float methods
     tokay_method!(
@@ -79,7 +79,6 @@ impl Object for Value {
         match self {
             Self::Int(_) => 1,
             Self::Float(_) => 2,
-            Self::Addr(_) => 3,
             Self::Object(o) => o.severity(),
             _ => 0,
         }
@@ -92,7 +91,6 @@ impl Object for Value {
             Self::True | Self::False => "bool",
             Self::Int(_) => "int",
             Self::Float(_) => "float",
-            Self::Addr(_) => "addr",
             Self::Object(o) => o.name(),
         }
     }
@@ -103,7 +101,6 @@ impl Object for Value {
             Self::False => "false".to_string(),
             Self::Int(i) => format!("{}", i),
             Self::Float(f) => format!("{}", f),
-            Self::Addr(a) => format!("{}", a),
             Self::Object(o) => o.repr(),
             _ => self.name().to_string(),
         }
@@ -116,9 +113,8 @@ impl Object for Value {
     fn is_true(&self) -> bool {
         match self {
             Self::True => true,
-            Self::Int(i) => *i != 0,
+            Self::Int(i) => !i.is_zero(),
             Self::Float(f) => *f != 0.0,
-            Self::Addr(a) => *a != 0,
             Self::Object(o) => o.is_true(),
             _ => false,
         }
@@ -127,9 +123,8 @@ impl Object for Value {
     fn to_i64(&self) -> i64 {
         match self {
             Self::True => 1,
-            Self::Int(i) => *i,
+            Self::Int(i) => i.to_i64().or(Some(0)).unwrap(),
             Self::Float(f) => *f as i64,
-            Self::Addr(a) => *a as i64,
             Self::Object(o) => o.to_i64(),
             _ => 0,
         }
@@ -138,9 +133,8 @@ impl Object for Value {
     fn to_f64(&self) -> f64 {
         match self {
             Self::True => 1.0,
-            Self::Int(i) => *i as f64,
+            Self::Int(i) => i.to_f64().or(Some(0.0)).unwrap(),
             Self::Float(f) => *f,
-            Self::Addr(a) => *a as f64,
             Self::Object(o) => o.to_f64(),
             _ => 0.0,
         }
@@ -149,9 +143,8 @@ impl Object for Value {
     fn to_usize(&self) -> usize {
         match self {
             Self::True => 1,
-            Self::Int(i) => *i as usize,
+            Self::Int(i) => i.to_usize().or(Some(0)).unwrap(),
             Self::Float(f) => *f as usize,
-            Self::Addr(a) => *a,
             Self::Object(o) => o.to_usize(),
             _ => 0,
         }
@@ -162,6 +155,16 @@ impl Object for Value {
             Self::Void => "".to_string(),
             Self::Object(o) => o.to_string(),
             _ => self.repr(),
+        }
+    }
+
+    fn to_bigint(&self) -> BigInt {
+        match self {
+            Self::True => BigInt::from(1),
+            Self::Int(i) => i.clone(),
+            Self::Float(f) => BigInt::from(*f as i64),
+            Self::Object(o) => o.to_bigint(),
+            _ => BigInt::from(0),
         }
     }
 
@@ -210,14 +213,11 @@ impl PartialOrd for Value {
             (Self::Object(_), _) => Some(Ordering::Greater),
             (_, Self::Object(_)) => Some(Ordering::Less),
 
-            (Self::Addr(i), j) => i.partial_cmp(&j.to_usize()),
-            (i, Self::Addr(j)) => i.to_usize().partial_cmp(j),
-
             (Self::Float(i), j) => i.partial_cmp(&j.to_f64()),
             (i, Self::Float(j)) => i.to_f64().partial_cmp(j),
 
-            (Self::Int(i), j) => i.partial_cmp(&j.to_i64()),
-            (i, j) => i.to_i64().partial_cmp(&j.to_i64()),
+            (Self::Int(i), j) => i.partial_cmp(&j.to_bigint()),
+            (i, j) => i.to_bigint().partial_cmp(&j.to_bigint()),
         }
     }
 }
@@ -228,15 +228,27 @@ impl From<bool> for RefValue {
     }
 }
 
+impl From<BigInt> for RefValue {
+    fn from(int: BigInt) -> Self {
+        RefValue::from(Value::Int(int))
+    }
+}
+
 impl From<i64> for RefValue {
     fn from(int: i64) -> Self {
-        RefValue::from(Value::Int(int))
+        RefValue::from(Value::Int(BigInt::from(int)))
     }
 }
 
 impl From<i32> for RefValue {
     fn from(int: i32) -> Self {
-        RefValue::from(int as i64)
+        RefValue::from(Value::Int(BigInt::from(int)))
+    }
+}
+
+impl From<usize> for RefValue {
+    fn from(addr: usize) -> Self {
+        RefValue::from(Value::Int(BigInt::from(addr)))
     }
 }
 
@@ -249,12 +261,6 @@ impl From<f64> for RefValue {
 impl From<f32> for RefValue {
     fn from(float: f32) -> Self {
         RefValue::from(float as f64)
-    }
-}
-
-impl From<usize> for RefValue {
-    fn from(addr: usize) -> Self {
-        RefValue::from(Value::Addr(addr))
     }
 }
 

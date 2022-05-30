@@ -81,8 +81,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     match emit {
         // Literals
         "value_string" => ImlValue::from(node["value"].clone()),
-        "value_integer" => RefValue::from(node["value"].to_i64()).into(),
-        "value_float" => RefValue::from(node["value"].to_f64()).into(),
+        "value_integer" => node["value"].clone().into(),
+        "value_float" => node["value"].clone().into(),
         "value_true" => value!(true).into(),
         "value_false" => value!(false).into(),
         "value_null" => value!(null).into(),
@@ -601,7 +601,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                             ops.extend(
                                 traverse_node_or_list(compiler, &param["children"])
-                                    .into_ops(compiler, false),
+                                    .into_ops(compiler, true),
                             );
                             args += 1;
                         }
@@ -611,7 +611,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
                             ops.extend(
                                 traverse_node_or_list(compiler, &children[1])
-                                    .into_ops(compiler, false),
+                                    .into_ops(compiler, true),
                             );
 
                             let ident = children[0].borrow();
@@ -1271,8 +1271,7 @@ pub fn print(ast: &RefValue) {
         let value = value.borrow();
 
         if let Some(d) = value.object::<Dict>() {
-            let emit = d["emit"].borrow();
-            let emit = emit.object::<Str>().unwrap().as_str();
+            let emit = d["emit"].to_string();
 
             let row = d.get("row").and_then(|row| Some(row.borrow().to_usize()));
             let col = d.get("col").and_then(|col| Some(col.borrow().to_usize()));
@@ -1306,7 +1305,7 @@ pub fn print(ast: &RefValue) {
             }
 
             if let Some(value) = value {
-                print!(" {:?}", value.borrow());
+                print!(" => {}", value.repr());
             }
             print!("\n");
 
@@ -1317,8 +1316,6 @@ pub fn print(ast: &RefValue) {
             for item in l.iter() {
                 print(item, indent);
             }
-        } else {
-            print!("{}", value.repr());
         }
     }
 

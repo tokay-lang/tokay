@@ -135,7 +135,6 @@ This repository holds all required source files to provide Tokay with examples.
 .                  # Build scripts, Cargo.toml, etc.
 ├── assets         # Asset files (logo)
 ├── examples       # Example programs
-├── macros         # Crate to provide compile-time macros
 ├── src            # Tokay source, includes primary modules
 │   ├── compiler   # Compiler
 │   ├── value      # Values, objects and built-ins
