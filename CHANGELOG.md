@@ -8,6 +8,8 @@ Current main branch.
   - Moved `macros` into separate repository [tokay-macros](https://github.com/tokay-lang/tokay-macros)
 - Compiler
   - Include `prelude.tok` with default parselets
+    - `Number` matches either `Float` or `Int`
+    - `Token` matches arbitrary tokens
 - Values
   - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
 
