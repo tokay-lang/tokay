@@ -215,20 +215,30 @@ impl Parser {
             T_Integer
         }),
 
-        // Collections (are at least embedded sequences)
+        // Inline sequences are used to construct lists and dicts as well
 
-        (CollectionItem = {
+        (InlineSequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
             [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
             Expression
         }),
 
-        (Collection = {
-            ["(", _, (kle [T_EOL, _]), ")", (call ast[(value "value_void")])],
-            ["(", _, (kle [T_EOL, _]), (expect (pos [Expression, (opt [",", _]), (kle [T_EOL, _])])), ")", // no expect ")" here!
-                (call ast[(value "sequence")])],
-            ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
-                (call ast[(value "sequence")])]
+        (InlineSequence = {
+            // Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
+            [Expression, (kle [T_EOL, _]), ",", _, (kle [T_EOL, _]), (peek ")"), (call ast[(value "list")])],
+            // A sequence is a list of items optionally separated by ","
+            [(pos [InlineSequenceItem, (kle [T_EOL, _]), (opt [",", _]), (kle [T_EOL, _])]), (call ast[(value "sequence")])],
+            // The empty sequences generates an empty list
+            [Void, (call ast[(value "list")])]
+        }),
+
+        (InlineSequences = {
+            // Multiple sequences delimited by "|" are an alternative form of the block syntax
+            ["(", _, (kle [T_EOL, _]), InlineSequence,
+                (pos [(kle [T_EOL, _]), "|", _, (kle [T_EOL, _]), InlineSequence]), (expect ")"),
+                    (call ast[(value "block")])],
+            // In case there's only a single sequence, handle it just as a sequence without a block
+            ["(", _, (kle [T_EOL, _]), InlineSequence, (expect ")")]
         }),
 
         // Tokens
@@ -246,7 +256,7 @@ impl Parser {
                 (call ast[(value "call")])],
             [T_Consumable, (call ast[(value "call")])],
             Parselet,
-            Collection,
+            InlineSequences,
             Block
         }),
 

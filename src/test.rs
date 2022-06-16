@@ -417,8 +417,11 @@ fn scoping() {
 // Tests for dicts and lists ----------------------------------------------------------------------
 
 #[test]
-// Test for collection (list, dict) parsing
-fn collections() {
+// Test for parsing inline-sequences, which may result in lists or dicts.
+fn inline_sequences() {
+    // Inline alternation
+    assert_eq!(run("('a' | 'b' | 'c')", "b"), Ok(Some(value!("b"))));
+
     // Lists
     assert_eq!(
         run(

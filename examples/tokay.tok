@@ -156,16 +156,26 @@ Literal : @{
     T_Integer
 }
 
-CollectionItem : @{
+InlineSequenceItem : @{
     T_Alias _ '=>' _ expect Expression  ast("alias")
     Expression '=>' _ expect Expression  ast("alias")
     Expression
 }
 
-Collection : @{
-    '(' _ (T_EOL _)* ')'  ast("value_void", null)
-    '(' _ (T_EOL _)* (Expression (',' _)? (T_EOL _)*)+ ')'  ast("sequence")
-    '(' _ (T_EOL _)* (CollectionItem (',' _)? (T_EOL _)*)+ expect ')'  ast("sequence")
+InlineSequence : @{
+    # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
+    Expression (T_EOL _)* (',' _)? (T_EOL _)* peek ')'  ast("list")
+
+    # A sequence is a list of items optionally separated by ","
+    (InlineSequenceItem (T_EOL _)* (',' _)? (T_EOL _)*)+  ast("sequence")
+
+    # The empty sequences generates an empty list
+    Void  ast("list")
+}
+
+InlineSequences : @{
+    '(' _ (T_EOL _)* InlineSequence ((T_EOL _)* '|' _ (T_EOL _)* InlineSequence)+ (T_EOL _)* expect ')'  ast("block")
+    '(' _ (T_EOL _)* InlineSequence (T_EOL _)* expect ')'
 }
 
 TokenLiteral : @{
@@ -180,7 +190,7 @@ TokenCall : @{
     T_Consumable '(' _ (T_EOL _)* CallParameters? (T_EOL _)* expect ')'  ast("call")
     T_Consumable  ast("call")
     Parselet
-    Collection
+    InlineSequences
     Block
 }
 
@@ -324,15 +334,18 @@ Sequences : @{
     Sequence
 }
 
-SequenceOrExpression : @{
-    Expression peek T_EOL
+SequencesOrExpression : @{
+    Expression peek {
+        T_EOL
+        EOF
+    }
     Sequences
 }
 
 Instruction : @{
     'begin' ___ Sequence expect T_EOL  ast("begin")
     'end' ___ Sequence expect T_EOL  ast("end")
-    T_Identifier _ ':' _ expect SequenceOrExpression expect T_EOL  ast("constant")
+    T_Identifier _ ':' _ expect SequencesOrExpression   ast("constant")
     Sequences
     T_EOL
 }
