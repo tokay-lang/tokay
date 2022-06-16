@@ -215,20 +215,24 @@ impl Parser {
             T_Integer
         }),
 
-        // Collections (are at least embedded sequences)
+        // Inline sequences are used to construct lists and dicts as well
 
-        (CollectionItem = {
+        (InlineSequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
             [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
             Expression
         }),
 
-        (Collection = {
-            ["(", _, (kle [T_EOL, _]), ")", (call ast[(value "value_void")])],
-            ["(", _, (kle [T_EOL, _]), (expect (pos [Expression, (opt [",", _]), (kle [T_EOL, _])])), ")", // no expect ")" here!
-                (call ast[(value "sequence")])],
-            ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
-                (call ast[(value "sequence")])]
+        (InlineSequence = {
+            [(pos [InlineSequenceItem, (kle [T_EOL, _]), (opt [",", _]), (kle [T_EOL, _])]), (call ast[(value "sequence")])],
+            [Void, (call ast[(value "value_void")])]
+        }),
+
+        (InlineSequences = {
+            ["(", _, (kle [T_EOL, _]), InlineSequence,
+                (pos [(kle [T_EOL, _]), "|", _, (kle [T_EOL, _]), InlineSequence]), (expect ")"),
+                    (call ast[(value "block")])],
+            ["(", _, (kle [T_EOL, _]), InlineSequence, (expect ")")]
         }),
 
         // Tokens
@@ -246,7 +250,7 @@ impl Parser {
                 (call ast[(value "call")])],
             [T_Consumable, (call ast[(value "call")])],
             Parselet,
-            Collection,
+            InlineSequences,
             Block
         }),
 

@@ -163,13 +163,13 @@ InlineSequenceItem : @{
 }
 
 InlineSequence : @{
-    (InlineSequenceItem (',' _)? (T_EOL _)*)+  ast("sequence")
-    Void  ast("value_void")  ast("sequence")
+    (InlineSequenceItem (T_EOL _)* (',' _)? (T_EOL _)*)+  ast("sequence")
+    Void  ast("value_list")
 }
 
 InlineSequences : @{
-    '(' _ (T_EOL _)* InlineSequence ('|' _ (T_EOL _)* InlineSequence)+ (T_EOL _)* expect ')'  ast("block")
-    '(' _ (T_EOL _)* InlineSequence (T_EOL _)* ')'
+    '(' _ (T_EOL _)* InlineSequence ((T_EOL _)* '|' _ (T_EOL _)* InlineSequence)+ (T_EOL _)* expect ')'  ast("block")
+    '(' _ (T_EOL _)* InlineSequence (T_EOL _)* expect ')'
 }
 
 TokenLiteral : @{
