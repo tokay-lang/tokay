@@ -9,13 +9,15 @@
 #     tokay examples/tokay.tok -- examples/tokay.tok
 #
 
-_ : @{
+_ : @{  # true whitespace is made of comments and escaped line-breaks as well
     [\t ]+
     '#' [^\n]*
     '\\' '\n'
 }
 
-___ : @{
+___ : (T_EOL _)*  # optional line-breaks followed by whitespace
+
+_SeparatedIdentifier : @{  # helper parselet to ensure that identifiers are separated
     peek not [A-Z_a-z] _
     EOF
 }
@@ -114,7 +116,7 @@ Attribute : @{
 Capture : @{
     '$' T_Alias _  ast("capture_alias")
     '$' T_Integer _  ast("capture_index")
-    '$' '(' _ (T_EOL _)* Expression ')' _  ast("capture_expr")
+    '$' '(' _ ___ Expression ')' _  ast("capture_expr")
     '$'  error("'$': Expecting identifier, integer or (expression)")
 }
 
@@ -143,14 +145,14 @@ CallParameter : @{
 }
 
 CallParameters : @{
-    (CallParameter (',' _)? (T_EOL _)*)+
+    (CallParameter (',' _)? ___)+
 }
 
 Literal : @{
-    'true' ___  ast("value_true")
-    'false' ___  ast("value_false")
-    'void' ___  ast("value_void")
-    'null' ___  ast("value_null")
+    'true' _SeparatedIdentifier  ast("value_true")
+    'false' _SeparatedIdentifier  ast("value_false")
+    'void' _SeparatedIdentifier  ast("value_void")
+    'null' _SeparatedIdentifier  ast("value_null")
     T_String  ast("value_string")
     T_Float
     T_Integer
@@ -164,18 +166,18 @@ InlineSequenceItem : @{
 
 InlineSequence : @{
     # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
-    Expression (T_EOL _)* (',' _)? (T_EOL _)* peek ')'  ast("list")
+    Expression ___ (',' _)? ___ peek ')'  ast("list")
 
     # A sequence is a list of items optionally separated by ","
-    (InlineSequenceItem (T_EOL _)* (',' _)? (T_EOL _)*)+  ast("sequence")
+    (InlineSequenceItem ___ (',' _)? ___)+  ast("sequence")
 
     # The empty sequences generates an empty list
     Void  ast("list")
 }
 
 InlineSequences : @{
-    '(' _ (T_EOL _)* InlineSequence ((T_EOL _)* '|' _ (T_EOL _)* InlineSequence)+ (T_EOL _)* expect ')'  ast("block")
-    '(' _ (T_EOL _)* InlineSequence (T_EOL _)* expect ')'
+    '(' _ ___ InlineSequence (___ '|' _ ___ InlineSequence)+ ___ expect ')'  ast("block")
+    '(' _ ___ InlineSequence ___ expect ')'
 }
 
 TokenLiteral : @{
@@ -187,37 +189,37 @@ TokenLiteral : @{
 
 TokenCall : @{
     TokenLiteral
-    T_Consumable '(' _ (T_EOL _)* CallParameters? (T_EOL _)* expect ')'  ast("call")
+    T_Consumable '(' _ ___ CallParameters? ___ expect ')'  ast("call")
     T_Consumable  ast("call")
     Parselet
     InlineSequences
     Block
 }
 
-Token : @{
+Token1 : @{  # todo: Token1 can be renamed back to Token again when #31 is fixed and Self is used.
     TokenCall '+'  ast("op_mod_pos")
     TokenCall '*'  ast("op_mod_kle")
     TokenCall '?'  ast("op_mod_opt")
     TokenCall
-    'peek' ___ expect Token  ast("op_mod_peek")
-    'not' ___ expect Token  ast("op_mod_not")
-    'expect' ___ expect Token  ast("op_mod_expect")
+    'peek' _SeparatedIdentifier expect Token1  ast("op_mod_peek")
+    'not' _SeparatedIdentifier expect Token1  ast("op_mod_not")
+    'expect' _SeparatedIdentifier expect Token1  ast("op_mod_expect")
 }
 
 Atomic : @{
-    '(' _ (T_EOL _)* Expression (T_EOL _)* ')'
+    '(' _ ___ Expression ___ ')'
     Literal
-    Token
-    'if' ___ Expression (T_EOL _)* expect Statement ((T_EOL _)* 'else' ___ (T_EOL _)* expect Statement)?  ast("op_if")
-    'for' ___ StatementOrEmpty ';' _ StatementOrEmpty ';' _ StatementOrEmpty StatementOrEmpty  ast("op_for")
-    'for' ___  error("'for': Expecting start; condition; iter; statement")
-    'loop' ___ Expression _ Statement  ast("op_loop")
-    'loop' ___ expect Statement  ast("op_loop")
+    Token1
+    'if' _SeparatedIdentifier Expression ___ expect Statement (___ 'else' _SeparatedIdentifier ___ expect Statement)?  ast("op_if")
+    'for' _SeparatedIdentifier StatementOrEmpty ';' _ StatementOrEmpty ';' _ StatementOrEmpty StatementOrEmpty  ast("op_for")
+    'for' _SeparatedIdentifier  error("'for': Expecting start; condition; iter; statement")
+    'loop' _SeparatedIdentifier Expression _ Statement  ast("op_loop")
+    'loop' _SeparatedIdentifier expect Statement  ast("op_loop")
     Load
 }
 
 Rvalue : @{
-    Rvalue '(' _ (T_EOL _)* CallParameters? expect ')' _  ast("call")
+    Rvalue '(' _ ___ CallParameters? expect ')' _  ast("call")
     Rvalue {
         Attribute
         Subscript
@@ -281,15 +283,15 @@ StatementOrEmpty : @{
 }
 
 Statement : @{
-    'accept' ___ Expression?  ast("op_accept")
-    'break' ___ Expression?  ast("op_break")
-    'continue' ___ Expression?  ast("op_continue")
-    'exit' ___ Expression?  ast("op_exit")
-    'next' ___  ast("op_next")
-    'push' ___ Expression?  ast("op_push")
-    'reject' ___  ast("op_reject")
-    'repeat' ___ Expression?  ast("op_repeat")
-    'return' ___ Expression?  ast("op_accept")
+    'accept' _SeparatedIdentifier Expression?  ast("op_accept")
+    'break' _SeparatedIdentifier Expression?  ast("op_break")
+    'continue' _SeparatedIdentifier Expression?  ast("op_continue")
+    'exit' _SeparatedIdentifier Expression?  ast("op_exit")
+    'next' _SeparatedIdentifier  ast("op_next")
+    'push' _SeparatedIdentifier Expression?  ast("op_push")
+    'reject' _SeparatedIdentifier  ast("op_reject")
+    'repeat' _SeparatedIdentifier Expression?  ast("op_repeat")
+    'return' _SeparatedIdentifier Expression?  ast("op_accept")
     Lvalue _ '=' not {
         '>'
         '='
@@ -311,11 +313,11 @@ Arguments : @{
 
 Parselet : @{
     '@' _ Arguments? Block  ast("value_parselet")
-    '@' _ Arguments? Token  ast("value_parselet")
+    '@' _ Arguments? Token1  ast("value_parselet")
 }
 
 Block : @{
-    '{' _ (T_EOL _)* '}'  ast("value_void")
+    '{' _ ___ '}'  ast("value_void")
     '{' _ Instruction+ _ expect '}'  ast("block")
 }
 
@@ -343,8 +345,8 @@ SequencesOrExpression : @{
 }
 
 Instruction : @{
-    'begin' ___ Sequence expect T_EOL  ast("begin")
-    'end' ___ Sequence expect T_EOL  ast("end")
+    'begin' _SeparatedIdentifier Sequence expect T_EOL  ast("begin")
+    'end' _SeparatedIdentifier Sequence expect T_EOL  ast("end")
     T_Identifier _ ':' _ expect SequencesOrExpression   ast("constant")
     Sequences
     T_EOL
