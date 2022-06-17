@@ -1102,7 +1102,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         "kle" => op.into_kleene(),
                         "opt" => op.into_optional(),
                         "peek" => ImlPeek::new(op),
-                        "expect" => ImlExpect::new(op, Some("#todo".to_string())), // todo!
+                        "expect" => {
+                            // Just give some helpful information here for most cases;
+                            // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
+                            let msg = if let ImlOp::Op(Op::CallStatic(i)) = &op {
+                                Some(format!("Expecting {}", compiler.values[*i]))
+                            } else {
+                                None
+                            };
+
+                            ImlExpect::new(op, msg)
+                        }
                         "not" => ImlNot::new(op),
                         _ => unreachable!(),
                     }

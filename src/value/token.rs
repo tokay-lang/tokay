@@ -181,7 +181,6 @@ impl Object for Token {
         "token"
     }
 
-    /*
     fn repr(&self) -> String {
         match self {
             Token::Void => "Void".to_string(),
@@ -193,7 +192,6 @@ impl Object for Token {
             Token::Match(s) => format!("''{}''", s),
         }
     }
-    */
 
     fn is_callable(&self, without_arguments: bool) -> bool {
         without_arguments // Tokens don't support arguments

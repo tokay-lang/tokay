@@ -638,7 +638,10 @@ fn test_error_reporting() {
     );
 
     // Test empty sequence
-    assert_eq!(crate::run("()", ""), Ok(Some(crate::value::List::new().into())));
+    assert_eq!(
+        crate::run("()", ""),
+        Ok(Some(crate::value::List::new().into()))
+    );
 
     // Tests on filled and empty blocks and empty blocks
     assert_eq!(
