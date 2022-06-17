@@ -1,48 +1,76 @@
 //! Tokay main executable
-
+use clap::Parser;
+use std::cell::RefCell;
+use std::fs::{self, File};
 use tokay::compiler::Compiler;
 use tokay::repl::{repl, Stream};
 use tokay::Object;
-
-#[macro_use]
-extern crate clap;
-use clap::App;
-
-use std::cell::RefCell;
-use std::fs::{self, File};
 
 fn print_version() {
     println!("Tokay {}", env!("CARGO_PKG_VERSION"));
 }
 
-fn main() {
-    let yaml = load_yaml!("main.yaml");
-    let opts = App::from(yaml)
-        .bin_name(crate_name!())
-        .version(crate_version!())
-        .about(crate_description!())
-        .author(crate_authors!("\n"))
-        .get_matches();
-    //println!("opts = {:?}", opts);
+#[derive(Parser)]
+#[clap(
+    name = "Tokay",
+    author,
+    version,
+    about,
+    help_template = r#"{bin} {version}
+© 2022 by {author}
+{about}
 
-    let debug = opts.occurrences_of("debug");
-    if debug > 0 {
-        std::env::set_var("TOKAY_DEBUG", format!("{}", debug));
+{all-args}
+
+PROGRAM and INPUT are directly used as input strings in case no file with the
+given name exists. Use '-f' to disable this behavior. Specify '-' to use stdin
+as input file.
+
+When PROGRAM was not specified, {bin} turns into an interactive REPL.
+
+Visit https://tokay.dev/ for help and further information.
+{bin} is free software released under the MIT license."#
+)]
+struct Opts {
+    /// Program to compile and run.
+    #[clap(value_parser)]
+    program: Option<String>,
+
+    /// Input for program to operate on.
+    #[clap(value_parser, last = true)]
+    input: Vec<String>,
+
+    /// Accept only files as parameters, no string fallbacks.
+    #[clap(short, long, action)]
+    files: bool,
+
+    /// Sets the debug level.
+    #[clap(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+
+    /// Show license agreement and exit.
+    #[clap(short, long, action)]
+    license: bool,
+}
+
+fn main() {
+    let opts = Opts::parse();
+
+    if opts.debug > 0 {
+        std::env::set_var("TOKAY_DEBUG", format!("{}", opts.debug));
     }
 
-    if opts.is_present("license") {
+    if opts.license {
         print_version();
         println!("{}", include_str!("../LICENSE"));
         std::process::exit(0);
     }
 
-    let files_only = opts.is_present("files");
-
     let mut program: Option<Stream> = None;
     let mut streams: Vec<(&str, RefCell<Stream>)> = Vec::new();
 
-    if let Some(prog) = opts.value_of("program") {
-        if prog == "-" && !files_only {
+    if let Some(prog) = &opts.program {
+        if prog == "-" && !opts.files {
             program = Some(Stream::Stdin)
         } else {
             if let Some(meta) = fs::metadata(prog).ok() {
@@ -54,7 +82,7 @@ fn main() {
             }
 
             if program.is_none() {
-                if !files_only {
+                if !opts.files {
                     program = Some(Stream::String(prog.to_string()))
                 } else {
                     println!("Can't open program '{}'", prog);
@@ -65,18 +93,16 @@ fn main() {
     }
 
     // Try getting files to run on program or repl
-    if let Some(files) = opts.values_of("input") {
-        for filename in files {
-            if filename == "-" && !files_only {
-                streams.push((filename, RefCell::new(Stream::Stdin)))
-            } else if let Ok(file) = File::open(filename) {
-                streams.push((filename, RefCell::new(Stream::File(file))))
-            } else if !files_only {
-                streams.push((filename, RefCell::new(Stream::String(filename.to_string()))))
-            } else {
-                println!("Can't open file '{}'", filename);
-                std::process::exit(1);
-            }
+    for filename in &opts.input {
+        if filename == "-" && !opts.files {
+            streams.push((filename, RefCell::new(Stream::Stdin)))
+        } else if let Ok(file) = File::open(filename) {
+            streams.push((filename, RefCell::new(Stream::File(file))))
+        } else if !opts.files {
+            streams.push((filename, RefCell::new(Stream::String(filename.to_string()))))
+        } else {
+            println!("Can't open file '{}'", filename);
+            std::process::exit(1);
         }
     }
 
