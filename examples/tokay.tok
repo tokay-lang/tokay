@@ -357,8 +357,4 @@ Tokay : @{
     .  error("Parse error, unexpected token", true)
 }
 
-# Original invocation
-# _ Tokay expect EOF  ast("main")
-
-# fixme: The invocation is a little bit ugly currently.
-ast_print(@{_ Tokay expect EOF  ast("main")}())  # fixme...
+_ Tokay expect EOF  ast_print(ast("main"))

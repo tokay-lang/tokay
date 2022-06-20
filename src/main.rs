@@ -1,10 +1,12 @@
 //! Tokay main executable
 use clap::Parser;
+use rustyline;
 use std::cell::RefCell;
 use std::fs::{self, File};
 use tokay::compiler::Compiler;
 use tokay::repl::{repl, Stream};
 use tokay::Object;
+use tokay::Reader;
 
 fn print_version() {
     println!("Tokay {}", env!("CARGO_PKG_VERSION"));
@@ -44,6 +46,10 @@ struct Opts {
     #[clap(short, long, action)]
     files: bool,
 
+    /// Start the given PROGRAM in its own REPL.
+    #[clap(short, long, action)]
+    repl: bool,
+
     /// Sets the debug level.
     #[clap(short, long, action = clap::ArgAction::Count)]
     debug: u8,
@@ -54,20 +60,23 @@ struct Opts {
 }
 
 fn main() {
+    // Handle command-line arguments from Opts.
     let opts = Opts::parse();
 
+    // Set TOKAY_DEBUG when debug flag was set.
     if opts.debug > 0 {
         std::env::set_var("TOKAY_DEBUG", format!("{}", opts.debug));
     }
 
+    // Show license and exit?
     if opts.license {
         print_version();
-        println!("{}", include_str!("../LICENSE"));
+        print!("{}", include_str!("../LICENSE"));
         std::process::exit(0);
     }
 
+    // Read program, either from stdin, file or direct string.
     let mut program: Option<Stream> = None;
-    let mut streams: Vec<(&str, RefCell<Stream>)> = Vec::new();
 
     if let Some(prog) = &opts.program {
         if prog == "-" && !opts.files {
@@ -85,7 +94,7 @@ fn main() {
                 if !opts.files {
                     program = Some(Stream::String(prog.to_string()))
                 } else {
-                    println!("Can't open program '{}'", prog);
+                    eprintln!("Can't open PROGRAM file '{}'", prog);
                     std::process::exit(1);
                 }
             }
@@ -93,6 +102,8 @@ fn main() {
     }
 
     // Try getting files to run on program or repl
+    let mut streams: Vec<(&str, RefCell<Stream>)> = Vec::new();
+
     for filename in &opts.input {
         if filename == "-" && !opts.files {
             streams.push((filename, RefCell::new(Stream::Stdin)))
@@ -101,7 +112,7 @@ fn main() {
         } else if !opts.files {
             streams.push((filename, RefCell::new(Stream::String(filename.to_string()))))
         } else {
-            println!("Can't open file '{}'", filename);
+            eprintln!("Can't open INPUT file '{}'", filename);
             std::process::exit(1);
         }
     }
@@ -113,6 +124,46 @@ fn main() {
             if let Ok(program) = compiler.finalize() {
                 // In case no stream but a program is specified, use stdin as input stream.
                 if streams.len() == 0 {
+                    // Run program in its own REPL?
+                    if opts.repl && program.main().is_consuming() {
+                        let mut readline = rustyline::Editor::<()>::new();
+                        // todo: readline.load_history(".tokayrepl").ok();
+
+                        loop {
+                            let code = match readline.readline("<<< ") {
+                                Err(rustyline::error::ReadlineError::Interrupted)
+                                | Err(rustyline::error::ReadlineError::Eof) => break,
+                                Err(err) => {
+                                    eprintln!("Error {:?}", err);
+                                    break;
+                                }
+
+                                Ok(code) => code,
+                            };
+
+                            // Stop when program is empty.
+                            if code.trim().is_empty() {
+                                continue;
+                            }
+
+                            // todo: readline.add_history_entry(code.as_str());
+
+                            match program
+                                .run_from_reader(Reader::new(Box::new(std::io::Cursor::new(code))))
+                            {
+                                Ok(None) => {
+                                    if streams.len() > 1 {
+                                        print!("\n")
+                                    }
+                                }
+                                Ok(Some(value)) => println!("{}", value.to_string()),
+                                Err(error) => eprintln!("{}", error),
+                            }
+                        }
+
+                        std::process::exit(0);
+                    }
+
                     streams.push((
                         "",
                         // When program's main is consuming, read from stdin
@@ -124,6 +175,11 @@ fn main() {
                             RefCell::new(Stream::String("".to_string()))
                         },
                     ));
+                }
+
+                if opts.repl {
+                    eprintln!("REPL-mode not allowed in combination with provided INPUT");
+                    std::process::exit(1);
                 }
 
                 for (name, stream) in &streams {
@@ -146,6 +202,11 @@ fn main() {
             }
         }
     } else {
+        if opts.repl {
+            eprintln!("No PROGRAM was specified, therefore can't turn into a REPL for PROGRAM");
+            std::process::exit(1);
+        }
+
         print_version();
 
         // In case no stream was specified and REPL fires up, use empty string as input stream.
