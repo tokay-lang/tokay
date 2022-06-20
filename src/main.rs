@@ -125,7 +125,7 @@ fn main() {
                 // In case no stream but a program is specified, use stdin as input stream.
                 if streams.len() == 0 {
                     // Run program in its own REPL?
-                    if opts.repl && program.main().is_consuming() {
+                    if opts.repl {
                         let mut readline = rustyline::Editor::<()>::new();
                         // todo: readline.load_history(".tokayrepl").ok();
 
