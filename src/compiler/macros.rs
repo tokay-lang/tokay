@@ -27,6 +27,7 @@ macro_rules! tokay {
             let main = tokay!(compiler, { $( $items ),* });
 
             let parselet = compiler.pop_parselet(
+                None,
                 Some("__main__".to_string()),
                 Vec::new(),
                 main.unwrap_or(ImlOp::Nop)
@@ -85,6 +86,7 @@ macro_rules! tokay {
             );
 
             let mut parselet = $compiler.pop_parselet(
+                None,
                 Some("_".to_string()),
                 Vec::new(),
                 body
@@ -124,6 +126,7 @@ macro_rules! tokay {
             );
 
             let parselet = $compiler.pop_parselet(
+                None,
                 Some(stringify!($name).to_string()),
                 Vec::new(),
                 body

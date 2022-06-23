@@ -5,7 +5,7 @@ use std::io::BufReader;
 use super::*;
 use crate::builtin::Builtin;
 use crate::error::Error;
-use crate::reader::Reader;
+use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
 
@@ -317,6 +317,7 @@ impl Compiler {
     /// Resolves and drops a parselet scope and creates a new parselet from it.
     pub(super) fn pop_parselet(
         &mut self,
+        offset: Option<Offset>,
         name: Option<String>,
         sig: Vec<(String, Option<usize>)>,
         body: ImlOp,
@@ -343,7 +344,9 @@ impl Compiler {
             }
 
             let mut parselet = ImlParselet::new(
+                offset,
                 name,
+                Vec::new(), // constants
                 sig,
                 variables.len(),
                 // Ensure that begin and end are blocks.
@@ -478,7 +481,9 @@ impl Compiler {
         if name == "_" || name == "__" {
             // First of all, "__" is defined as `__ : Value+`...
             let mut parselet = ImlParselet::new(
+                None,
                 Some("__".to_string()),
+                Vec::new(),
                 Vec::new(),
                 0,
                 ImlOp::Nop,
@@ -500,7 +505,9 @@ impl Compiler {
 
             // ...and then in-place "_" is defined as `_ : __?`
             let mut parselet = ImlParselet::new(
+                None,
                 Some(name.to_string()),
+                Vec::new(),
                 Vec::new(),
                 0,
                 ImlOp::Nop,

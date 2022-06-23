@@ -1,6 +1,14 @@
+/*! Intermediate code representation. */
 use super::*;
 
-/** Intermediate code representation. */
+/*
+    Todo / Ideas for this module
+
+    - Usage is integrated into ImlOp
+    - Compilable is integrated into ImlOp as full variation
+      - Alternation, Sequence, If, Loop
+      - Remove of expect, not, peek, repeat as these are replaced by (inline?) generics
+*/
 
 #[derive(Debug)]
 pub enum ImlOp {

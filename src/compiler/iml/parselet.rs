@@ -1,24 +1,30 @@
 //! Intermediate representation of a parselet
 
 use super::*;
+use crate::reader::Offset;
 use crate::value::Parselet;
 
 #[derive(Debug)]
+/// Intermediate parselet
 pub struct ImlParselet {
+    pub offset: Option<Offset>,                  // Offset of definition
     pub consuming: Option<Consumable>,           // Consumable state
     pub severity: u8,                            // Capture push severity
     pub name: Option<String>,                    // Parselet's name from source (for debugging)
+    pub constants: Vec<(String, Option<usize>)>, // Constant signature with default constants; generic parselet when set.
     pub signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    locals: usize,                               // Number of local variables present
-    begin: ImlOp,                                // Begin-operations
-    end: ImlOp,                                  // End-operations
-    body: ImlOp,                                 // Operations
+    locals: usize, // Total number of local variables present (including arguments)
+    begin: ImlOp,  // Begin-operations
+    end: ImlOp,    // End-operations
+    body: ImlOp,   // Operations
 }
 
 impl ImlParselet {
     /// Creates a new intermediate parselet.
     pub fn new(
+        offset: Option<Offset>,
         name: Option<String>,
+        constants: Vec<(String, Option<usize>)>,
         signature: Vec<(String, Option<usize>)>,
         locals: usize,
         begin: ImlOp,
@@ -31,9 +37,11 @@ impl ImlParselet {
         );
 
         Self {
+            offset,
             name,
             consuming: None,
             severity: 5,
+            constants,
             signature,
             locals,
             begin,
@@ -42,7 +50,7 @@ impl ImlParselet {
         }
     }
 
-    // Turns an ImlParselet in to a parselet
+    /// Turns an intermediate parselet in to a fixed Parselet
     pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
         Parselet::new(
             self.name.clone(),
@@ -60,6 +68,7 @@ impl ImlParselet {
         )
     }
 
+    /// Resolve any unresolved usages inside the intermediate parselet
     pub fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         self.begin.resolve(usages);
         self.end.resolve(usages);
