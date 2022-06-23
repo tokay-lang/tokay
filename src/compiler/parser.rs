@@ -23,13 +23,17 @@ impl Parser {
 
         // Whitespace & EOL
 
-        (_ = {  // true whitespace
+        (_ = {  // true whitespace is made of comments and escaped line-breaks as well
             [(token (Token::Chars(charclass![' ', '\t'])))],
             ["#", (opt (token (Token::Chars(charclass!['\n'].negate()))))],
             ["\\", "\n"]
         }),
 
-        (___ = {  // check for non-trailing identifier
+        (___ = {  // optional line-breaks followed by whitespace
+            (kle [T_EOL, _])
+        }),
+
+        (_SeparatedIdentifier = {  // helper parselet to ensure that identifiers are separated
             [(peek (not (token (Token::Char(charclass!['A' => 'Z', 'a' => 'z'] + charclass!['_']))))), _]
         }),
 
@@ -167,7 +171,7 @@ impl Parser {
         (Capture = {
             ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
-            ["$", "(", _, (kle [T_EOL, _]), Expression, ")", _, (call ast[(value "capture_expr")])],
+            ["$", "(", _, ___, Expression, ")", _, (call ast[(value "capture_expr")])],
             ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
         }),
 
@@ -199,36 +203,46 @@ impl Parser {
         }),
 
         (CallParameters = {
-            (pos [CallParameter, (opt [",", _]), (kle [T_EOL, _])])
+            (pos [CallParameter, (opt [",", _]), ___])
         }),
 
         // Literals
 
         (Literal = {
-            /* below calls to ___ avoid to wrongly interpret e.g. "truex" as "true" and "x" */
-            ["true", ___, (call ast[(value "value_true")])],
-            ["false", ___, (call ast[(value "value_false")])],
-            ["void", ___, (call ast[(value "value_void")])],
-            ["null", ___, (call ast[(value "value_null")])],
+            /* below calls to _SeparatedIdentifier avoid to wrongly interpret e.g. "truex" as "true" and "x" */
+            ["true", _SeparatedIdentifier, (call ast[(value "value_true")])],
+            ["false", _SeparatedIdentifier, (call ast[(value "value_false")])],
+            ["void", _SeparatedIdentifier, (call ast[(value "value_void")])],
+            ["null", _SeparatedIdentifier, (call ast[(value "value_null")])],
             [T_String, (call ast[(value "value_string")])],
             T_Float,
             T_Integer
         }),
 
-        // Collections (are at least embedded sequences)
+        // Inline sequences are used to construct lists and dicts as well
 
-        (CollectionItem = {
+        (InlineSequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
             [Expression, "=>", _, (expect Expression), (call ast[(value "alias")])],
             Expression
         }),
 
-        (Collection = {
-            ["(", _, (kle [T_EOL, _]), ")", (call ast[(value "value_void")])],
-            ["(", _, (kle [T_EOL, _]), (expect (pos [Expression, (opt [",", _]), (kle [T_EOL, _])])), ")", // no expect ")" here!
-                (call ast[(value "sequence")])],
-            ["(", _, (kle [T_EOL, _]), (pos [CollectionItem, (opt [",", _]), (kle [T_EOL, _])]), (expect ")"),
-                (call ast[(value "sequence")])]
+        (InlineSequence = {
+            // Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
+            [Expression, ___, ",", _, ___, (peek ")"), (call ast[(value "list")])],
+            // A sequence is a list of items optionally separated by ","
+            [(pos [InlineSequenceItem, ___, (opt [",", _]), ___]), (call ast[(value "sequence")])],
+            // The empty sequences generates an empty list
+            [Void, (call ast[(value "list")])]
+        }),
+
+        (InlineSequences = {
+            // Multiple sequences delimited by "|" are an alternative form of the block syntax
+            ["(", _, ___, InlineSequence,
+                (pos [___, "|", _, ___, InlineSequence]), (expect ")"),
+                    (call ast[(value "block")])],
+            // In case there's only a single sequence, handle it just as a sequence without a block
+            ["(", _, ___, InlineSequence, (expect ")")]
         }),
 
         // Tokens
@@ -242,11 +256,11 @@ impl Parser {
 
         (TokenCall = {
             TokenLiteral,
-            [T_Consumable, "(", _, (kle [T_EOL, _]), (opt CallParameters), (kle [T_EOL, _]), (expect ")"),
+            [T_Consumable, "(", _, ___, (opt CallParameters), ___, (expect ")"),
                 (call ast[(value "call")])],
             [T_Consumable, (call ast[(value "call")])],
             Parselet,
-            Collection,
+            InlineSequences,
             Block
         }),
 
@@ -257,40 +271,40 @@ impl Parser {
             [TokenCall, "?", (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
             TokenCall,
-            ["peek", ___, (expect Token), (call ast[(value "op_mod_peek")])],
-            ["not", ___, (expect Token), (call ast[(value "op_mod_not")])],
-            ["expect", ___, (expect Token), (call ast[(value "op_mod_expect")])]
+            ["peek", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_peek")])],
+            ["not", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_not")])],
+            ["expect", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_expect")])]
         }),
 
         // Expression & Flow
 
         (Atomic = {
-            ["(", _, (kle [T_EOL, _]), Expression, (kle [T_EOL, _]), ")"], // no expect ")" here!
+            ["(", _, ___, Expression, ___, ")"], // no expect ")" here!
             Literal,
             Token,
 
             // if
-            ["if", ___, Expression, (kle [T_EOL, _]), (expect Statement),
-                (opt [(kle [T_EOL, _]), "else", ___, (kle [T_EOL, _]), (expect Statement)]),
+            ["if", _SeparatedIdentifier, Expression, ___, (expect Statement),
+                (opt [___, "else", _SeparatedIdentifier, ___, (expect Statement)]),
                     (call ast[(value "op_if")])],
 
             // for
-            //["for", ___, T_Identifier, _, "in", ___, Expression, Statement,
+            //["for", _SeparatedIdentifier, T_Identifier, _, "in", _SeparatedIdentifier, Expression, Statement,
             //    (call ast[(value "op_for_in")])],
-            ["for", ___, StatementOrEmpty, ";", _, StatementOrEmpty, ";", _, StatementOrEmpty,
+            ["for", _SeparatedIdentifier, StatementOrEmpty, ";", _, StatementOrEmpty, ";", _, StatementOrEmpty,
                 StatementOrEmpty, (call ast[(value "op_for")])],
-            ["for", ___, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+            ["for", _SeparatedIdentifier, (call error[(value "'for': Expecting start; condition; iter; statement")])],
 
             // loop
-            ["loop", ___, Expression, _, Statement, (call ast[(value "op_loop")])],
-            ["loop", ___, (expect Statement), (call ast[(value "op_loop")])],
+            ["loop", _SeparatedIdentifier, Expression, _, Statement, (call ast[(value "op_loop")])],
+            ["loop", _SeparatedIdentifier, (expect Statement), (call ast[(value "op_loop")])],
 
             // standard load
             Load
         }),
 
         (Rvalue = {
-            [Rvalue, "(", _, (kle [T_EOL, _]), (opt CallParameters), (expect ")"),
+            [Rvalue, "(", _, ___, (opt CallParameters), (expect ")"),
                 (call ast[(value "call")])],
             [Rvalue, (kle {
                 Attribute,
@@ -359,15 +373,15 @@ impl Parser {
         }),
 
         (Statement = {
-            ["accept", ___, (opt Expression), (call ast[(value "op_accept")])],
-            ["break", ___, (opt Expression), (call ast[(value "op_break")])],
-            ["continue", ___, (opt Expression), (call ast[(value "op_continue")])],
-            ["exit", ___, (opt Expression), (call ast[(value "op_exit")])],
-            ["next", ___, (call ast[(value "op_next")])],
-            ["push", ___, (opt Expression), (call ast[(value "op_push")])],
-            ["reject", ___, (call ast[(value "op_reject")])],
-            ["repeat", ___, (opt Expression), (call ast[(value "op_repeat")])],
-            ["return", ___, (opt Expression), (call ast[(value "op_accept")])],
+            ["accept", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_accept")])],
+            ["break", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_break")])],
+            ["continue", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_continue")])],
+            ["exit", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_exit")])],
+            ["next", _SeparatedIdentifier, (call ast[(value "op_next")])],
+            ["push", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_push")])],
+            ["reject", _SeparatedIdentifier, (call ast[(value "op_reject")])],
+            ["repeat", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_repeat")])],
+            ["return", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_accept")])],
             // todo: escape?
 
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
@@ -396,7 +410,7 @@ impl Parser {
         }),
 
         (Block = {
-            ["{", _, (kle [T_EOL, _]), "}", (call ast[(value "value_void")])],
+            ["{", _, ___, "}", (call ast[(value "value_void")])],
             ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])]
         }),
 
@@ -423,8 +437,8 @@ impl Parser {
         }),
 
         (Instruction = {
-            ["begin", ___, Sequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", ___, Sequence, (expect T_EOL), (call ast[(value "end")])],
+            ["begin", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "end")])],
 
             [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
                 (call ast[(value "constant")])],

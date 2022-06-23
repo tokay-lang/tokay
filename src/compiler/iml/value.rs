@@ -62,6 +62,22 @@ impl ImlValue {
     }
 }
 
+impl std::fmt::Display for ImlValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parselet(p) => write!(
+                f,
+                "{}",
+                p.borrow()
+                    .name
+                    .as_ref()
+                    .unwrap_or(&"<unnamed parselet>".to_string())
+            ),
+            Self::Value(v) => write!(f, "{}", v.repr()),
+        }
+    }
+}
+
 impl From<ImlParselet> for ImlValue {
     fn from(parselet: ImlParselet) -> Self {
         Self::Parselet(Rc::new(RefCell::new(parselet)))

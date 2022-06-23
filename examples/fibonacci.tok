@@ -1,0 +1,14 @@
+n1 = 0
+n2 = 1
+count = 0
+until = Int
+
+print("These are the first " + until + " numbers in the Fibonacci sequence:")
+
+loop count++ < until {
+    fib = n1
+    print(fib)
+
+    n1 = n2
+    n2 = fib + n2
+}

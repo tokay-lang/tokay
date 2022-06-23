@@ -47,17 +47,30 @@ Alternatively, there's also a [`tokay`](https://aur.archlinux.org/packages/tokay
 
 ## Examples
 
-Tokay's version of "Hello World" is quite obvious:
+Tokay's version of "Hello World" is quite obvious.
 
 ```tokay
 print("Hello World")
 ```
+
+> ```
+> $ tokay 'print("Hello World")'
+> Hello World
+> ```
 
 Tokay can also greet any wor(l)ds that are being fed to it. The next program prints "Hello Venus", "Hello Earth" or "Hello" followed by any other name previously parsed by the builtin `Word`-token. Any other input than a word is automatically omitted.
 
 ```tokay
 world => Word   print("Hello " + $world)
 ```
+
+> ```
+> $ tokay 'world => Word   print("Hello " + $world)' -- "World 1337 Venus Mars 42 Max"
+> Hello World
+> Hello Venus
+> Hello Mars
+> Hello Max
+> ```
 
 A simple program for counting words which exists of a least three characters and printing a total can be implemented like this:
 
@@ -66,13 +79,23 @@ Word(min=3) ++words accept
 end words
 ```
 
-The next, extended version of the program from above counts all words and even numbers.
+> ```
+> $ tokay "Word(min=3) ++words accept; end words" -- "this is just the 1st stage of 42.5 or .1 others"
+> 5
+> ```
+
+The next, extended version of the program from above counts all words and prints any numbers.
 
 ```tokay
 Word ++words accept
-{ Float ; Int } ++numbers accept
-end words numbers
+Number
+end words + " words"
 ```
+
+> ```
+> $ tokay 'Word ++words accept; Number; end words + " words"' -- "this is just the 1st stage of 42.5 or .1 others"
+> (1, 42.5, 0.1, "9 words")
+> ```
 
 By design, Tokay constructs syntax trees from consumed information automatically.
 
@@ -101,15 +124,16 @@ Expr : @{
 Expr _ print("= " + $1)   # gives some neat result output
 ```
 
-An example run of this program as provided is this:
-
-```
-$ tokay calc.tok
-1 + 2 + 3
-= 6
-7 * (8 + 2) / 5
-= 14
-```
+> ```
+> $ tokay examples/expr_from_readme.tok
+> 1 + 2 + 3
+> = 6
+> 7 * (8 + 2) / 5
+> = 14
+> 7*(3-9)
+> = -42
+> ...
+> ```
 
 Tokay can also be used for programs without any parsing features.<br>
 Next is a recursive attempt for calculating the faculty of an integer.
@@ -122,6 +146,40 @@ faculty : @x {
 
 faculty(4)
 ```
+
+> ```
+> $ tokay examples/faculty.tok
+> 24
+> ```
+
+And this version of above program calculates the faculty for any integer token matches from the input. Just the invocation is different, and uses the Number token.
+
+```tokay
+faculty : @x {
+    if !x return 1
+    x * faculty(x - 1)
+}
+
+print(faculty(int(Number)))
+```
+
+> ```
+> $ tokay examples/faculty2.tok -- "5 6 ignored 7 other 14 yeah"
+> 120
+> 720
+> 5040
+> 87178291200
+> $ tokay examples/faculty2.tok
+> 5
+> 120
+> 6
+> 720
+> ignored 7
+> 5040
+> other 14
+> 87178291200
+> ...
+> ```
 
 ## Documentation
 
