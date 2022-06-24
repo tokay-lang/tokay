@@ -1,5 +1,5 @@
 use super::Dict;
-use crate::vm::{Accept, Context, Reject};
+use crate::{Accept, Context, Reject};
 use num_bigint::BigInt;
 use std::any::Any;
 
@@ -164,18 +164,18 @@ pub trait Object:
     }
 
     /// Object as i64
-    fn to_i64(&self) -> i64 {
-        0
+    fn to_i64(&self) -> Result<i64, String> {
+        Err(format!("{} cannot be converted to int", self.name()))
     }
 
     /// Object as f64
-    fn to_f64(&self) -> f64 {
-        0.0
+    fn to_f64(&self) -> Result<f64, String> {
+        Err(format!("{} cannot be converted to float", self.name()))
     }
 
     /// Object as usize
-    fn to_usize(&self) -> usize {
-        self.id()
+    fn to_usize(&self) -> Result<usize, String> {
+        Err(format!("{} cannot be converted to usize", self.name()))
     }
 
     /// Object as String
@@ -184,8 +184,8 @@ pub trait Object:
     }
 
     /// Object as BigInt
-    fn to_bigint(&self) -> BigInt {
-        BigInt::from(self.id())
+    fn to_bigint(&self) -> Result<BigInt, String> {
+        Err(format!("{} cannot be converted to int", self.name()))
     }
 
     /// Check whether the object is callable.

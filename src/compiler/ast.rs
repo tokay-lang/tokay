@@ -54,9 +54,13 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &RefValue) -> ImlResult {
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
     let offset = node
         .get("offset")
-        .and_then(|offset| Some(offset.to_usize()));
-    let row = node.get("row").and_then(|row| Some(row.to_usize() as u32));
-    let col = node.get("col").and_then(|col| Some(col.to_usize() as u32));
+        .and_then(|offset| Some(offset.to_usize().unwrap()));
+    let row = node
+        .get("row")
+        .and_then(|row| Some(row.to_usize().unwrap() as u32));
+    let col = node
+        .get("col")
+        .and_then(|col| Some(col.to_usize().unwrap() as u32));
 
     if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
         Some(Offset { offset, row, col })
@@ -328,12 +332,14 @@ fn traverse_node_lvalue(
 
                         if store {
                             if hold {
-                                ops.push(Op::StoreFastCaptureHold(index.to_usize()).into());
+                                ops.push(
+                                    Op::StoreFastCaptureHold(index.to_usize().unwrap()).into(),
+                                );
                             } else {
-                                ops.push(Op::StoreFastCapture(index.to_usize()).into());
+                                ops.push(Op::StoreFastCapture(index.to_usize().unwrap()).into());
                             }
                         } else {
-                            ops.push(Op::LoadFastCapture(index.to_usize()).into());
+                            ops.push(Op::LoadFastCapture(index.to_usize().unwrap()).into());
                         }
                     }
 
@@ -682,7 +688,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
             let children = children.object::<Dict>().unwrap();
             let index = traverse_node_value(compiler, children).unwrap();
-            ImlResult::Ops(vec![Op::LoadFastCapture(index.to_usize()).into()])
+            ImlResult::Ops(vec![Op::LoadFastCapture(index.to_usize().unwrap()).into()])
         }
 
         // constant -------------------------------------------------------
@@ -1292,14 +1298,18 @@ pub fn print(ast: &RefValue) {
         if let Some(d) = value.object::<Dict>() {
             let emit = d["emit"].to_string();
 
-            let row = d.get("row").and_then(|row| Some(row.borrow().to_usize()));
-            let col = d.get("col").and_then(|col| Some(col.borrow().to_usize()));
+            let row = d
+                .get("row")
+                .and_then(|row| Some(row.borrow().to_usize().unwrap()));
+            let col = d
+                .get("col")
+                .and_then(|col| Some(col.borrow().to_usize().unwrap()));
             let stop_row = d
                 .get("stop_row")
-                .and_then(|row| Some(row.borrow().to_usize()));
+                .and_then(|row| Some(row.borrow().to_usize().unwrap()));
             let stop_col = d
                 .get("stop_col")
-                .and_then(|col| Some(col.borrow().to_usize()));
+                .and_then(|col| Some(col.borrow().to_usize().unwrap()));
 
             let value = d.get("value");
             let children = d.get("children");

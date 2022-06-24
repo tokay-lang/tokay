@@ -1,5 +1,6 @@
 //! Dictionary object
 use super::{BoxedObject, Object, RefValue};
+use crate::Error;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -76,12 +77,12 @@ impl Dict {
         if let Some(dict) = dict.object::<Dict>() {
             Ok(RefValue::from(dict.len()))
         } else {
-            Err(format!(
+            Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
                 __function,
                 "dict",
                 dict.name()
-            ))
+            )))
         }
     });
 
@@ -96,20 +97,20 @@ impl Dict {
                         dict.insert(k.clone(), v.clone());
                     }
                 } else {
-                    return Err(format!(
+                    return Err(Error::from(format!(
                         "{} only accepts '{}' as second parameter, not '{}'",
                         __function,
                         dict.name(),
                         other.name()
-                    ));
+                    )));
                 }
             } else {
-                return Err(format!(
+                return Err(Error::from(format!(
                     "{} only accepts '{}' as first parameter, not '{}'",
                     __function,
                     "dict",
                     dict.name()
-                ));
+                )));
             }
         }
 

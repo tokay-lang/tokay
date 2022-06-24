@@ -1,6 +1,6 @@
 //! Tokay value
 use super::{BoxedObject, Dict, Object, RefValue};
-use crate::vm::{Accept, Context, Reject};
+use crate::{Accept, Context, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
@@ -56,21 +56,21 @@ impl Value {
 
     // Constructors
     tokay_method!("bool(value)", Ok(RefValue::from(value.is_true())));
-    tokay_method!("int(value)", Ok(RefValue::from(value.to_bigint())));
-    tokay_method!("float(value)", Ok(RefValue::from(value.to_f64())));
+    tokay_method!("int(value)", Ok(RefValue::from(value.to_bigint()?)));
+    tokay_method!("float(value)", Ok(RefValue::from(value.to_f64()?)));
 
     // float methods
     tokay_method!(
         "float_ceil(float)",
-        Ok(RefValue::from(float.to_f64().ceil()))
+        Ok(RefValue::from(float.to_f64()?.ceil()))
     );
     tokay_method!(
         "float_trunc(float)",
-        Ok(RefValue::from(float.to_f64().trunc()))
+        Ok(RefValue::from(float.to_f64()?.trunc()))
     );
     tokay_method!(
         "float_fract(float)",
-        Ok(RefValue::from(float.to_f64().fract()))
+        Ok(RefValue::from(float.to_f64()?.fract()))
     );
 }
 
@@ -120,33 +120,33 @@ impl Object for Value {
         }
     }
 
-    fn to_i64(&self) -> i64 {
+    fn to_i64(&self) -> Result<i64, String> {
         match self {
-            Self::True => 1,
-            Self::Int(i) => i.to_i64().or(Some(0)).unwrap(),
-            Self::Float(f) => *f as i64,
+            Self::True => Ok(1),
+            Self::Int(i) => Ok(i.to_i64().or(Some(0)).unwrap()),
+            Self::Float(f) => Ok(*f as i64),
             Self::Object(o) => o.to_i64(),
-            _ => 0,
+            _ => Ok(0),
         }
     }
 
-    fn to_f64(&self) -> f64 {
+    fn to_f64(&self) -> Result<f64, String> {
         match self {
-            Self::True => 1.0,
-            Self::Int(i) => i.to_f64().or(Some(0.0)).unwrap(),
-            Self::Float(f) => *f,
+            Self::True => Ok(1.0),
+            Self::Int(i) => Ok(i.to_f64().or(Some(0.0)).unwrap()),
+            Self::Float(f) => Ok(*f),
             Self::Object(o) => o.to_f64(),
-            _ => 0.0,
+            _ => Ok(0.0),
         }
     }
 
-    fn to_usize(&self) -> usize {
+    fn to_usize(&self) -> Result<usize, String> {
         match self {
-            Self::True => 1,
-            Self::Int(i) => i.to_usize().or(Some(0)).unwrap(),
-            Self::Float(f) => *f as usize,
+            Self::True => Ok(1),
+            Self::Int(i) => Ok(i.to_usize().or(Some(0)).unwrap()),
+            Self::Float(f) => Ok(*f as usize),
             Self::Object(o) => o.to_usize(),
-            _ => 0,
+            _ => Ok(0),
         }
     }
 
@@ -158,13 +158,13 @@ impl Object for Value {
         }
     }
 
-    fn to_bigint(&self) -> BigInt {
+    fn to_bigint(&self) -> Result<BigInt, String> {
         match self {
-            Self::True => BigInt::from(1),
-            Self::Int(i) => i.clone(),
-            Self::Float(f) => BigInt::from(*f as i64),
+            Self::True => Ok(BigInt::from(1)),
+            Self::Int(i) => Ok(i.clone()),
+            Self::Float(f) => Ok(BigInt::from(*f as i64)),
             Self::Object(o) => o.to_bigint(),
-            _ => BigInt::from(0),
+            _ => Ok(BigInt::from(0)),
         }
     }
 
@@ -213,11 +213,11 @@ impl PartialOrd for Value {
             (Self::Object(_), _) => Some(Ordering::Greater),
             (_, Self::Object(_)) => Some(Ordering::Less),
 
-            (Self::Float(i), j) => i.partial_cmp(&j.to_f64()),
-            (i, Self::Float(j)) => i.to_f64().partial_cmp(j),
+            (Self::Float(i), j) => i.partial_cmp(&j.to_f64().ok()?),
+            (i, Self::Float(j)) => i.to_f64().ok()?.partial_cmp(j),
 
-            (Self::Int(i), j) => i.partial_cmp(&j.to_bigint()),
-            (i, j) => i.to_bigint().partial_cmp(&j.to_bigint()),
+            (Self::Int(i), j) => i.partial_cmp(&j.to_bigint().ok()?),
+            (i, j) => i.to_bigint().ok()?.partial_cmp(&j.to_bigint().ok()?),
         }
     }
 }

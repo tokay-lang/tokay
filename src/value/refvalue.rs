@@ -1,7 +1,7 @@
 use super::{BoxedObject, Dict, Method, Object, Value};
 use crate::builtin::Builtin;
 use crate::value;
-use crate::vm::{Accept, Context, Reject};
+use crate::{Accept, Context, Error, Reject};
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
 use std::cell::RefCell;
@@ -14,7 +14,7 @@ pub struct RefValue {
 
 impl RefValue {
     /** Creates a callable Method object from a RefValue and a given method name. */
-    pub fn create_method(&self, method_name: &str) -> Result<RefValue, String> {
+    pub fn create_method(&self, method_name: &str) -> Result<RefValue, Error> {
         let builtin = Builtin::get_method(self.name(), method_name)?;
         return Ok(RefValue::from(Method {
             object: self.clone(),
@@ -117,15 +117,15 @@ impl RefValue {
                         // Float inline fast-lane
                         (Value::Float(float), _) => match op {
                             "iadd" => {
-                                *float += that.to_f64();
+                                *float += that.to_f64()?;
                                 return Ok(self.clone());
                             }
                             "imul" => {
-                                *float *= that.to_f64();
+                                *float *= that.to_f64()?;
                                 return Ok(self.clone());
                             }
                             "isub" => {
-                                *float -= that.to_f64();
+                                *float -= that.to_f64()?;
                                 return Ok(self.clone());
                             }
                             _ => None,
@@ -134,15 +134,15 @@ impl RefValue {
                         // Int inline fast-lane
                         (Value::Int(int), _) => match op {
                             "iadd" => {
-                                *int += that.to_i64();
+                                *int += that.to_i64()?;
                                 return Ok(self.clone());
                             }
                             "imul" => {
-                                *int *= that.to_i64();
+                                *int *= that.to_i64()?;
                                 return Ok(self.clone());
                             }
                             "isub" => {
-                                *int -= that.to_i64();
+                                *int -= that.to_i64()?;
                                 return Ok(self.clone());
                             }
                             _ => None,
@@ -180,12 +180,12 @@ impl RefValue {
                     }
 
                     (Value::Float(_), _) | (_, Value::Float(_)) => match op {
-                        "add" => return Ok(value!(this.to_f64() + that.to_f64())),
-                        "mul" => return Ok(value!(this.to_f64() * that.to_f64())),
-                        "sub" => return Ok(value!(this.to_f64() - that.to_f64())),
+                        "add" => return Ok(value!(this.to_f64()? + that.to_f64()?)),
+                        "mul" => return Ok(value!(this.to_f64()? * that.to_f64()?)),
+                        "sub" => return Ok(value!(this.to_f64()? - that.to_f64()?)),
                         "div" => {
-                            let dividend = this.to_f64();
-                            let divisor = that.to_f64();
+                            let dividend = this.to_f64()?;
+                            let divisor = that.to_f64()?;
 
                             if divisor == 0.0 {
                                 return Err(String::from("Division by zero"));
@@ -197,12 +197,12 @@ impl RefValue {
                     },
 
                     (_, _) => match op {
-                        "add" => return Ok(value!(this.to_bigint() + that.to_bigint())),
-                        "mul" => return Ok(value!(this.to_bigint() * that.to_bigint())),
-                        "sub" => return Ok(value!(this.to_bigint() - that.to_bigint())),
+                        "add" => return Ok(value!(this.to_bigint()? + that.to_bigint()?)),
+                        "mul" => return Ok(value!(this.to_bigint()? * that.to_bigint()?)),
+                        "sub" => return Ok(value!(this.to_bigint()? - that.to_bigint()?)),
                         "div" => {
-                            let dividend = this.to_bigint();
-                            let divisor = that.to_bigint();
+                            let dividend = this.to_bigint()?;
+                            let divisor = that.to_bigint()?;
 
                             if divisor.is_zero() {
                                 return Err(String::from("Division by zero"));
@@ -281,15 +281,15 @@ impl Object for RefValue {
         self.borrow().is_true()
     }
 
-    fn to_i64(&self) -> i64 {
+    fn to_i64(&self) -> Result<i64, String> {
         self.borrow().to_i64()
     }
 
-    fn to_f64(&self) -> f64 {
+    fn to_f64(&self) -> Result<f64, String> {
         self.borrow().to_f64()
     }
 
-    fn to_usize(&self) -> usize {
+    fn to_usize(&self) -> Result<usize, String> {
         self.borrow().to_usize()
     }
 
@@ -297,7 +297,7 @@ impl Object for RefValue {
         self.borrow().to_string()
     }
 
-    fn to_bigint(&self) -> BigInt {
+    fn to_bigint(&self) -> Result<BigInt, String> {
         self.borrow().to_bigint()
     }
 
