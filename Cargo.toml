@@ -39,4 +39,4 @@ num = "0.4"
 num-bigint = "0.4"
 rustyline = "8.2"
 #tokay-macros = "0.2"
-tokay-macros = { version = "0.2", path = "../tokay-macros" }
+tokay-macros = { version = "0.2", path = "macros" }

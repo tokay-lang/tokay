@@ -175,7 +175,7 @@ pub trait Object:
 
     /// Object as usize
     fn to_usize(&self) -> Result<usize, String> {
-        Err(format!("{} cannot be converted to int", self.name()))
+        Err(format!("{} cannot be converted to usize", self.name()))
     }
 
     /// Object as String
