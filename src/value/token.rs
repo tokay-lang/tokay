@@ -253,7 +253,7 @@ tokay_token!("Int(base=10, with_signs=true)", {
     let reader = &mut context.runtime.reader;
 
     // Digits
-    let base = base.to_i64();
+    let base = base.to_i64()?;
     if base < 1 || base > 36 {
         // maximum radix = 10 digits + 26 letters
         return Err(format!(
@@ -338,11 +338,11 @@ tokay_token!("Word(min=1 max=void)", {
     let start = reader.tell();
 
     if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {
-        if input.chars().count() < min.to_usize() {
+        if input.chars().count() < min.to_usize()? {
             return Err(Reject::Skip); // Accept input but skip the result
         }
 
-        if !max.is_void() && input.chars().count() > max.to_usize() {
+        if !max.is_void() && input.chars().count() > max.to_usize()? {
             return Ok(Accept::Next);
         }
 

@@ -141,7 +141,7 @@ impl List {
             if index.is_void() {
                 list.push(item);
             } else {
-                let index = index.to_usize();
+                let index = index.to_usize()?;
                 let len = list.len();
                 if index > len {
                     return Err(format!(
@@ -159,7 +159,7 @@ impl List {
     });
 
     tokay_method!("list_pop(list, index=void)", {
-        let index = match index.to_usize() {
+        let index = match index.to_usize()? {
             0 => None,
             i => Some(i),
         };

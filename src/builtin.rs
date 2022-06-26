@@ -2,7 +2,7 @@
 use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
-use crate::vm::{Accept, Context, Reject};
+use crate::{Accept, Context, Reject};
 extern crate self as tokay;
 use std::io::{self, Write};
 use tokay_macros::tokay_function;
@@ -126,7 +126,7 @@ impl From<&'static Builtin> for RefValue {
 tokay_function!("chr(i)", {
     RefValue::from(format!(
         "{}",
-        std::char::from_u32(i.to_usize() as u32).unwrap()
+        std::char::from_u32(i.to_usize()? as u32).unwrap()
     ))
     .into()
 });

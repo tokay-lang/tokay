@@ -42,27 +42,27 @@ impl Object for Str {
         self.len() > 0
     }
 
-    fn to_i64(&self) -> i64 {
+    fn to_i64(&self) -> Result<i64, String> {
         // todo: JavaScript-style parseInt-like behavior?
         match self.string.parse::<i64>() {
-            Ok(i) => i,
-            Err(_) => 0,
+            Ok(i) => Ok(i),
+            Err(_) => Ok(0),
         }
     }
 
-    fn to_f64(&self) -> f64 {
+    fn to_f64(&self) -> Result<f64, String> {
         // todo: JavaScript-style parseFloat-like behavior?
         match self.string.parse::<f64>() {
-            Ok(f) => f,
-            Err(_) => 0.0,
+            Ok(f) => Ok(f),
+            Err(_) => Ok(0.0),
         }
     }
 
-    fn to_usize(&self) -> usize {
+    fn to_usize(&self) -> Result<usize, String> {
         // todo: JavaScript-style parseInt-like behavior?
         match self.string.parse::<usize>() {
-            Ok(i) => i,
-            Err(_) => 0,
+            Ok(i) => Ok(i),
+            Err(_) => Ok(0),
         }
     }
 
@@ -70,7 +70,7 @@ impl Object for Str {
         self.string.clone()
     }
 
-    fn to_bigint(&self) -> BigInt {
+    fn to_bigint(&self) -> Result<BigInt, String> {
         // JavaScript parseInt-style prefix parsing
         let mut ret = BigInt::zero();
         let mut neg = false;
@@ -87,11 +87,7 @@ impl Object for Str {
             }
         }
 
-        if neg {
-            -ret
-        } else {
-            ret
-        }
+        Ok(if neg { -ret } else { ret })
     }
 }
 
@@ -155,11 +151,11 @@ impl Str {
     tokay_method!("str_mul(str, count)", {
         if let Some(string) = str.borrow().object::<Str>() {
             // string * count
-            return Ok(RefValue::from(string.repeat(count.to_usize())));
+            return Ok(RefValue::from(string.repeat(count.to_usize()?)));
         }
 
         // count * string is also possible
-        Ok(RefValue::from(count.to_string().repeat(str.to_usize())))
+        Ok(RefValue::from(count.to_string().repeat(str.to_usize()?)))
     });
 
     tokay_method!("str_join(str, list)", {
@@ -191,7 +187,7 @@ impl Str {
         Ok(RefValue::from(if n.is_void() {
             string.replace(&from, &to)
         } else {
-            string.replacen(&from, &to, n.to_usize())
+            string.replacen(&from, &to, n.to_usize()?)
         }))
     });
 
@@ -221,12 +217,12 @@ impl Str {
         let string = string.object::<Str>().unwrap().as_str();
 
         Ok(RefValue::from(if length.is_void() {
-            string.chars().skip(start.to_usize()).collect::<String>()
+            string.chars().skip(start.to_usize()?).collect::<String>()
         } else {
             string
                 .chars()
-                .skip(start.to_usize())
-                .take(length.to_usize())
+                .skip(start.to_usize()?)
+                .take(length.to_usize()?)
                 .collect::<String>()
         }))
     });
