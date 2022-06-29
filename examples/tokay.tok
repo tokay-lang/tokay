@@ -9,10 +9,12 @@
 #     tokay examples/tokay.tok -- examples/tokay.tok
 #
 
+# Whitespace & EOL
+
 _ : @{  # true whitespace is made of comments and escaped line-breaks as well
     [\t ]+
     '#' [^\n]*
-    '\\' '\n'
+    '\\' '\r'? '\n'
 }
 
 ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
@@ -26,9 +28,11 @@ T_EOL : @{
     '\n' _
     '\r' '\n'? _
     ';' _
-    EOF
+    peek EOF  accept  # accept is used to bypass bug #64 here
     peek '}'
 }
+
+# Prime Tokens
 
 T_OctDigit : @{
     [0-7]
@@ -89,6 +93,8 @@ T_Float : @{
     ast("value_float", Float)
 }
 
+# Character-classes
+
 CclChar : @{
     '\\' T_EscapeSequence
     [^\]]
@@ -105,6 +111,8 @@ Ccl : @{
     CclRange*  ast("ccl")
 }
 
+# Statics, Variables & Constants
+
 Subscript : @{
     '[' _ Expression ']' _  ast("index")
 }
@@ -117,7 +125,7 @@ Capture : @{
     '$' T_Alias _  ast("capture_alias")
     '$' T_Integer _  ast("capture_index")
     '$' '(' _ ___ Expression ')' _  ast("capture_expr")
-    '$'  error("'$': Expecting identifier, integer or (expression)")
+    '$'  error("'$...': Expecting identifier, integer or (expression)")
 }
 
 Variable : @{
@@ -126,9 +134,7 @@ Variable : @{
 }
 
 Lvalue : @{
-    Variable _ {
-        Subscript
-    }*  ast("lvalue")
+    Variable _ Subscript* ast("lvalue")  # Lvalue currently doesn't allow attribute assignment!
 }
 
 Load : @{
@@ -139,24 +145,7 @@ Load : @{
     Variable
 }
 
-CallParameter : @{
-    T_Identifier _ '=' _ expect Expression  ast("param_named")
-    Expression  ast("param")
-}
-
-CallParameters : @{
-    (CallParameter (',' _)? ___)+
-}
-
-Literal : @{
-    'true' _SeparatedIdentifier  ast("value_true")
-    'false' _SeparatedIdentifier  ast("value_false")
-    'void' _SeparatedIdentifier  ast("value_void")
-    'null' _SeparatedIdentifier  ast("value_null")
-    T_String  ast("value_string")
-    T_Float
-    T_Integer
-}
+# Inline sequence (for building lists and dicts inside of `(`...`)`)
 
 InlineSequenceItem : @{
     T_Alias _ '=>' _ expect Expression  ast("alias")
@@ -179,6 +168,19 @@ InlineSequences : @{
     '(' _ ___ InlineSequence (___ '|' _ ___ InlineSequence)+ ___ expect ')'  ast("block")
     '(' _ ___ InlineSequence ___ expect ')'
 }
+
+# Call parameters (used by Tokens and Rvalue)
+
+CallParameter : @{
+    T_Identifier _ '=' _ expect Expression  ast("param_named")
+    Expression  ast("param")
+}
+
+CallParameters : @{
+    (CallParameter (',' _)? ___)+
+}
+
+# Token
 
 TokenLiteral : @{
     '\'' T_Touch '\''  ast("value_token_match")
@@ -206,6 +208,22 @@ Token1 : @{  # todo: Token1 can be renamed back to Token again when #31 is fixed
     'expect' _SeparatedIdentifier expect Token1  ast("op_mod_expect")
 }
 
+# Expression & Flow
+
+## Literals
+
+Literal : @{
+    'true' _SeparatedIdentifier  ast("value_true")
+    'false' _SeparatedIdentifier  ast("value_false")
+    'void' _SeparatedIdentifier  ast("value_void")
+    'null' _SeparatedIdentifier  ast("value_null")
+    T_String  ast("value_string")
+    T_Float
+    T_Integer
+}
+
+## Atomic elements, including if and loops as they are atomic part of expressions
+
 Atomic : @{
     '(' _ ___ Expression ___ ')'
     Literal
@@ -218,12 +236,11 @@ Atomic : @{
     Load
 }
 
+# Rvalue can be a function call or value attribute/subscript
+
 Rvalue : @{
     Rvalue '(' _ ___ CallParameters? expect ')' _  ast("call")
-    Rvalue {
-        Attribute
-        Subscript
-    }*  ast("rvalue")
+    Rvalue (Attribute | Subscript)*  ast("rvalue")
     Atomic
 }
 
@@ -277,9 +294,11 @@ Expression : @{
     LogicalOr
 }
 
+# Statement and Assignment
+
 StatementOrEmpty : @{
     Statement
-     ast("op_nop")
+    Void ast("op_nop")
 }
 
 Statement : @{
@@ -303,6 +322,15 @@ Statement : @{
     Expression
 }
 
+# Parselet
+
+Parselet : @{
+    '@' _ Arguments? Block  ast("value_parselet")
+    '@' _ Arguments? Token1  ast("value_parselet")
+}
+
+## Parselet: Arguments
+
 Argument : @{
     T_Identifier _ ('=' _ Expression?)?  ast("arg")
 }
@@ -311,10 +339,8 @@ Arguments : @{
     (Argument (',' _)?)+
 }
 
-Parselet : @{
-    '@' _ Arguments? Block  ast("value_parselet")
-    '@' _ Arguments? Token1  ast("value_parselet")
-}
+
+# Blocks and Sequences
 
 Block : @{
     '{' _ ___ '}'  ast("value_void")
@@ -336,25 +362,19 @@ Sequences : @{
     Sequence
 }
 
-SequencesOrExpression : @{
-    Expression peek {
-        T_EOL
-        EOF
-    }
-    Sequences
-}
-
 Instruction : @{
     'begin' _SeparatedIdentifier Sequence expect T_EOL  ast("begin")
     'end' _SeparatedIdentifier Sequence expect T_EOL  ast("end")
-    T_Identifier _ ':' _ expect SequencesOrExpression   ast("constant")
-    Sequences
+    T_Identifier _ ':' _ (Statement peek T_EOL | Sequences) expect T_EOL  ast("constant")
+    Sequences expect T_EOL
     T_EOL
 }
+
+# Main
 
 Tokay : @{
     Instruction+
     .  error("Parse error, unexpected token", true)
 }
 
-_ Tokay expect EOF  ast_print(ast("main"))
+_ Tokay? expect EOF  ast_print(ast("main"))

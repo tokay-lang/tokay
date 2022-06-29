@@ -127,7 +127,7 @@ fn main() {
                     // Run program in its own REPL?
                     if opts.repl {
                         let mut readline = rustyline::Editor::<()>::new();
-                        // todo: readline.load_history(".tokayrepl").ok();
+                        readline.load_history(".tokayrepl").ok();
 
                         loop {
                             let code = match readline.readline("<<< ") {
@@ -146,7 +146,7 @@ fn main() {
                                 continue;
                             }
 
-                            // todo: readline.add_history_entry(code.as_str());
+                            readline.add_history_entry(code.as_str());
 
                             match program
                                 .run_from_reader(Reader::new(Box::new(std::io::Cursor::new(code))))
@@ -161,6 +161,7 @@ fn main() {
                             }
                         }
 
+                        readline.save_history(".tokayrepl").unwrap();
                         std::process::exit(0);
                     }
 
