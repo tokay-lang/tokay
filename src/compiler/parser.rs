@@ -26,7 +26,7 @@ impl Parser {
         (_ = {  // true whitespace is made of comments and escaped line-breaks as well
             [(token (Token::Chars(charclass![' ', '\t'])))],
             ["#", (opt (token (Token::Chars(charclass!['\n'].negate()))))],
-            ["\\", "\n"]
+            ["\\", (opt "\r"), "\n"]
         }),
 
         (___ = {  // optional line-breaks followed by whitespace
@@ -38,11 +38,11 @@ impl Parser {
         }),
 
         (T_EOL = {  // end-of-line
-            ["\n", _, (Op::Skip)],  // unix/linux
-            ["\r", (opt "\n"), _, (Op::Skip)],  // classic mac & windows
-            [";", _, (Op::Skip)],  // allows for multiple lines in one row
-            [(token (Token::EOF)), (Op::Skip)],  // Input file may end without a new line
-            [(peek "}"), (Op::Skip)]  // peek for '}' to allow for blocks in one line.
+            ["\n", _],  // unix/linux
+            ["\r", (opt "\n"), _],  // classic mac & windows
+            [";", _],  // allows for multiple lines in one row
+            [(peek (token (Token::EOF))), (Op::Accept)],  // Input file may end without a new line
+            (peek "}")  // peek for '}' to allow for blocks in one line.
         }),
 
         // Escape sequences
@@ -172,7 +172,7 @@ impl Parser {
             ["$", T_Alias, _, (call ast[(value "capture_alias")])],
             ["$", T_Integer, _, (call ast[(value "capture_index")])],
             ["$", "(", _, ___, Expression, ")", _, (call ast[(value "capture_expr")])],
-            ["$", (call error[(value "'$': Expecting identifier, integer or (expression)")])]
+            ["$", (call error[(value "'$...': Expecting identifier, integer or (expression)")])]
         }),
 
         (Variable = {
@@ -193,30 +193,6 @@ impl Parser {
             ["++", (expect Lvalue), (call ast[(value "inplace_pre_inc")])],
             ["--", (expect Lvalue), (call ast[(value "inplace_pre_dec")])],
             Variable
-        }),
-
-        // Calls
-
-        (CallParameter = {
-            [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "param_named")])],
-            [Expression, (call ast[(value "param")])]
-        }),
-
-        (CallParameters = {
-            (pos [CallParameter, (opt [",", _]), ___])
-        }),
-
-        // Literals
-
-        (Literal = {
-            /* below calls to _SeparatedIdentifier avoid to wrongly interpret e.g. "truex" as "true" and "x" */
-            ["true", _SeparatedIdentifier, (call ast[(value "value_true")])],
-            ["false", _SeparatedIdentifier, (call ast[(value "value_false")])],
-            ["void", _SeparatedIdentifier, (call ast[(value "value_void")])],
-            ["null", _SeparatedIdentifier, (call ast[(value "value_null")])],
-            [T_String, (call ast[(value "value_string")])],
-            T_Float,
-            T_Integer
         }),
 
         // Inline sequences are used to construct lists and dicts as well
@@ -243,6 +219,17 @@ impl Parser {
                     (call ast[(value "block")])],
             // In case there's only a single sequence, handle it just as a sequence without a block
             ["(", _, ___, InlineSequence, (expect ")")]
+        }),
+
+        // Calls
+
+        (CallParameter = {
+            [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "param_named")])],
+            [Expression, (call ast[(value "param")])]
+        }),
+
+        (CallParameters = {
+            (pos [CallParameter, (opt [",", _]), ___])
         }),
 
         // Tokens
@@ -274,6 +261,19 @@ impl Parser {
             ["peek", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_peek")])],
             ["not", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_not")])],
             ["expect", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_expect")])]
+        }),
+
+        // Literals
+
+        (Literal = {
+            /* below calls to _SeparatedIdentifier avoid to wrongly interpret e.g. "truex" as "true" and "x" */
+            ["true", _SeparatedIdentifier, (call ast[(value "value_true")])],
+            ["false", _SeparatedIdentifier, (call ast[(value "value_false")])],
+            ["void", _SeparatedIdentifier, (call ast[(value "value_void")])],
+            ["null", _SeparatedIdentifier, (call ast[(value "value_null")])],
+            [T_String, (call ast[(value "value_string")])],
+            T_Float,
+            T_Integer
         }),
 
         // Expression & Flow
@@ -367,6 +367,8 @@ impl Parser {
             LogicalOr
         }),
 
+        // Statement and Assignment
+
         (StatementOrEmpty = {
             Statement,
             (call ast[(value "op_nop")])
@@ -396,6 +398,11 @@ impl Parser {
 
         // Parselet
 
+        (Parselet = {
+            ["@", _, (opt Arguments), Block, (call ast[(value "value_parselet")])],
+            ["@", _, (opt Arguments), Token, (call ast[(value "value_parselet")])]
+        }),
+
         (Argument = {
             [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call ast[(value "arg")])]
         }),
@@ -404,17 +411,12 @@ impl Parser {
             (pos [Argument, (opt [",", _])])
         }),
 
-        (Parselet = {
-            ["@", _, (opt Arguments), Block, (call ast[(value "value_parselet")])],
-            ["@", _, (opt Arguments), Token, (call ast[(value "value_parselet")])]
-        }),
+        // Blocks and Sequences
 
         (Block = {
             ["{", _, ___, "}", (call ast[(value "value_void")])],
             ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])]
         }),
-
-        // Sequences
 
         (SequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
@@ -431,19 +433,15 @@ impl Parser {
             Sequence
         }),
 
-        (SequenceOrExpression = {
-            [Expression, (peek T_EOL)],
-            Sequences
-        }),
-
         (Instruction = {
             ["begin", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "begin")])],
             ["end", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "end")])],
-
-            [T_Identifier, _, ":", _, (expect SequenceOrExpression), (expect T_EOL),
-                (call ast[(value "constant")])],
-            Sequences,
-            [T_EOL, (Op::Skip)]
+            [T_Identifier, _, ":", _, {
+                [Statement, (peek T_EOL)],
+                Sequences
+            }, (expect T_EOL), (call ast[(value "constant")])],
+            [Sequences, (expect T_EOL)],
+            T_EOL
         }),
 
         (Tokay = {
