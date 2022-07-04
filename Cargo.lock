@@ -366,6 +366,8 @@ dependencies = [
 [[package]]
 name = "num-parse"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b0c36742cfeb51f2f71290eca9fc15d0e024a649a552c64707b39b8584991a1"
 dependencies = [
  "num",
 ]
