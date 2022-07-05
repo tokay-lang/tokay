@@ -325,8 +325,21 @@ Statement : @{
 # Parselet
 
 Parselet : @{
-    '@' _ Arguments? Block  ast("value_parselet")
-    '@' _ Arguments? Token1  ast("value_parselet")
+    '@' _ Generics? _ Arguments? Block  ast("value_parselet")
+    '@' _ Generics? _ Arguments? Token1  ast("value_parselet")
+}
+
+## Parselet: Generics
+
+Generic : @{
+    T_Identifier _ {
+        ':' _ expect Atomic
+        Void
+    }  ast("gen")
+}
+
+Generics : @{
+    '<' _ (Generic (',' _)?)+ _ expect '>' _
 }
 
 ## Parselet: Arguments
