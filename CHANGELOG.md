@@ -5,7 +5,7 @@
 Current main branch.
 
 - General
-  - Moved `macros` into separate repository [tokay-macros](https://github.com/tokay-lang/tokay-macros)
+  - Use of numeric parsing features from [num-parse](https://crates.io/crates/num-parse) for `Int` and internal string-to-int conversion ("parseInt()"-like behavior)
 - Syntax
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
