@@ -40,3 +40,5 @@ num-bigint = "0.4"
 rustyline = "8.2"
 #tokay-macros = "0.2"
 tokay-macros = { version = "0.2", path = "macros" }
+num-parse = "0.1"
+#num-parse = { version = "0.1", path = "../num-parse" }

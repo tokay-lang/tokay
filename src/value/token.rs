@@ -4,6 +4,7 @@ use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 use num_bigint::BigInt;
+use num_parse::*;
 use tokay_macros::tokay_token;
 extern crate self as tokay;
 
@@ -79,7 +80,7 @@ impl Token {
                 }
             }
             Token::Char(ccl) => {
-                if let Some(ch) = reader.take(|ch| ccl.test(&(ch..=ch))) {
+                if let Some(ch) = reader.once(|ch| ccl.test(&(ch..=ch))) {
                     return Ok(Accept::Push(Capture::Range(
                         reader.capture_last(ch.len_utf8()),
                         None,
@@ -90,7 +91,7 @@ impl Token {
                 Err(Reject::Next)
             }
             Token::BuiltinChar(f) => {
-                if let Some(ch) = reader.take(f) {
+                if let Some(ch) = reader.once(f) {
                     return Ok(Accept::Push(Capture::Range(
                         reader.capture_last(ch.len_utf8()),
                         None,
@@ -104,7 +105,7 @@ impl Token {
                 let start = reader.tell();
 
                 while let Some(ch) = reader.peek() {
-                    if !ccl.test(&(ch..=ch)) {
+                    if !ccl.test(&(*ch..=*ch)) {
                         break;
                     }
 
@@ -124,7 +125,7 @@ impl Token {
                 let start = reader.tell();
 
                 while let Some(ch) = reader.peek() {
-                    if !f(ch) {
+                    if !f(*ch) {
                         break;
                     }
 
@@ -145,7 +146,7 @@ impl Token {
 
                 for ch in string.chars() {
                     if let Some(c) = reader.peek() {
-                        if c != ch {
+                        if *c != ch {
                             break;
                         }
                     } else {
@@ -235,7 +236,7 @@ tokay_token!("Ident", {
     let reader = &mut context.runtime.reader;
     let start = reader.tell();
 
-    if reader.take(|ch| ch.is_alphabetic() || ch == '_').is_none() {
+    if reader.once(|ch| ch.is_alphabetic() || ch == '_').is_none() {
         return Err(Reject::Next);
     }
 
@@ -249,44 +250,33 @@ tokay_token!("Ident", {
 });
 
 // Matching 64-bit integers directly
-tokay_token!("Int(base=10, with_signs=true)", {
-    let reader = &mut context.runtime.reader;
-
+tokay_token!("Int(base=void, with_signs=true)", {
     // Digits
-    let base = base.to_i64()?;
-    if base < 1 || base > 36 {
-        // maximum radix = 10 digits + 26 letters
-        return Err(format!(
-            "{} base value is {}, allowed is only between 1 and 36",
-            __function, base
-        )
-        .into());
-    }
-
-    // Sign
-    let mut neg = false;
-
-    if with_signs.is_true() {
-        if let Some(ch) = reader.take(|ch: char| ch == '-' || ch == '+') {
-            neg = ch == '-'
-        }
-    }
-
-    if let Some(input) = reader.span(|ch: char| ch.is_digit(base as u32)) {
-        let mut value = BigInt::from(0);
-
-        for dig in input.chars() {
-            value = value * base + dig.to_digit(base as u32).unwrap() as i64;
+    let base = if base.is_void() {
+        None
+    } else {
+        let base = base.to_i64()?;
+        if base < 1 || base > 36 {
+            // maximum radix = 10 digits + 26 letters
+            return Err(format!(
+                "{} base value is {}, allowed is only between 1 and 36",
+                __function, base
+            )
+            .into());
         }
 
-        return Ok(Accept::Push(Capture::Value(
-            crate::value!(if neg { -value } else { value }),
-            None,
-            5,
-        )));
-    }
+        Some(base as u32)
+    };
 
-    Err(Reject::Next)
+    if let Some(int) = if with_signs.is_true() {
+        parse_int_from_iter_with_radix::<BigInt>(context.runtime.reader, base, false)
+    } else {
+        parse_uint_from_iter_with_radix::<BigInt>(context.runtime.reader, base, false)
+    } {
+        Ok(Accept::Push(Capture::Value(crate::value!(int), None, 5)))
+    } else {
+        Err(Reject::Next)
+    }
 });
 
 // Matching 64-bit floats directly
@@ -296,14 +286,14 @@ tokay_token!("Float(with_signs=true)", {
 
     // Sign
     if with_signs.is_true() {
-        reader.take(|ch: char| ch == '-' || ch == '+');
+        reader.once(|ch: char| ch == '-' || ch == '+');
     }
 
     // Integer part
     let has_int = reader.span(|ch: char| ch.is_numeric()).is_some();
 
     // Decimal point
-    if reader.take(|ch: char| ch == '.').is_none() {
+    if reader.once(|ch: char| ch == '.').is_none() {
         return Err(Reject::Next);
     }
 
@@ -316,8 +306,8 @@ tokay_token!("Float(with_signs=true)", {
     let mut range = reader.capture_from(&start);
 
     // Exponential notation
-    if reader.take(|ch: char| ch == 'e' || ch == 'E').is_some() {
-        reader.take(|ch: char| ch == '-' || ch == '+');
+    if reader.once(|ch: char| ch == 'e' || ch == 'E').is_some() {
+        reader.once(|ch: char| ch == '-' || ch == '+');
 
         if reader.span(|ch: char| ch.is_numeric()).is_some() {
             // Extend range when exponentional value could be read!
