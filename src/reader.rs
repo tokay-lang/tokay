@@ -1,5 +1,5 @@
 //! Universal low-level interface to let Tokay read input from different sources.
-
+use num_parse::PeekableIterator;
 use std::io::prelude::*;
 
 /// Position inside a reader, with row and column counting.
@@ -17,6 +17,7 @@ pub type Range = std::ops::Range<usize>;
 pub struct Reader {
     reader: Box<dyn BufRead>, // Reader object to read from
     buffer: String,           // Internal buffer
+    peeked: char,             // Currently peeked char
     offset: Offset,           // Current offset
     eof: bool,                // EOF marker
 }
@@ -27,6 +28,7 @@ impl Reader {
         Self {
             reader,
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
+            peeked: ' ',
             offset: Offset {
                 offset: 0,
                 row: 1,
@@ -48,43 +50,6 @@ impl Reader {
         } else {
             self.eof = true;
             None
-        }
-    }
-
-    pub fn next(&mut self) -> Option<char> {
-        loop {
-            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
-                self.offset.offset += ch.len_utf8();
-
-                if ch == '\n' {
-                    self.offset.row += 1;
-                    self.offset.col = 1;
-                } else {
-                    self.offset.col += 1;
-                }
-
-                return Some(ch);
-            }
-
-            if self.eof {
-                return None;
-            }
-
-            self.read_line();
-        }
-    }
-
-    pub fn peek(&mut self) -> Option<char> {
-        loop {
-            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
-                return Some(ch);
-            }
-
-            if self.eof {
-                return None;
-            }
-
-            self.read_line();
         }
     }
 
@@ -144,12 +109,12 @@ impl Reader {
     }
 
     /// Take one character accepted by callback
-    pub fn take<F>(&mut self, accept: F) -> Option<char>
+    pub fn once<F>(&mut self, accept: F) -> Option<char>
     where
         F: Fn(char) -> bool,
     {
         if let Some(ch) = self.peek() {
-            if accept(ch) {
+            if accept(*ch) {
                 return Some(self.next().unwrap());
             }
         }
@@ -164,12 +129,56 @@ impl Reader {
     {
         let start = self.offset.offset;
 
-        while self.take(accept).is_some() {}
+        while self.once(accept).is_some() {}
 
         if start < self.offset.offset {
             Some(&self.buffer[start..self.offset.offset])
         } else {
             None
+        }
+    }
+}
+
+impl Iterator for Reader {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
+                self.offset.offset += ch.len_utf8();
+
+                if ch == '\n' {
+                    self.offset.row += 1;
+                    self.offset.col = 1;
+                } else {
+                    self.offset.col += 1;
+                }
+
+                return Some(ch);
+            }
+
+            if self.eof {
+                return None;
+            }
+
+            self.read_line();
+        }
+    }
+}
+
+impl PeekableIterator for Reader {
+    fn peek(&mut self) -> Option<&Self::Item> {
+        loop {
+            if let Some(ch) = self.buffer[self.offset.offset..].chars().next() {
+                self.peeked = ch;
+                return Some(&self.peeked);
+            }
+
+            if self.eof {
+                return None;
+            }
+
+            self.read_line();
         }
     }
 }

@@ -3,6 +3,7 @@ use super::{BoxedObject, List, Object, RefValue};
 use crate::value;
 use num::Zero;
 use num_bigint::BigInt;
+use num_parse::*;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
@@ -43,11 +44,7 @@ impl Object for Str {
     }
 
     fn to_i64(&self) -> Result<i64, String> {
-        // todo: JavaScript-style parseInt-like behavior?
-        match self.string.parse::<i64>() {
-            Ok(i) => Ok(i),
-            Err(_) => Ok(0),
-        }
+        Ok(parse_int::<i64>(&self.string).unwrap_or(0))
     }
 
     fn to_f64(&self) -> Result<f64, String> {
@@ -59,11 +56,7 @@ impl Object for Str {
     }
 
     fn to_usize(&self) -> Result<usize, String> {
-        // todo: JavaScript-style parseInt-like behavior?
-        match self.string.parse::<usize>() {
-            Ok(i) => Ok(i),
-            Err(_) => Ok(0),
-        }
+        Ok(parse_uint::<usize>(&self.string).unwrap_or(0))
     }
 
     fn to_string(&self) -> String {
@@ -71,23 +64,7 @@ impl Object for Str {
     }
 
     fn to_bigint(&self) -> Result<BigInt, String> {
-        // JavaScript parseInt-style prefix parsing
-        let mut ret = BigInt::zero();
-        let mut neg = false;
-
-        for (i, digit) in self.string.trim().chars().enumerate() {
-            if i == 0 && (digit == '+' || digit == '-') {
-                neg = digit == '-';
-                continue;
-            }
-
-            match digit.to_digit(10) {
-                Some(digit) => ret = ret * 10 + digit,
-                None => break,
-            }
-        }
-
-        Ok(if neg { -ret } else { ret })
+        Ok(parse_int::<BigInt>(&self.string).unwrap_or(BigInt::zero()))
     }
 }
 
