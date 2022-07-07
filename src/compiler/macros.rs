@@ -78,7 +78,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlAlternation::new(
+            let body = ImlOp::Alt(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -118,7 +118,7 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlAlternation::new(
+            let body = ImlOp::Alt(
                 items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
@@ -149,12 +149,13 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlSequence::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
+                ImlOp::Seq{
+                    seq: items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect(),
+                    framed: true
+                }
             )
         }
     };
@@ -175,7 +176,7 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlAlternation::new(
+                ImlOp::Alt(
                     items.into_iter()
                         .filter(|item| item.is_some())
                         .map(|item| item.unwrap())

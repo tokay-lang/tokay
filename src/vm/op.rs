@@ -12,8 +12,7 @@ use std::rc::Rc;
 /**
 Atomic operations.
 
-Specifies atomic level operations like running a parsable structure or running
-VM code.
+Specifies all atomic level VM code operations to run the Tokay VM.
 */
 #[derive(Debug, Clone)]
 pub enum Op {
@@ -457,8 +456,8 @@ impl Op {
                     let value = &context.runtime.program.statics[*addr];
                     context.push(value.borrow().clone().into())
                 }
-                Op::Push0 => context.push(value!(0 as i64)),
-                Op::Push1 => context.push(value!(1 as i64)),
+                Op::Push0 => context.push(value!(0i64)),
+                Op::Push1 => context.push(value!(1i64)),
                 Op::PushVoid => context.push(value!(void)),
                 Op::PushNull => context.push(value!(null)),
                 Op::PushTrue => context.push(value!(true)),
