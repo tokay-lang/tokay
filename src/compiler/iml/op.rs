@@ -38,8 +38,7 @@ pub enum ImlOp {
         condition: Box<ImlOp>,         // Abort condition
         body: Box<ImlOp>,              // Iterating body
     },
-    Ops(Vec<ImlOp>), // Sequence of ImlOps (DEPRECATED: Use Seq{framed: false} for this)
-    Op(Op),          // VM Operation
+    Op(Op), // VM Operation
 }
 
 impl ImlOp {
@@ -47,7 +46,10 @@ impl ImlOp {
         match ops.len() {
             0 => ImlOp::Nop,
             1 => ops.into_iter().next().unwrap(),
-            _ => ImlOp::Ops(ops),
+            _ => ImlOp::Seq {
+                seq: ops,
+                framed: false,
+            },
         }
     }
 
@@ -218,15 +220,6 @@ impl Compileable for ImlOp {
 
                 ret
             }
-            ImlOp::Ops(ops) => {
-                let mut ret = Vec::new();
-
-                for op in ops.into_iter() {
-                    ret.extend(op.compile(parselet));
-                }
-
-                ret
-            }
             ImlOp::Op(op) => vec![op.clone()],
         }
     }
@@ -285,7 +278,6 @@ impl Compileable for ImlOp {
             }
             ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
             ImlOp::Compileable(compileable) => compileable.resolve(usages),
-            ImlOp::Ops(ops) => ops.iter_mut().map(|op| op.resolve(usages)).collect(),
             _ => {}
         }
     }
@@ -381,24 +373,6 @@ impl Compileable for ImlOp {
                 }
 
                 *consuming = ret.clone();
-
-                ret
-            }
-            ImlOp::Ops(ops) => {
-                let mut ret: Option<Consumable> = None;
-
-                for op in ops.iter_mut() {
-                    if let Some(part) = op.finalize(values, stack) {
-                        ret = if let Some(ret) = ret {
-                            Some(Consumable {
-                                leftrec: ret.leftrec || part.leftrec,
-                                nullable: ret.nullable || part.nullable,
-                            })
-                        } else {
-                            Some(part)
-                        }
-                    }
-                }
 
                 ret
             }
