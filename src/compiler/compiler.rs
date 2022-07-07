@@ -339,7 +339,7 @@ impl Compiler {
                 match ops.len() {
                     0 => ImlOp::Nop,
                     1 => ops.into_iter().next().unwrap(),
-                    _ => ImlOp::Alt(ops),
+                    _ => ImlOp::Alt { alts: ops },
                 }
             }
 

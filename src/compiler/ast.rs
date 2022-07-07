@@ -579,7 +579,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 compiler.pop_block();
 
                 ImlResult::Ops(if body.len() > 1 {
-                    vec![ImlOp::Alt(body)]
+                    vec![ImlOp::Alt { alts: body }]
                 } else {
                     body
                 })
@@ -862,7 +862,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     match body.len() {
                         0 => Op::Nop.into(),
                         1 => body.into_iter().next().unwrap(),
-                        _ => ImlOp::Alt(body),
+                        _ => ImlOp::Alt { alts: body },
                     },
                 );
 

@@ -78,12 +78,12 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlOp::Alt(
-                items.into_iter()
+            let body = ImlOp::Alt{
+                alts: items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect()
-            );
+            };
 
             let mut parselet = $compiler.pop_parselet(
                 None,
@@ -118,12 +118,12 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlOp::Alt(
-                items.into_iter()
+            let body = ImlOp::Alt{
+                alts: items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect()
-            );
+            };
 
             let parselet = $compiler.pop_parselet(
                 None,
@@ -176,12 +176,12 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlOp::Alt(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
+                ImlOp::Alt{
+                    alts: items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
+                }
             )
         }
     };

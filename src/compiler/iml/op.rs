@@ -5,7 +5,7 @@ use super::*;
     Todo / Ideas for this module
 
     - [ ] Usage is integrated into ImlOp
-       - eventually by using Rc<RefCell>?
+      - eventually by using Rc<RefCell>?
     - [ ] Compilable is integrated into ImlOp as full variation
       - [x] Alternation, Sequence, If, Loop
       - Remove of expect, not, peek, repeat as these are replaced by (inline?) generics
@@ -14,31 +14,34 @@ use super::*;
 #[derive(Debug)]
 pub enum ImlOp {
     Nop,                               // Empty operation
+    Op(Op),                            // VM Operation
     Usage(usize),                      // (yet) unresolved usage
     Compileable(Box<dyn Compileable>), // Compileable item (DEPRECATED: Remaining implementors will be replaced by generic parselets)
-    Alt(Vec<ImlOp>),                   // Alternation (Block) of sequences or ops
+    // Alternation (Block) of sequences or ops
+    Alt {
+        alts: Vec<ImlOp>,
+    },
+    // Sequence of ops, optionally framed
     Seq {
-        // Sequence
         seq: Vec<ImlOp>,
         framed: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
                       the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
                       processed, including data changes, which is a wanted behavior. */
     },
+    // Conditional block
     If {
-        // Conditional
-        peek: bool, // Peek test value instead of pop (required to implement the or-operator)
-        test: bool, // Boolean value to test against (true or false)
+        peek: bool,       // Peek test value instead of pop (required to implement the or-operator)
+        test: bool,       // Boolean value to test against (true or false)
         then: Box<ImlOp>, // Conditional code path
         else_: Box<ImlOp>, // Optional code path executed otherwise
     },
+    // Loop construct
     Loop {
-        // Loop
         consuming: Option<Consumable>, // Consumable state: FIXME: Remove and replace asap.
         init: Box<ImlOp>,              // Initial operation
         condition: Box<ImlOp>,         // Abort condition
         body: Box<ImlOp>,              // Iterating body
     },
-    Op(Op), // VM Operation
 }
 
 impl ImlOp {
@@ -70,9 +73,10 @@ impl Compileable for ImlOp {
     fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
         match self {
             ImlOp::Nop => Vec::new(),
+            ImlOp::Op(op) => vec![op.clone()],
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
             ImlOp::Compileable(compileable) => compileable.compile(parselet),
-            ImlOp::Alt(alts) => {
+            ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
                 let mut iter = alts.iter();
                 let mut jumps = Vec::new();
@@ -220,13 +224,14 @@ impl Compileable for ImlOp {
 
                 ret
             }
-            ImlOp::Op(op) => vec![op.clone()],
         }
     }
 
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
         match self {
-            ImlOp::Alt(alts) => {
+            ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
+            ImlOp::Compileable(compileable) => compileable.resolve(usages),
+            ImlOp::Alt { alts } => {
                 for alt in alts {
                     alt.resolve(usages);
                 }
@@ -276,8 +281,6 @@ impl Compileable for ImlOp {
                 condition.resolve(usages);
                 body.resolve(usages);
             }
-            ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
-            ImlOp::Compileable(compileable) => compileable.resolve(usages),
             _ => {}
         }
     }
@@ -288,8 +291,68 @@ impl Compileable for ImlOp {
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
         match self {
+            ImlOp::Op(Op::CallStatic(target)) => {
+                match &values[*target] {
+                    ImlValue::Parselet(parselet) => {
+                        if stack.len() > 0 {
+                            if let Ok(mut parselet) = parselet.try_borrow_mut() {
+                                if parselet.consuming.is_none() {
+                                    return None;
+                                }
+
+                                stack.push((
+                                    *target,
+                                    if let Some(consuming) = parselet.consuming.as_ref() {
+                                        consuming.nullable
+                                    } else {
+                                        false
+                                    },
+                                ));
+                                let ret = parselet.finalize(values, stack);
+                                stack.pop();
+
+                                // --- Incomplete solution for the problem described in test/testindirectleftrec ---
+                                // If left-recursion detected and called parselet is already
+                                // left-recursive, thread currently analyzed parselet as
+                                // not left-recursive here!
+                                /*
+                                if ret.0 && parselet.leftrec {
+                                    ret.0 = false;
+                                }
+                                */
+
+                                ret
+                            } else {
+                                for i in 0..stack.len() {
+                                    if *target == stack[i].0 {
+                                        return Some(Consumable {
+                                            leftrec: i == 0,
+                                            nullable: stack[i].1,
+                                        });
+                                    }
+                                }
+
+                                panic!("Can't find entry for {}", *target)
+                            }
+                        } else {
+                            None
+                        }
+                    }
+
+                    object => {
+                        if object.is_consuming() {
+                            Some(Consumable {
+                                leftrec: false,
+                                nullable: object.is_nullable(),
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                }
+            }
             ImlOp::Compileable(runable) => runable.finalize(values, stack),
-            ImlOp::Alt(alts) => {
+            ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
                 let mut consumes = false;
@@ -375,66 +438,6 @@ impl Compileable for ImlOp {
                 *consuming = ret.clone();
 
                 ret
-            }
-            ImlOp::Op(Op::CallStatic(target)) => {
-                match &values[*target] {
-                    ImlValue::Parselet(parselet) => {
-                        if stack.len() > 0 {
-                            if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                if parselet.consuming.is_none() {
-                                    return None;
-                                }
-
-                                stack.push((
-                                    *target,
-                                    if let Some(consuming) = parselet.consuming.as_ref() {
-                                        consuming.nullable
-                                    } else {
-                                        false
-                                    },
-                                ));
-                                let ret = parselet.finalize(values, stack);
-                                stack.pop();
-
-                                // --- Incomplete solution for the problem described in test/testindirectleftrec ---
-                                // If left-recursion detected and called parselet is already
-                                // left-recursive, thread currently analyzed parselet as
-                                // not left-recursive here!
-                                /*
-                                if ret.0 && parselet.leftrec {
-                                    ret.0 = false;
-                                }
-                                */
-
-                                ret
-                            } else {
-                                for i in 0..stack.len() {
-                                    if *target == stack[i].0 {
-                                        return Some(Consumable {
-                                            leftrec: i == 0,
-                                            nullable: stack[i].1,
-                                        });
-                                    }
-                                }
-
-                                panic!("Can't find entry for {}", *target)
-                            }
-                        } else {
-                            None
-                        }
-                    }
-
-                    object => {
-                        if object.is_consuming() {
-                            Some(Consumable {
-                                leftrec: false,
-                                nullable: object.is_nullable(),
-                            })
-                        } else {
-                            None
-                        }
-                    }
-                }
             }
 
             _ => None,
