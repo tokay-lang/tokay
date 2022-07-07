@@ -8,15 +8,18 @@ mod parselet;
 mod peek;
 mod repeat;
 mod result;
+mod usage;
 mod value;
 
-pub use expect::*;
-pub use not::*;
-pub use op::*;
-pub use parselet::*;
-pub use peek::*;
-pub use repeat::*;
+
+pub(crate) use expect::*;
+pub(crate) use not::*;
+pub(crate) use op::*;
+pub(crate) use parselet::*;
+pub(crate) use peek::*;
+pub(crate) use repeat::*;
 pub(super) use result::*;
+pub(crate) use usage::*;
 pub(super) use value::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

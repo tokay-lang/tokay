@@ -5,9 +5,7 @@ mod compiler;
 mod iml;
 mod macros;
 mod parser;
-mod usage;
 
 pub use compiler::*;
 use iml::*;
 use parser::*;
-use usage::*;

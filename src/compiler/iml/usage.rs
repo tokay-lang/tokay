@@ -3,6 +3,7 @@
 use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
+use crate::Compiler;
 
 /** Unresolved symbols and calls */
 #[derive(Debug)]
