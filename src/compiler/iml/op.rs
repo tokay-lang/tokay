@@ -237,32 +237,6 @@ impl Compileable for ImlOp {
                 }
             }
             ImlOp::Seq { seq, .. } => {
-                /*
-                    Sequences are *the* special case for symbol resolving.
-                    When a resolve replaces one Op by multiple Ops, and this
-                    happens inside of a sequence, then the entire sequence
-                    must be extended in-place.
-
-                    So `a B c D e` may become `a x c y z e`.
-                */
-                let mut end = seq.len();
-                let mut i = 0;
-
-                while i < end {
-                    let item = seq.get_mut(i).unwrap();
-
-                    if let ImlOp::Usage(usage) = *item {
-                        let n = usages[usage].len();
-
-                        seq.splice(i..i + 1, usages[usage].drain(..));
-
-                        i += n;
-                        end = seq.len();
-                    } else {
-                        i += 1
-                    }
-                }
-
                 for item in seq.iter_mut() {
                     item.resolve(usages);
                 }
