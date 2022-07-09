@@ -710,3 +710,10 @@ fn test_parselet_repeat() {
 
     // todo: More examples here please!
 }
+
+#[test]
+fn test_anonymous_parselet() {
+    assert_eq!(crate::run("@{ Int }", "123"), Ok(Some(crate::value!(123))));
+
+    // todo: More examples here please!
+}
