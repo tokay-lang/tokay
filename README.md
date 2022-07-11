@@ -1,15 +1,27 @@
-# Tokay
+<div align="center">
+    <img src="https://raw.githubusercontent.com/tokay-lang/tokay-artwork/main/banner-with-darkmode-styling.svg" alt="The Tokay Logo" title="Tokay Programming Language" style="width: 80%"><br>
+    <a href="https://github.com/tokay-lang/tokay/actions/workflows/main.yml">
+        <img src="https://github.com/tokay-lang/tokay/actions/workflows/main.yml/badge.svg">
+    </a>
+    <a href="https://crates.io/crates/tokay">
+        <img src="https://img.shields.io/crates/v/tokay" alt="Version badge for crates.io" title="crates.io/tokay">
+    </a>
+    <a href="https://docs.rs/tokay/latest/tokay">
+        <img src="https://img.shields.io/docsrs/tokay" alt="Badge of docs.rs" title="docs.rs/tokay">
+    </a>
+    <a href="https://tokay.dev/">
+        <img src="https://img.shields.io/website?down_color=red&down_message=offline&up_color=green&up_message=online&url=https%3A%2F%2Ftokay.dev%2F" alt="Indicator for tokay.dev Website availability" title="tokay.dev">
+    </a>
+    <a href="https://opensource.org/licenses/MIT">
+        <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License badge" title="MIT License">
+    </a>
+</div>
 
-![Tokay Logo](assets/tokay.svg)
-[![Build status](https://github.com/tokay-lang/tokay/actions/workflows/main.yml/badge.svg)](https://github.com/tokay-lang/tokay/actions/workflows/main.yml)
-[![docs.rs](https://img.shields.io/docsrs/tokay)](https://docs.rs/tokay/latest/tokay/)
-[![crates.io](https://img.shields.io/crates/v/tokay)](https://crates.io/crates/tokay)
-[![tokay.dev](https://img.shields.io/website?down_color=red&down_message=offline&up_color=green&up_message=online&url=https%3A%2F%2Ftokay.dev%2F)](https://tokay.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+# Tokay
 
 Tokay is a programming language designed for ad-hoc parsing.
 
-> Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete features and planned concepts. Please [help to improve it](#contribute)!
+> Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete or experimental features and planned concepts. Be part of Tokay's ongoing development, and [contribute](#contribute)!
 
 ## About
 
@@ -191,13 +203,13 @@ This repository holds all required source files to provide Tokay with examples.
 
 ```
 .                  # Build scripts, Cargo.toml, etc.
-├── assets         # Asset files (logo)
 ├── examples       # Example programs
-├── src            # Tokay source, includes primary modules
-│   ├── compiler   # Compiler
-│   ├── value      # Values, objects and built-ins
-│   └── vm         # Virtual stack machine
-└── tests          # Contains some examples used by test suite
+├── macros         # Source of the tokay-macros crate required for building
+├── src            # Tokay's source code
+│   ├── compiler   # Compiler source
+│   ├── value      # Object system source
+│   └── vm         # Virtual machine source
+└── tests          # Some use-case examples required by the test suite
 ```
 
 ## Contribute
