@@ -399,9 +399,20 @@ impl Parser {
         // Parselet
 
         (Parselet = {
-            ["@", _, (opt Arguments), Block, (call ast[(value "value_parselet")])],
-            ["@", _, (opt Arguments), Token, (call ast[(value "value_parselet")])]
+            ["@", _, (opt Generics), _, (opt Arguments), Expression, (call ast[(value "value_parselet")])]
         }),
+
+        // Parselet: Generics
+
+        (Generic = {
+            [T_Identifier, _, (opt [':', _, (expect Atomic)]), (call ast[(value "gen")])]
+        }),
+
+        (Generics = {
+            ["<", _, (kle [Generic, _, (opt [',', _])]), (expect ">"), _]
+        }),
+
+        // Parselet: Arguments
 
         (Argument = {
             [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call ast[(value "arg")])]

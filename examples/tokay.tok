@@ -283,10 +283,7 @@ LogicalOr : @{
 }
 
 Expression : @{
-    Lvalue _ '=' not {
-        '>'
-        '='
-    } _ expect Expression  ast("assign_hold")
+    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign_hold")
     Lvalue _ '+=' _ expect Expression  ast("assign_add_hold")
     Lvalue _ '-=' _ expect Expression  ast("assign_sub_hold")
     Lvalue _ '*=' _ expect Expression  ast("assign_mul_hold")
@@ -311,10 +308,7 @@ Statement : @{
     'reject' _SeparatedIdentifier  ast("op_reject")
     'repeat' _SeparatedIdentifier Expression?  ast("op_repeat")
     'return' _SeparatedIdentifier Expression?  ast("op_accept")
-    Lvalue _ '=' not {
-        '>'
-        '='
-    } _ expect Expression  ast("assign")
+    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign")
     Lvalue _ '+=' _ expect Expression  ast("assign_add")
     Lvalue _ '-=' _ expect Expression  ast("assign_sub")
     Lvalue _ '*=' _ expect Expression  ast("assign_mul")
@@ -325,21 +319,17 @@ Statement : @{
 # Parselet
 
 Parselet : @{
-    '@' _ Generics? _ Arguments? Block  ast("value_parselet")
-    '@' _ Generics? _ Arguments? Token1  ast("value_parselet")
+    '@' _ Generics? _ Arguments? Expression  ast("value_parselet")
 }
 
 ## Parselet: Generics
 
 Generic : @{
-    T_Identifier _ {
-        ':' _ expect Atomic
-        Void
-    }  ast("gen")
+    T_Identifier _ (':' _ expect Atomic)? ast("gen")
 }
 
 Generics : @{
-    '<' _ (Generic (',' _)?)+ _ expect '>' _
+    '<' _ (Generic (',' _)?)* _ expect '>' _
 }
 
 ## Parselet: Arguments
