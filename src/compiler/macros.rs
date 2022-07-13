@@ -30,6 +30,7 @@ macro_rules! tokay {
                 None,
                 Some("__main__".to_string()),
                 Vec::new(),
+                Vec::new(),
                 main.unwrap_or(ImlOp::Nop)
             );
 
@@ -89,6 +90,7 @@ macro_rules! tokay {
                 None,
                 Some("_".to_string()),
                 Vec::new(),
+                Vec::new(),
                 body
             );
 
@@ -128,6 +130,7 @@ macro_rules! tokay {
             let parselet = $compiler.pop_parselet(
                 None,
                 Some(stringify!($name).to_string()),
+                Vec::new(),
                 Vec::new(),
                 body
             );

@@ -38,8 +38,8 @@ pub(super) enum Scope {
 
 A tokay compiler initializes a Tokay parser for later re-use when called multiple times.
 
-The compiler can be set into an interactive mode so that statics, variables and constants once built
-won't be removed and can be accessed later on. This is useful in REPL mode.
+The compiler works in a mode so that statics, variables and constants once built
+won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
     parser: Option<parser::Parser>,   // Internal Tokay parser
@@ -51,9 +51,11 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    /** Initialize new compiler.
+    /** Initialize a new compiler.
 
-    By default, the prelude should be loaded, otherwise several standard parselets are not available. */
+    By default, the prelude should be loaded, otherwise several standard parselets are not available.
+    Ignoring the prelude is only useful on bootstrap currently.
+    */
     pub fn new(with_prelude: bool) -> Self {
         let mut compiler = Self {
             parser: None,
@@ -244,6 +246,7 @@ impl Compiler {
             values
                 .into_iter()
                 .map(|value| match value {
+                    ImlValue::Undetermined(_) => todo!(),
                     ImlValue::Parselet(parselet) => {
                         RefValue::from(parselet.borrow().into_parselet())
                     }
@@ -319,6 +322,7 @@ impl Compiler {
         &mut self,
         offset: Option<Offset>,
         name: Option<String>,
+        gen: Vec<(String, Option<usize>)>,
         sig: Vec<(String, Option<usize>)>,
         body: ImlOp,
     ) -> ImlParselet {
@@ -346,7 +350,7 @@ impl Compiler {
             let mut parselet = ImlParselet::new(
                 offset,
                 name,
-                Vec::new(), // constants
+                gen, // constants
                 sig,
                 variables.len(),
                 // Ensure that begin and end are blocks.

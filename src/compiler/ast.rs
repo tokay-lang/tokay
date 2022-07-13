@@ -161,79 +161,127 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.push_parselet();
 
-            let children = node["children"].borrow();
+            // Generic signature
+            let mut gen: Vec<(String, Option<usize>)> = Vec::new();
+            let mut gen_names = HashSet::new();
 
-            let (args, body) = if let Some(children) = children.object::<List>() {
-                assert!(children.len() == 2);
-                (Some(&children[0]), children[1].borrow())
-            } else {
-                (None, children)
-            };
-
-            // Create signature
+            // Function signature
             let mut sig: Vec<(String, Option<usize>)> = Vec::new();
             let mut sig_names = HashSet::new();
 
-            if let Some(args) = args {
-                for node in List::from(args).iter() {
-                    let node = node.borrow();
-                    let node = node.object::<Dict>().unwrap();
+            // Traverse the AST
+            let mut sigs = List::from(node["children"].clone());
+            let body = sigs.pop().unwrap();
 
-                    let children = List::from(node["children"].clone());
-                    let ident = children[0].borrow().object::<Dict>().unwrap()["value"].to_string();
+            for node in sigs.into_iter() {
+                let node = node.borrow();
+                let node = node.object::<Dict>().unwrap();
 
-                    // Check for correct identifier semantics
-                    if !ident.chars().nth(0).unwrap().is_lowercase() {
-                        compiler.errors.push(
-                            Error::new(
+                let emit = node["emit"].borrow();
+                let emit = emit.object::<Str>().unwrap().as_str();
+
+                let children = List::from(node["children"].clone());
+                let ident = children[0].borrow().object::<Dict>().unwrap()["value"].to_string();
+
+                match emit {
+                    "gen" => {
+                        // check if identifier was not provided twice
+                        if gen_names.contains(&ident) {
+                            compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
-                                format!("Variable identifier '{}' invalid; Use identifier starting in lower-case, e.g. '{}{}'",
-                                ident, &ident[0..1].to_lowercase(), &ident[1..])
-                            )
-                        );
+                                format!("Generic '{}' already given in signature before", ident),
+                            ));
+
+                            continue;
+                        } else {
+                            gen_names.insert(ident.clone());
+                        }
+
+                        compiler.set_constant(&ident, ImlValue::Undetermined(ident.to_string()));
+
+                        assert!(children.len() <= 2);
+                        let default = if children.len() == 2 {
+                            let default = children[1].borrow();
+                            let value = traverse_node_static(
+                                compiler,
+                                Some(&ident),
+                                default.object::<Dict>().unwrap(),
+                            );
+                            Some(compiler.define_value(value))
+                        } else {
+                            None
+                        };
+
+                        gen.push((ident.to_string(), default));
+                        //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
+                    "arg" => {
+                        let first = ident.chars().nth(0).unwrap();
 
-                    // check if identifier was not provided twice
-                    if sig_names.contains(&ident) {
-                        compiler.errors.push(Error::new(
-                            traverse_node_offset(node),
-                            format!("Identifier '{}' already given in signature before", ident),
-                        ));
+                        // Check for correct identifier semantics
+                        if !first.is_lowercase() {
+                            compiler.errors.push(
+                                Error::new(
+                                    traverse_node_offset(node),
+                                    if first == '_' {
+                                        format!(
+                                            "Argument named '{}' invalid; May not start with '{}'",
+                                            ident, first
+                                        )
+                                    }
+                                    else {
+                                        format!(
+                                            "Argument named '{}' invalid; Use a name starting in lower-case, e.g. '{}{}'",
+                                            ident, &ident[0..1].to_lowercase(), &ident[1..]
+                                        )
+                                    }
+                                )
+                            );
+                        }
 
-                        continue;
-                    } else {
-                        sig_names.insert(ident.clone());
+                        // check if identifier was not provided twice
+                        if sig_names.contains(&ident) {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!("Argument '{}' already given in signature before", ident),
+                            ));
+
+                            continue;
+                        } else {
+                            sig_names.insert(ident.clone());
+                        }
+
+                        compiler.new_local(&ident);
+
+                        assert!(children.len() <= 2);
+                        let default = if children.len() == 2 {
+                            let default = children[1].borrow();
+                            let value = traverse_node_static(
+                                compiler,
+                                Some(&ident),
+                                default.object::<Dict>().unwrap(),
+                            );
+                            Some(compiler.define_value(value))
+                        } else {
+                            None
+                        };
+
+                        sig.push((ident.to_string(), default));
+                        //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
-
-                    compiler.new_local(&ident);
-
-                    assert!(children.len() <= 2);
-                    let default = if children.len() == 2 {
-                        let default = children[1].borrow();
-                        let value = traverse_node_static(
-                            compiler,
-                            Some(&ident),
-                            default.object::<Dict>().unwrap(),
-                        );
-                        Some(compiler.define_value(value))
-                    } else {
-                        None
-                    };
-
-                    sig.push((ident.to_string(), default));
-                    //println!("{} {} {:?}", emit.to_string(), ident, default);
+                    _ => unreachable!(),
                 }
             }
 
-            //println!("sig = {:?}", sig);
-
-            // Body
-            let body = traverse_node(compiler, &body.object::<Dict>().unwrap());
+            let body = traverse_node(compiler, body.borrow().object::<Dict>().unwrap());
             let body = ImlOp::from_vec(body.into_ops(compiler, true));
 
-            compiler
-                .pop_parselet(traverse_node_offset(node), None, sig, body)
-                .into()
+            let ret = compiler
+                .pop_parselet(traverse_node_offset(node), None, gen, sig, body)
+                .into();
+
+            //println!("parselet = {:#?}", ret);
+            return ret;
         }
         _ => unimplemented!("unhandled value node {}", emit),
     }
@@ -254,14 +302,17 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
                 traverse_node_offset(node),
                 None,
                 Vec::new(),
+                Vec::new(),
                 ImlOp::from(Op::Nop),
             );
             value!(void).into()
         }
+        // Defined parselet or value
         ImlResult::Value(value) => {
             compiler.pop_parselet(
                 traverse_node_offset(node),
                 None,
+                Vec::new(),
                 Vec::new(),
                 ImlOp::from(Op::Nop),
             );
@@ -275,6 +326,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
 
             value
         }
+        // Anything other code becomes its own parselet without any signature.
         other => {
             let ops = match other {
                 ImlResult::Ops(ops) => ops,
@@ -285,6 +337,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
                 .pop_parselet(
                     traverse_node_offset(node),
                     lvalue.and_then(|lvalue| Some(lvalue.to_string())),
+                    Vec::new(),
                     Vec::new(),
                     ImlOp::from_vec(ops),
                 )
@@ -590,64 +643,60 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
 
         // call -----------------------------------------------------------
         "call" => {
-            let children = List::from(&node["children"]);
-
             let mut ops = Vec::new();
             let mut args = 0;
             let mut nargs = 0;
 
-            if children.len() > 1 {
-                let params = List::from(&children[1]);
+            // Traverse call parameters from AST
+            let children = List::from(&node["children"]);
 
-                for param in params.iter() {
-                    let param = param.borrow();
-                    let param = param.object::<Dict>().unwrap();
+            for param in &children[1..] {
+                let param = param.borrow();
+                let param = param.object::<Dict>().unwrap();
 
-                    let emit = param["emit"].borrow();
+                let emit = param["emit"].borrow();
 
-                    match emit.object::<Str>().unwrap().as_str() {
-                        "param" => {
-                            if nargs > 0 {
-                                compiler.errors.push(Error::new(
-                                    traverse_node_offset(node),
-                                    format!(
-                                        "Sequencial arguments need to be specified before named arguments."
-                                    ),
-                                ));
+                match emit.object::<Str>().unwrap().as_str() {
+                    "param" => {
+                        if nargs > 0 {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!(
+                                    "Sequencial arguments need to be specified before named arguments."
+                                ),
+                            ));
 
-                                continue;
-                            }
-
-                            ops.extend(
-                                traverse_node_or_list(compiler, &param["children"])
-                                    .into_ops(compiler, true),
-                            );
-                            args += 1;
+                            continue;
                         }
 
-                        "param_named" => {
-                            let children = List::from(&param["children"]);
-
-                            ops.extend(
-                                traverse_node_or_list(compiler, &children[1])
-                                    .into_ops(compiler, true),
-                            );
-
-                            let ident = children[0].borrow();
-                            let ident = ident.object::<Dict>().unwrap();
-                            let ident = ident["value"].borrow();
-                            let ident = ident.object::<Str>().unwrap().as_str();
-
-                            ops.push(
-                                Op::LoadStatic(compiler.define_value(RefValue::from(ident).into()))
-                                    .into(),
-                            );
-
-                            nargs += 1;
-                        }
-
-                        other => unimplemented!("Unhandled parameter type {:?}", other),
+                        ops.extend(
+                            traverse_node_or_list(compiler, &param["children"])
+                                .into_ops(compiler, true),
+                        );
+                        args += 1;
                     }
+
+                    "param_named" => {
+                        let children = List::from(&param["children"]);
+
+                        ops.extend(
+                            traverse_node_or_list(compiler, &children[1]).into_ops(compiler, true),
+                        );
+
+                        let ident = children[0].borrow();
+                        let ident = ident.object::<Dict>().unwrap();
+                        let ident = ident["value"].borrow();
+                        let ident = ident.object::<Str>().unwrap().as_str();
+
+                        ops.push(
+                            Op::LoadStatic(compiler.define_value(RefValue::from(ident).into()))
+                                .into(),
+                        );
+
+                        nargs += 1;
+                    }
+
+                    other => unimplemented!("Unhandled parameter type {:?}", other),
                 }
             }
 
@@ -858,6 +907,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                 let main = compiler.pop_parselet(
                     None,
                     Some("__main__".to_string()),
+                    Vec::new(),
                     Vec::new(),
                     match body.len() {
                         0 => Op::Nop.into(),
@@ -1377,7 +1427,7 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-tokay_function!("ast(emit, value=void)", {
+tokay_function!("ast(emit, value=void, flatten=true)", {
     let context = context.unwrap();
 
     let mut ret = Dict::new();
@@ -1392,10 +1442,23 @@ tokay_function!("ast(emit, value=void)", {
     };
 
     if let Some(value) = value {
-        // List or Dict values are classified as child nodes
-        if value.borrow().object::<List>().is_some() || value.borrow().object::<Dict>().is_some() {
+        // Lists can be flattened
+        if value.borrow().object::<List>().is_some() {
+            ret.insert(
+                "children".to_string(),
+                if flatten.is_true() {
+                    List::list_flatten(vec![value], None).unwrap()
+                } else {
+                    value.clone()
+                },
+            );
+        }
+        // Dicts can be used directly as children
+        else if value.borrow().object::<Dict>().is_some() {
             ret.insert("children".to_string(), value.clone());
-        } else {
+        }
+        // Otherwise this is a value
+        else {
             ret.insert("value".to_string(), value.clone());
         }
     }
