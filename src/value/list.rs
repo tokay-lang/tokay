@@ -51,6 +51,12 @@ impl List {
         }
     }
 
+    pub fn with_capacity(len: usize) -> Self {
+        Self {
+            list: InnerList::with_capacity(len),
+        }
+    }
+
     tokay_method!("list(*args)", {
         let list = if args.len() == 1 {
             List::from(args[0].clone())
@@ -69,6 +75,26 @@ impl List {
         } else {
             1
         }))
+    });
+
+    tokay_method!("list_flatten(list)", {
+        if let Some(list) = list.borrow().object::<List>() {
+            let mut ret = List::with_capacity(list.len());
+
+            for item in list.iter() {
+                if let Some(list) = item.borrow().object::<List>() {
+                    for item in list.iter() {
+                        ret.push(item.clone());
+                    }
+                } else {
+                    ret.push(item.clone());
+                }
+            }
+
+            return Ok(RefValue::from(ret));
+        }
+
+        Ok(RefValue::from(crate::value!([list])))
     });
 
     tokay_method!("list_iadd(list, append)", {
