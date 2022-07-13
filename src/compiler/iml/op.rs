@@ -4,11 +4,15 @@ use super::*;
 /*
     Todo / Ideas for this module
 
-    - [ ] Usage is integrated into ImlOp
+    - [ ] Usage is integrated into ImlOp?
       - eventually by using Rc<RefCell>?
     - [ ] Compilable is integrated into ImlOp as full variation
       - [x] Alternation, Sequence, If, Loop
-      - Remove of expect, not, peek, repeat as these are replaced by (inline?) generics
+      - [ ] Replace expect, not, peek, repeat by their generic counterparts
+        - [ ] Thinking about inline-parselets, whose VM code will be inserted right in place (or already on ImlOp level)
+    - [ ] Finalization must be re-defined, as this is only possible on consumable constructs
+      - find left-recursions
+      - find nullables
 */
 
 #[derive(Debug)]

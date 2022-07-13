@@ -37,7 +37,10 @@ impl Usage {
         match self {
             Usage::Load { name, offset: _ } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                    // Undetermined usages need to remain untouched.
+                    if !matches!(value, ImlValue::Undetermined(_)) {
+                        ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                    }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     ret.push(Op::LoadFast(addr).into())
                 } else if let Some(addr) = compiler.get_global(&name) {
@@ -47,14 +50,17 @@ impl Usage {
 
             Usage::CallOrCopy { name, offset } => {
                 if let Some(value) = compiler.get_constant(&name) {
-                    if value.is_callable(true) {
-                        if let Some(offset) = offset {
-                            ret.push(Op::Offset(Box::new(*offset)).into());
-                        }
+                    // Undetermined usages need to remain untouched.
+                    if !matches!(value, ImlValue::Undetermined(_)) {
+                        if value.is_callable(true) {
+                            if let Some(offset) = offset {
+                                ret.push(Op::Offset(Box::new(*offset)).into());
+                            }
 
-                        ret.push(Op::CallStatic(compiler.define_value(value)).into());
-                    } else {
-                        ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                            ret.push(Op::CallStatic(compiler.define_value(value)).into());
+                        } else {
+                            ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                        }
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if let Some(offset) = offset {
@@ -81,22 +87,24 @@ impl Usage {
             } => {
                 // Resolve constants
                 if let Some(value) = compiler.get_constant(&name) {
-                    if let Some(offset) = offset {
-                        ret.push(Op::Offset(Box::new(*offset)).into());
-                    }
-
-                    let addr = compiler.define_value(value);
-
-                    if *args == 0 && *nargs == 0 {
-                        ret.push(Op::CallStatic(addr).into());
-                    } else if *args > 0 && *nargs == 0 {
+                    if !matches!(value, ImlValue::Undetermined(_)) {
                         if let Some(offset) = offset {
                             ret.push(Op::Offset(Box::new(*offset)).into());
                         }
 
-                        ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
-                    } else {
-                        ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
+                        let addr = compiler.define_value(value);
+
+                        if *args == 0 && *nargs == 0 {
+                            ret.push(Op::CallStatic(addr).into());
+                        } else if *args > 0 && *nargs == 0 {
+                            if let Some(offset) = offset {
+                                ret.push(Op::Offset(Box::new(*offset)).into());
+                            }
+
+                            ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
+                        } else {
+                            ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
+                        }
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if let Some(offset) = offset {

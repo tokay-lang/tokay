@@ -8,6 +8,7 @@ use crate::value::{Object, RefValue};
 /** Compile-time constant value */
 #[derive(Clone, Debug, PartialEq)]
 pub enum ImlValue {
+    Undetermined(String),
     Parselet(Rc<RefCell<ImlParselet>>),
     Value(RefValue),
 }
@@ -36,12 +37,14 @@ impl ImlValue {
                 }
             }
             ImlValue::Value(value) => value.is_callable(without_arguments),
+            _ => unreachable!(),
         }
     }
 
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
+            ImlValue::Undetermined(ident) => crate::utils::identifier_is_consumable(ident),
             ImlValue::Parselet(parselet) => parselet.borrow().consuming.is_some(),
             ImlValue::Value(value) => value.is_consuming(),
         }
@@ -58,6 +61,7 @@ impl ImlValue {
                 }
             }
             ImlValue::Value(value) => value.is_nullable(),
+            _ => panic!("Cannot perform finalization on undetermined values"),
         }
     }
 }
@@ -65,6 +69,7 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Undetermined(s) => write!(f, "{}", s),
             Self::Parselet(p) => write!(
                 f,
                 "{}",

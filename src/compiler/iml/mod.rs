@@ -11,7 +11,6 @@ mod result;
 mod usage;
 mod value;
 
-
 pub(crate) use expect::*;
 pub(crate) use not::*;
 pub(crate) use op::*;
