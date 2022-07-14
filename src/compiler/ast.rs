@@ -713,7 +713,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                     compiler.mark_consuming();
                 }
 
-                ops.extend(
+                ops.push(
                     Usage::Call {
                         name: ident.to_string(),
                         args,

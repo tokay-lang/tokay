@@ -259,7 +259,7 @@ macro_rules! tokay {
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
 
-            items.extend(item);
+            items.push(item);
 
             //println!("call = {} {:?}", stringify!($ident), items);
             Some(ImlOp::from_vec(items))
@@ -277,7 +277,7 @@ macro_rules! tokay {
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
 
-            Some(ImlOp::from_vec(item))
+            Some(item)
         }
     };
 
@@ -290,8 +290,7 @@ macro_rules! tokay {
                 offset: None
             }.resolve_or_dispose(&mut $compiler);
 
-            assert!(item.len() == 1); // Can only process statics here!
-            Some(item.into_iter().next().unwrap())
+            Some(item)
         }
     };
 

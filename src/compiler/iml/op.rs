@@ -1,25 +1,31 @@
 /*! Intermediate code representation. */
+
 use super::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /*
     Todo / Ideas for this module
 
-    - [ ] Usage is integrated into ImlOp?
-      - eventually by using Rc<RefCell>?
+    - [x] Usage is integrated into ImlOp, eventually by using Rc<RefCell>?
     - [ ] Compilable is integrated into ImlOp as full variation
       - [x] Alternation, Sequence, If, Loop
       - [ ] Replace expect, not, peek, repeat by their generic counterparts
         - [ ] Thinking about inline-parselets, whose VM code will be inserted right in place (or already on ImlOp level)
+    - [ ] ImlValue nodes (currently Op::LoadStatic, Op::CallStatic) to make them static once used, and not before?
     - [ ] Finalization must be re-defined, as this is only possible on consumable constructs
       - find left-recursions
       - find nullables
 */
 
+pub type SharedImlOp = Rc<RefCell<Box<ImlOp>>>;
+
 #[derive(Debug)]
 pub enum ImlOp {
     Nop,                               // Empty operation
     Op(Op),                            // VM Operation
-    Usage(usize),                      // (yet) unresolved usage
+    Shared(SharedImlOp), // Shared ImlOp tree usable from various locations during compilation
+    Usage(Usage),        // (yet) unresolved usage
     Compileable(Box<dyn Compileable>), // Compileable item (DEPRECATED: Remaining implementors will be replaced by generic parselets)
     // Alternation (Block) of sequences or ops
     Alt {
@@ -78,6 +84,7 @@ impl Compileable for ImlOp {
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Op(op) => vec![op.clone()],
+            ImlOp::Shared(op) => op.borrow().compile(parselet),
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
             ImlOp::Compileable(compileable) => compileable.compile(parselet),
             ImlOp::Alt { alts } => {
@@ -232,6 +239,7 @@ impl Compileable for ImlOp {
     }
 
     fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
+        /*
         match self {
             ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
             ImlOp::Compileable(compileable) => compileable.resolve(usages),
@@ -261,6 +269,7 @@ impl Compileable for ImlOp {
             }
             _ => {}
         }
+        */
     }
 
     fn finalize(
@@ -329,6 +338,7 @@ impl Compileable for ImlOp {
                     }
                 }
             }
+            ImlOp::Shared(op) => op.borrow_mut().finalize(values, stack),
             ImlOp::Compileable(runable) => runable.finalize(values, stack),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;

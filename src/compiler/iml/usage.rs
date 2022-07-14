@@ -4,10 +4,11 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::Compiler;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /** Unresolved symbols and calls */
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum Usage {
     // Qualified symbol load
     Load {
@@ -26,12 +27,10 @@ pub enum Usage {
         nargs: usize,
         offset: Option<Offset>,
     },
-    // Error during resolve
-    Error(Error),
 }
 
 impl Usage {
-    pub fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<Vec<ImlOp>> {
+    pub fn try_resolve(&mut self, compiler: &mut Compiler) -> Option<ImlOp> {
         let mut ret: Vec<ImlOp> = Vec::new();
 
         match self {
@@ -138,26 +137,33 @@ impl Usage {
                     }
                 }
             }
-
-            Usage::Error(_) => {
-                // Just ignore already errored usage.
-            }
         }
 
         if ret.len() > 0 {
-            Some(ret)
+            Some(ImlOp::from_vec(ret))
         } else {
             None
         }
     }
 
     /// Try to resolve immediatelly, otherwise push a ImlOp::Usage placeholder for later resolve.
-    pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> Vec<ImlOp> {
+    pub fn resolve_or_dispose(mut self, compiler: &mut Compiler) -> ImlOp {
         if let Some(res) = self.try_resolve(compiler) {
             res
         } else {
-            compiler.usages.push(Err(self));
-            vec![ImlOp::Usage(compiler.usages.len() - 1)]
+            let usage = Rc::new(RefCell::new(Box::new(ImlOp::Usage(self))));
+            compiler.usages.push(usage.clone());
+            ImlOp::Shared(usage)
+        }
+    }
+
+    /// Does this Usage refer to a consumable constant?
+    pub fn is_consuming(&self) -> bool {
+        match self {
+            Usage::CallOrCopy { name, .. } | Usage::Call { name, .. } => {
+                crate::utils::identifier_is_consumable(name)
+            }
+            _ => false,
         }
     }
 }

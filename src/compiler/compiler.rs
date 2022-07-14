@@ -1,6 +1,4 @@
 //! Tokay compiler interface
-use std::collections::HashMap;
-use std::io::BufReader;
 
 use super::*;
 use crate::builtin::Builtin;
@@ -8,6 +6,8 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
+use std::collections::HashMap;
+use std::io::BufReader;
 
 /** Compiler symbolic scope.
 
@@ -42,12 +42,12 @@ The compiler works in a mode so that statics, variables and constants once built
 won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,   // Internal Tokay parser
-    pub debug: u8,                    // Compiler debug mode
-    pub(super) values: Vec<ImlValue>, // Constant values and parselets created during compile
-    pub(super) scopes: Vec<Scope>,    // Current compilation scopes
-    pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
-    pub(super) errors: Vec<Error>,    // Collected errors during compilation
+    parser: Option<parser::Parser>,      // Internal Tokay parser
+    pub debug: u8,                       // Compiler debug mode
+    pub(super) values: Vec<ImlValue>,    // Constant values and parselets created during compile
+    pub(super) scopes: Vec<Scope>,       // Current compilation scopes
+    pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
+    pub(super) errors: Vec<Error>,       // Collected errors during compilation
 }
 
 impl Compiler {
@@ -131,36 +131,32 @@ impl Compiler {
         let mut errors: Vec<Error> = Vec::new();
 
         // Check and report any unresolved usages
-        let mut usages = self
-            .usages
-            .drain(..)
-            .map(|usage| {
+        // todo: Fix differently, e.g. during Parselet compilation?
+        for usage in self.usages.drain(..) {
+            let usage = usage.borrow();
+
+            if let ImlOp::Usage(usage) = &**usage {
                 match usage {
-                    Ok(usage) => usage,
-                    Err(usage) => {
-                        let error = match usage {
-                            Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => {
-                                Error::new(offset, format!("Use of unresolved symbol '{}'", name))
-                            }
+                    Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => errors
+                        .push(Error::new(
+                            *offset,
+                            format!("Use of unresolved symbol '{}'", name),
+                        )),
 
-                            Usage::Call {
-                                name,
-                                args: _,
-                                nargs: _,
-                                offset,
-                            } => {
-                                Error::new(offset, format!("Call to unresolved symbol '{}'", name))
-                            }
-
-                            Usage::Error(error) => error,
-                        };
-
-                        errors.push(error);
-                        vec![ImlOp::Nop] // Dummy instruction
+                    Usage::Call {
+                        name,
+                        args: _,
+                        nargs: _,
+                        offset,
+                    } => {
+                        errors.push(Error::new(
+                            *offset,
+                            format!("Call to unresolved symbol '{}'", name),
+                        ));
                     }
-                }
-            })
-            .collect();
+                };
+            }
+        }
 
         // Obtain intermediate values collected during compilation
         let values = self.values.clone();
@@ -191,7 +187,7 @@ impl Compiler {
 
                     // Resolve usages
                     if loops == 0 {
-                        parselet.resolve(&mut usages);
+                        //fixme? parselet.resolve(&mut usages);
                     }
 
                     // Don't finalize any non-consuming parselet
@@ -262,26 +258,29 @@ impl Compiler {
         Ok(program)
     }
 
-    /// Resolves usages from current scope
+    /// Tries to resolves open usages from the current scope
     pub(super) fn resolve(&mut self) {
         if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<Result<Vec<ImlOp>, Usage>> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<SharedImlOp> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again
-            for usage in usages.into_iter() {
-                match usage {
-                    Err(mut usage) => {
+            for op in usages.into_iter() {
+                {
+                    let mut op = op.borrow_mut();
+
+                    if let ImlOp::Usage(usage) = &mut **op {
                         if let Some(res) = usage.try_resolve(self) {
-                            self.usages.push(Ok(res))
-                        } else {
-                            self.usages.push(Err(usage))
+                            // Usage resolving was successfull, replace Usage by result.
+                            *op = Box::new(res);
+                            continue;
                         }
                     }
-                    Ok(res) => self.usages.push(Ok(res)),
                 }
+
+                self.usages.push(op); // For later resolve.
             }
         }
     }

@@ -59,7 +59,7 @@ impl ImlResult {
                     Usage::Load { name, offset }
                 };
 
-                usage.resolve_or_dispose(compiler)
+                vec![usage.resolve_or_dispose(compiler)] // fixme: Refactor Vec<ImlOp>...
             }
             ImlResult::Ops(ops) => {
                 // Filter any Op::Nop from the ops.
