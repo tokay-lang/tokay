@@ -176,7 +176,7 @@ impl Compiler {
             Maybe there will be a better method for this detection in future.
         */
         let mut changes = true;
-        let mut loops = 0;
+        //let mut loops = 0;
 
         while changes {
             changes = false;
@@ -184,11 +184,6 @@ impl Compiler {
             for i in 0..values.len() {
                 if let ImlValue::Parselet(parselet) = &values[i] {
                     let mut parselet = parselet.borrow_mut();
-
-                    // Resolve usages
-                    if loops == 0 {
-                        //fixme? parselet.resolve(&mut usages);
-                    }
 
                     // Don't finalize any non-consuming parselet
                     if parselet.consuming.is_none() {
@@ -207,7 +202,7 @@ impl Compiler {
                 }
             }
 
-            loops += 1;
+            //loops += 1;
         }
 
         /*

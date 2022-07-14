@@ -68,13 +68,6 @@ impl ImlParselet {
         )
     }
 
-    /// Resolve any unresolved usages inside the intermediate parselet
-    pub fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        self.begin.resolve(usages);
-        self.end.resolve(usages);
-        self.body.resolve(usages);
-    }
-
     pub fn finalize(
         &mut self,
         values: &Vec<ImlValue>,

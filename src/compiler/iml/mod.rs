@@ -28,9 +28,6 @@ pub struct Consumable {
 }
 
 pub trait Compileable: std::fmt::Debug + std::fmt::Display {
-    /** Resolve any unresolved Usages. */
-    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>);
-
     /** Finalize program regarding grammar view flags;
     This function is called from top of each parselet to detect
     both left-recursive and nullable behaviors. */

@@ -21,10 +21,6 @@ impl ImlPeek {
 }
 
 impl Compileable for ImlPeek {
-    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        self.body.resolve(usages);
-    }
-
     fn finalize(
         &mut self,
         values: &Vec<ImlValue>,

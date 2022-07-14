@@ -238,40 +238,6 @@ impl Compileable for ImlOp {
         }
     }
 
-    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        /*
-        match self {
-            ImlOp::Usage(usage) => *self = Self::from_vec(usages[*usage].drain(..).collect()),
-            ImlOp::Compileable(compileable) => compileable.resolve(usages),
-            ImlOp::Alt { alts } => {
-                for alt in alts {
-                    alt.resolve(usages);
-                }
-            }
-            ImlOp::Seq { seq, .. } => {
-                for item in seq.iter_mut() {
-                    item.resolve(usages);
-                }
-            }
-            ImlOp::If { then, else_, .. } => {
-                then.resolve(usages);
-                else_.resolve(usages);
-            }
-            ImlOp::Loop {
-                init,
-                condition,
-                body,
-                ..
-            } => {
-                init.resolve(usages);
-                condition.resolve(usages);
-                body.resolve(usages);
-            }
-            _ => {}
-        }
-        */
-    }
-
     fn finalize(
         &mut self,
         values: &Vec<ImlValue>,

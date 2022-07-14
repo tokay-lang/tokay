@@ -1,7 +1,6 @@
 //! Usages are placeholders to symbols which are replaced later by VM code during compilation
 
 use super::*;
-use crate::error::Error;
 use crate::reader::Offset;
 use crate::Compiler;
 use std::cell::RefCell;

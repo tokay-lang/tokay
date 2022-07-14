@@ -19,10 +19,6 @@ impl ImlExpect {
 }
 
 impl Compileable for ImlExpect {
-    fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        self.body.resolve(usages);
-    }
-
     fn finalize(
         &mut self,
         values: &Vec<ImlValue>,
