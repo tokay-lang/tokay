@@ -135,7 +135,7 @@ impl Compiler {
         for usage in self.usages.drain(..) {
             let usage = usage.borrow();
 
-            if let ImlOp::Usage(usage) = &**usage {
+            if let ImlOp::Usage(usage) = &*usage {
                 match usage {
                     Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => errors
                         .push(Error::new(
@@ -271,10 +271,10 @@ impl Compiler {
                 {
                     let mut op = op.borrow_mut();
 
-                    if let ImlOp::Usage(usage) = &mut **op {
+                    if let ImlOp::Usage(usage) = &mut *op {
                         if let Some(res) = usage.try_resolve(self) {
                             // Usage resolving was successfull, replace Usage by result.
-                            *op = Box::new(res);
+                            *op = res;
                             continue;
                         }
                     }

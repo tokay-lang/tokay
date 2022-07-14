@@ -151,7 +151,7 @@ impl Usage {
         if let Some(res) = self.try_resolve(compiler) {
             res
         } else {
-            let usage = Rc::new(RefCell::new(Box::new(ImlOp::Usage(self))));
+            let usage = Rc::new(RefCell::new(ImlOp::Usage(self)));
             compiler.usages.push(usage.clone());
             ImlOp::Shared(usage)
         }

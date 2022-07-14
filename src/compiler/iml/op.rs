@@ -18,7 +18,7 @@ use std::rc::Rc;
       - find nullables
 */
 
-pub type SharedImlOp = Rc<RefCell<Box<ImlOp>>>;
+pub type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 #[derive(Debug)]
 pub enum ImlOp {
