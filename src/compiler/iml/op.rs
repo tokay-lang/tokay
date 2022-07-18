@@ -12,7 +12,7 @@ use std::rc::Rc;
       - [x] Alternation, Sequence, If, Loop
       - [ ] Replace expect, not, peek, repeat by their generic counterparts
         - [ ] Thinking about inline-parselets, whose VM code will be inserted right in place (or already on ImlOp level)
-    - [ ] ImlValue nodes (currently Op::LoadStatic, Op::CallStatic) to make them static once used, and not before?
+    - [ ] Integrate ImlResult into ImlOp
     - [ ] Finalization must be re-defined, as this is only possible on consumable constructs
       - find left-recursions
       - find nullables
@@ -22,15 +22,18 @@ pub type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 #[derive(Debug)]
 pub enum ImlOp {
-    Nop,                               // Empty operation
-    Op(Op),                            // VM Operation
-    Shared(SharedImlOp), // Shared ImlOp tree usable from various locations during compilation
+    Nop,                 // Empty operation
+    Op(Op),              // VM Operation
+    Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
     Usage(Usage),        // (yet) unresolved usage
-    Compileable(Box<dyn Compileable>), // Compileable item (DEPRECATED: Remaining implementors will be replaced by generic parselets)
+    Load(ImlValue),      // Qualified value load
+    Call(ImlValue),      // Qualified value call
+
     // Alternation (Block) of sequences or ops
     Alt {
         alts: Vec<ImlOp>,
     },
+
     // Sequence of ops, optionally framed
     Seq {
         seq: Vec<ImlOp>,
@@ -38,6 +41,7 @@ pub enum ImlOp {
                       the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
                       processed, including data changes, which is a wanted behavior. */
     },
+
     // Conditional block
     If {
         peek: bool,       // Peek test value instead of pop (required to implement the or-operator)
@@ -45,12 +49,38 @@ pub enum ImlOp {
         then: Box<ImlOp>, // Conditional code path
         else_: Box<ImlOp>, // Optional code path executed otherwise
     },
+
     // Loop construct
     Loop {
         consuming: Option<Consumable>, // Consumable state: FIXME: Remove and replace asap.
         init: Box<ImlOp>,              // Initial operation
         condition: Box<ImlOp>,         // Abort condition
         body: Box<ImlOp>,              // Iterating body
+    },
+
+    // v--- below variants are being replaced by Tokay generics as soon as they are implemented ---v //
+
+    // Expect (deprecated!)
+    Expect {
+        body: Box<ImlOp>,
+        msg: Option<String>,
+    },
+
+    // Not (deprecated!)
+    Not {
+        body: Box<ImlOp>,
+    },
+
+    // Peek (deprecated!)
+    Peek {
+        body: Box<ImlOp>,
+    },
+
+    // Repeat (deprecated!)
+    Repeat {
+        body: Box<ImlOp>,
+        min: usize,
+        max: usize,
     },
 }
 
@@ -67,33 +97,99 @@ impl ImlOp {
     }
 
     pub fn into_kleene(self) -> Self {
-        ImlRepeat::kleene(self)
+        Self::Repeat {
+            body: Box::new(self),
+            min: 0,
+            max: 0,
+        }
     }
 
     pub fn into_positive(self) -> Self {
-        ImlRepeat::positive(self)
+        Self::Repeat {
+            body: Box::new(self),
+            min: 1,
+            max: 0,
+        }
     }
 
     pub fn into_optional(self) -> Self {
-        ImlRepeat::optional(self)
+        Self::Repeat {
+            body: Box::new(self),
+            min: 0,
+            max: 1,
+        }
     }
-}
 
-impl Compileable for ImlOp {
-    fn compile(&self, parselet: &ImlParselet) -> Vec<Op> {
+    pub fn into_peek(self) -> Self {
+        Self::Peek {
+            body: Box::new(self),
+        }
+    }
+
+    pub fn into_not(self) -> Self {
+        Self::Not {
+            body: Box::new(self),
+        }
+    }
+
+    pub fn into_expect(self, msg: Option<String>) -> Self {
+        Self::Expect {
+            body: Box::new(self),
+            msg,
+        }
+    }
+
+    pub(super) fn compile(&self, compiler: &mut Compiler) -> Vec<Op>
+/* todo: extend a provided ops rather than returning a Vec */ {
+        /*
+        // Temporary helper function to get clear with ImlOp::Call and ImlOp::Value
+        fn push_value(value: &ImlValue, compiler: &mut Compiler) -> Op {
+            // Primary value pushes can directly be made by specific VM commands
+            if let ImlValue::Value(value) = &value {
+                match &*value.borrow() {
+                    Value::Void => return Op::PushVoid,
+                    Value::Null => return Op::PushNull,
+                    Value::True => return Op::PushTrue,
+                    Value::False => return Op::PushFalse,
+                    Value::Int(i) => match i.to_i64() {
+                        Some(0) => return Op::Push0,
+                        Some(1) => return Op::Push1,
+                        _ => {},
+                    },
+                    _ => {},
+                }
+            }
+
+            Op::LoadStatic(compiler.define_value(value))
+        }
+        */
+
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Op(op) => vec![op.clone()],
-            ImlOp::Shared(op) => op.borrow().compile(parselet),
+            ImlOp::Shared(op) => op.borrow().compile(compiler),
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
-            ImlOp::Compileable(compileable) => compileable.compile(parselet),
+            ImlOp::Call(value) => {
+                todo!();
+                /*
+                if value.is_callable(true) {
+                    vec![Op::CallStatic(compiler.define_value(value))]
+                } else {
+                    vec![push_value(value, compiler)]
+                }
+                */
+            }
+            ImlOp::Load(value) => {
+                todo!()
+                //vec![push_value(value, compiler)]
+            }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
                 let mut iter = alts.iter();
                 let mut jumps = Vec::new();
 
                 while let Some(item) = iter.next() {
-                    let alt = item.compile(parselet);
+                    let alt = item.compile(compiler);
 
                     if iter.len() > 0 {
                         ret.push(Op::Fuse(alt.len() + 3));
@@ -122,7 +218,7 @@ impl Compileable for ImlOp {
                 let mut ret = Vec::new();
 
                 for item in seq.iter() {
-                    let mut ops = item.compile(parselet);
+                    let mut ops = item.compile(compiler);
 
                     // In case there is an inline operation within a sequence, its result must be duplicated
                     // to stay consistent inside of the sequence's result.
@@ -167,7 +263,7 @@ impl Compileable for ImlOp {
                 }
 
                 // Then-part
-                let then = then.compile(parselet);
+                let then = then.compile(compiler);
 
                 let backpatch = ret.len();
                 ret.push(Op::Nop); // Backpatch operation placeholder
@@ -181,7 +277,7 @@ impl Compileable for ImlOp {
 
                 if !*peek {
                     // Else-part
-                    let else_ = else_.compile(parselet);
+                    let else_ = else_.compile(compiler);
 
                     if !else_.is_empty() {
                         ret.push(Op::Forward(else_.len() + 1));
@@ -209,15 +305,15 @@ impl Compileable for ImlOp {
             } => {
                 let mut ret = Vec::new();
 
-                ret.extend(init.compile(parselet));
+                ret.extend(init.compile(compiler));
 
-                let mut repeat = condition.compile(parselet);
+                let mut repeat = condition.compile(compiler);
                 if !repeat.is_empty() {
                     repeat.push(Op::ForwardIfTrue(2));
                     repeat.push(Op::Break);
                 }
 
-                repeat.extend(body.compile(parselet));
+                repeat.extend(body.compile(compiler));
 
                 ret.push(Op::Loop(
                     repeat.len() + if consuming.is_some() { 3 } else { 2 },
@@ -235,10 +331,111 @@ impl Compileable for ImlOp {
 
                 ret
             }
+            // DEPRECATED BELOW!!!
+            ImlOp::Expect { body, msg } => {
+                let code = body.compile(compiler);
+
+                let mut ret = vec![Op::Frame(code.len() + 2)];
+
+                ret.extend(code);
+
+                ret.extend(vec![
+                    Op::Forward(2),
+                    Op::Error(Some(if let Some(msg) = msg {
+                        msg.clone()
+                    } else {
+                        format!("Expecting {:?}", body)
+                    })),
+                    Op::Close,
+                ]);
+
+                ret
+            }
+            ImlOp::Not { body } => {
+                let mut ret = Vec::new();
+
+                let body = body.compile(compiler);
+
+                ret.push(Op::Frame(body.len() + 3));
+                ret.extend(body);
+                ret.push(Op::Close);
+                ret.push(Op::Next);
+
+                ret
+            }
+            ImlOp::Peek { body } => {
+                let mut ret = Vec::new();
+
+                ret.push(Op::Frame(0));
+                ret.extend(body.compile(compiler));
+                ret.push(Op::Reset);
+                ret.push(Op::Close);
+
+                ret
+            }
+            ImlOp::Repeat { body, min, max } => {
+                let body = body.compile(compiler);
+                let body_len = body.len();
+
+                let mut ret = Vec::new();
+
+                match (min, max) {
+                    (0, 0) => {
+                        // Kleene
+                        ret.extend(vec![
+                            Op::Frame(0),            // The overall capture
+                            Op::Frame(body_len + 5), // The fused capture for repetition
+                        ]);
+                        ret.extend(body); // here comes the body
+                        ret.extend(vec![
+                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
+                            Op::Forward(3),           // otherwise leave the loop
+                            Op::Commit,
+                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Close,
+                            Op::Collect(1, 5), // collect only values with severity > 0
+                            Op::Close,
+                        ]);
+                    }
+                    (1, 0) => {
+                        // Positive
+                        ret.push(Op::Frame(0)); // The overall capture
+                        ret.extend(body.clone()); // here comes the body for the first time
+                        ret.extend(vec![
+                            Op::ForwardIfConsumed(2), // If nothing was consumed, then...
+                            Op::Next,                 //...reject
+                            Op::Frame(body_len + 5),  // The fused capture for repetition
+                        ]);
+                        ret.extend(body); // here comes the body again inside the repetition
+                        ret.extend(vec![
+                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
+                            Op::Forward(3),           // otherwise leave the loop
+                            Op::Commit,
+                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Close,
+                            Op::Collect(1, 5), // collect only values with severity > 0
+                            Op::Close,
+                        ]);
+                    }
+                    (0, 1) => {
+                        // Optional
+                        ret.push(Op::Frame(body_len + 2));
+                        ret.extend(body);
+                        ret.push(Op::Collect(1, 5)); // collect only values with severity > 0
+                        ret.push(Op::Close);
+                    }
+                    (1, 1) => {}
+                    (_, _) => unimplemented!(
+                        "ImlOp::Repeat construct with min/max configuration > 1 not implemented yet"
+                    ),
+                };
+
+                ret
+            }
         }
     }
 
-    fn finalize(
+    pub(super) fn finalize(
         &mut self,
         values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
@@ -305,7 +502,6 @@ impl Compileable for ImlOp {
                 }
             }
             ImlOp::Shared(op) => op.borrow_mut().finalize(values, stack),
-            ImlOp::Compileable(runable) => runable.finalize(values, stack),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
@@ -394,16 +590,12 @@ impl Compileable for ImlOp {
                 ret
             }
 
-            _ => None,
-        }
-    }
-}
+            // DEPRECATED BELOW!!!
+            ImlOp::Expect { body, .. } | ImlOp::Repeat { body, .. } => body.finalize(values, stack),
+            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(values, stack),
 
-impl std::fmt::Display for ImlOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImlOp::Compileable(p) => write!(f, "{}", p),
-            op => write!(f, "Op {:?}", op),
+            // default case
+            _ => None,
         }
     }
 }

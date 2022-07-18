@@ -1175,7 +1175,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                         "pos" => op.into_positive(),
                         "kle" => op.into_kleene(),
                         "opt" => op.into_optional(),
-                        "peek" => ImlPeek::new(op),
+                        "peek" => op.into_peek(),
                         "expect" => {
                             // Just give some helpful information here for most cases;
                             // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
@@ -1185,9 +1185,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlResult {
                                 None
                             };
 
-                            ImlExpect::new(op, msg)
+                            op.into_expect(msg)
                         }
-                        "not" => ImlNot::new(op),
+                        "not" => op.into_not(),
                         _ => unreachable!(),
                     }
                 }

@@ -233,13 +233,15 @@ impl Compiler {
         }
 
         // Compile values into a program
+        let mut fake = Compiler::new(false); // todo: Fake compiler instance, not in use right now.
+
         let program = Program::new(
             values
                 .into_iter()
                 .map(|value| match value {
                     ImlValue::Undetermined(_) => todo!(),
                     ImlValue::Parselet(parselet) => {
-                        RefValue::from(parselet.borrow().into_parselet())
+                        RefValue::from(parselet.borrow().into_parselet(&mut fake))
                     }
                     ImlValue::Value(value) => value,
                 })
@@ -487,7 +489,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value+`
-                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 1, 0).into_op(),
+                ImlOp::Op(Op::CallStatic(self.define_value(value)).into()).into_positive(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -511,7 +513,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value?`
-                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 0, 1).into_op(),
+                ImlOp::Op(Op::CallStatic(self.define_value(value)).into()).into_optional(),
             );
 
             parselet.consuming = Some(Consumable {

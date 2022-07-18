@@ -206,27 +206,24 @@ macro_rules! tokay {
 
     // Not
     ( $compiler:expr, (not $item:tt) ) => {
-        Some(ImlNot::new(tokay!($compiler, $item).unwrap()))
+        Some(tokay!($compiler, $item).unwrap().into_not())
     };
 
     // Peek
     ( $compiler:expr, (peek $item:tt) ) => {
-        Some(ImlPeek::new(tokay!($compiler, $item).unwrap()))
+        Some(tokay!($compiler, $item).unwrap().into_peek())
     };
 
     // Expect
     ( $compiler:expr, (expect $item:tt) ) => {
         Some(
-            ImlExpect::new(
-                tokay!($compiler, $item).unwrap(),
-                Some(format!("Expecting {}", stringify!($item)))
-            )
+            tokay!($compiler, $item).unwrap().into_expect(Some(format!("Expecting {}", stringify!($item))))
         )
     };
 
     // Expect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
+        Some(tokay!($compiler, $item).unwrap().into_expect(Some($msg.to_string())))
     };
 
     // Value

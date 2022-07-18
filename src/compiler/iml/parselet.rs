@@ -51,7 +51,10 @@ impl ImlParselet {
     }
 
     /// Turns an intermediate parselet in to a fixed Parselet
-    pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
+    pub fn into_parselet(
+        &self, /* fixme: change to self without & later on... */
+        compiler: &mut Compiler,
+    ) -> Parselet {
         Parselet::new(
             self.name.clone(),
             if let Some(Consumable { leftrec, .. }) = self.consuming {
@@ -62,9 +65,9 @@ impl ImlParselet {
             self.severity,
             self.signature.clone(),
             self.locals,
-            self.begin.compile(&self),
-            self.end.compile(&self),
-            self.body.compile(&self),
+            self.begin.compile(compiler),
+            self.end.compile(compiler),
+            self.body.compile(compiler),
         )
     }
 
