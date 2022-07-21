@@ -3,14 +3,12 @@ pub use crate::vm::*;
 
 mod op;
 mod parselet;
-mod result;
 mod usage;
 mod value;
 
 use super::Compiler;
 pub(crate) use op::*;
 pub(crate) use parselet::*;
-pub(super) use result::*;
 pub(crate) use usage::*;
 pub(super) use value::*;
 

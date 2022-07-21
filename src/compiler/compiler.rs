@@ -67,7 +67,9 @@ impl Compiler {
         };
 
         // Compile with the default prelude
-        if with_prelude {
+        if with_prelude && false
+        /* temporary disabled */
+        {
             compiler
                 .compile_from_str(include_str!("../prelude.tok"))
                 .unwrap(); // this should panic in case of an error!
@@ -103,7 +105,7 @@ impl Compiler {
             ast::print(&ast);
         }
 
-        ast::traverse(self, &ast);
+        let ret = ast::traverse(self, &ast);
 
         if self.errors.len() > 0 {
             for error in &self.errors {
@@ -111,6 +113,15 @@ impl Compiler {
             }
 
             return Err(self.errors.drain(..).collect());
+        }
+
+        // COMPILE INTO TEMPORARY FAKE COMPILER
+        println!("ret = {:#?}", ret);
+        if let ImlOp::Call(ImlValue::Parselet(main)) = ret {
+            let mut fake = Compiler::new(false);
+            let main = main.borrow().into_parselet(&mut fake);
+            println!("  values = {:?}", fake.values);
+            println!("  main   = {:?}", main);
         }
 
         Ok(())
@@ -318,8 +329,8 @@ impl Compiler {
         &mut self,
         offset: Option<Offset>,
         name: Option<String>,
-        gen: Vec<(String, Option<usize>)>,
-        sig: Vec<(String, Option<usize>)>,
+        gen: Vec<(String, Option<ImlValue>)>,
+        sig: Vec<(String, Option<ImlValue>)>,
         body: ImlOp,
     ) -> ImlParselet {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
@@ -489,7 +500,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value+`
-                ImlOp::Op(Op::CallStatic(self.define_value(value)).into()).into_positive(),
+                ImlOp::Call(value).into_positive(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -498,7 +509,7 @@ impl Compiler {
             });
             parselet.severity = 0;
 
-            value = parselet.into();
+            value = ImlValue::from(parselet);
 
             // Insert "__" as new constant
             secondary = Some(("__", value.clone()));
@@ -513,7 +524,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value?`
-                ImlOp::Op(Op::CallStatic(self.define_value(value)).into()).into_optional(),
+                ImlOp::Call(value).into_optional(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -522,7 +533,7 @@ impl Compiler {
             });
             parselet.severity = 0;
 
-            value = parselet.into();
+            value = ImlValue::from(parselet);
 
             // Insert "_" afterwards
         }

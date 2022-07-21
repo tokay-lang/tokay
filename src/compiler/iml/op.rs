@@ -1,6 +1,8 @@
 /*! Intermediate code representation. */
 
 use super::*;
+use crate::{Object, RefValue, Value};
+use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -8,7 +10,7 @@ use std::rc::Rc;
     Todo / Ideas for this module
 
     - [x] Usage is integrated into ImlOp, eventually by using Rc<RefCell>?
-    - [ ] Compilable is integrated into ImlOp as full variation
+    - [x] Compilable is integrated into ImlOp as full variation
       - [x] Alternation, Sequence, If, Loop
       - [ ] Replace expect, not, peek, repeat by their generic counterparts
         - [ ] Thinking about inline-parselets, whose VM code will be inserted right in place (or already on ImlOp level)
@@ -141,7 +143,6 @@ impl ImlOp {
 
     pub(super) fn compile(&self, compiler: &mut Compiler) -> Vec<Op>
 /* todo: extend a provided ops rather than returning a Vec */ {
-        /*
         // Temporary helper function to get clear with ImlOp::Call and ImlOp::Value
         fn push_value(value: &ImlValue, compiler: &mut Compiler) -> Op {
             // Primary value pushes can directly be made by specific VM commands
@@ -154,15 +155,14 @@ impl ImlOp {
                     Value::Int(i) => match i.to_i64() {
                         Some(0) => return Op::Push0,
                         Some(1) => return Op::Push1,
-                        _ => {},
+                        _ => {}
                     },
-                    _ => {},
+                    _ => {}
                 }
             }
 
-            Op::LoadStatic(compiler.define_value(value))
+            Op::LoadStatic(compiler.define_value(value.clone()))
         }
-        */
 
         match self {
             ImlOp::Nop => Vec::new(),
@@ -170,18 +170,14 @@ impl ImlOp {
             ImlOp::Shared(op) => op.borrow().compile(compiler),
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
             ImlOp::Call(value) => {
-                todo!();
-                /*
                 if value.is_callable(true) {
-                    vec![Op::CallStatic(compiler.define_value(value))]
+                    vec![Op::CallStatic(compiler.define_value(value.clone()))]
                 } else {
                     vec![push_value(value, compiler)]
                 }
-                */
             }
             ImlOp::Load(value) => {
-                todo!()
-                //vec![push_value(value, compiler)]
+                vec![push_value(value, compiler)]
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
@@ -597,6 +593,22 @@ impl ImlOp {
             // default case
             _ => None,
         }
+    }
+
+    /** Returns a value to operate with or evaluate during compile-time.
+
+    The function will only return Ok(Value) when the static_expression_evaluation-feature
+    is enabled, it is ImlOp::Load and the value is NOT a callable! */
+    pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
+        if cfg!(feature = "static_expression_evaluation") {
+            if let Self::Load(ImlValue::Value(value)) = self {
+                if !value.is_callable(true) {
+                    return Ok(value.clone().into());
+                }
+            }
+        }
+
+        Err(())
     }
 }
 

@@ -7,12 +7,12 @@ use crate::value::Parselet;
 #[derive(Debug)]
 /// Intermediate parselet
 pub struct ImlParselet {
-    pub offset: Option<Offset>,                  // Offset of definition
-    pub consuming: Option<Consumable>,           // Consumable state
-    pub severity: u8,                            // Capture push severity
-    pub name: Option<String>,                    // Parselet's name from source (for debugging)
-    pub constants: Vec<(String, Option<usize>)>, // Constant signature with default constants; generic parselet when set.
-    pub signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
+    pub offset: Option<Offset>,                     // Offset of definition
+    pub consuming: Option<Consumable>,              // Consumable state
+    pub severity: u8,                               // Capture push severity
+    pub name: Option<String>,                       // Parselet's name from source (for debugging)
+    pub constants: Vec<(String, Option<ImlValue>)>, // Constant signature with default constants; generic parselet when set.
+    pub signature: Vec<(String, Option<ImlValue>)>, // Argument signature with default arguments
     locals: usize, // Total number of local variables present (including arguments)
     begin: ImlOp,  // Begin-operations
     end: ImlOp,    // End-operations
@@ -24,8 +24,8 @@ impl ImlParselet {
     pub fn new(
         offset: Option<Offset>,
         name: Option<String>,
-        constants: Vec<(String, Option<usize>)>,
-        signature: Vec<(String, Option<usize>)>,
+        constants: Vec<(String, Option<ImlValue>)>,
+        signature: Vec<(String, Option<ImlValue>)>,
         locals: usize,
         begin: ImlOp,
         end: ImlOp,
@@ -63,7 +63,19 @@ impl ImlParselet {
                 None
             },
             self.severity,
-            self.signature.clone(),
+            self.signature
+                .iter()
+                .map(|var_value| {
+                    (
+                        var_value.0.clone(),
+                        if let Some(value) = &var_value.1 {
+                            Some(compiler.define_value(value.clone()))
+                        } else {
+                            None
+                        },
+                    )
+                })
+                .collect(),
             self.locals,
             self.begin.compile(compiler),
             self.end.compile(compiler),
