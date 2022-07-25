@@ -1,7 +1,7 @@
 /*! Intermediate code representation. */
 
 use super::*;
-use crate::{Object, RefValue, Value};
+use crate::{Object, Program, RefValue, Value};
 use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -24,12 +24,12 @@ pub type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 #[derive(Debug)]
 pub enum ImlOp {
-    Nop,                 // Empty operation
-    Op(Op),              // VM Operation
+    Nop,                         // Empty operation
+    Op(Op),                      // VM Operation
     Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
     Usage(Usage),        // (yet) unresolved usage
     Load(ImlValue),      // Qualified value load
-    Call(ImlValue),      // Qualified value call
+    Call(ImlValue, usize, bool), // Qualified value call
 
     // Alternation (Block) of sequences or ops
     Alt {
@@ -141,10 +141,10 @@ impl ImlOp {
         }
     }
 
-    pub(super) fn compile(&self, compiler: &mut Compiler) -> Vec<Op>
+    pub(super) fn compile(&self, module: &mut Program) -> Vec<Op>
 /* todo: extend a provided ops rather than returning a Vec */ {
         // Temporary helper function to get clear with ImlOp::Call and ImlOp::Value
-        fn push_value(value: &ImlValue, compiler: &mut Compiler) -> Op {
+        fn push_value(value: &ImlValue, module: &mut Program) -> Op {
             // Primary value pushes can directly be made by specific VM commands
             if let ImlValue::Value(value) = &value {
                 match &*value.borrow() {
@@ -161,23 +161,27 @@ impl ImlOp {
                 }
             }
 
-            Op::LoadStatic(compiler.define_value(value.clone()))
+            Op::LoadStatic(module.define_static(value.clone().unwrap()))
         }
 
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Op(op) => vec![op.clone()],
-            ImlOp::Shared(op) => op.borrow().compile(compiler),
+            ImlOp::Shared(op) => op.borrow().compile(module),
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
-            ImlOp::Call(value) => {
-                if value.is_callable(true) {
-                    vec![Op::CallStatic(compiler.define_value(value.clone()))]
+            ImlOp::Call(value, args, nargs) => {
+                let addr = module.define_static(value.clone().unwrap());
+
+                vec![if *args == 0 && !*nargs {
+                    Op::CallStatic(addr)
+                } else if *args > 0 && !*nargs {
+                    Op::CallStaticArg(Box::new((addr, *args)))
                 } else {
-                    vec![push_value(value, compiler)]
-                }
+                    Op::CallStaticArgNamed(Box::new((addr, *args)))
+                }]
             }
             ImlOp::Load(value) => {
-                vec![push_value(value, compiler)]
+                vec![push_value(value, module)]
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
@@ -185,7 +189,7 @@ impl ImlOp {
                 let mut jumps = Vec::new();
 
                 while let Some(item) = iter.next() {
-                    let alt = item.compile(compiler);
+                    let alt = item.compile(module);
 
                     if iter.len() > 0 {
                         ret.push(Op::Fuse(alt.len() + 3));
@@ -214,7 +218,7 @@ impl ImlOp {
                 let mut ret = Vec::new();
 
                 for item in seq.iter() {
-                    let mut ops = item.compile(compiler);
+                    let mut ops = item.compile(module);
 
                     // In case there is an inline operation within a sequence, its result must be duplicated
                     // to stay consistent inside of the sequence's result.
@@ -259,7 +263,7 @@ impl ImlOp {
                 }
 
                 // Then-part
-                let then = then.compile(compiler);
+                let then = then.compile(module);
 
                 let backpatch = ret.len();
                 ret.push(Op::Nop); // Backpatch operation placeholder
@@ -273,7 +277,7 @@ impl ImlOp {
 
                 if !*peek {
                     // Else-part
-                    let else_ = else_.compile(compiler);
+                    let else_ = else_.compile(module);
 
                     if !else_.is_empty() {
                         ret.push(Op::Forward(else_.len() + 1));
@@ -301,15 +305,15 @@ impl ImlOp {
             } => {
                 let mut ret = Vec::new();
 
-                ret.extend(init.compile(compiler));
+                ret.extend(init.compile(module));
 
-                let mut repeat = condition.compile(compiler);
+                let mut repeat = condition.compile(module);
                 if !repeat.is_empty() {
                     repeat.push(Op::ForwardIfTrue(2));
                     repeat.push(Op::Break);
                 }
 
-                repeat.extend(body.compile(compiler));
+                repeat.extend(body.compile(module));
 
                 ret.push(Op::Loop(
                     repeat.len() + if consuming.is_some() { 3 } else { 2 },
@@ -329,7 +333,7 @@ impl ImlOp {
             }
             // DEPRECATED BELOW!!!
             ImlOp::Expect { body, msg } => {
-                let code = body.compile(compiler);
+                let code = body.compile(module);
 
                 let mut ret = vec![Op::Frame(code.len() + 2)];
 
@@ -350,7 +354,7 @@ impl ImlOp {
             ImlOp::Not { body } => {
                 let mut ret = Vec::new();
 
-                let body = body.compile(compiler);
+                let body = body.compile(module);
 
                 ret.push(Op::Frame(body.len() + 3));
                 ret.extend(body);
@@ -363,14 +367,14 @@ impl ImlOp {
                 let mut ret = Vec::new();
 
                 ret.push(Op::Frame(0));
-                ret.extend(body.compile(compiler));
+                ret.extend(body.compile(module));
                 ret.push(Op::Reset);
                 ret.push(Op::Close);
 
                 ret
             }
             ImlOp::Repeat { body, min, max } => {
-                let body = body.compile(compiler);
+                let body = body.compile(module);
                 let body_len = body.len();
 
                 let mut ret = Vec::new();
@@ -611,6 +615,16 @@ impl ImlOp {
         Err(())
     }
 }
+
+/*
+impl std::fmt::Debug for ImlOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+
+        }
+    }
+}
+*/
 
 impl From<Op> for ImlOp {
     fn from(op: Op) -> Self {

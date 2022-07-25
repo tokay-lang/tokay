@@ -34,8 +34,12 @@ macro_rules! tokay {
                 main.unwrap_or(ImlOp::Nop)
             );
 
-            compiler.define_value(parselet.into());  // Define main parselet
+            let mut module = Program::new(Vec::new());
 
+            println!("parselet = {:?}", parselet);
+            parselet.into_parselet(&mut module);
+
+            /*
             match compiler.finalize() {
                 Ok(program) => {
                     if compiler.debug > 0 {
@@ -51,6 +55,8 @@ macro_rules! tokay {
                     panic!("Errors in compile!");
                 }
             }
+            */
+            module
         }
     };
 
@@ -228,13 +234,13 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::from(Op::LoadStatic($compiler.define_value($crate::value!($value).into()))))
+        Some(ImlOp::Load(ImlValue::from($crate::value!($value))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
         {
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(RefValue::from($token).into()))))
+            Some(ImlOp::Call(ImlValue::from(RefValue::from($token)), 0, false))
         }
     };
 
@@ -295,7 +301,7 @@ macro_rules! tokay {
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = RefValue::from(Token::Match($literal.to_string()));
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
+            Some(ImlOp::from(ImlOp::Call(ImlValue::from(token), 0, false)))
         }
     };
 
@@ -303,7 +309,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = RefValue::from(Token::Touch($literal.to_string()));
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
+            Some(ImlOp::from(ImlOp::Call(ImlValue::from(token), 0, false)))
         }
     };
 

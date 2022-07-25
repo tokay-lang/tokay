@@ -53,7 +53,7 @@ impl ImlParselet {
     /// Turns an intermediate parselet in to a fixed Parselet
     pub fn into_parselet(
         &self, /* fixme: change to self without & later on... */
-        compiler: &mut Compiler,
+        module: &mut Program,
     ) -> Parselet {
         Parselet::new(
             self.name.clone(),
@@ -69,7 +69,7 @@ impl ImlParselet {
                     (
                         var_value.0.clone(),
                         if let Some(value) = &var_value.1 {
-                            Some(compiler.define_value(value.clone()))
+                            Some(module.define_static(value.clone().unwrap()))
                         } else {
                             None
                         },
@@ -77,9 +77,9 @@ impl ImlParselet {
                 })
                 .collect(),
             self.locals,
-            self.begin.compile(compiler),
-            self.end.compile(compiler),
-            self.body.compile(compiler),
+            self.begin.compile(module),
+            self.end.compile(module),
+            self.body.compile(module),
         )
     }
 

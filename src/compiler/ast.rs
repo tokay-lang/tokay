@@ -635,7 +635,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         body,
                     );
 
-                    ImlOp::Call(ImlValue::from(main))
+                    ImlOp::Call(ImlValue::from(main), 0, false)
                 }
             } else {
                 ImlOp::Nop

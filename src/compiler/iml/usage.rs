@@ -37,7 +37,7 @@ impl Usage {
                 if let Some(value) = compiler.get_constant(&name) {
                     // Undetermined usages need to remain untouched.
                     if !matches!(value, ImlValue::Undetermined(_)) {
-                        ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                        ret.push(ImlOp::Load(value));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     ret.push(Op::LoadFast(addr).into())
@@ -55,9 +55,9 @@ impl Usage {
                                 ret.push(Op::Offset(Box::new(*offset)).into());
                             }
 
-                            ret.push(Op::CallStatic(compiler.define_value(value)).into());
+                            ret.push(ImlOp::Call(value, 0, false));
                         } else {
-                            ret.push(Op::LoadStatic(compiler.define_value(value)).into());
+                            ret.push(ImlOp::Load(value));
                         }
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
@@ -90,19 +90,7 @@ impl Usage {
                             ret.push(Op::Offset(Box::new(*offset)).into());
                         }
 
-                        let addr = compiler.define_value(value);
-
-                        if *args == 0 && *nargs == 0 {
-                            ret.push(Op::CallStatic(addr).into());
-                        } else if *args > 0 && *nargs == 0 {
-                            if let Some(offset) = offset {
-                                ret.push(Op::Offset(Box::new(*offset)).into());
-                            }
-
-                            ret.push(Op::CallStaticArg(Box::new((addr, *args))).into());
-                        } else {
-                            ret.push(Op::CallStaticArgNamed(Box::new((addr, *args))).into());
-                        }
+                        ret.push(ImlOp::Call(value, *args, *nargs > 0));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if let Some(offset) = offset {

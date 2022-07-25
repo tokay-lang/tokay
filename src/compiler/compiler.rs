@@ -117,11 +117,10 @@ impl Compiler {
 
         // COMPILE INTO TEMPORARY FAKE COMPILER
         println!("ret = {:#?}", ret);
-        if let ImlOp::Call(ImlValue::Parselet(main)) = ret {
-            let mut fake = Compiler::new(false);
+        if let ImlOp::Call(ImlValue::Parselet(main), ..) = ret {
+            let mut fake = Program::new(Vec::new());
             let main = main.borrow().into_parselet(&mut fake);
-            println!("  values = {:?}", fake.values);
-            println!("  main   = {:?}", main);
+            println!("  values = {:?}", fake);
         }
 
         Ok(())
@@ -244,7 +243,7 @@ impl Compiler {
         }
 
         // Compile values into a program
-        let mut fake = Compiler::new(false); // todo: Fake compiler instance, not in use right now.
+        let mut fake = Program::new(Vec::new()); // todo: Fake compiler instance, not in use right now.
 
         let program = Program::new(
             values
@@ -500,7 +499,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value+`
-                ImlOp::Call(value).into_positive(),
+                ImlOp::Call(value, 0, false).into_positive(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -524,7 +523,7 @@ impl Compiler {
                 ImlOp::Nop,
                 ImlOp::Nop,
                 // becomes `Value?`
-                ImlOp::Call(value).into_optional(),
+                ImlOp::Call(value, 0, false).into_optional(),
             );
 
             parselet.consuming = Some(Consumable {
@@ -587,24 +586,6 @@ impl Compiler {
         }
 
         None
-    }
-
-    /** Defines a new constant value for compilation.
-    Constants are only being inserted once when they already exist. */
-    pub(super) fn define_value(&mut self, value: ImlValue) -> usize {
-        // Check if there exists already a n equivalent constant
-        // fixme: A HashTab might be faster here...
-        {
-            for (i, known) in self.values.iter().enumerate() {
-                if *known == value {
-                    return i; // Reuse existing value address
-                }
-            }
-        }
-
-        // Save value as new
-        self.values.push(value);
-        self.values.len() - 1
     }
 }
 

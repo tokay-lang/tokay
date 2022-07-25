@@ -17,23 +17,40 @@ pub struct Program {
 
 impl Program {
     pub fn new(statics: Vec<RefValue>) -> Self {
-        let mut main = None;
+        Self {
+            statics,
+            main: None,
+        }
+    }
 
-        // Find main parselet by selecting the last parselet defined.
-        // todo: allow to specify main parselet.
-        for i in (0..statics.len()).rev() {
-            if let Some(parselet) = statics[i].borrow().object::<ParseletRef>() {
-                main = Some(parselet.clone());
-                break;
+    pub(crate) fn define_static(&mut self, value: RefValue) -> usize {
+        // Check if there exists already a n equivalent constant
+        // fixme: A HashTab might be faster here...
+        {
+            for (i, known) in self.statics.iter().enumerate() {
+                if *known == value {
+                    return i; // Reuse existing value address
+                }
             }
         }
 
-        Self { statics, main }
+        // Save value as new
+        let addr = self.statics.len();
+        self.statics.push(value);
+        addr
     }
 
     /// Returns a reference to the program's main parselet.
-    pub fn main(&self) -> &ParseletRef {
-        self.main.as_ref().unwrap()
+    pub fn main(&self) -> ParseletRef {
+        // Find main parselet by selecting the last parselet defined.
+        // todo: allow to specify main parselet.
+        for i in (0..self.statics.len()).rev() {
+            if let Some(parselet) = self.statics[i].borrow().object::<ParseletRef>() {
+                return parselet.clone();
+            }
+        }
+
+        panic!("No main parselet found")
     }
 
     pub fn dump(&self) {
