@@ -36,8 +36,8 @@ macro_rules! tokay {
 
             let mut module = Program::new(Vec::new());
 
-            println!("parselet = {:?}", parselet);
-            parselet.into_parselet(&mut module);
+            println!("parselet = {:#?}", parselet);
+            //parselet.into_parselet(&mut module);
 
             /*
             match compiler.finalize() {
@@ -101,7 +101,7 @@ macro_rules! tokay {
             );
 
             parselet.severity = 0;  // mark as silent parselet
-            $compiler.set_constant("_", parselet.into());
+            $compiler.set_constant("_", parselet);
 
             //println!("assign _ = {}", stringify!($item));
             None
@@ -141,7 +141,7 @@ macro_rules! tokay {
                 body
             );
 
-            $compiler.set_constant(&name, parselet.into());
+            $compiler.set_constant(&name, parselet);
 
             None
         }

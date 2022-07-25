@@ -331,7 +331,7 @@ impl Compiler {
         gen: Vec<(String, Option<ImlValue>)>,
         sig: Vec<(String, Option<ImlValue>)>,
         body: ImlOp,
-    ) -> ImlParselet {
+    ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
@@ -379,7 +379,7 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            parselet
+            ImlValue::from(parselet)
         } else {
             unreachable!();
         }

@@ -19,6 +19,7 @@ pub struct Parser(Program);
 impl Parser {
     pub fn new() -> Self {
         Self(tokay!({
+        /*
         // ----------------------------------------------------------------------------
 
         // Whitespace & EOL
@@ -465,35 +466,9 @@ impl Parser {
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 
+        */
         // --- Test Environment -----------------------------------------------
 
-        /*
-        (T_EOL = {  // end-of-line
-            [";", (Op::Skip)],
-            [(token (Token::EOF)), (Op::Skip)],
-            [(peek "}"), (Op::Skip)]
-        }),
-
-        (T_Integer = {
-            [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
-        }),
-
-        (Instruction = {
-            T_Integer,
-            [T_EOL, (Op::Skip)]
-        }),
-
-        (Block = {
-            ["{", (pos Instruction), (expect "}"), (call ast[(value "block")])],
-            ["{", (kle T_EOL), (expect "}"), (call ast[(value "value_void")])]
-        }),
-
-        [Block,
-            (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
-            (call ast[(value "main")])]
-        */
-
-        /*
         (T_Float = {
             [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
@@ -502,7 +477,6 @@ impl Parser {
         }),
 
         T_Float
-        */
 
         // ----------------------------------------------------------------------------
                     }))

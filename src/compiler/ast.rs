@@ -273,9 +273,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let body = traverse_node(compiler, body.borrow().object::<Dict>().unwrap());
 
-            let ret = compiler
-                .pop_parselet(traverse_node_offset(node), None, gen, sig, body)
-                .into();
+            let ret = compiler.pop_parselet(traverse_node_offset(node), None, gen, sig, body);
 
             //println!("parselet = {:#?}", ret);
             return ret;
@@ -324,15 +322,13 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value
         }
         // Any other code becomes its own parselet without any signature.
-        other => compiler
-            .pop_parselet(
-                traverse_node_offset(node),
-                lvalue.and_then(|lvalue| Some(lvalue.to_string())),
-                Vec::new(),
-                Vec::new(),
-                other,
-            )
-            .into(),
+        other => compiler.pop_parselet(
+            traverse_node_offset(node),
+            lvalue.and_then(|lvalue| Some(lvalue.to_string())),
+            Vec::new(),
+            Vec::new(),
+            other,
+        ),
     }
 }
 
@@ -635,7 +631,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         body,
                     );
 
-                    ImlOp::Call(ImlValue::from(main), 0, false)
+                    ImlOp::Call(main, 0, false)
                 }
             } else {
                 ImlOp::Nop

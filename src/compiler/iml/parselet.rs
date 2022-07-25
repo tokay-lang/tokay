@@ -1,14 +1,15 @@
 //! Intermediate representation of a parselet
-
 use super::*;
 use crate::reader::Offset;
 use crate::value::Parselet;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 /// Intermediate parselet
 pub struct ImlParselet {
-    pub offset: Option<Offset>,                     // Offset of definition
-    pub consuming: Option<Consumable>,              // Consumable state
+    pub offset: Option<Offset>, // Offset of definition
+    //pub consuming: Option<RefCell<Consumable>>,              // Consumable state
+    pub consuming: Option<Consumable>,
     pub severity: u8,                               // Capture push severity
     pub name: Option<String>,                       // Parselet's name from source (for debugging)
     pub constants: Vec<(String, Option<ImlValue>)>, // Constant signature with default constants; generic parselet when set.
@@ -50,6 +51,10 @@ impl ImlParselet {
         }
     }
 
+    pub fn id(&self) -> usize {
+        self as *const ImlParselet as usize
+    }
+
     /// Turns an intermediate parselet in to a fixed Parselet
     pub fn into_parselet(
         &self, /* fixme: change to self without & later on... */
@@ -88,29 +93,26 @@ impl ImlParselet {
         values: &Vec<ImlValue>,
         stack: &mut Vec<(usize, bool)>,
     ) -> Option<Consumable> {
-        self.body.finalize(values, stack)
+        self.body.finalize(stack)
     }
 }
 
 impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self as *const ImlParselet as usize == other as *const ImlParselet as usize
+        self.id() == other.id()
     }
 }
 
 impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const ImlParselet as usize).hash(state);
+        self.id().hash(state);
     }
 }
 
 impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const ImlParselet as usize;
-        let right = other as *const ImlParselet as usize;
-
-        left.partial_cmp(&right)
+        self.id().partial_cmp(&other.id())
     }
 }

@@ -437,11 +437,20 @@ impl ImlOp {
 
     pub(super) fn finalize(
         &mut self,
-        values: &Vec<ImlValue>,
-        stack: &mut Vec<(usize, bool)>,
+        stack: &mut Vec<(usize, bool)>, // Stack of
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Op(Op::CallStatic(target)) => {
+            ImlOp::Op(Op::CallStatic(_)) => panic!("May not exists!"),
+            /*
+            ImlOp::Call(ImlValue::Parselet(callee)) => {
+                if let Ok(mut callee) = callee.try_borrow_mut() {
+
+                }
+                else {
+
+                }
+            }
+
                 match &values[*target] {
                     ImlValue::Parselet(parselet) => {
                         if stack.len() > 0 {
@@ -501,14 +510,15 @@ impl ImlOp {
                     }
                 }
             }
-            ImlOp::Shared(op) => op.borrow_mut().finalize(values, stack),
+            */
+            ImlOp::Shared(op) => op.borrow_mut().finalize(stack),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
                 let mut consumes = false;
 
                 for alt in alts.iter_mut() {
-                    if let Some(consumable) = alt.finalize(values, stack) {
+                    if let Some(consumable) = alt.finalize(stack) {
                         leftrec |= consumable.leftrec;
                         nullable |= consumable.nullable;
                         consumes = true;
@@ -531,7 +541,7 @@ impl ImlOp {
                         break;
                     }
 
-                    if let Some(consumable) = item.finalize(values, stack) {
+                    if let Some(consumable) = item.finalize(stack) {
                         leftrec |= consumable.leftrec;
                         nullable = consumable.nullable;
                         consumes = true;
@@ -545,9 +555,9 @@ impl ImlOp {
                 }
             }
             ImlOp::If { then, else_, .. } => {
-                let then = then.finalize(values, stack);
+                let then = then.finalize(stack);
 
-                if let Some(else_) = else_.finalize(values, stack) {
+                if let Some(else_) = else_.finalize(stack) {
                     if let Some(then) = then {
                         Some(Consumable {
                             leftrec: then.leftrec || else_.leftrec,
@@ -569,9 +579,9 @@ impl ImlOp {
                 let mut ret: Option<Consumable> = None;
 
                 for part in [
-                    init.finalize(values, stack),
-                    condition.finalize(values, stack),
-                    body.finalize(values, stack),
+                    init.finalize(stack),
+                    condition.finalize(stack),
+                    body.finalize(stack),
                 ] {
                     if let Some(part) = part {
                         ret = if let Some(ret) = ret {
@@ -591,8 +601,8 @@ impl ImlOp {
             }
 
             // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. } | ImlOp::Repeat { body, .. } => body.finalize(values, stack),
-            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(values, stack),
+            ImlOp::Expect { body, .. } | ImlOp::Repeat { body, .. } => body.finalize(stack),
+            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(stack),
 
             // default case
             _ => None,
