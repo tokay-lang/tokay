@@ -7,50 +7,20 @@ use std::cell::RefCell;
 #[derive(Debug)]
 /// Intermediate parselet
 pub struct ImlParselet {
-    pub offset: Option<Offset>, // Offset of definition
-    //pub consuming: Option<RefCell<Consumable>>,              // Consumable state
-    pub consuming: Option<Consumable>,
+    pub offset: Option<Offset>,                     // Offset of definition
+    pub consuming: Option<Consumable>,              // Consumable state
     pub severity: u8,                               // Capture push severity
     pub name: Option<String>,                       // Parselet's name from source (for debugging)
     pub constants: Vec<(String, Option<ImlValue>)>, // Constant signature with default constants; generic parselet when set.
     pub signature: Vec<(String, Option<ImlValue>)>, // Argument signature with default arguments
-    locals: usize, // Total number of local variables present (including arguments)
-    begin: ImlOp,  // Begin-operations
-    end: ImlOp,    // End-operations
-    body: ImlOp,   // Operations
+    pub locals: usize, // Total number of local variables present (including arguments)
+    pub begin: ImlOp,  // Begin-operations
+    pub end: ImlOp,    // End-operations
+    pub body: ImlOp,   // Operations
 }
 
+/** Representation of parselet in intermediate code. */
 impl ImlParselet {
-    /// Creates a new intermediate parselet.
-    pub fn new(
-        offset: Option<Offset>,
-        name: Option<String>,
-        constants: Vec<(String, Option<ImlValue>)>,
-        signature: Vec<(String, Option<ImlValue>)>,
-        locals: usize,
-        begin: ImlOp,
-        end: ImlOp,
-        body: ImlOp,
-    ) -> Self {
-        assert!(
-            signature.len() <= locals,
-            "signature may not be longer than locals..."
-        );
-
-        Self {
-            offset,
-            name,
-            consuming: None,
-            severity: 5,
-            constants,
-            signature,
-            locals,
-            begin,
-            end,
-            body,
-        }
-    }
-
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
     }
@@ -86,14 +56,6 @@ impl ImlParselet {
             self.end.compile(module),
             self.body.compile(module),
         )
-    }
-
-    pub fn finalize(
-        &mut self,
-        values: &Vec<ImlValue>,
-        stack: &mut Vec<(usize, bool)>,
-    ) -> Option<Consumable> {
-        self.body.finalize(stack)
     }
 }
 

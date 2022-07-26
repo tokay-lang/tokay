@@ -19,7 +19,7 @@ pub struct Parser(Program);
 impl Parser {
     pub fn new() -> Self {
         Self(tokay!({
-        /*
+
         // ----------------------------------------------------------------------------
 
         // Whitespace & EOL
@@ -466,9 +466,9 @@ impl Parser {
             (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
             (call ast[(value "main")])]
 
-        */
         // --- Test Environment -----------------------------------------------
 
+        /*
         (T_Float = {
             [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
@@ -478,8 +478,28 @@ impl Parser {
 
         T_Float
 
+        (X = {
+            [Y, (MATCH "c")]
+        }),
+        (Y = {
+            [Z, (MATCH "b")]
+        }),
+        (Z = {
+            X,
+            Y,
+            (MATCH "a")
+        }),
+        Z
+
+        (A = {
+            (MATCH 'x'),
+            Void
+        }),
+        A
+        */
+
         // ----------------------------------------------------------------------------
-                    }))
+        }))
     }
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
@@ -554,6 +574,13 @@ fn parser_eol() {
 
 #[test]
 fn parser_indirectleftrec() {
+    /*
+        X: Y 'c'
+        Y: Z 'b'
+        Z: X | Y | 'a'
+        Z
+    */
+
     let program = tokay!({
         (X = {
             [Y, (MATCH "c")]

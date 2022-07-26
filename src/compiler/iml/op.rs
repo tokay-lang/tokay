@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::{Object, Program, RefValue, Value};
+use indexmap::IndexSet;
 use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -435,90 +436,67 @@ impl ImlOp {
         }
     }
 
-    pub(super) fn finalize(
-        &mut self,
-        stack: &mut Vec<(usize, bool)>, // Stack of
+    pub(in crate::compiler) fn finalize(
+        &self,
+        visited: &mut IndexSet<usize>,
     ) -> Option<Consumable> {
         match self {
             ImlOp::Op(Op::CallStatic(_)) => panic!("May not exists!"),
-            /*
-            ImlOp::Call(ImlValue::Parselet(callee)) => {
-                if let Ok(mut callee) = callee.try_borrow_mut() {
-
-                }
-                else {
-
-                }
-            }
-
-                match &values[*target] {
-                    ImlValue::Parselet(parselet) => {
-                        if stack.len() > 0 {
-                            if let Ok(mut parselet) = parselet.try_borrow_mut() {
-                                if parselet.consuming.is_none() {
-                                    return None;
-                                }
-
-                                stack.push((
-                                    *target,
-                                    if let Some(consuming) = parselet.consuming.as_ref() {
-                                        consuming.nullable
+            ImlOp::Call(callee, ..) => {
+                match callee {
+                    ImlValue::Parselet(callee) => {
+                        if let Ok(callee) = callee.try_borrow() {
+                            // Close into another parselet?
+                            match &callee.consuming {
+                                None => None,
+                                Some(consuming) => {
+                                    if visited.contains(&callee.id()) {
+                                        Some(Consumable {
+                                            leftrec: false,
+                                            nullable: consuming.nullable,
+                                        })
                                     } else {
-                                        false
-                                    },
-                                ));
-                                let ret = parselet.finalize(values, stack);
-                                stack.pop();
+                                        visited.insert(callee.id());
 
-                                // --- Incomplete solution for the problem described in test/testindirectleftrec ---
-                                // If left-recursion detected and called parselet is already
-                                // left-recursive, thread currently analyzed parselet as
-                                // not left-recursive here!
-                                /*
-                                if ret.0 && parselet.leftrec {
-                                    ret.0 = false;
-                                }
-                                */
+                                        //fixme: Finalize on begin and end as well!
+                                        let ret = callee.body.finalize(visited);
 
-                                ret
-                            } else {
-                                for i in 0..stack.len() {
-                                    if *target == stack[i].0 {
-                                        return Some(Consumable {
-                                            leftrec: i == 0,
-                                            nullable: stack[i].1,
-                                        });
+                                        visited.remove(&callee.id());
+
+                                        ret
                                     }
                                 }
-
-                                panic!("Can't find entry for {}", *target)
                             }
                         } else {
-                            None
+                            // This is the currently finalized parselet
+                            Some(Consumable {
+                                leftrec: true,
+                                nullable: false,
+                            })
                         }
                     }
-
-                    object => {
-                        if object.is_consuming() {
+                    ImlValue::Value(callee) => {
+                        if callee.is_consuming() {
+                            //println!("{:?} called, which is nullable={:?}", callee, callee.is_nullable());
                             Some(Consumable {
                                 leftrec: false,
-                                nullable: object.is_nullable(),
+                                nullable: callee.is_nullable(),
                             })
                         } else {
                             None
                         }
                     }
+                    _ => unreachable!(),
                 }
             }
-            */
-            ImlOp::Shared(op) => op.borrow_mut().finalize(stack),
+            ImlOp::Shared(op) => op.borrow().finalize(visited),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
                 let mut consumes = false;
 
-                for alt in alts.iter_mut() {
-                    if let Some(consumable) = alt.finalize(stack) {
+                for alt in alts {
+                    if let Some(consumable) = alt.finalize(visited) {
                         leftrec |= consumable.leftrec;
                         nullable |= consumable.nullable;
                         consumes = true;
@@ -536,12 +514,12 @@ impl ImlOp {
                 let mut nullable = true;
                 let mut consumes = false;
 
-                for item in seq.iter_mut() {
+                for item in seq {
                     if !nullable {
                         break;
                     }
 
-                    if let Some(consumable) = item.finalize(stack) {
+                    if let Some(consumable) = item.finalize(visited) {
                         leftrec |= consumable.leftrec;
                         nullable = consumable.nullable;
                         consumes = true;
@@ -555,9 +533,9 @@ impl ImlOp {
                 }
             }
             ImlOp::If { then, else_, .. } => {
-                let then = then.finalize(stack);
+                let then = then.finalize(visited);
 
-                if let Some(else_) = else_.finalize(stack) {
+                if let Some(else_) = else_.finalize(visited) {
                     if let Some(then) = then {
                         Some(Consumable {
                             leftrec: then.leftrec || else_.leftrec,
@@ -578,11 +556,9 @@ impl ImlOp {
             } => {
                 let mut ret: Option<Consumable> = None;
 
-                for part in [
-                    init.finalize(stack),
-                    condition.finalize(stack),
-                    body.finalize(stack),
-                ] {
+                for part in [init, condition, body] {
+                    let part = part.finalize(visited);
+
                     if let Some(part) = part {
                         ret = if let Some(ret) = ret {
                             Some(Consumable {
@@ -595,14 +571,28 @@ impl ImlOp {
                     }
                 }
 
-                *consuming = ret.clone();
+                //*consuming = ret.clone();
 
                 ret
             }
 
             // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. } | ImlOp::Repeat { body, .. } => body.finalize(stack),
-            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(stack),
+            ImlOp::Expect { body, .. } => body.finalize(visited),
+            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(visited),
+            ImlOp::Repeat { body, min, max } => {
+                if let Some(consumable) = body.finalize(visited) {
+                    if *min == 0 {
+                        Some(Consumable {
+                            leftrec: consumable.leftrec,
+                            nullable: true,
+                        })
+                    } else {
+                        Some(consumable)
+                    }
+                } else {
+                    None
+                }
+            }
 
             // default case
             _ => None,

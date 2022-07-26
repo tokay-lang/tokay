@@ -6,8 +6,13 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
+use indexmap::IndexSet;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io;
+use std::io::prelude::*;
 use std::io::BufReader;
+use std::rc::Rc;
 
 /** Compiler symbolic scope.
 
@@ -42,16 +47,21 @@ The compiler works in a mode so that statics, variables and constants once built
 won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,      // Internal Tokay parser
-    pub debug: u8,                       // Compiler debug mode
-    pub(super) values: Vec<ImlValue>,    // Constant values and parselets created during compile
-    pub(super) scopes: Vec<Scope>,       // Current compilation scopes
+    parser: Option<parser::Parser>, // Internal Tokay parser
+    pub debug: u8,                  // Compiler debug mode
+    pub(super) scopes: Vec<Scope>,  // Current compilation scopes
+    pub(super) parselets: Vec<Rc<RefCell<ImlParselet>>>, // Un-finalized parselets
     pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
-    pub(super) errors: Vec<Error>,       // Collected errors during compilation
+    pub(super) errors: Vec<Error>,  // Collected errors during compilation
 }
 
 impl Compiler {
     /** Initialize a new compiler.
+
+    The compiler struct serves as some kind of helper that should be used during traversal of a
+    Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
+    in different levels. Parselets are created by using the pop_parselet() function with provided
+    parameters. Parselets need to be finalized before they are finally compiled into VM code.
 
     By default, the prelude should be loaded, otherwise several standard parselets are not available.
     Ignoring the prelude is only useful on bootstrap currently.
@@ -60,14 +70,15 @@ impl Compiler {
         let mut compiler = Self {
             parser: None,
             debug: 0,
-            values: Vec::new(),
             scopes: Vec::new(),
+            parselets: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
         };
 
         // Compile with the default prelude
         if with_prelude && false
+        //fixme: Temporarily disabled
         /* temporary disabled */
         {
             compiler
@@ -135,6 +146,51 @@ impl Compiler {
 
     /** Converts the current compiler state into a Program. */
     pub fn finalize(&mut self) -> Result<Program, Vec<Error>> {
+        let mut cycles = 0;
+        let mut changes = true;
+
+        while changes {
+            changes = false;
+
+            for parselet in &self.parselets {
+                let mut parselet = parselet.borrow_mut();
+
+                if parselet.consuming.is_none() {
+                    continue;
+                }
+
+                let closure = parselet.body.finalize(&mut IndexSet::new());
+                //println!("closure on {:?} is {:?}", parselet.name, parselet.consuming);
+                //println!("--> returns {:?}", closure);
+
+                match (&mut parselet.consuming, closure) {
+                    (Some(consuming), Some(closure)) => {
+                        if *consuming < closure {
+                            //println!("--> updating");
+                            *consuming = closure;
+                            changes = true;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            //println!("---\nClosure cycle {}", cycles);
+            //let _ = io::stdin().read(&mut [0u8]).unwrap();
+
+            cycles += 1;
+        }
+
+        for parselet in &self.parselets {
+            let parselet = parselet.borrow();
+            println!(
+                "{} consuming={:?}",
+                parselet.name.as_deref().unwrap_or("(unnamed)"),
+                parselet.consuming
+            );
+        }
+
+        /*
         // Check for correct scope level
         assert!(self.scopes.len() == 1);
 
@@ -263,6 +319,8 @@ impl Compiler {
         }
 
         Ok(program)
+        */
+        todo!();
     }
 
     /// Tries to resolves open usages from the current scope
@@ -328,8 +386,9 @@ impl Compiler {
         &mut self,
         offset: Option<Offset>,
         name: Option<String>,
-        gen: Vec<(String, Option<ImlValue>)>,
-        sig: Vec<(String, Option<ImlValue>)>,
+        severity: Option<u8>,
+        gen: Option<Vec<(String, Option<ImlValue>)>>,
+        sig: Option<Vec<(String, Option<ImlValue>)>>,
         body: ImlOp,
     ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
@@ -353,25 +412,33 @@ impl Compiler {
                 }
             }
 
-            let mut parselet = ImlParselet::new(
-                offset,
-                name,
-                gen, // constants
-                sig,
-                variables.len(),
-                // Ensure that begin and end are blocks.
-                ensure_block(begin.drain(..).collect()),
-                ensure_block(end.drain(..).collect()),
-                body,
+            let signature = sig.unwrap_or(Vec::new());
+            let constants = gen.unwrap_or(Vec::new());
+
+            assert!(
+                signature.len() <= variables.len(),
+                "signature may not be longer than locals..."
             );
 
-            parselet.consuming = if *consuming {
-                Some(Consumable {
-                    leftrec: false,
-                    nullable: false,
-                })
-            } else {
-                None
+            let parselet = ImlParselet {
+                offset,
+                name,
+                consuming: if *consuming {
+                    Some(Consumable {
+                        leftrec: false,
+                        nullable: false,
+                    })
+                } else {
+                    None
+                },
+                severity: severity.unwrap_or(5), // severity
+                constants,                       // constants
+                signature,                       // signature
+                locals: variables.len(),
+                // Ensure that begin and end are blocks.
+                begin: ensure_block(begin.drain(..).collect()),
+                end: ensure_block(end.drain(..).collect()),
+                body,
             };
 
             if self.scopes.len() == 0 {
@@ -379,7 +446,9 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::from(parselet)
+            let parselet = Rc::new(RefCell::new(parselet));
+            self.parselets.push(parselet.clone());
+            ImlValue::Parselet(parselet)
         } else {
             unreachable!();
         }
@@ -489,50 +558,33 @@ impl Compiler {
         let mut secondary = None;
 
         if name == "_" || name == "__" {
-            // First of all, "__" is defined as `__ : Value+`...
-            let mut parselet = ImlParselet::new(
+            self.push_parselet();
+            self.mark_consuming();
+            value = self.pop_parselet(
                 None,
                 Some("__".to_string()),
-                Vec::new(),
-                Vec::new(),
-                0,
-                ImlOp::Nop,
-                ImlOp::Nop,
+                Some(0), // Zero severity
+                None,
+                None,
                 // becomes `Value+`
                 ImlOp::Call(value, 0, false).into_positive(),
             );
 
-            parselet.consuming = Some(Consumable {
-                leftrec: false,
-                nullable: false,
-            });
-            parselet.severity = 0;
-
-            value = ImlValue::from(parselet);
-
-            // Insert "__" as new constant
+            // Remind "__" as new constant
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            let mut parselet = ImlParselet::new(
+            self.push_parselet();
+            self.mark_consuming();
+            value = self.pop_parselet(
                 None,
                 Some(name.to_string()),
-                Vec::new(),
-                Vec::new(),
-                0,
-                ImlOp::Nop,
-                ImlOp::Nop,
+                Some(0), // Zero severity
+                None,
+                None,
                 // becomes `Value?`
                 ImlOp::Call(value, 0, false).into_optional(),
             );
-
-            parselet.consuming = Some(Consumable {
-                leftrec: false,
-                nullable: false,
-            });
-            parselet.severity = 0;
-
-            value = ImlValue::from(parselet);
 
             // Insert "_" afterwards
         }

@@ -29,15 +29,17 @@ macro_rules! tokay {
             let parselet = compiler.pop_parselet(
                 None,
                 Some("__main__".to_string()),
-                Vec::new(),
-                Vec::new(),
+                None,
+                None,
+                None,
                 main.unwrap_or(ImlOp::Nop)
             );
 
             let mut module = Program::new(Vec::new());
 
-            println!("parselet = {:#?}", parselet);
+            //println!("parselet = {:#?}", parselet);
             //parselet.into_parselet(&mut module);
+            compiler.finalize();
 
             /*
             match compiler.finalize() {
@@ -95,12 +97,12 @@ macro_rules! tokay {
             let mut parselet = $compiler.pop_parselet(
                 None,
                 Some("_".to_string()),
-                Vec::new(),
-                Vec::new(),
+                Some(0), // mark as silent parselet
+                None,
+                None,
                 body
             );
 
-            parselet.severity = 0;  // mark as silent parselet
             $compiler.set_constant("_", parselet);
 
             //println!("assign _ = {}", stringify!($item));
@@ -136,8 +138,9 @@ macro_rules! tokay {
             let parselet = $compiler.pop_parselet(
                 None,
                 Some(stringify!($name).to_string()),
-                Vec::new(),
-                Vec::new(),
+                None,
+                None,
+                None,
                 body
             );
 

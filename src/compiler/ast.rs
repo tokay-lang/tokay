@@ -273,7 +273,14 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let body = traverse_node(compiler, body.borrow().object::<Dict>().unwrap());
 
-            let ret = compiler.pop_parselet(traverse_node_offset(node), None, gen, sig, body);
+            let ret = compiler.pop_parselet(
+                traverse_node_offset(node),
+                None,
+                None,
+                Some(gen),
+                Some(sig),
+                body,
+            );
 
             //println!("parselet = {:#?}", ret);
             return ret;
@@ -293,24 +300,12 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
     // ... because in case ImlResult::Ops is returned here, it would be nice to have it in a separate scope.
     match traverse_node(compiler, node) {
         ImlOp::Nop => {
-            compiler.pop_parselet(
-                traverse_node_offset(node),
-                None,
-                Vec::new(),
-                Vec::new(),
-                ImlOp::from(Op::Nop),
-            );
+            compiler.pop_parselet(None, None, None, None, None, ImlOp::from(Op::Nop));
             value!(void).into()
         }
         // Defined parselet or value
         ImlOp::Load(value) => {
-            compiler.pop_parselet(
-                traverse_node_offset(node),
-                None,
-                Vec::new(),
-                Vec::new(),
-                ImlOp::from(Op::Nop),
-            );
+            compiler.pop_parselet(None, None, None, None, None, ImlOp::from(Op::Nop));
 
             if let Some(lvalue) = lvalue {
                 if let ImlValue::Parselet(parselet) = &value {
@@ -325,8 +320,9 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
         other => compiler.pop_parselet(
             traverse_node_offset(node),
             lvalue.and_then(|lvalue| Some(lvalue.to_string())),
-            Vec::new(),
-            Vec::new(),
+            None,
+            None,
+            None,
             other,
         ),
     }
@@ -626,8 +622,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let main = compiler.pop_parselet(
                         None,
                         Some("__main__".to_string()),
-                        Vec::new(),
-                        Vec::new(),
+                        None,
+                        None,
+                        None,
                         body,
                     );
 

@@ -1,9 +1,8 @@
 //! Intermediate value representation
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use super::*;
 use crate::value::{Object, RefValue};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /** Compile-time constant value */
 #[derive(Clone, Debug, PartialEq)]
