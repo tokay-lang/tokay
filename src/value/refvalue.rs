@@ -1,4 +1,4 @@
-use super::{BoxedObject, Dict, Method, Object, Value};
+use super::{BoxedObject, Dict, Str, Method, Object, Value};
 use crate::builtin::Builtin;
 use crate::value;
 use crate::{Accept, Context, Error, Reject};
@@ -327,25 +327,27 @@ impl Object for RefValue {
 impl Hash for RefValue {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &*self.borrow() {
-            Value::Void => state.write_u8(1),
-            Value::Null => state.write_u8(2),
-            Value::True => state.write_u8(3),
-            Value::False => state.write_u8(4),
+            Value::Void => state.write_u8('v' as u8),
+            Value::Null => state.write_u8('n' as u8),
+            Value::True => state.write_u8('t' as u8),
+            Value::False => state.write_u8('f' as u8),
             Value::Int(i) => {
-                state.write_u8(5);
+                state.write_u8('i' as u8);
                 i.hash(state);
             }
             Value::Float(f) => {
-                state.write_u8(6);
+                state.write_u8('f' as u8);
                 f.to_bits().hash(state);
             }
-            Value::Addr(i) => {
-                state.write_u8(7);
-                i.hash(state);
-            }
             Value::Object(o) => {
-                state.write_u8(8);
-                o.id().hash(state);
+                if let Some(s) = o.as_any().downcast_ref::<Str>() {
+                    state.write_u8('s' as u8);
+                    s.as_str().hash(state);
+                }
+                else {
+                    state.write_u8('o' as u8);
+                    o.id().hash(state);
+                }
             }
         }
     }
