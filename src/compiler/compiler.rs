@@ -50,7 +50,7 @@ pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
     pub(super) scopes: Vec<Scope>,  // Current compilation scopes
-    pub(super) parselets: Vec<Rc<RefCell<ImlParselet>>>, // Un-finalized parselets
+    pub(super) finalize: Vec<Rc<RefCell<ImlParselet>>>, // Parselets to be finalized
     pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
     pub(super) errors: Vec<Error>,  // Collected errors during compilation
 }
@@ -71,7 +71,7 @@ impl Compiler {
             parser: None,
             debug: 0,
             scopes: Vec::new(),
-            parselets: Vec::new(),
+            finalize: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
         };
@@ -128,10 +128,10 @@ impl Compiler {
 
         // COMPILE INTO TEMPORARY FAKE COMPILER
         println!("ret = {:#?}", ret);
-        if let ImlOp::Call(ImlValue::Parselet(main), ..) = ret {
-            let mut fake = Program::new(Vec::new());
-            let main = main.borrow().into_parselet(&mut fake);
-            println!("  values = {:?}", fake);
+        if let ImlOp::Call(ImlOpValue(ImlValue::Parselet(main)), ..) = ret {
+            let mut linker = Linker::new();
+            let main = main.borrow().into_parselet(&mut linker);
+            println!("  linker = {:?}", linker);
         }
 
         Ok(())
@@ -152,7 +152,7 @@ impl Compiler {
         while changes {
             changes = false;
 
-            for parselet in &self.parselets {
+            for parselet in &self.finalize {
                 let mut parselet = parselet.borrow_mut();
 
                 if parselet.consuming.is_none() {
@@ -181,7 +181,7 @@ impl Compiler {
             cycles += 1;
         }
 
-        for parselet in &self.parselets {
+        for parselet in &self.finalize {
             let parselet = parselet.borrow();
             println!(
                 "{} consuming={:?}",
@@ -320,7 +320,7 @@ impl Compiler {
 
         Ok(program)
         */
-        todo!();
+        Ok(Program::new(Vec::new())) //fixme!!
     }
 
     /// Tries to resolves open usages from the current scope
@@ -447,7 +447,7 @@ impl Compiler {
             }
 
             let parselet = Rc::new(RefCell::new(parselet));
-            self.parselets.push(parselet.clone());
+            self.finalize.push(parselet.clone());
             ImlValue::Parselet(parselet)
         } else {
             unreachable!();
@@ -567,7 +567,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value+`
-                ImlOp::Call(value, 0, false).into_positive(),
+                ImlOp::Call(ImlOpValue(value), 0, false).into_positive(),
             );
 
             // Remind "__" as new constant
@@ -583,7 +583,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value?`
-                ImlOp::Call(value, 0, false).into_optional(),
+                ImlOp::Call(ImlOpValue(value), 0, false).into_optional(),
             );
 
             // Insert "_" afterwards

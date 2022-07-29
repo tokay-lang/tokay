@@ -26,9 +26,9 @@ impl ImlParselet {
     }
 
     /// Turns an intermediate parselet in to a fixed Parselet
-    pub fn into_parselet(
+    pub(in crate::compiler) fn into_parselet(
         &self, /* fixme: change to self without & later on... */
-        module: &mut Program,
+        linker: &mut Linker,
     ) -> Parselet {
         Parselet::new(
             self.name.clone(),
@@ -44,7 +44,7 @@ impl ImlParselet {
                     (
                         var_value.0.clone(),
                         if let Some(value) = &var_value.1 {
-                            Some(module.define_static(value.clone().unwrap()))
+                            Some(linker.register_static(value))
                         } else {
                             None
                         },
@@ -52,9 +52,9 @@ impl ImlParselet {
                 })
                 .collect(),
             self.locals,
-            self.begin.compile(module),
-            self.end.compile(module),
-            self.body.compile(module),
+            self.begin.compile(linker),
+            self.end.compile(linker),
+            self.body.compile(linker),
         )
     }
 }
@@ -65,6 +65,8 @@ impl std::cmp::PartialEq for ImlParselet {
         self.id() == other.id()
     }
 }
+
+impl Eq for ImlParselet {}
 
 impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {

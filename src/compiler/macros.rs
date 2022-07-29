@@ -26,7 +26,7 @@ macro_rules! tokay {
 
             let main = tokay!(compiler, { $( $items ),* });
 
-            let parselet = compiler.pop_parselet(
+            let main = compiler.pop_parselet(
                 None,
                 Some("__main__".to_string()),
                 None,
@@ -35,10 +35,14 @@ macro_rules! tokay {
                 main.unwrap_or(ImlOp::Nop)
             );
 
-            let mut module = Program::new(Vec::new());
-
             //println!("parselet = {:#?}", parselet);
-            //parselet.into_parselet(&mut module);
+            if let ImlValue::Parselet(main) = main {
+                let main = main.borrow();
+                let mut linker = Linker::new();
+                main.into_parselet(&mut linker);
+                println!("linker = {:#?}", linker);
+            }
+
             compiler.finalize();
 
             /*
@@ -58,7 +62,7 @@ macro_rules! tokay {
                 }
             }
             */
-            module
+            todo!();
         }
     };
 
@@ -237,13 +241,13 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::Load(ImlValue::from($crate::value!($value))))
+        Some(ImlOp::Load(ImlOpValue(ImlValue::from($crate::value!($value)))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
         {
-            Some(ImlOp::Call(ImlValue::from(RefValue::from($token)), 0, false))
+            Some(ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from($token))), 0, false))
         }
     };
 
@@ -304,7 +308,7 @@ macro_rules! tokay {
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = RefValue::from(Token::Match($literal.to_string()));
-            Some(ImlOp::from(ImlOp::Call(ImlValue::from(token), 0, false)))
+            Some(ImlOp::from(ImlOp::Call(ImlOpValue(ImlValue::from(token)), 0, false)))
         }
     };
 
@@ -312,7 +316,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = RefValue::from(Token::Touch($literal.to_string()));
-            Some(ImlOp::from(ImlOp::Call(ImlValue::from(token), 0, false)))
+            Some(ImlOp::from(ImlOp::Call(ImlOpValue(ImlValue::from(token)), 0, false)))
         }
     };
 

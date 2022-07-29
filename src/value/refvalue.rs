@@ -1,4 +1,4 @@
-use super::{BoxedObject, Dict, Str, Method, Object, Value};
+use super::{BoxedObject, Dict, Method, Object, Str, Value};
 use crate::builtin::Builtin;
 use crate::value;
 use crate::{Accept, Context, Error, Reject};
@@ -343,8 +343,7 @@ impl Hash for RefValue {
                 if let Some(s) = o.as_any().downcast_ref::<Str>() {
                     state.write_u8('s' as u8);
                     s.as_str().hash(state);
-                }
-                else {
+                } else {
                     state.write_u8('o' as u8);
                     o.id().hash(state);
                 }

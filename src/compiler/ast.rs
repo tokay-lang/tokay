@@ -42,7 +42,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
     } else if let Some(dict) = ast.borrow().object::<Dict>() {
         traverse_node(compiler, dict)
     } else {
-        ImlOp::Load(ImlValue::from(RefValue::from(ast.clone())))
+        ImlOp::Load(ImlOpValue(ImlValue::from(RefValue::from(ast.clone()))))
     }
 }
 
@@ -304,7 +304,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value!(void).into()
         }
         // Defined parselet or value
-        ImlOp::Load(value) => {
+        ImlOp::Load(ImlOpValue(value)) => {
             compiler.pop_parselet(None, None, None, None, None, ImlOp::from(Op::Nop));
 
             if let Some(lvalue) = lvalue {
@@ -628,7 +628,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         body,
                     );
 
-                    ImlOp::Call(main, 0, false)
+                    ImlOp::Call(ImlOpValue(main), 0, false)
                 }
             } else {
                 ImlOp::Nop
@@ -677,7 +677,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let ident = ident["value"].borrow();
                         let ident = ident.object::<Str>().unwrap().as_str();
 
-                        ops.push(ImlOp::Load(ImlValue::from(RefValue::from(ident))));
+                        ops.push(ImlOp::Load(ImlOpValue(ImlValue::from(RefValue::from(
+                            ident,
+                        )))));
 
                         nargs += 1;
                     }
@@ -955,6 +957,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
                     // When both results are values, calculate in-place
+                    /*
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
@@ -962,6 +965,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             left.binary_op(right, parts[2]).unwrap(),
                         ));
                     }
+                    */
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
@@ -986,9 +990,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = children.object::<Dict>().unwrap();
 
                     let res = traverse_node(compiler, children);
+
+                    /*
                     if let Ok(value) = res.get_evaluable_value() {
                         return ImlOp::Load(ImlValue::from(value.unary_op(parts[2]).unwrap()));
                     }
+                    */
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
@@ -1013,6 +1020,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
                     // When both results are values, compare in-place
+                    /*
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
@@ -1020,6 +1028,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             left.binary_op(right, parts[2]).unwrap(),
                         ));
                     }
+                    */
 
                     // Otherwise, generate operational code
                     ops.push(left);
@@ -1178,6 +1187,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Compile time evaluation; When the if fails, it doesn't need
                     // to be compiled into the program.
+                    /*
                     if let Ok(value) = condition.get_evaluable_value() {
                         if value.is_true() {
                             return then;
@@ -1187,6 +1197,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                         return ImlOp::Load(ImlValue::from(value!(void)));
                     }
+                    */
 
                     ops.push(condition);
 
@@ -1304,7 +1315,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         }
 
         // value ---------------------------------------------------------
-        value if value.starts_with("value_") => ImlOp::Load(traverse_node_value(compiler, node)),
+        value if value.starts_with("value_") => {
+            ImlOp::Load(ImlOpValue(traverse_node_value(compiler, node)))
+        }
 
         // ---------------------------------------------------------------
         _ => {

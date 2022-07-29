@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 /** Compile-time constant value */
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ImlValue {
     Undetermined(String),
     Parselet(Rc<RefCell<ImlParselet>>),
@@ -65,6 +65,16 @@ impl ImlValue {
     }
 }
 
+impl std::fmt::Debug for ImlValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Undetermined(s) => write!(f, "Undetermined({:?})", s),
+            Self::Parselet(p) => p.borrow().fmt(f),
+            Self::Value(v) => v.borrow().fmt(f),
+        }
+    }
+}
+
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -72,12 +82,25 @@ impl std::fmt::Display for ImlValue {
             Self::Parselet(p) => write!(
                 f,
                 "{}",
-                p.borrow()
-                    .name
-                    .as_ref()
-                    .unwrap_or(&"<unnamed parselet>".to_string())
+                p.borrow().name.as_deref().unwrap_or("<unnamed parselet>")
             ),
             Self::Value(v) => write!(f, "{}", v.repr()),
+        }
+    }
+}
+
+impl std::hash::Hash for ImlValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Undetermined(_) => unreachable!(),
+            Self::Parselet(p) => {
+                state.write_u8('p' as u8);
+                p.borrow().hash(state);
+            }
+            Self::Value(v) => {
+                state.write_u8('v' as u8);
+                v.hash(state)
+            }
         }
     }
 }

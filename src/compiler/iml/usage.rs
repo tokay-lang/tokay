@@ -37,7 +37,7 @@ impl Usage {
                 if let Some(value) = compiler.get_constant(&name) {
                     // Undetermined usages need to remain untouched.
                     if !matches!(value, ImlValue::Undetermined(_)) {
-                        ret.push(ImlOp::Load(value));
+                        ret.push(ImlOp::Load(ImlOpValue(value)));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     ret.push(Op::LoadFast(addr).into())
@@ -55,9 +55,9 @@ impl Usage {
                                 ret.push(Op::Offset(Box::new(*offset)).into());
                             }
 
-                            ret.push(ImlOp::Call(value, 0, false));
+                            ret.push(ImlOp::Call(ImlOpValue(value), 0, false));
                         } else {
-                            ret.push(ImlOp::Load(value));
+                            ret.push(ImlOp::Load(ImlOpValue(value)));
                         }
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
@@ -90,7 +90,7 @@ impl Usage {
                             ret.push(Op::Offset(Box::new(*offset)).into());
                         }
 
-                        ret.push(ImlOp::Call(value, *args, *nargs > 0));
+                        ret.push(ImlOp::Call(ImlOpValue(value), *args, *nargs > 0));
                     }
                 } else if let Some(addr) = compiler.get_local(&name) {
                     if let Some(offset) = offset {

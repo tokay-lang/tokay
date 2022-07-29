@@ -6,7 +6,7 @@ mod parselet;
 mod usage;
 mod value;
 
-use super::Compiler;
+use super::{Compiler, Linker};
 pub(crate) use op::*;
 pub(crate) use parselet::*;
 pub(crate) use usage::*;
