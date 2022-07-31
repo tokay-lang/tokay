@@ -13,7 +13,7 @@ pub enum ImlValue {
 }
 
 impl ImlValue {
-    pub fn unwrap(self) -> RefValue {
+    pub fn value(self) -> RefValue {
         if let ImlValue::Value(value) = self {
             value
         } else {

@@ -368,7 +368,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children).unwrap();
+                        let index = traverse_node_value(compiler, children).value();
 
                         if store {
                             if hold {
@@ -738,7 +738,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         "capture_index" => {
             let children = node["children"].borrow();
             let children = children.object::<Dict>().unwrap();
-            let index = traverse_node_value(compiler, children).unwrap();
+            let index = traverse_node_value(compiler, children).value();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
