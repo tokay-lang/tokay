@@ -24,39 +24,6 @@ impl ImlParselet {
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
     }
-
-    /// Turns an intermediate parselet in to a fixed Parselet
-    pub(in crate::compiler) fn into_parselet(
-        &self, /* fixme: change to self without & later on... */
-        linker: &mut Linker,
-    ) -> Parselet {
-        Parselet::new(
-            self.name.clone(),
-            if let Some(Consumable { leftrec, .. }) = self.consuming {
-                Some(leftrec)
-            } else {
-                None
-            },
-            self.severity,
-            self.signature
-                .iter()
-                .map(|var_value| {
-                    (
-                        var_value.0.clone(),
-                        if let Some(value) = &var_value.1 {
-                            Some(linker.register_static(value))
-                        } else {
-                            None
-                        },
-                    )
-                })
-                .collect(),
-            self.locals,
-            self.begin.compile(linker),
-            self.end.compile(linker),
-            self.body.compile(linker),
-        )
-    }
 }
 
 impl std::cmp::PartialEq for ImlParselet {

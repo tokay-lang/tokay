@@ -1,5 +1,5 @@
 use super::{BoxedObject, Dict, Method, Object, Str, Value};
-use crate::builtin::Builtin;
+use crate::builtin::{Builtin, BuiltinRef};
 use crate::value;
 use crate::{Accept, Context, Error, Reject};
 use num::{ToPrimitive, Zero};

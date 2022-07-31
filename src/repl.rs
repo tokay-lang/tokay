@@ -86,6 +86,8 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                     .compile(Reader::new(Box::new(io::Cursor::new(code))))
                     .is_ok()
                 {
+                    todo!();
+                    /*
                     if let Ok(program) = compiler.finalize() {
                         for (name, stream) in &streams {
                             let mut reader = stream.borrow_mut().get_reader();
@@ -112,6 +114,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                             globals = runtime.save_stack();
                         }
                     }
+                    */
                 }
             }
         }

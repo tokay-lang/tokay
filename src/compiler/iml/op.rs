@@ -166,15 +166,15 @@ impl ImlOp {
         }
     }
 
-    pub(super) fn compile(&self, linker: &mut Linker) -> Vec<Op>
+    pub(in crate::compiler) fn compile(&self, linker: &mut Linker) -> Vec<Op>
 /* todo: extend a provided ops rather than returning a Vec */ {
         match self {
             ImlOp::Nop => Vec::new(),
             ImlOp::Op(op) => vec![op.clone()],
             ImlOp::Shared(op) => op.borrow().compile(linker),
             ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
-            ImlOp::Call(value, args, nargs) => {
-                let idx = linker.register_static(value);
+            ImlOp::Call(ImlOpValue(value), args, nargs) => {
+                let idx = linker.register(value);
 
                 vec![if *args == 0 && !*nargs {
                     Op::CallStatic(idx)
@@ -185,7 +185,7 @@ impl ImlOp {
                 }]
             }
             ImlOp::Load(value) => {
-                vec![linker.push_static(value)]
+                vec![linker.push(value)]
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();

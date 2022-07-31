@@ -12,39 +12,18 @@ A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
-    main: Option<ParseletRef>,         // The main parselet
 }
 
 impl Program {
     pub fn new(statics: Vec<RefValue>) -> Self {
-        Self {
-            statics,
-            main: None,
-        }
-    }
-
-    pub(crate) fn define_static(&mut self, value: RefValue) -> usize {
-        // Check if there exists already a n equivalent constant
-        // fixme: A HashTab might be faster here...
-        {
-            for (i, known) in self.statics.iter().enumerate() {
-                if *known == value {
-                    return i; // Reuse existing value address
-                }
-            }
-        }
-
-        // Save value as new
-        let addr = self.statics.len();
-        self.statics.push(value);
-        addr
+        Self { statics }
     }
 
     /// Returns a reference to the program's main parselet.
     pub fn main(&self) -> ParseletRef {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
-        for i in (0..self.statics.len()).rev() {
+        for i in (0..self.statics.len()) {
             if let Some(parselet) = self.statics[i].borrow().object::<ParseletRef>() {
                 return parselet.clone();
             }
@@ -60,25 +39,22 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        if let Some(main) = &self.main {
-            match main
-                .0
-                .borrow()
-                .run(runtime, runtime.stack.len(), None, true, 0)
-            {
-                Ok(Accept::Push(Capture::Value(value, ..))) => {
-                    if value.is_void() {
-                        Ok(None)
-                    } else {
-                        Ok(Some(value.clone()))
-                    }
+        match self
+            .main()
+            .0
+            .borrow()
+            .run(runtime, runtime.stack.len(), None, true, 0)
+        {
+            Ok(Accept::Push(Capture::Value(value, ..))) => {
+                if value.is_void() {
+                    Ok(None)
+                } else {
+                    Ok(Some(value.clone()))
                 }
-                Ok(_) => Ok(None),
-                Err(Reject::Error(error)) => Err(*error),
-                Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
             }
-        } else {
-            Ok(None)
+            Ok(_) => Ok(None),
+            Err(Reject::Error(error)) => Err(*error),
+            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
         }
     }
 

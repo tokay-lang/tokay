@@ -35,15 +35,7 @@ macro_rules! tokay {
                 main.unwrap_or(ImlOp::Nop)
             );
 
-            //println!("parselet = {:#?}", parselet);
-            if let ImlValue::Parselet(main) = main {
-                let main = main.borrow();
-                let mut linker = Linker::new();
-                main.into_parselet(&mut linker);
-                println!("linker = {:#?}", linker);
-            }
-
-            compiler.finalize();
+            Linker::new(main).finalize()
 
             /*
             match compiler.finalize() {
@@ -62,7 +54,6 @@ macro_rules! tokay {
                 }
             }
             */
-            todo!();
         }
     };
 

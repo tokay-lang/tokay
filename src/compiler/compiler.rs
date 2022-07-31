@@ -47,12 +47,11 @@ The compiler works in a mode so that statics, variables and constants once built
 won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>, // Internal Tokay parser
-    pub debug: u8,                  // Compiler debug mode
-    pub(super) scopes: Vec<Scope>,  // Current compilation scopes
-    pub(super) finalize: Vec<Rc<RefCell<ImlParselet>>>, // Parselets to be finalized
+    parser: Option<parser::Parser>,      // Internal Tokay parser
+    pub debug: u8,                       // Compiler debug mode
+    pub(super) scopes: Vec<Scope>,       // Current compilation scopes
     pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
-    pub(super) errors: Vec<Error>,  // Collected errors during compilation
+    pub(super) errors: Vec<Error>,       // Collected errors during compilation
 }
 
 impl Compiler {
@@ -61,7 +60,7 @@ impl Compiler {
     The compiler struct serves as some kind of helper that should be used during traversal of a
     Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
     in different levels. Parselets are created by using the pop_parselet() function with provided
-    parameters. Parselets need to be finalized before they are finally compiled into VM code.
+    parameters.
 
     By default, the prelude should be loaded, otherwise several standard parselets are not available.
     Ignoring the prelude is only useful on bootstrap currently.
@@ -71,7 +70,6 @@ impl Compiler {
             parser: None,
             debug: 0,
             scopes: Vec::new(),
-            finalize: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
         };
@@ -97,7 +95,7 @@ impl Compiler {
     }
 
     /** Compile a Tokay program from a Reader source into the compiler. */
-    pub fn compile(&mut self, reader: Reader) -> Result<(), Vec<Error>> {
+    pub fn compile(&mut self, reader: Reader) -> Result<Program, Vec<Error>> {
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -128,199 +126,18 @@ impl Compiler {
 
         // COMPILE INTO TEMPORARY FAKE COMPILER
         println!("ret = {:#?}", ret);
-        if let ImlOp::Call(ImlOpValue(ImlValue::Parselet(main)), ..) = ret {
-            let mut linker = Linker::new();
-            let main = main.borrow().into_parselet(&mut linker);
-            println!("  linker = {:?}", linker);
+        if let ImlOp::Call(ImlOpValue(main), ..) = ret {
+            Ok(Linker::new(main).finalize())
+        } else {
+            unreachable!();
         }
-
-        Ok(())
     }
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
-    pub fn compile_from_str(&mut self, src: &str) -> Result<(), Vec<Error>> {
+    pub fn compile_from_str(&mut self, src: &str) -> Result<Program, Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src.to_owned(),
         )))))
-    }
-
-    /** Converts the current compiler state into a Program. */
-    pub fn finalize(&mut self) -> Result<Program, Vec<Error>> {
-        let mut cycles = 0;
-        let mut changes = true;
-
-        while changes {
-            changes = false;
-
-            for parselet in &self.finalize {
-                let mut parselet = parselet.borrow_mut();
-
-                if parselet.consuming.is_none() {
-                    continue;
-                }
-
-                let closure = parselet.body.finalize(&mut IndexSet::new());
-                //println!("closure on {:?} is {:?}", parselet.name, parselet.consuming);
-                //println!("--> returns {:?}", closure);
-
-                match (&mut parselet.consuming, closure) {
-                    (Some(consuming), Some(closure)) => {
-                        if *consuming < closure {
-                            //println!("--> updating");
-                            *consuming = closure;
-                            changes = true;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            //println!("---\nClosure cycle {}", cycles);
-            //let _ = io::stdin().read(&mut [0u8]).unwrap();
-
-            cycles += 1;
-        }
-
-        for parselet in &self.finalize {
-            let parselet = parselet.borrow();
-            println!(
-                "{} consuming={:?}",
-                parselet.name.as_deref().unwrap_or("(unnamed)"),
-                parselet.consuming
-            );
-        }
-
-        /*
-        // Check for correct scope level
-        assert!(self.scopes.len() == 1);
-
-        let mut errors: Vec<Error> = Vec::new();
-
-        // Check and report any unresolved usages
-        // todo: Fix differently, e.g. during Parselet compilation?
-        for usage in self.usages.drain(..) {
-            let usage = usage.borrow();
-
-            if let ImlOp::Usage(usage) = &*usage {
-                match usage {
-                    Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => errors
-                        .push(Error::new(
-                            *offset,
-                            format!("Use of unresolved symbol '{}'", name),
-                        )),
-
-                    Usage::Call {
-                        name,
-                        args: _,
-                        nargs: _,
-                        offset,
-                    } => {
-                        errors.push(Error::new(
-                            *offset,
-                            format!("Call to unresolved symbol '{}'", name),
-                        ));
-                    }
-                };
-            }
-        }
-
-        // Obtain intermediate values collected during compilation
-        let values = self.values.clone();
-        self.values.pop(); // pop-off last value, which is always the last main parselet
-
-        /*
-            Finalize the program by resolving any unresolved usages according to a grammar's
-            point of view; This closure algorithm runs until no more changes on any parselet
-            configuration occurs.
-
-            The algorithm detects correct flagging fore nullable and left-recursive for any
-            consuming parselet.
-
-            It requires all parselets consuming input to be known before the finalization phase.
-            Normally, this is already known due to Tokays identifier classification.
-
-            Maybe there will be a better method for this detection in future.
-        */
-        let mut changes = true;
-        //let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..values.len() {
-                if let ImlValue::Parselet(parselet) = &values[i] {
-                    let mut parselet = parselet.borrow_mut();
-
-                    // Don't finalize any non-consuming parselet
-                    if parselet.consuming.is_none() {
-                        continue;
-                    }
-
-                    // Finalize according to grammar view, find left-recursions
-                    let consuming = parselet.consuming.clone().unwrap();
-                    let mut stack = vec![(i, consuming.nullable)];
-                    if let Some(consuming) = parselet.finalize(&values, &mut stack) {
-                        if *parselet.consuming.as_ref().unwrap() < consuming {
-                            parselet.consuming = Some(consuming);
-                            changes = true;
-                        }
-                    }
-                }
-            }
-
-            //loops += 1;
-        }
-
-        /*
-        for i in 0..values.len() {
-            if let ImlValue::Parselet(parselet) = &values[i] {
-                let parselet = parselet.borrow();
-
-                println!(
-                    "{} consuming={:?}",
-                    parselet.name.as_deref().unwrap_or("(unnamed)"),
-                    parselet.consuming
-                );
-            }
-        }
-
-        println!("Finalization finished after {} loops", loops);
-        */
-
-        // Stop when any unresolved usages occured;
-        // We do this here so that eventual undefined symbols are replaced by ImlOp::Nop,
-        // and later don't throw other errors.
-        if errors.len() > 0 {
-            for error in &errors {
-                eprintln!("{}", error);
-            }
-
-            return Err(errors);
-        }
-
-        // Compile values into a program
-        let mut fake = Program::new(Vec::new()); // todo: Fake compiler instance, not in use right now.
-
-        let program = Program::new(
-            values
-                .into_iter()
-                .map(|value| match value {
-                    ImlValue::Undetermined(_) => todo!(),
-                    ImlValue::Parselet(parselet) => {
-                        RefValue::from(parselet.borrow().into_parselet(&mut fake))
-                    }
-                    ImlValue::Value(value) => value,
-                })
-                .collect(),
-        );
-
-        if self.debug > 0 {
-            program.dump();
-        }
-
-        Ok(program)
-        */
-        Ok(Program::new(Vec::new())) //fixme!!
     }
 
     /// Tries to resolves open usages from the current scope
@@ -447,7 +264,6 @@ impl Compiler {
             }
 
             let parselet = Rc::new(RefCell::new(parselet));
-            self.finalize.push(parselet.clone());
             ImlValue::Parselet(parselet)
         } else {
             unreachable!();
