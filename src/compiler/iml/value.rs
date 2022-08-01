@@ -44,7 +44,7 @@ impl ImlValue {
     pub fn is_consuming(&self) -> bool {
         match self {
             ImlValue::Undetermined(ident) => crate::utils::identifier_is_consumable(ident),
-            ImlValue::Parselet(parselet) => parselet.borrow().consuming.is_some(),
+            ImlValue::Parselet(parselet) => parselet.borrow().consuming,
             ImlValue::Value(value) => value.is_consuming(),
         }
     }
@@ -52,15 +52,8 @@ impl ImlValue {
     /// Check whether a value is nullable in meaning of a grammar view
     pub fn is_nullable(&self) -> bool {
         match self {
-            ImlValue::Parselet(parselet) => {
-                if let Some(consuming) = &parselet.borrow().consuming {
-                    consuming.nullable
-                } else {
-                    false
-                }
-            }
             ImlValue::Value(value) => value.is_nullable(),
-            _ => panic!("Cannot perform finalization on undetermined values"),
+            _ => unreachable!(),
         }
     }
 }

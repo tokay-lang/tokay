@@ -5,6 +5,7 @@ use crate::{RefValue, Value};
 use indexmap::{IndexMap, IndexSet};
 use num::ToPrimitive;
 use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 /// The linker glues compiled intermediate program and finalized VM program together.
@@ -69,7 +70,7 @@ impl Linker {
             let parselet = p.borrow();
 
             // Memoize parselets required to be finalized (needs a general rework later...)
-            if parselet.consuming.is_some() {
+            if parselet.consuming {
                 finalize.push(p.clone());
             }
 
@@ -102,6 +103,7 @@ impl Linker {
             i += 1;
         }
 
+        let mut configs = HashMap::new();
         let mut cycles = 0;
         let mut changes = true;
 
@@ -109,21 +111,15 @@ impl Linker {
             changes = false;
 
             for parselet in &finalize {
-                let mut parselet = parselet.borrow_mut();
+                let parselet = parselet.borrow_mut();
+                let id = parselet.id();
 
-                let closure = parselet.body.finalize(&mut IndexSet::new());
-                //println!("closure on {:?} is {:?}", parselet.name, parselet.consuming);
-                //println!("--> returns {:?}", closure);
-
-                match (&mut parselet.consuming, closure) {
-                    (Some(consuming), Some(closure)) => {
-                        if *consuming < closure {
-                            //println!("--> updating");
-                            *consuming = closure;
-                            changes = true;
-                        }
+                // fixme: Perform on begin and end as well
+                if let Some(result) = parselet.body.finalize(&mut HashSet::new(), &mut configs) {
+                    if !configs.contains_key(&id) || configs[&id] < result {
+                        configs.insert(id, result);
+                        changes = true;
                     }
-                    _ => {}
                 }
             }
 
@@ -138,7 +134,7 @@ impl Linker {
             println!(
                 "{} consuming={:?}",
                 parselet.name.as_deref().unwrap_or("(unnamed)"),
-                parselet.consuming
+                configs[&parselet.id()]
             );
         }
 
@@ -148,9 +144,10 @@ impl Linker {
                 .map(|(iml, parselet)| {
                     if let Some(mut parselet) = parselet {
                         if let ImlValue::Parselet(imlparselet) = iml {
-                            if let Some(consuming) = &imlparselet.borrow().consuming {
-                                parselet.consuming = Some(consuming.leftrec);
-                            }
+                            //println!("{:?}", imlparselet.borrow().name);
+                            parselet.consuming = configs
+                                .get(&imlparselet.borrow().id())
+                                .map_or(None, |config| Some(config.leftrec));
                         }
 
                         RefValue::from(parselet)

@@ -2,9 +2,9 @@
 
 use super::*;
 use crate::{Object, Program, RefValue, Value};
-use indexmap::{IndexMap, IndexSet};
 use num::ToPrimitive;
 use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 /*
@@ -441,41 +441,49 @@ impl ImlOp {
 
     pub(in crate::compiler) fn finalize(
         &self,
-        visited: &mut IndexSet<usize>,
+        visited: &mut HashSet<usize>,
+        configs: &mut HashMap<usize, Consumable>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Op(Op::CallStatic(_)) => panic!("May not exists!"),
+            ImlOp::Op(Op::CallStatic(p)) => panic!("May not exists!"),
             ImlOp::Call(ImlOpValue(callee), ..) => {
                 match callee {
-                    ImlValue::Parselet(callee) => {
-                        if let Ok(callee) = callee.try_borrow() {
-                            // Close into another parselet?
-                            match &callee.consuming {
-                                None => None,
-                                Some(consuming) => {
-                                    if visited.contains(&callee.id()) {
-                                        Some(Consumable {
-                                            leftrec: false,
-                                            nullable: consuming.nullable,
-                                        })
-                                    } else {
-                                        visited.insert(callee.id());
-
-                                        //fixme: Finalize on begin and end as well!
-                                        let ret = callee.body.finalize(visited);
-
-                                        visited.remove(&callee.id());
-
-                                        ret
-                                    }
-                                }
-                            }
-                        } else {
-                            // This is the currently finalized parselet
-                            Some(Consumable {
+                    ImlValue::Parselet(parselet) => {
+                        match parselet.try_borrow() {
+                            // In case the parselet cannot be borrowed, it is left-recursive!
+                            Err(_) => Some(Consumable {
                                 leftrec: true,
                                 nullable: false,
-                            })
+                            }),
+                            Ok(parselet) => {
+                                let id = parselet.id();
+
+                                if visited.contains(&id) {
+                                    Some(Consumable {
+                                        leftrec: false,
+                                        nullable: configs[&id].nullable,
+                                    })
+                                } else {
+                                    visited.insert(id);
+
+                                    if !configs.contains_key(&id) {
+                                        configs.insert(
+                                            id,
+                                            Consumable {
+                                                leftrec: false,
+                                                nullable: false,
+                                            },
+                                        );
+                                    }
+
+                                    //fixme: Finalize on begin and end as well!
+                                    let ret = parselet.body.finalize(visited, configs);
+
+                                    visited.remove(&id);
+
+                                    ret
+                                }
+                            }
                         }
                     }
                     ImlValue::Value(callee) => {
@@ -492,14 +500,14 @@ impl ImlOp {
                     _ => unreachable!(),
                 }
             }
-            ImlOp::Shared(op) => op.borrow().finalize(visited),
+            ImlOp::Shared(op) => op.borrow().finalize(visited, configs),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
                 let mut consumes = false;
 
                 for alt in alts {
-                    if let Some(consumable) = alt.finalize(visited) {
+                    if let Some(consumable) = alt.finalize(visited, configs) {
                         leftrec |= consumable.leftrec;
                         nullable |= consumable.nullable;
                         consumes = true;
@@ -522,7 +530,7 @@ impl ImlOp {
                         break;
                     }
 
-                    if let Some(consumable) = item.finalize(visited) {
+                    if let Some(consumable) = item.finalize(visited, configs) {
                         leftrec |= consumable.leftrec;
                         nullable = consumable.nullable;
                         consumes = true;
@@ -536,9 +544,9 @@ impl ImlOp {
                 }
             }
             ImlOp::If { then, else_, .. } => {
-                let then = then.finalize(visited);
+                let then = then.finalize(visited, configs);
 
-                if let Some(else_) = else_.finalize(visited) {
+                if let Some(else_) = else_.finalize(visited, configs) {
                     if let Some(then) = then {
                         Some(Consumable {
                             leftrec: then.leftrec || else_.leftrec,
@@ -560,7 +568,7 @@ impl ImlOp {
                 let mut ret: Option<Consumable> = None;
 
                 for part in [init, condition, body] {
-                    let part = part.finalize(visited);
+                    let part = part.finalize(visited, configs);
 
                     if let Some(part) = part {
                         ret = if let Some(ret) = ret {
@@ -580,10 +588,10 @@ impl ImlOp {
             }
 
             // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. } => body.finalize(visited),
-            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(visited),
+            ImlOp::Expect { body, .. } => body.finalize(visited, configs),
+            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(visited, configs),
             ImlOp::Repeat { body, min, max } => {
-                if let Some(consumable) = body.finalize(visited) {
+                if let Some(consumable) = body.finalize(visited, configs) {
                     if *min == 0 {
                         Some(Consumable {
                             leftrec: consumable.leftrec,

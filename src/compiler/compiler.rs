@@ -241,14 +241,7 @@ impl Compiler {
             let parselet = ImlParselet {
                 offset,
                 name,
-                consuming: if *consuming {
-                    Some(Consumable {
-                        leftrec: false,
-                        nullable: false,
-                    })
-                } else {
-                    None
-                },
+                consuming: *consuming,
                 severity: severity.unwrap_or(5), // severity
                 constants,                       // constants
                 signature,                       // signature
