@@ -7,8 +7,10 @@ static PATTERN: &str = "src/**/*.rs";
 fn main() {
     let mut res: HashMap<String, String> = HashMap::new();
 
-    // Use Tokay v0.4
-    std::env::set_var("TOKAY_DEBUG", "0"); // disable any debug here.
+    // disable any debug inside of this process
+    std::env::set_var("TOKAY_DEBUG", "0");
+    std::env::set_var("TOKAY_PARSER_DEBUG", "0");
+
     let mut compiler = tokay::compiler::Compiler::new();
 
     let program = compiler
