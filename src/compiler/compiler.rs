@@ -47,8 +47,9 @@ The compiler works in a mode so that statics, variables and constants once built
 won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,      // Internal Tokay parser
-    pub debug: u8,                       // Compiler debug mode
+    parser: Option<parser::Parser>, // Internal Tokay parser
+    pub debug: u8,                  // Compiler debug mode
+    //values: HashSet<ImlValue>,           // Set of static intermediate values collected during compile
     pub(super) scopes: Vec<Scope>,       // Current compilation scopes
     pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
     pub(super) errors: Vec<Error>,       // Collected errors during compilation

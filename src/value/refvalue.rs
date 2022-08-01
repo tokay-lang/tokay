@@ -343,6 +343,9 @@ impl Hash for RefValue {
                 if let Some(s) = o.as_any().downcast_ref::<Str>() {
                     state.write_u8('s' as u8);
                     s.as_str().hash(state);
+                } else if let Some(b) = o.as_any().downcast_ref::<BuiltinRef>() {
+                    state.write_u8('b' as u8);
+                    b.0.name.hash(state);
                 } else {
                     state.write_u8('o' as u8);
                     o.id().hash(state);

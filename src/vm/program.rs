@@ -16,6 +16,7 @@ pub struct Program {
 
 impl Program {
     pub fn new(statics: Vec<RefValue>) -> Self {
+        println!("Program with {} statics in total", statics.len());
         Self { statics }
     }
 
@@ -23,7 +24,7 @@ impl Program {
     pub fn main(&self) -> ParseletRef {
         // Find main parselet by selecting the last parselet defined.
         // todo: allow to specify main parselet.
-        for i in (0..self.statics.len()) {
+        for i in 0..self.statics.len() {
             if let Some(parselet) = self.statics[i].borrow().object::<ParseletRef>() {
                 return parselet.clone();
             }

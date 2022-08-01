@@ -82,39 +82,32 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
             }
             */
             _ => {
-                if compiler
-                    .compile(Reader::new(Box::new(io::Cursor::new(code))))
-                    .is_ok()
+                if let Ok(program) = compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
                 {
-                    todo!();
-                    /*
-                    if let Ok(program) = compiler.finalize() {
-                        for (name, stream) in &streams {
-                            let mut reader = stream.borrow_mut().get_reader();
-                            let mut runtime = Runtime::new(&program, &mut reader);
-                            runtime.debug = compiler.debug;
-                            runtime.load_stack(globals);
+                    for (name, stream) in &streams {
+                        let mut reader = stream.borrow_mut().get_reader();
+                        let mut runtime = Runtime::new(&program, &mut reader);
+                        runtime.debug = compiler.debug;
+                        runtime.load_stack(globals);
 
-                            let ret = program.run(&mut runtime);
+                        let ret = program.run(&mut runtime);
 
-                            if streams.len() > 1 {
-                                print!("{}: ", name);
-                            }
-
-                            match ret {
-                                Ok(None) => {
-                                    if streams.len() > 1 {
-                                        print!("\n")
-                                    }
-                                }
-                                Ok(Some(value)) => println!("{}", value.to_string()),
-                                Err(error) => println!("{}", error),
-                            }
-
-                            globals = runtime.save_stack();
+                        if streams.len() > 1 {
+                            print!("{}: ", name);
                         }
+
+                        match ret {
+                            Ok(None) => {
+                                if streams.len() > 1 {
+                                    print!("\n")
+                                }
+                            }
+                            Ok(Some(value)) => println!("{}", value.to_string()),
+                            Err(error) => println!("{}", error),
+                        }
+
+                        globals = runtime.save_stack();
                     }
-                    */
                 }
             }
         }
