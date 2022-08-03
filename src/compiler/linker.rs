@@ -141,24 +141,29 @@ impl Linker {
         }
         */
 
-        Program::new(
-            self.statics
-                .into_iter()
-                .map(|(iml, parselet)| {
-                    if let Some(mut parselet) = parselet {
-                        if let ImlValue::Parselet(imlparselet) = iml {
-                            //println!("{:?}", imlparselet.borrow().name);
-                            parselet.consuming = configs
-                                .get(&imlparselet.borrow().id())
-                                .map_or(None, |config| Some(config.leftrec));
-                        }
-
-                        RefValue::from(parselet)
-                    } else {
-                        iml.value()
+        let statics: Vec<RefValue> = self
+            .statics
+            .into_iter()
+            .map(|(iml, parselet)| {
+                if let Some(mut parselet) = parselet {
+                    if let ImlValue::Parselet(imlparselet) = iml {
+                        //println!("{:?}", imlparselet.borrow().name);
+                        parselet.consuming = configs
+                            .get(&imlparselet.borrow().id())
+                            .map_or(None, |config| Some(config.leftrec));
                     }
-                })
-                .collect(),
-        )
+
+                    RefValue::from(parselet)
+                } else {
+                    iml.value()
+                }
+            })
+            .collect();
+
+        for (i, value) in statics.iter().enumerate() {
+            println!("{} : {:?}", i, value.borrow());
+        }
+
+        Program::new(statics)
     }
 }

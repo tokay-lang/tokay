@@ -957,15 +957,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
                     // When both results are values, calculate in-place
-                    /*
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlOp::Load(ImlValue::from(
+                        return ImlOp::Load(ImlOpValue(ImlValue::from(
                             left.binary_op(right, parts[2]).unwrap(),
-                        ));
+                        )));
                     }
-                    */
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
@@ -991,11 +989,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let res = traverse_node(compiler, children);
 
-                    /*
                     if let Ok(value) = res.get_evaluable_value() {
-                        return ImlOp::Load(ImlValue::from(value.unary_op(parts[2]).unwrap()));
+                        return ImlOp::Load(ImlOpValue(ImlValue::from(
+                            value.unary_op(parts[2]).unwrap(),
+                        )));
                     }
-                    */
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
@@ -1020,15 +1018,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
                     // When both results are values, compare in-place
-                    /*
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlOp::Load(ImlValue::from(
+                        return ImlOp::Load(ImlOpValue(ImlValue::from(
                             left.binary_op(right, parts[2]).unwrap(),
-                        ));
+                        )));
                     }
-                    */
 
                     // Otherwise, generate operational code
                     ops.push(left);
@@ -1187,7 +1183,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Compile time evaluation; When the if fails, it doesn't need
                     // to be compiled into the program.
-                    /*
                     if let Ok(value) = condition.get_evaluable_value() {
                         if value.is_true() {
                             return then;
@@ -1195,9 +1190,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             return else_;
                         }
 
-                        return ImlOp::Load(ImlValue::from(value!(void)));
+                        return ImlOp::Load(ImlOpValue(ImlValue::from(value!(void))));
                     }
-                    */
 
                     ops.push(condition);
 
