@@ -1,8 +1,7 @@
 /*! Intermediate code representation. */
 
 use super::*;
-use crate::{Object, Program, RefValue, Value};
-use num::ToPrimitive;
+use crate::{Object, RefValue};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;

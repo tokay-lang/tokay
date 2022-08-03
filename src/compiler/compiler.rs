@@ -6,11 +6,8 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
-use indexmap::IndexSet;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io;
-use std::io::prelude::*;
 use std::io::BufReader;
 use std::rc::Rc;
 

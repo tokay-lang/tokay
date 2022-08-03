@@ -2,16 +2,14 @@ use super::iml::*;
 use crate::value::Parselet;
 use crate::vm::{Op, Program};
 use crate::{RefValue, Value};
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use num::ToPrimitive;
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::collections::HashMap;
 
 /// The linker glues compiled intermediate program and finalized VM program together.
 #[derive(Debug)]
 pub(super) struct Linker {
-    statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional replacement
+    statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
 }
 
 impl Linker {
@@ -22,6 +20,10 @@ impl Linker {
         Linker { statics }
     }
 
+    /** Registers an ImlValue in the Linker's statics map and returns its index.
+
+    In case *value* already exists inside of the current statics, the existing index will be returned,
+    otherwiese the value is cloned and put into the statics table. */
     pub fn register(&mut self, value: &ImlValue) -> usize {
         match self.statics.get_index_of(value) {
             None => self.statics.insert_full(value.clone(), None).0,
@@ -29,8 +31,10 @@ impl Linker {
         }
     }
 
+    /** Generates code for a value push. For several, oftenly used values, there exists a direct operation pendant,
+    which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
+    is returned. */
     pub fn push(&mut self, value: &ImlValue) -> Op {
-        // Primary value pushes can directly be made by specific VM commands
         if let ImlValue::Value(value) = value {
             match &*value.borrow() {
                 Value::Void => return Op::PushVoid,
@@ -49,14 +53,21 @@ impl Linker {
         Op::LoadStatic(self.register(value))
     }
 
+    /** Turns the Linker and its intermediate values into a final VM program ready for execution.
+
+    The finalization is done according to a grammar's point of view, as this is one of Tokays core features.
+    This closure algorithm runs until no more changes on any parselet configurations regarding left-recursive
+    and nullable parselet detection occurs.
+    */
     pub fn finalize(mut self) -> Program {
-        let mut i = 0;
-        let mut finalize = Vec::new();
+        let mut finalize = Vec::new(); // list of consuming parselets required to be finalized
 
         // Loop until end of statics is reached
+        let mut i = 0;
+
         while i < self.statics.len() {
-            // Pick only intermediate parselets, ignore any other static value
-            let p = {
+            // Pick only intermediate parselets, other static values are directly moved
+            let outer = {
                 match self.statics.get_index(i).unwrap() {
                     (_, Some(_)) => unreachable!(), // may not exist!
                     (ImlValue::Parselet(parselet), None) => parselet.clone(),
@@ -67,11 +78,11 @@ impl Linker {
                 }
             };
 
-            let parselet = p.borrow();
+            let parselet = outer.borrow();
 
             // Memoize parselets required to be finalized (needs a general rework later...)
             if parselet.consuming {
-                finalize.push(p.clone());
+                finalize.push(outer.clone());
             }
 
             // Compile parselet from intermediate parselet
@@ -84,7 +95,9 @@ impl Linker {
                     .iter()
                     .map(|var_value| {
                         (
+                            // Copy parameter name
                             var_value.0.clone(),
+                            // Register default value, if any
                             if let Some(value) = &var_value.1 {
                                 Some(self.register(value))
                             } else {
@@ -103,32 +116,21 @@ impl Linker {
             i += 1;
         }
 
-        let mut configs = HashMap::new();
-        let mut cycles = 0;
+        // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
+        // put into the finalize list.
+        let mut configs = HashMap::new(); // hash-map of static-id and consuming configuration
         let mut changes = true;
 
         while changes {
             changes = false;
 
             for parselet in &finalize {
-                let parselet = parselet.borrow_mut();
-                let id = parselet.id();
-
-                // fixme: Perform on begin and end as well
-                if let Some(result) = parselet.body.finalize(&mut HashSet::new(), &mut configs) {
-                    if !configs.contains_key(&id) || configs[&id] < result {
-                        configs.insert(id, result);
-                        changes = true;
-                    }
-                }
+                let parselet = parselet.borrow_mut(); // parselet is locked for left-recursion detection
+                changes |= parselet.finalize(&mut configs);
             }
-
-            //println!("---\nClosure cycle {}", cycles);
-            //let _ = io::stdin().read(&mut [0u8]).unwrap();
-
-            cycles += 1;
         }
 
+        /*
         for p in &finalize {
             let parselet = p.borrow();
             println!(
@@ -137,6 +139,7 @@ impl Linker {
                 configs[&parselet.id()]
             );
         }
+        */
 
         Program::new(
             self.statics
