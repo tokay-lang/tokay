@@ -127,7 +127,7 @@ impl Usage {
         }
 
         if ret.len() > 0 {
-            Some(ImlOp::from_vec(ret))
+            Some(ImlOp::from(ret))
         } else {
             None
         }

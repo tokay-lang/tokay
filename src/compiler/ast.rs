@@ -38,7 +38,7 @@ fn traverse_node_or_list(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
             ops.push(traverse_node_or_list(compiler, item));
         }
 
-        ImlOp::from_vec(ops)
+        ImlOp::from(ops)
     } else if let Some(dict) = ast.borrow().object::<Dict>() {
         traverse_node(compiler, dict)
     } else {
@@ -496,7 +496,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
         }
     }
 
-    ImlOp::from_vec(ops)
+    ImlOp::from(ops)
 }
 
 // Main traversal function, running recursively through the AST
@@ -518,7 +518,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
             // Push value first, then the alias
-            ImlOp::from_vec(vec![right, left, ImlOp::from(Op::MakeAlias)])
+            ImlOp::from(vec![right, left, ImlOp::from(Op::MakeAlias)])
         }
 
         // assign ---------------------------------------------------------
@@ -559,11 +559,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ));
             }
 
-            ImlOp::from_vec(ops)
+            ImlOp::from(ops)
         }
 
         // attribute ------------------------------------------------------
-        "attribute" => ImlOp::from_vec(vec![
+        "attribute" => ImlOp::from(vec![
             traverse_node_or_list(compiler, &node["children"]),
             traverse_offset(node),
             ImlOp::from(Op::LoadAttr),
@@ -725,11 +725,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             }
             */
 
-            ImlOp::from_vec(ops)
+            ImlOp::from(ops)
         }
 
         // capture --------------------------------------------------------
-        "capture_alias" | "capture_expr" => ImlOp::from_vec(vec![
+        "capture_alias" | "capture_expr" => ImlOp::from(vec![
             traverse_node_or_list(compiler, &node["children"]),
             ImlOp::from(Op::LoadCapture),
         ]),
@@ -844,7 +844,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // index ----------------------------------------------------------
         "index" => {
-            ImlOp::from_vec(vec![
+            ImlOp::from(vec![
                 traverse_node_or_list(compiler, &node["children"]),
                 traverse_offset(node),
                 ImlOp::from(Op::LoadIndex), // todo: in case value is an integer, use LoadFastIndex
@@ -890,7 +890,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 _ => unreachable!(),
             }
 
-            ImlOp::from_vec(ops)
+            ImlOp::from(ops)
         }
 
         // operator ------------------------------------------------------
@@ -1095,7 +1095,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                             );
 
                                             let mut ops =
-                                                ImlOp::from_vec(chars.into_ops(compiler, true));
+                                                ImlOp::from(chars.into_ops(compiler, true));
 
                                             if parts[2] == "kle" {
                                                 // mod_kle on Token::Char becomes Token::Chars.into_optional()
@@ -1212,7 +1212,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     compiler.push_loop();
 
                     let condition = traverse_node_or_list(compiler, &children[1]);
-                    let body = ImlOp::from_vec(vec![
+                    let body = ImlOp::from(vec![
                         traverse_node_or_list(compiler, &children[3]),
                         traverse_node_or_list(compiler, &children[2]),
                     ]);
@@ -1259,7 +1259,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             };
             ops.push(op);
 
-            ImlOp::from_vec(ops)
+            ImlOp::from(ops)
         }
 
         // rvalue ---------------------------------------------------------
@@ -1273,7 +1273,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             }
 
             assert!(ops.len() > 0);
-            ImlOp::from_vec(ops)
+            ImlOp::from(ops)
         }
 
         // sequence  ------------------------------------------------------
@@ -1292,7 +1292,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             if emit == "sequence" {
                 if ops.len() == 1 {
-                    ImlOp::from_vec(ops)
+                    ImlOp::from(ops)
                 } else if ops.len() > 0 {
                     ImlOp::Seq {
                         seq: ops,
@@ -1303,7 +1303,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 }
             } else {
                 ops.push(Op::MakeList(children.len()).into());
-                ImlOp::from_vec(ops)
+                ImlOp::from(ops)
             }
         }
 

@@ -111,16 +111,6 @@ pub enum ImlOp {
 }
 
 impl ImlOp {
-    pub fn from_vec(ops: Vec<ImlOp>) -> Self {
-        match ops.len() {
-            0 => ImlOp::Nop,
-            1 => ops.into_iter().next().unwrap(),
-            _ => ImlOp::Seq {
-                seq: ops,
-                framed: false,
-            },
-        }
-    }
 
     pub fn into_kleene(self) -> Self {
         Self::Repeat {
@@ -641,5 +631,18 @@ impl std::fmt::Debug for ImlOp {
 impl From<Op> for ImlOp {
     fn from(op: Op) -> Self {
         ImlOp::Op(op)
+    }
+}
+
+impl From<Vec<ImlOp>> for ImlOp {
+    fn from(ops: Vec<ImlOp>) -> Self {
+        match ops.len() {
+            0 => ImlOp::Nop,
+            1 => ops.into_iter().next().unwrap(),
+            _ => ImlOp::Seq {
+                seq: ops,
+                framed: false,
+            },
+        }
     }
 }

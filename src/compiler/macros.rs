@@ -263,7 +263,7 @@ macro_rules! tokay {
             items.push(item);
 
             //println!("call = {} {:?}", stringify!($ident), items);
-            Some(ImlOp::from_vec(items))
+            Some(ImlOp::from(items))
         }
     };
 
