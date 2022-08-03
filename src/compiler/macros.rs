@@ -89,7 +89,7 @@ macro_rules! tokay {
                     .collect()
             };
 
-            let mut parselet = $compiler.pop_parselet(
+            let parselet = $compiler.pop_parselet(
                 None,
                 Some("_".to_string()),
                 Some(0), // mark as silent parselet

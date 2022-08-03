@@ -518,8 +518,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
 
             // Push value first, then the alias
-            let mut ops = vec![right, left, ImlOp::from(Op::MakeAlias)];
-            ImlOp::from_vec(ops)
+            ImlOp::from_vec(vec![right, left, ImlOp::from(Op::MakeAlias)])
         }
 
         // assign ---------------------------------------------------------

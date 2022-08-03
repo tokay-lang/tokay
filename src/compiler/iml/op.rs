@@ -321,6 +321,8 @@ impl ImlOp {
                 ret.push(Op::Loop(
                     repeat.len() + if consuming.is_some() { 3 } else { 2 },
                 ));
+
+                // fixme: consuming flag must be handled differently.
                 if consuming.is_some() {
                     ret.push(Op::Fuse(repeat.len() + 2));
                 }
@@ -444,7 +446,7 @@ impl ImlOp {
         configs: &mut HashMap<usize, Consumable>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Op(Op::CallStatic(p)) => panic!("May not exists!"),
+            ImlOp::Op(Op::CallStatic(_)) => unreachable!("This may not exist!"),
             ImlOp::Call(ImlOpValue(callee), ..) => {
                 match callee {
                     ImlValue::Parselet(parselet) => {
@@ -562,7 +564,7 @@ impl ImlOp {
                 init,
                 condition,
                 body,
-                consuming,
+                ..
             } => {
                 let mut ret: Option<Consumable> = None;
 
@@ -581,15 +583,13 @@ impl ImlOp {
                     }
                 }
 
-                //*consuming = ret.clone();
-
                 ret
             }
 
             // DEPRECATED BELOW!!!
             ImlOp::Expect { body, .. } => body.finalize(visited, configs),
             ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(visited, configs),
-            ImlOp::Repeat { body, min, max } => {
+            ImlOp::Repeat { body, min, .. } => {
                 if let Some(consumable) = body.finalize(visited, configs) {
                     if *min == 0 {
                         Some(Consumable {

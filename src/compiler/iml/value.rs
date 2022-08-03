@@ -48,14 +48,6 @@ impl ImlValue {
             ImlValue::Value(value) => value.is_consuming(),
         }
     }
-
-    /// Check whether a value is nullable in meaning of a grammar view
-    pub fn is_nullable(&self) -> bool {
-        match self {
-            ImlValue::Value(value) => value.is_nullable(),
-            _ => unreachable!(),
-        }
-    }
 }
 
 impl std::fmt::Debug for ImlValue {
