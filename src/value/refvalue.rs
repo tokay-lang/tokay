@@ -1,4 +1,4 @@
-use super::{BoxedObject, Dict, Method, Object, Str, Value};
+use super::{BoxedObject, Dict, Method, Object, Str, Token, Value};
 use crate::builtin::{Builtin, BuiltinRef};
 use crate::value;
 use crate::{Accept, Context, Error, Reject};
@@ -346,6 +346,9 @@ impl Hash for RefValue {
                 } else if let Some(b) = o.as_any().downcast_ref::<BuiltinRef>() {
                     state.write_u8('b' as u8);
                     b.0.name.hash(state);
+                } else if let Some(t) = o.as_any().downcast_ref::<Token>() {
+                    state.write_u8('t' as u8);
+                    t.hash(state);
                 } else {
                     state.write_u8('o' as u8);
                     o.id().hash(state);
