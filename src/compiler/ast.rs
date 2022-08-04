@@ -1318,7 +1318,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // value ---------------------------------------------------------
         value if value.starts_with("value_") => {
-            ImlOp::Load(ImlOpValue(traverse_node_value(compiler, node)))
+            let value = traverse_node_value(compiler, node);
+
+            if value.is_callable(true) {
+                ImlOp::Call(ImlOpValue(traverse_node_value(compiler, node)), 0, false)
+            } else {
+                ImlOp::Load(ImlOpValue(traverse_node_value(compiler, node)))
+            }
         }
 
         // ---------------------------------------------------------------
