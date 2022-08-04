@@ -694,27 +694,37 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             // Perform static call or resolved rvalue call
             let callee = traverse_node_or_list(compiler, &children[0]);
+            let mut is_usage = false;
 
-            todo!();
+            if let ImlOp::Shared(usage) = &callee {
+                let mut usage = usage.borrow_mut();
 
-            /*
-            if let ImlResult::Identifier(ident, offset) = callee {
-                if utils::identifier_is_consumable(&ident) {
-                    compiler.mark_consuming();
-                }
-
-                ops.push(
-                    Usage::Call {
-                        name: ident.to_string(),
+                if let ImlOp::Usage(
+                    Usage::Load { name, offset } | Usage::CallOrCopy { name, offset },
+                ) = &*usage
+                {
+                    // Replace Usage::Load by Usage::Call
+                    let replace = Usage::Call {
+                        name: name.to_string(),
                         args,
                         nargs,
-                        offset,
-                    }
-                    .resolve_or_dispose(compiler),
-                )
-            } else {
-                ops.push(callee);
+                        offset: *offset,
+                    };
 
+                    if replace.is_consuming() {
+                        compiler.mark_consuming();
+                    }
+
+                    *usage = ImlOp::Usage(replace);
+                    is_usage = true;
+                } else {
+                    unreachable!();
+                }
+            }
+
+            ops.push(callee);
+
+            if !is_usage {
                 if args == 0 && nargs == 0 {
                     ops.push(Op::Call.into());
                 } else if args > 0 && nargs == 0 {
@@ -723,7 +733,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ops.push(Op::CallArgNamed(args).into())
                 }
             }
-            */
 
             ImlOp::from(ops)
         }

@@ -209,6 +209,28 @@ impl Compiler {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
+
+        // Report any unresolved usage when reaching global scope
+        if self.scopes.len() == 1 {
+            // Check and report any unresolved usages
+            for usage in self.usages.drain(..) {
+                if let ImlOp::Usage(usage) = &*usage.borrow() {
+                    self.errors.push(match usage {
+                        Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => {
+                            Error::new(*offset, format!("Use of unresolved symbol '{}'", name))
+                        }
+
+                        Usage::Call {
+                            name,
+                            args: _,
+                            nargs: _,
+                            offset,
+                        } => Error::new(*offset, format!("Call to unresolved symbol '{}'", name)),
+                    });
+                }
+            }
+        }
+
         let mut scope = self.scopes.remove(0);
 
         if let Scope::Parselet {

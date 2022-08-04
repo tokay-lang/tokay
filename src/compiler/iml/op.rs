@@ -111,7 +111,6 @@ pub enum ImlOp {
 }
 
 impl ImlOp {
-
     pub fn into_kleene(self) -> Self {
         Self::Repeat {
             body: Box::new(self),
@@ -161,7 +160,7 @@ impl ImlOp {
             ImlOp::Nop => Vec::new(),
             ImlOp::Op(op) => vec![op.clone()],
             ImlOp::Shared(op) => op.borrow().compile(linker),
-            ImlOp::Usage(_) => panic!("Cannot compile ImlOp::Usage"),
+            ImlOp::Usage(u) => panic!("Cannot compile {:?}", u),
             ImlOp::Call(ImlOpValue(value), args, nargs) => {
                 let idx = linker.register(value);
 
