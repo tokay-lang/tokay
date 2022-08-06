@@ -16,7 +16,7 @@ pub struct Program {
 
 impl Program {
     pub fn new(statics: Vec<RefValue>) -> Self {
-        println!("Program with {} statics in total", statics.len());
+        //println!("Program with {} statics in total", statics.len());
         Self { statics }
     }
 

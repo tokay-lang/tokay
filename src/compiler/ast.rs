@@ -1073,15 +1073,22 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let res = traverse_node(compiler, children);
 
-                    todo!();
-
-                    /*
                     if !res.is_consuming() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
                             format!(
-                                "Operator '{}' has no effect on non-consuming value",
-                                parts[2]
+                                "Operator '{}' has no effect on non-consuming {}",
+                                match parts[2] {
+                                    "pos" => "+",
+                                    "kle" => "*",
+                                    "opt" => "?",
+                                    other => other,
+                                },
+                                if matches!(res, ImlOp::Load(_)) {
+                                    "value"
+                                } else {
+                                    "sequence"
+                                }
                             ),
                         ));
                     } else {
@@ -1089,7 +1096,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     }
 
                     // Special operations for Token::Char
-                    if let ImlOp::Call(value) = &res {
+                    if let ImlOp::Call(ImlOpValue(value), ..) = &res {
                         // In case of a token, try to replace it with a repeating counterpart.
                         if let ImlValue::Value(value) = value {
                             let value = value.borrow();
@@ -1099,26 +1106,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     match parts[2] {
                                         // mod_pos on Token::Char becomes Token::Chars
                                         "pos" | "kle" => {
-                                            let chars = ImlValue::Call(
-                                                RefValue::from(Token::Chars(ccl)).into(),
-                                            );
-
-                                            let mut ops =
-                                                ImlOp::from(chars.into_ops(compiler, true));
-
+                                            let mut chars = ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from(Token::Chars(ccl)))), 0, false);
                                             if parts[2] == "kle" {
                                                 // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                                ops = ops.into_optional();
+                                                chars = chars.into_optional();
                                             }
 
-                                            return ImlResult::Ops(vec![ops]);
+                                            return chars;
                                         }
 
                                         // mod_not on Token::Char becomes negated Token::Char
                                         "not" => {
-                                            return ImlResult::Value(
-                                                RefValue::from(Token::Char(ccl.negate())).into(),
-                                            );
+                                            return ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from(Token::Char(ccl.negate())))), 0, false);
                                         }
                                         _ => {}
                                     }
@@ -1126,34 +1125,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             }
                         }
                     }
-
-                    // This reports error when modifier is used with non-consuming code
-                    // (for now disabled and under further consideration)
-                    /*
-                    if !scope.consuming {
-                        compiler.errors.push(Error::new(
-                            traverse_node_offset(node),
-                            format!(
-                                "Operator '{}' has no effect on non-consuming {}",
-                                match parts[2] {
-                                    "pos" => "+",
-                                    "kle" => "*",
-                                    "opt" => "?",
-                                    other => other
-                                },
-                                if matches!(res, ImlResult::Value(_)) {
-                                    "value"
-                                }
-                                else {
-                                    "code"
-                                }
-                            ),
-                        ));
-                    }
-                    else {
-                        compiler.scopes[0].consuming = true;
-                    }
-                    */
 
                     match parts[2] {
                         "pos" => res.into_positive(),
@@ -1163,18 +1134,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         "expect" => {
                             // Just give some helpful information here for most cases;
                             // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
-                            let msg = if let ImlOp::Op(Op::CallStatic(i)) = &op {
-                                Some(format!("Expecting {}", compiler.values[*i]))
+                            let msg = if let ImlOp::Call(expect, ..) = &res {
+                                Some(format!("Expecting {:?}", expect))
                             } else {
                                 None
                             };
 
-                            op.into_expect(msg)
+                            res.into_expect(msg)
                         }
-                        "not" => op.into_not(),
+                        "not" => res.into_not(),
                         _ => unreachable!(),
                     }
-                    */
                 }
 
                 "if" => {

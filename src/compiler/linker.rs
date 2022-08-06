@@ -160,9 +160,11 @@ impl Linker {
             })
             .collect();
 
+        /*
         for (i, value) in statics.iter().enumerate() {
             println!("{} : {:?}", i, value.borrow());
         }
+        */
 
         Program::new(statics)
     }

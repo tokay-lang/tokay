@@ -598,6 +598,84 @@ impl ImlOp {
         }
     }
 
+    /// Generic querying function taking a closure that either runs on the tree or stops.
+    fn query(&self, func: &mut dyn FnMut(&Self) -> bool) -> bool {
+        // Call closure on current ImlOp, break on false return
+        if !func(self) {
+            return false;
+        }
+
+        // Query along ImlOp structure
+        match self {
+            ImlOp::Shared(op) => op.borrow().query(func),
+            ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
+                for item in items {
+                    if !item.query(func) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            ImlOp::If { then, else_, .. } => {
+                for i in [&then, &else_] {
+                    if !i.query(func) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            ImlOp::Loop {
+                init,
+                condition,
+                body,
+                ..
+            } => {
+                for i in [&init, &condition, &body] {
+                    if !i.query(func) {
+                        return false;
+                    }
+                }
+
+                true
+            }
+            // DEPRECATED BELOW!!!
+            ImlOp::Expect { body, .. }
+            | ImlOp::Not { body }
+            | ImlOp::Peek { body }
+            | ImlOp::Repeat { body, .. } => body.query(func),
+
+            _ => true,
+        }
+    }
+
+    pub fn is_consuming(&self) -> bool {
+        let mut consuming = false;
+
+        self.query(&mut |op| {
+            match op {
+                ImlOp::Call(ImlOpValue(callee), ..) => {
+                    if callee.is_consuming() {
+                        consuming = true;
+                        return false; // stop further examination
+                    }
+                }
+                ImlOp::Usage(usage) => {
+                    if usage.is_consuming() {
+                        consuming = true;
+                        return false; // stop further examination
+                    }
+                }
+                _ => {}
+            }
+
+            true
+        });
+
+        consuming
+    }
+
     /** Returns a value to operate with or evaluate during compile-time.
 
     The function will only return Ok(Value) when the static_expression_evaluation-feature

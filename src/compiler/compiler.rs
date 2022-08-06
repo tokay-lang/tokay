@@ -122,8 +122,7 @@ impl Compiler {
             return Err(self.errors.drain(..).collect());
         }
 
-        // COMPILE INTO TEMPORARY FAKE COMPILER
-        println!("ret = {:#?}", ret);
+        //println!("ret = {:#?}", ret);
         if let ImlOp::Call(ImlOpValue(main), ..) = ret {
             Ok(Linker::new(main).finalize())
         } else {
