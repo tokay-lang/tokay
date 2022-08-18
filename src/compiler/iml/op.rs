@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::{Object, RefValue};
+use crate::reader::Offset;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -51,9 +52,7 @@ pub enum ImlOp {
     Nop,                           // Empty operation
     Op(Op),                        // VM Operation
     Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
-    Usage(Usage),        // (yet) unresolved usage
-    Load(ImlOpValue),    // Qualified value load
-    Call(ImlOpValue, usize, bool), // Qualified value call
+    Usage(Usage),        // Load of or call to a (possibly unknown) symbol
 
     // Alternation (Block) of sequences or ops
     Alt {
@@ -111,6 +110,24 @@ pub enum ImlOp {
 }
 
 impl ImlOp {
+    /// Call known value
+    pub fn call(offset: Option<Offset>, value: ImlValue, args: usize, nargs: bool) -> ImlOp {
+        ImlOp::Usage(Usage{
+            offset,
+            action: if args == 0 && !nargs { Action::CallOrCopy } else { Action::Call(args, nargs) },
+            target: Ok(Target::Static(value)),
+        })
+    }
+
+    /// Load known value
+    pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
+        ImlOp::Usage(Usage{
+            offset,
+            action: Action::Load,
+            target: Ok(Target::Static(value)),
+        })
+    }
+
     pub fn into_kleene(self) -> Self {
         Self::Repeat {
             body: Box::new(self),
@@ -161,20 +178,29 @@ impl ImlOp {
             ImlOp::Op(op) => vec![op.clone()],
             ImlOp::Shared(op) => op.borrow().compile(linker),
             ImlOp::Usage(u) => panic!("Cannot compile {:?}", u),
-            ImlOp::Call(ImlOpValue(value), args, nargs) => {
+            /*
+            ImlOp::Call(ImlOpValue(value), args, nargs, offset) => {
+                let mut ops = Vec::new();
                 let idx = linker.register(value);
 
-                vec![if *args == 0 && !*nargs {
-                    Op::CallStatic(idx)
+                if let Some(offset) = offset {
+                    ops.push(Op::Offset(Box::new(*offset)));
+                }
+
+                if *args == 0 && !*nargs {
+                    ops.push(Op::CallStatic(idx));
                 } else if *args > 0 && !*nargs {
-                    Op::CallStaticArg(Box::new((idx, *args)))
+                    ops.push(Op::CallStaticArg(Box::new((idx, *args))));
                 } else {
-                    Op::CallStaticArgNamed(Box::new((idx, *args)))
-                }]
+                    ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
+                }
+
+                ops
             }
             ImlOp::Load(value) => {
                 vec![linker.push(value)]
             }
+            */
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
                 let mut iter = alts.iter();
@@ -436,7 +462,7 @@ impl ImlOp {
     ) -> Option<Consumable> {
         match self {
             ImlOp::Op(Op::CallStatic(_)) => unreachable!("This may not exist!"),
-            ImlOp::Call(ImlOpValue(callee), ..) => {
+            ImlOp::Usage(Usage{target: Ok(Target::Static(callee)), ..}) => {
                 match callee {
                     ImlValue::Parselet(parselet) => {
                         match parselet.try_borrow() {
@@ -655,12 +681,6 @@ impl ImlOp {
 
         self.query(&mut |op| {
             match op {
-                ImlOp::Call(ImlOpValue(callee), ..) => {
-                    if callee.is_consuming() {
-                        consuming = true;
-                        return false; // stop further examination
-                    }
-                }
                 ImlOp::Usage(usage) => {
                     if usage.is_consuming() {
                         consuming = true;
@@ -682,7 +702,7 @@ impl ImlOp {
     is enabled, it is ImlOp::Load and the value is NOT a callable! */
     pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
-            if let Self::Load(ImlOpValue(ImlValue::Value(value))) = self {
+            if let Self::Usage(Usage{target: Ok(Target::Static(ImlValue::Value(value))), action: Action::Load, ..}) = self {
                 if !value.is_callable(true) {
                     return Ok(value.clone().into());
                 }

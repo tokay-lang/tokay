@@ -123,7 +123,7 @@ impl Compiler {
         }
 
         //println!("ret = {:#?}", ret);
-        if let ImlOp::Call(ImlOpValue(main), ..) = ret {
+        if let ImlOp::Usage(Usage{target: Ok(Target::Static(main)), ..}) = ret {
             Ok(Linker::new(main).finalize())
         } else {
             unreachable!();
@@ -151,15 +151,14 @@ impl Compiler {
                     let mut op = op.borrow_mut();
 
                     if let ImlOp::Usage(usage) = &mut *op {
-                        if let Some(res) = usage.try_resolve(self) {
-                            // Usage resolving was successfull, replace Usage by result.
-                            *op = res;
+                        if usage.resolve(self) {
+                            // Usage was resolved, discard
                             continue;
                         }
                     }
                 }
 
-                self.usages.push(op); // For later resolve.
+                self.usages.push(op); // Hold for later resolve
             }
         }
     }
@@ -211,6 +210,8 @@ impl Compiler {
 
         // Report any unresolved usage when reaching global scope
         if self.scopes.len() == 1 {
+            todo!();
+            /*
             // Check and report any unresolved usages
             for usage in self.usages.drain(..) {
                 if let ImlOp::Usage(usage) = &*usage.borrow() {
@@ -228,6 +229,7 @@ impl Compiler {
                     });
                 }
             }
+            */
         }
 
         let mut scope = self.scopes.remove(0);
@@ -395,7 +397,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value+`
-                ImlOp::Call(ImlOpValue(value), 0, false).into_positive(),
+                ImlOp::call(None, value, 0, false).into_positive(),
             );
 
             // Remind "__" as new constant
@@ -411,7 +413,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value?`
-                ImlOp::Call(ImlOpValue(value), 0, false).into_optional(),
+                ImlOp::call(None, value, 0, false).into_optional(),
             );
 
             // Insert "_" afterwards

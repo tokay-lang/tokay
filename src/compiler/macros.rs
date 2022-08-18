@@ -232,35 +232,26 @@ macro_rules! tokay {
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::Load(ImlOpValue(ImlValue::from($crate::value!($value)))))
+        Some(ImlOp::load(None, ImlValue::from($crate::value!($value))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
-        {
-            Some(ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from($token))), 0, false))
-        }
+        Some(ImlOp::call(None, ImlValue::from(RefValue::from($token)), 0, false))
     };
 
     // Call with parameters
     ( $compiler:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
         {
+            // Push the arguments
             let mut items = vec![
                 $(
                     tokay!($compiler, $param).unwrap()
                 ),*
             ];
 
-            let name = stringify!($ident).to_string();
-
-            let item = Usage::Call{
-                name,
-                args: items.len(),
-                nargs: 0,
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            items.push(item);
+            // Push call
+            items.push(Usage::call(&mut $compiler, None, stringify!($ident).to_string(), items.len(), false));
 
             //println!("call = {} {:?}", stringify!($ident), items);
             Some(ImlOp::from(items))
@@ -269,37 +260,19 @@ macro_rules! tokay {
 
     // Call without parameters
     ( $compiler:expr, $ident:ident ) => {
-        {
-            //println!("call = {}", stringify!($ident));
-            let name = stringify!($ident);
-
-            let item = Usage::CallOrCopy{
-                name: name.to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            Some(item)
-        }
+        Some(Usage::call(&mut $compiler, None, stringify!($ident).to_string(), 0, false))
     };
 
     // Whitespace
     ( $compiler:expr, _ ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            let item = Usage::CallOrCopy{
-                name: "_".to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            Some(item)
-        }
+        Some(Usage::call(&mut $compiler,None, stringify!($ident).to_string(), 0, false))
     };
 
     // Match
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = RefValue::from(Token::Match($literal.to_string()));
-            Some(ImlOp::from(ImlOp::Call(ImlOpValue(ImlValue::from(token)), 0, false)))
+            Some(ImlOp::call(None, ImlValue::from(token), 0, false))
         }
     };
 
@@ -307,7 +280,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = RefValue::from(Token::Touch($literal.to_string()));
-            Some(ImlOp::from(ImlOp::Call(ImlOpValue(ImlValue::from(token)), 0, false)))
+            Some(ImlOp::call(None, ImlValue::from(token), 0, false))
         }
     };
 
