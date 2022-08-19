@@ -596,7 +596,7 @@ fn examples() {
     );
 
     assert_eq!(
-        run(include_str!("../examples/faculty.tok"), ""),
+        run(include_str!("../examples/factorial.tok"), ""),
         Ok(Some(value!(24)))
     );
 

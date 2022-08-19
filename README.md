@@ -160,7 +160,7 @@ factorial(4)
 ```
 
 > ```
-> $ tokay examples/faculty.tok
+> $ tokay examples/factorial.tok
 > 24
 > ```
 
@@ -176,12 +176,12 @@ print(factorial(int(Number)))
 ```
 
 > ```
-> $ tokay examples/faculty.tok -- "5 6 ignored 7 other 14 yeah"
+> $ tokay examples/factorial2.tok -- "5 6 ignored 7 other 14 yeah"
 > 120
 > 720
 > 5040
 > 87178291200
-> $ tokay examples/faculty.tok
+> $ tokay examples/factorial2.tok
 > 5
 > 120
 > 6
