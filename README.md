@@ -148,15 +148,15 @@ Expr _ print("= " + $1)   # gives some neat result output
 > ```
 
 Tokay can also be used for programs without any parsing features.<br>
-Next is a recursive attempt for calculating the faculty of an integer.
+Next is a recursive attempt for calculating the factorial of an integer.
 
 ```tokay
-faculty : @x {
+factorial : @x {
     if !x return 1
-    x * faculty(x - 1)
+    x * factorial(x - 1)
 }
 
-faculty(4)
+factorial(4)
 ```
 
 > ```
@@ -164,24 +164,24 @@ faculty(4)
 > 24
 > ```
 
-And this version of above program calculates the faculty for any integer token matches from the input. Just the invocation is different, and uses the Number token.
+And this version of above program calculates the factorial for any integer token matches from the input. Just the invocation is different, and uses the Number token.
 
 ```tokay
-faculty : @x {
+factorial : @x {
     if !x return 1
-    x * faculty(x - 1)
+    x * factorial(x - 1)
 }
 
-print(faculty(int(Number)))
+print(factorial(int(Number)))
 ```
 
 > ```
-> $ tokay examples/faculty2.tok -- "5 6 ignored 7 other 14 yeah"
+> $ tokay examples/faculty.tok -- "5 6 ignored 7 other 14 yeah"
 > 120
 > 720
 > 5040
 > 87178291200
-> $ tokay examples/faculty2.tok
+> $ tokay examples/faculty.tok
 > 5
 > 120
 > 6
