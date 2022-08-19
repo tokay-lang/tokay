@@ -76,8 +76,8 @@ impl Str {
 
     tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
-    tokay_method!("str_len(str)", {
-        let string = str.borrow();
+    tokay_method!("str_len(s)", {
+        let string = s.borrow();
 
         if let Some(string) = string.object::<Str>() {
             Ok(RefValue::from(string.chars().count()))
@@ -86,8 +86,8 @@ impl Str {
         }
     });
 
-    tokay_method!("str_byteslen(str)", {
-        let string = str.borrow();
+    tokay_method!("str_byteslen(s)", {
+        let string = s.borrow();
 
         if let Some(string) = string.object::<Str>() {
             Ok(RefValue::from(string.len()))
@@ -96,8 +96,8 @@ impl Str {
         }
     });
 
-    tokay_method!("str_add(str, append)", {
-        let mut string = str.to_string();
+    tokay_method!("str_add(s, append)", {
+        let mut string = s.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
             string.push_str(append.as_str());
@@ -108,8 +108,8 @@ impl Str {
         Ok(RefValue::from(string))
     });
 
-    tokay_method!("str_endswith(str, postfix)", {
-        let string = str.borrow();
+    tokay_method!("str_endswith(s, postfix)", {
+        let string = s.borrow();
         let postfix = postfix.borrow();
 
         Ok(if let Some(string) = string.object::<Str>() {
@@ -125,18 +125,18 @@ impl Str {
         })
     });
 
-    tokay_method!("str_mul(str, count)", {
-        if let Some(string) = str.borrow().object::<Str>() {
+    tokay_method!("str_mul(s, count)", {
+        if let Some(string) = s.borrow().object::<Str>() {
             // string * count
             return Ok(RefValue::from(string.repeat(count.to_usize()?)));
         }
 
         // count * string is also possible
-        Ok(RefValue::from(count.to_string().repeat(str.to_usize()?)))
+        Ok(RefValue::from(count.to_string().repeat(s.to_usize()?)))
     });
 
-    tokay_method!("str_join(str, list)", {
-        let delimiter = str.to_string();
+    tokay_method!("str_join(s, list)", {
+        let delimiter = s.to_string();
         let list = List::from(list);
 
         let mut ret = String::new();
@@ -152,12 +152,12 @@ impl Str {
         Ok(RefValue::from(ret))
     });
 
-    tokay_method!("str_lower(str)", {
-        Ok(RefValue::from(str.to_string().to_lowercase()))
+    tokay_method!("str_lower(s)", {
+        Ok(RefValue::from(s.to_string().to_lowercase()))
     });
 
-    tokay_method!("str_replace(str, from, to=void, n=void)", {
-        let string = str.to_string();
+    tokay_method!("str_replace(s, from, to=void, n=void)", {
+        let string = s.to_string();
         let from = from.to_string();
         let to = to.to_string();
 
@@ -168,8 +168,8 @@ impl Str {
         }))
     });
 
-    tokay_method!("str_startswith(str, prefix)", {
-        let string = str.borrow();
+    tokay_method!("str_startswith(s, prefix)", {
+        let string = s.borrow();
         let prefix = prefix.borrow();
 
         Ok(if let Some(string) = string.object::<Str>() {
@@ -185,12 +185,12 @@ impl Str {
         })
     });
 
-    tokay_method!("str_substr(str, start=0, length=void)", {
-        if !str.is("str") {
-            str = RefValue::from(str.to_string());
+    tokay_method!("str_substr(s, start=0, length=void)", {
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
         }
 
-        let string = str.borrow();
+        let string = s.borrow();
         let string = string.object::<Str>().unwrap().as_str();
 
         Ok(RefValue::from(if length.is_void() {
@@ -204,8 +204,8 @@ impl Str {
         }))
     });
 
-    tokay_method!("str_upper(str)", {
-        Ok(RefValue::from(str.to_string().to_uppercase()))
+    tokay_method!("str_upper(s)", {
+        Ok(RefValue::from(s.to_string().to_uppercase()))
     });
 }
 

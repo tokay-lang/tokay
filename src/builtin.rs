@@ -224,7 +224,7 @@ fn test_buildin_call_error_reporting() {
     for (call, msg) in [
         (
             "str_replace()",
-            "Line 1, column 1: str_replace() expected argument 'str'",
+            "Line 1, column 1: str_replace() expected argument 's'",
         ),
         (
             "str_replace(1, 2, 3, 4, 5)",
