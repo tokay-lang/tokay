@@ -5,11 +5,11 @@ Cident : [A-Za-z_] [A-Za-z0-9_]* $0
 cident : Cident  # Error: Cannot assign consumable to non-consumable constant.
 NewCident : Cident  # Ok
 
-faculty : @n {
+factorial : @n {
     if n <= 0 return 1
-    n * faculty(n - 1)
+    n * factorial(n - 1)
 }
-Faculty : faculty  # Error: Cannot assign non-consumable to consumable constant.
+Factorial : factorial  # Error: Cannot assign non-consumable to consumable constant.
 
 IsOkay : @{
     Int if $1 > 100 && $1 < 1000 accept
@@ -20,5 +20,5 @@ _ : "abc"
 #---
 #ERR:Line 1, column 1: Cannot assign to constant 'Pi', because it must be consumable. Use an identifier starting in lower-case, e.g. 'pi'
 #ERR:Line 5, column 1: Cannot assign constant 'cident' as consumable. Use an identifier starting in upper-case, e.g. 'Cident'
-#ERR:Line 12, column 1: Cannot assign to constant 'Faculty', because it must be consumable. Use an identifier starting in lower-case, e.g. 'faculty'
+#ERR:Line 12, column 1: Cannot assign to constant 'Factorial', because it must be consumable. Use an identifier starting in lower-case, e.g. 'factorial'
 #ERR:Line 18, column 1: Cannot assign to constant '_', because it must be consumable. Use an identifier not starting with '_'.

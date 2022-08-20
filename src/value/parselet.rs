@@ -570,12 +570,12 @@ fn test_function_as_static_with_args() {
     assert_eq!(
         crate::run(
             "
-            faculty : @x {
+            factorial : @x {
                 if !x return 1
-                x * faculty(x - 1)
+                x * factorial(x - 1)
             }
 
-            faculty(4)
+            factorial(4)
             ",
             ""
         ),
@@ -588,12 +588,12 @@ fn test_function_as_variable_with_args() {
     assert_eq!(
         crate::run(
             "
-            faculty = @x {
+            factorial = @x {
                 if !x return 1
-                x * faculty(x - 1)
+                x * factorial(x - 1)
             }
 
-            faculty(4)
+            factorial(4)
             ",
             ""
         ),

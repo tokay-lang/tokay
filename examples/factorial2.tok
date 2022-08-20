@@ -1,0 +1,6 @@
+factorial : @x {
+    if !x return 1
+    x * factorial(x - 1)
+}
+
+print(factorial(int(Number)))
