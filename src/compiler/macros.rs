@@ -251,7 +251,15 @@ macro_rules! tokay {
             ];
 
             // Push call
-            items.push(Usage::call(&mut $compiler, None, stringify!($ident).to_string(), items.len(), false));
+            items.push(
+                ImlOp::call_by_name(
+                    &mut $compiler,
+                    None,
+                    stringify!($ident).to_string(),
+                    items.len(),
+                    false
+                )
+            );
 
             //println!("call = {} {:?}", stringify!($ident), items);
             Some(ImlOp::from(items))
@@ -260,12 +268,12 @@ macro_rules! tokay {
 
     // Call without parameters
     ( $compiler:expr, $ident:ident ) => {
-        Some(Usage::call(&mut $compiler, None, stringify!($ident).to_string(), 0, false))
+        Some(ImlOp::call_by_name(&mut $compiler, None, stringify!($ident).to_string(), 0, false))
     };
 
     // Whitespace
     ( $compiler:expr, _ ) => {
-        Some(Usage::call(&mut $compiler,None, stringify!($ident).to_string(), 0, false))
+        Some(ImlOp::call_by_name(&mut $compiler,None, stringify!($ident).to_string(), 0, false))
     };
 
     // Match

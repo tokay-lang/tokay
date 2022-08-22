@@ -47,9 +47,9 @@ pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
     //values: HashSet<ImlValue>,           // Set of static intermediate values collected during compile
-    pub(super) scopes: Vec<Scope>,       // Current compilation scopes
-    pub(super) usages: Vec<SharedImlOp>, // Unresolved usages of symbols
-    pub(super) errors: Vec<Error>,       // Collected errors during compilation
+    pub(super) scopes: Vec<Scope>, // Current compilation scopes
+    pub(super) usages: Vec<ImlOp>, // Unresolved calls or loads
+    pub(super) errors: Vec<Error>, // Collected errors during compilation
 }
 
 impl Compiler {
@@ -123,7 +123,11 @@ impl Compiler {
         }
 
         //println!("ret = {:#?}", ret);
-        if let ImlOp::Usage(Usage{target: Ok(Target::Static(main)), ..}) = ret {
+        if let ImlOp::Call {
+            target: ImlTarget::Static(main),
+            ..
+        } = ret
+        {
             Ok(Linker::new(main).finalize())
         } else {
             unreachable!();
@@ -143,19 +147,12 @@ impl Compiler {
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<SharedImlOp> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<ImlOp> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again
-            for op in usages.into_iter() {
-                {
-                    let mut op = op.borrow_mut();
-
-                    if let ImlOp::Usage(usage) = &mut *op {
-                        if usage.resolve(self) {
-                            // Usage was resolved, discard
-                            continue;
-                        }
-                    }
+            for mut op in usages.into_iter() {
+                if op.resolve(self) {
+                    continue;
                 }
 
                 self.usages.push(op); // Hold for later resolve

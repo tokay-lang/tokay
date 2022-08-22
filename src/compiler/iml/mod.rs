@@ -3,13 +3,11 @@ pub use crate::vm::*;
 
 mod op;
 mod parselet;
-mod usage;
 mod value;
 
 use super::Linker;
 pub(crate) use op::*;
 pub(crate) use parselet::*;
-pub(crate) use usage::*;
 pub(super) use value::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

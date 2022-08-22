@@ -1,8 +1,9 @@
 /*! Intermediate code representation. */
 
 use super::*;
-use crate::{Object, RefValue};
 use crate::reader::Offset;
+use crate::Compiler;
+use crate::{Object, RefValue};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -23,36 +24,59 @@ use std::rc::Rc;
 
 pub type SharedImlOp = Rc<RefCell<ImlOp>>;
 
-/// This struct is required to avoid endless recursion im ImlValue in case of a recursive ImlParselet.
-pub struct ImlOpValue(pub ImlValue);
-
-impl std::ops::Deref for ImlOpValue {
-    type Target = ImlValue;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+/// Target of a call or load
+#[derive(Clone)]
+pub enum ImlTarget {
+    Identifier(String), // Compile-time identifier (unresolved!)
+    Static(ImlValue),   // Compile-time static value
+    Local(usize),       // Runtime local value
+    Global(usize),      // Runtime global value
 }
 
-impl std::fmt::Debug for ImlOpValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.0 {
-            ImlValue::Parselet(p) => write!(
-                f,
-                "Parselet({})",
-                p.borrow().name.as_deref().unwrap_or("<unnamed>")
-            ),
-            _ => self.0.fmt(f),
+impl ImlTarget {
+    pub fn is_consuming(&self) -> bool {
+        match self {
+            Self::Identifier(name) => crate::utils::identifier_is_consumable(name),
+            Self::Static(value) => value.is_consuming(),
+            _ => false, // cannot determine!
         }
     }
 }
 
-#[derive(Debug)]
+impl std::fmt::Debug for ImlTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Identifier(name) => write!(f, "\"{}\"", name),
+            Self::Static(value) => match value {
+                ImlValue::Parselet(p) => write!(
+                    f,
+                    "Parselet({})",
+                    p.borrow().name.as_deref().unwrap_or("<unnamed>")
+                ),
+                _ => value.fmt(f),
+            },
+            Self::Local(addr) => write!(f, "local@{}", addr),
+            Self::Global(addr) => write!(f, "global@{}", addr),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ImlOp {
-    Nop,                           // Empty operation
-    Op(Op),                        // VM Operation
+    Nop,                 // Empty operation
+    Op(Op),              // VM Operation
     Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
-    Usage(Usage),        // Load of or call to a (possibly unknown) symbol
+    Load {
+        offset: Option<Offset>,
+        target: ImlTarget,
+        //copy: bool,  //enforce copy (Op::Sep)
+    },
+    Call {
+        offset: Option<Offset>,
+        target: ImlTarget,
+        args: usize,
+        nargs: bool,
+    },
 
     // Alternation (Block) of sequences or ops
     Alt {
@@ -110,24 +134,89 @@ pub enum ImlOp {
 }
 
 impl ImlOp {
-    /// Call known value
-    pub fn call(offset: Option<Offset>, value: ImlValue, args: usize, nargs: bool) -> ImlOp {
-        ImlOp::Usage(Usage{
-            offset,
-            action: if args == 0 && !nargs { Action::CallOrCopy } else { Action::Call(args, nargs) },
-            target: Ok(Target::Static(value)),
-        })
-    }
-
     /// Load known value
     pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
-        ImlOp::Usage(Usage{
+        ImlOp::Load {
             offset,
-            action: Action::Load,
-            target: Ok(Target::Static(value)),
-        })
+            target: ImlTarget::Static(value),
+        }
     }
 
+    /// Load unknown value by name
+    pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
+        ImlOp::Load {
+            offset,
+            target: ImlTarget::Identifier(name),
+        }
+        .try_resolve(compiler)
+    }
+
+    /// Call known value
+    pub fn call(offset: Option<Offset>, value: ImlValue, args: usize, nargs: bool) -> ImlOp {
+        ImlOp::Call {
+            offset,
+            target: ImlTarget::Static(value),
+            args,
+            nargs,
+        }
+    }
+
+    /// Call unknown value by name
+    pub fn call_by_name(
+        compiler: &mut Compiler,
+        offset: Option<Offset>,
+        name: String,
+        args: usize,
+        nargs: bool,
+    ) -> ImlOp {
+        ImlOp::Call {
+            offset,
+            target: ImlTarget::Identifier(name),
+            args,
+            nargs,
+        }
+        .try_resolve(compiler)
+    }
+
+    /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlOp.
+    fn try_resolve(mut self, compiler: &mut Compiler) -> ImlOp {
+        if self.resolve(compiler) {
+            return self;
+        }
+
+        let shared = ImlOp::Shared(Rc::new(RefCell::new(self)));
+        compiler.usages.push(shared.clone());
+        shared
+    }
+
+    pub(in crate::compiler) fn resolve(&mut self, compiler: &mut Compiler) -> bool {
+        match self {
+            Self::Shared(op) => return op.borrow_mut().resolve(compiler),
+            Self::Load { target, .. } | Self::Call { target, .. } => {
+                if let ImlTarget::Identifier(name) = target {
+                    if let Some(value) = compiler.get_constant(&name) {
+                        // Undetermined usages need to remain untouched.
+                        if matches!(value, ImlValue::Undetermined(_)) {
+                            return false;
+                        }
+
+                        *target = ImlTarget::Static(value);
+                    } else if let Some(addr) = compiler.get_local(&name) {
+                        *target = ImlTarget::Local(addr);
+                    } else if let Some(addr) = compiler.get_global(&name) {
+                        *target = ImlTarget::Global(addr);
+                    }
+
+                    return true;
+                }
+            }
+            _ => {}
+        }
+
+        false
+    }
+
+    /// Turns ImlOp construct into a kleene (none-or-many) occurence.
     pub fn into_kleene(self) -> Self {
         Self::Repeat {
             body: Box::new(self),
@@ -136,6 +225,7 @@ impl ImlOp {
         }
     }
 
+    /// Turns ImlOp construct into a positive (one-or-many) occurence.
     pub fn into_positive(self) -> Self {
         Self::Repeat {
             body: Box::new(self),
@@ -144,6 +234,7 @@ impl ImlOp {
         }
     }
 
+    /// Turns ImlOp construct into an optional (none-or-one) occurence.
     pub fn into_optional(self) -> Self {
         Self::Repeat {
             body: Box::new(self),
@@ -152,18 +243,21 @@ impl ImlOp {
         }
     }
 
+    /// Turns ImlOp construct into a peeked parser
     pub fn into_peek(self) -> Self {
         Self::Peek {
             body: Box::new(self),
         }
     }
 
+    /// Turns ImlOp construct into a negated parser
     pub fn into_not(self) -> Self {
         Self::Not {
             body: Box::new(self),
         }
     }
 
+    /// Turns ImlOp construct into an expecting parser
     pub fn into_expect(self, msg: Option<String>) -> Self {
         Self::Expect {
             body: Box::new(self),
@@ -171,43 +265,77 @@ impl ImlOp {
         }
     }
 
-    pub(in crate::compiler) fn compile(&self, linker: &mut Linker) -> Vec<Op>
-/* todo: extend a provided ops rather than returning a Vec */ {
-        match self {
-            ImlOp::Nop => Vec::new(),
-            ImlOp::Op(op) => vec![op.clone()],
-            ImlOp::Shared(op) => op.borrow().compile(linker),
-            ImlOp::Usage(u) => panic!("Cannot compile {:?}", u),
-            /*
-            ImlOp::Call(ImlOpValue(value), args, nargs, offset) => {
-                let mut ops = Vec::new();
-                let idx = linker.register(value);
+    /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
+    pub(in crate::compiler) fn compile(&self, ops: &mut Vec<Op>, linker: &mut Linker) -> usize {
+        let start = ops.len();
 
+        match self {
+            ImlOp::Nop => {}
+            ImlOp::Op(op) => ops.push(op.clone()),
+            ImlOp::Shared(op) => {
+                op.borrow().compile(ops, linker);
+            }
+            ImlOp::Load { offset, target } => {
                 if let Some(offset) = offset {
                     ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                if *args == 0 && !*nargs {
-                    ops.push(Op::CallStatic(idx));
-                } else if *args > 0 && !*nargs {
-                    ops.push(Op::CallStaticArg(Box::new((idx, *args))));
-                } else {
-                    ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
+                ops.push(match target {
+                    ImlTarget::Identifier(name) => panic!("Unresolved load of {}", name),
+                    ImlTarget::Static(value) => linker.push(value),
+                    ImlTarget::Local(idx) => Op::LoadFast(*idx),
+                    ImlTarget::Global(idx) => Op::LoadGlobal(*idx),
+                });
+            }
+            ImlOp::Call {
+                offset,
+                target,
+                args,
+                nargs,
+            } => {
+                if let Some(offset) = offset {
+                    ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                ops
+                match target {
+                    ImlTarget::Identifier(name) => panic!("Unresolved call to {}", name),
+                    ImlTarget::Static(value) => {
+                        let idx = linker.register(value);
+
+                        if let Some(offset) = offset {
+                            ops.push(Op::Offset(Box::new(*offset)));
+                        }
+
+                        if *args == 0 && !*nargs {
+                            ops.push(Op::CallStatic(idx));
+                        } else if *args > 0 && !*nargs {
+                            ops.push(Op::CallStaticArg(Box::new((idx, *args))));
+                        } else {
+                            ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
+                        }
+
+                        return ops.len() - start;
+                    }
+                    ImlTarget::Local(idx) => ops.push(Op::LoadFast(*idx)),
+                    ImlTarget::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
+                }
+
+                if *args == 0 && *nargs == false {
+                    ops.push(Op::Call);
+                } else if *args > 0 && *nargs == false {
+                    ops.push(Op::CallArg(*args));
+                } else {
+                    ops.push(Op::CallArgNamed(*args));
+                }
             }
-            ImlOp::Load(value) => {
-                vec![linker.push(value)]
-            }
-            */
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
                 let mut iter = alts.iter();
                 let mut jumps = Vec::new();
 
                 while let Some(item) = iter.next() {
-                    let alt = item.compile(linker);
+                    let mut alt = Vec::new();
+                    item.compile(&mut alt, linker);
 
                     if iter.len() > 0 {
                         ret.push(Op::Fuse(alt.len() + 3));
@@ -230,13 +358,11 @@ impl ImlOp {
                     ret.push(Op::Close);
                 }
 
-                ret
+                ops.extend(ret);
             }
             ImlOp::Seq { seq, framed } => {
-                let mut ret = Vec::new();
-
                 for item in seq.iter() {
-                    let mut ops = item.compile(linker);
+                    item.compile(ops, linker);
 
                     // In case there is an inline operation within a sequence, its result must be duplicated
                     // to stay consistent inside of the sequence's result.
@@ -248,59 +374,50 @@ impl ImlOp {
                             _ => {}
                         }
                     }
-
-                    ret.extend(ops);
                 }
 
                 // Create a frame and collect in framed mode and when there's more than one operation inside ret.
                 if *framed
-                    && ret
+                    && ops[start..]
                         .iter()
                         .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
                         .sum::<usize>()
                         > 1
                 {
-                    ret.insert(0, Op::Frame(0));
-                    ret.push(Op::Collect(0, 5));
-                    ret.push(Op::Close);
+                    ops.insert(start, Op::Frame(0));
+                    ops.push(Op::Collect(0, 5));
+                    ops.push(Op::Close);
                 }
-
-                ret
             }
             ImlOp::If {
                 peek,
                 test,
-                then,
-                else_,
+                then: then_part,
+                else_: else_part,
             } => {
-                let mut ret = Vec::new();
-
                 // Clone on peek
                 if *peek {
-                    ret.push(Op::Clone);
+                    ops.push(Op::Clone);
+                }
+
+                let backpatch = ops.len();
+                ops.push(Op::Nop); // Backpatch operation placeholder
+
+                if *peek {
+                    ops.push(Op::Drop)
                 }
 
                 // Then-part
-                let then = then.compile(linker);
-
-                let backpatch = ret.len();
-                ret.push(Op::Nop); // Backpatch operation placeholder
-
-                if *peek {
-                    ret.push(Op::Drop)
-                }
-
-                let mut jump = then.len() + 1;
-                ret.extend(then);
+                let mut jump = then_part.compile(ops, linker) + 1;
 
                 if !*peek {
-                    // Else-part
-                    let else_ = else_.compile(linker);
+                    let mut else_ops = Vec::new();
 
-                    if !else_.is_empty() {
-                        ret.push(Op::Forward(else_.len() + 1));
+                    // Else-part
+                    if else_part.compile(&mut else_ops, linker) > 0 {
+                        ops.push(Op::Forward(else_ops.len() + 1));
                         jump += 1;
-                        ret.extend(else_);
+                        ops.extend(else_ops);
                     }
                 } else {
                     jump += 1;
@@ -308,58 +425,53 @@ impl ImlOp {
 
                 // Insert the final condition and its failure target.
                 if *test {
-                    ret[backpatch] = Op::ForwardIfFalse(jump);
+                    ops[backpatch] = Op::ForwardIfFalse(jump);
                 } else {
-                    ret[backpatch] = Op::ForwardIfTrue(jump);
+                    ops[backpatch] = Op::ForwardIfTrue(jump);
                 }
-
-                ret
             }
             ImlOp::Loop {
-                consuming,
+                consuming, // todo: currently always false, which is wrong!
                 init,
                 condition,
                 body,
             } => {
-                let mut ret = Vec::new();
+                init.compile(ops, linker);
 
-                ret.extend(init.compile(linker));
+                let mut repeat = Vec::new();
 
-                let mut repeat = condition.compile(linker);
-                if !repeat.is_empty() {
-                    repeat.push(Op::ForwardIfTrue(2));
-                    repeat.push(Op::Break);
+                if condition.compile(&mut repeat, linker) > 0 {
+                    ops.push(Op::ForwardIfTrue(2));
+                    ops.push(Op::Break);
                 }
 
-                repeat.extend(body.compile(linker));
+                body.compile(&mut repeat, linker);
 
-                ret.push(Op::Loop(
+                ops.push(Op::Loop(
                     repeat.len() + if consuming.is_some() { 3 } else { 2 },
                 ));
 
                 // fixme: consuming flag must be handled differently.
                 if consuming.is_some() {
-                    ret.push(Op::Fuse(repeat.len() + 2));
+                    ops.push(Op::Fuse(ops.len() - start + 2));
                 }
 
-                ret.extend(repeat);
-                ret.push(Op::Continue);
+                ops.extend(repeat);
+                ops.push(Op::Continue);
 
                 if consuming.is_some() {
-                    ret.push(Op::Break);
+                    ops.push(Op::Break);
                 }
-
-                ret
             }
             // DEPRECATED BELOW!!!
             ImlOp::Expect { body, msg } => {
-                let code = body.compile(linker);
+                let mut expect = Vec::new();
+                body.compile(&mut expect, linker);
 
-                let mut ret = vec![Op::Frame(code.len() + 2)];
+                ops.push(Op::Frame(expect.len() + 2));
 
-                ret.extend(code);
-
-                ret.extend(vec![
+                ops.extend(expect);
+                ops.extend(vec![
                     Op::Forward(2),
                     Op::Error(Some(if let Some(msg) = msg {
                         msg.clone()
@@ -368,46 +480,32 @@ impl ImlOp {
                     })),
                     Op::Close,
                 ]);
-
-                ret
             }
             ImlOp::Not { body } => {
-                let mut ret = Vec::new();
-
-                let body = body.compile(linker);
-
-                ret.push(Op::Frame(body.len() + 3));
-                ret.extend(body);
-                ret.push(Op::Close);
-                ret.push(Op::Next);
-
-                ret
+                let body_len = body.compile(ops, linker);
+                ops.push(Op::Frame(body_len + 3));
+                ops.push(Op::Close);
+                ops.push(Op::Next);
             }
             ImlOp::Peek { body } => {
-                let mut ret = Vec::new();
-
-                ret.push(Op::Frame(0));
-                ret.extend(body.compile(linker));
-                ret.push(Op::Reset);
-                ret.push(Op::Close);
-
-                ret
+                ops.push(Op::Frame(0));
+                body.compile(ops, linker);
+                ops.push(Op::Reset);
+                ops.push(Op::Close);
             }
             ImlOp::Repeat { body, min, max } => {
-                let body = body.compile(linker);
-                let body_len = body.len();
-
-                let mut ret = Vec::new();
+                let mut body_ops = Vec::new();
+                let body_len = body.compile(&mut body_ops, linker);
 
                 match (min, max) {
                     (0, 0) => {
                         // Kleene
-                        ret.extend(vec![
+                        ops.extend(vec![
                             Op::Frame(0),            // The overall capture
                             Op::Frame(body_len + 5), // The fused capture for repetition
                         ]);
-                        ret.extend(body); // here comes the body
-                        ret.extend(vec![
+                        ops.extend(body_ops); // here comes the body
+                        ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
                             Op::Forward(3),           // otherwise leave the loop
                             Op::Commit,
@@ -419,15 +517,15 @@ impl ImlOp {
                     }
                     (1, 0) => {
                         // Positive
-                        ret.push(Op::Frame(0)); // The overall capture
-                        ret.extend(body.clone()); // here comes the body for the first time
-                        ret.extend(vec![
+                        ops.push(Op::Frame(0)); // The overall capture
+                        ops.extend(body_ops.clone()); // here comes the body for the first time
+                        ops.extend(vec![
                             Op::ForwardIfConsumed(2), // If nothing was consumed, then...
                             Op::Next,                 //...reject
                             Op::Frame(body_len + 5),  // The fused capture for repetition
                         ]);
-                        ret.extend(body); // here comes the body again inside the repetition
-                        ret.extend(vec![
+                        ops.extend(body_ops); // here comes the body again inside the repetition
+                        ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
                             Op::Forward(3),           // otherwise leave the loop
                             Op::Commit,
@@ -439,30 +537,37 @@ impl ImlOp {
                     }
                     (0, 1) => {
                         // Optional
-                        ret.push(Op::Frame(body_len + 2));
-                        ret.extend(body);
-                        ret.push(Op::Collect(1, 5)); // collect only values with severity > 0
-                        ret.push(Op::Close);
+                        ops.push(Op::Frame(body_len + 2));
+                        ops.extend(body_ops);
+                        ops.push(Op::Collect(1, 5)); // collect only values with severity > 0
+                        ops.push(Op::Close);
                     }
                     (1, 1) => {}
                     (_, _) => unimplemented!(
                         "ImlOp::Repeat construct with min/max configuration > 1 not implemented yet"
                     ),
                 };
-
-                ret
             }
         }
+
+        ops.len() - start
     }
 
+    /** Finalize ImlOp construct on a grammar's point of view.
+
+    This function must be run inside of a closure on every parselet until no more changes occur.
+    */
     pub(in crate::compiler) fn finalize(
         &self,
         visited: &mut HashSet<usize>,
         configs: &mut HashMap<usize, Consumable>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Op(Op::CallStatic(_)) => unreachable!("This may not exist!"),
-            ImlOp::Usage(Usage{target: Ok(Target::Static(callee)), ..}) => {
+            ImlOp::Shared(op) => op.borrow().finalize(visited, configs),
+            ImlOp::Call {
+                target: ImlTarget::Static(callee),
+                ..
+            } => {
                 match callee {
                     ImlValue::Parselet(parselet) => {
                         match parselet.try_borrow() {
@@ -516,7 +621,6 @@ impl ImlOp {
                     _ => unreachable!(),
                 }
             }
-            ImlOp::Shared(op) => op.borrow().finalize(visited, configs),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
@@ -681,8 +785,8 @@ impl ImlOp {
 
         self.query(&mut |op| {
             match op {
-                ImlOp::Usage(usage) => {
-                    if usage.is_consuming() {
+                ImlOp::Call { target, .. } => {
+                    if target.is_consuming() {
                         consuming = true;
                         return false; // stop further examination
                     }
@@ -702,7 +806,11 @@ impl ImlOp {
     is enabled, it is ImlOp::Load and the value is NOT a callable! */
     pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
-            if let Self::Usage(Usage{target: Ok(Target::Static(ImlValue::Value(value))), action: Action::Load, ..}) = self {
+            if let Self::Load {
+                target: ImlTarget::Static(ImlValue::Value(value)),
+                ..
+            } = self
+            {
                 if !value.is_callable(true) {
                     return Ok(value.clone().into());
                 }

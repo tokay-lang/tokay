@@ -304,7 +304,10 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value!(void).into()
         }
         // Defined parselet or value
-        ImlOp::Usage(Usage{action: Action::Load, target: Ok(Target::Static(value)), .. }) => {
+        ImlOp::Load {
+            target: ImlTarget::Static(value),
+            ..
+        } => {
             compiler.pop_parselet(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
@@ -676,9 +679,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let ident = ident["value"].borrow();
                         let ident = ident.object::<Str>().unwrap().as_str();
 
-                        ops.push(ImlOp::load(traverse_node_offset(&param), ImlValue::from(RefValue::from(
-                            ident,
-                        ))));
+                        ops.push(ImlOp::load(
+                            traverse_node_offset(&param),
+                            ImlValue::from(RefValue::from(ident)),
+                        ));
 
                         nargs += 1;
                     }
@@ -973,9 +977,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlOp::load(traverse_node_offset(node), ImlValue::from(
-                            left.binary_op(right, parts[2]).unwrap(),
-                        ));
+                        return ImlOp::load(
+                            traverse_node_offset(node),
+                            ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
+                        );
                     }
 
                     // Push operation position here
@@ -1003,9 +1008,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let res = traverse_node(compiler, children);
 
                     if let Ok(value) = res.get_evaluable_value() {
-                        return ImlOp::load(traverse_node_offset(node), ImlValue::from(
-                            value.unary_op(parts[2]).unwrap(),
-                        ));
+                        return ImlOp::load(
+                            traverse_node_offset(node),
+                            ImlValue::from(value.unary_op(parts[2]).unwrap()),
+                        );
                     }
 
                     // Push operation position here
@@ -1034,9 +1040,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     if let (Ok(left), Ok(right)) =
                         (left.get_evaluable_value(), right.get_evaluable_value())
                     {
-                        return ImlOp::load(traverse_node_offset(node),ImlValue::from(
-                            left.binary_op(right, parts[2]).unwrap(),
-                        ));
+                        return ImlOp::load(
+                            traverse_node_offset(node),
+                            ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
+                        );
                     }
 
                     // Otherwise, generate operational code
@@ -1089,7 +1096,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     "opt" => "?",
                                     other => other,
                                 },
-                                if matches!(res, ImlOp::Usage(Usage{target: Ok(Target::Static(_)), ..})) {
+                                if matches!(
+                                    res,
+                                    ImlOp::Load {
+                                        target: ImlTarget::Static(_),
+                                        ..
+                                    } | ImlOp::Call {
+                                        target: ImlTarget::Static(_),
+                                        ..
+                                    }
+                                ) {
                                     "value"
                                 } else {
                                     "sequence"
@@ -1141,10 +1157,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         "expect" => {
                             // Just give some helpful information here for most cases;
                             // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
-                            let msg = if let ImlOp::Usage(Usage{target: Ok(Target::Static(expect)), ..}) = &res {
-                                Some(format!("Expecting {:?}", expect))
-                            } else {
-                                None
+                            let msg = match &res {
+                                ImlOp::Load {
+                                    target: ImlTarget::Static(expect),
+                                    ..
+                                }
+                                | ImlOp::Call {
+                                    target: ImlTarget::Static(expect),
+                                    ..
+                                } => Some(format!("Expecting {:?}", expect)),
+                                _ => None,
                             };
 
                             res.into_expect(msg)
@@ -1175,7 +1197,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             return else_;
                         }
 
-                        return ImlOp::load(traverse_node_offset(node), ImlValue::from(value!(void)));
+                        return ImlOp::load(
+                            traverse_node_offset(node),
+                            ImlValue::from(value!(void)),
+                        );
                     }
 
                     ops.push(condition);
@@ -1298,9 +1323,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let value = traverse_node_value(compiler, node);
 
             if value.is_callable(true) {
-                ImlOp::call(traverse_node_offset(node), traverse_node_value(compiler, node), 0, false)
+                ImlOp::call(
+                    traverse_node_offset(node),
+                    traverse_node_value(compiler, node),
+                    0,
+                    false,
+                )
             } else {
-                ImlOp::load(traverse_node_offset(node), traverse_node_value(compiler, node))
+                ImlOp::load(
+                    traverse_node_offset(node),
+                    traverse_node_value(compiler, node),
+                )
             }
         }
 

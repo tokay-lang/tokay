@@ -85,6 +85,14 @@ impl Linker {
                 finalize.push(outer.clone());
             }
 
+            let mut begin = Vec::new();
+            let mut end = Vec::new();
+            let mut body = Vec::new();
+
+            parselet.begin.compile(&mut begin, &mut self);
+            parselet.end.compile(&mut end, &mut self);
+            parselet.body.compile(&mut body, &mut self);
+
             // Compile parselet from intermediate parselet
             let parselet = Parselet::new(
                 parselet.name.clone(),
@@ -107,9 +115,9 @@ impl Linker {
                     })
                     .collect(),
                 parselet.locals,
-                parselet.begin.compile(&mut self),
-                parselet.end.compile(&mut self),
-                parselet.body.compile(&mut self),
+                begin,
+                end,
+                body,
             );
 
             *self.statics.get_index_mut(i).unwrap().1 = Some(parselet);
