@@ -74,8 +74,7 @@ pub enum ImlOp {
     Call {
         offset: Option<Offset>,
         target: ImlTarget,
-        args: usize,
-        nargs: bool,
+        args: Option<(usize, bool)>,
     },
 
     // Alternation (Block) of sequences or ops
@@ -152,12 +151,11 @@ impl ImlOp {
     }
 
     /// Call known value
-    pub fn call(offset: Option<Offset>, value: ImlValue, args: usize, nargs: bool) -> ImlOp {
+    pub fn call(offset: Option<Offset>, value: ImlValue, args: Option<(usize, bool)>) -> ImlOp {
         ImlOp::Call {
             offset,
             target: ImlTarget::Static(value),
             args,
-            nargs,
         }
     }
 
@@ -166,14 +164,12 @@ impl ImlOp {
         compiler: &mut Compiler,
         offset: Option<Offset>,
         name: String,
-        args: usize,
-        nargs: bool,
+        args: Option<(usize, bool)>,
     ) -> ImlOp {
         ImlOp::Call {
             offset,
             target: ImlTarget::Identifier(name),
             args,
-            nargs,
         }
         .try_resolve(compiler)
     }
@@ -292,7 +288,6 @@ impl ImlOp {
                 offset,
                 target,
                 args,
-                nargs,
             } => {
                 if let Some(offset) = offset {
                     ops.push(Op::Offset(Box::new(*offset)));
@@ -307,12 +302,25 @@ impl ImlOp {
                             ops.push(Op::Offset(Box::new(*offset)));
                         }
 
-                        if *args == 0 && !*nargs {
-                            ops.push(Op::CallStatic(idx));
-                        } else if *args > 0 && !*nargs {
-                            ops.push(Op::CallStaticArg(Box::new((idx, *args))));
-                        } else {
-                            ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
+                        match args {
+                            // Qualified call
+                            Some((args, nargs)) => {
+                                if *args == 0 && !*nargs {
+                                    ops.push(Op::CallStatic(idx));
+                                } else if *args > 0 && !*nargs {
+                                    ops.push(Op::CallStaticArg(Box::new((idx, *args))));
+                                } else {
+                                    ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
+                                }
+                            }
+                            // Call or load
+                            None => {
+                                if value.is_callable(true) {
+                                    ops.push(Op::CallStatic(idx));
+                                } else {
+                                    ops.push(Op::LoadStatic(idx));
+                                }
+                            }
                         }
 
                         return ops.len() - start;
@@ -321,12 +329,19 @@ impl ImlOp {
                     ImlTarget::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
                 }
 
-                if *args == 0 && *nargs == false {
-                    ops.push(Op::Call);
-                } else if *args > 0 && *nargs == false {
-                    ops.push(Op::CallArg(*args));
-                } else {
-                    ops.push(Op::CallArgNamed(*args));
+                match args {
+                    // Qualified call
+                    Some((args, nargs)) => {
+                        if *args == 0 && *nargs == false {
+                            ops.push(Op::Call);
+                        } else if *args > 0 && *nargs == false {
+                            ops.push(Op::CallArg(*args));
+                        } else {
+                            ops.push(Op::CallArgNamed(*args));
+                        }
+                    }
+                    // Call or load
+                    None => ops.push(Op::CallOrCopy),
                 }
             }
             ImlOp::Alt { alts } => {

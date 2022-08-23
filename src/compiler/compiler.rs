@@ -398,7 +398,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value+`
-                ImlOp::call(None, value, 0, false).into_positive(),
+                ImlOp::call(None, value, None).into_positive(),
             );
 
             // Remind "__" as new constant
@@ -414,7 +414,7 @@ impl Compiler {
                 None,
                 None,
                 // becomes `Value?`
-                ImlOp::call(None, value, 0, false).into_optional(),
+                ImlOp::call(None, value, None).into_optional(),
             );
 
             // Insert "_" afterwards

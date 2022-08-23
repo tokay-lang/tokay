@@ -237,7 +237,7 @@ macro_rules! tokay {
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
-        Some(ImlOp::call(None, ImlValue::from(RefValue::from($token)), 0, false))
+        Some(ImlOp::call(None, ImlValue::from(RefValue::from($token)), None))
     };
 
     // Call with parameters
@@ -256,8 +256,7 @@ macro_rules! tokay {
                     &mut $compiler,
                     None,
                     stringify!($ident).to_string(),
-                    items.len(),
-                    false
+                    Some((items.len(), false))
                 )
             );
 
@@ -268,19 +267,19 @@ macro_rules! tokay {
 
     // Call without parameters
     ( $compiler:expr, $ident:ident ) => {
-        Some(ImlOp::call_by_name(&mut $compiler, None, stringify!($ident).to_string(), 0, false))
+        Some(ImlOp::call_by_name(&mut $compiler, None, stringify!($ident).to_string(), None))
     };
 
     // Whitespace
     ( $compiler:expr, _ ) => {
-        Some(ImlOp::call_by_name(&mut $compiler,None, "_".to_string(), 0, false))
+        Some(ImlOp::call_by_name(&mut $compiler,None, "_".to_string(), None))
     };
 
     // Match
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = RefValue::from(Token::Match($literal.to_string()));
-            Some(ImlOp::call(None, ImlValue::from(token), 0, false))
+            Some(ImlOp::call(None, ImlValue::from(token), None))
         }
     };
 
@@ -288,7 +287,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = RefValue::from(Token::Touch($literal.to_string()));
-            Some(ImlOp::call(None, ImlValue::from(token), 0, false))
+            Some(ImlOp::call(None, ImlValue::from(token), None))
         }
     };
 

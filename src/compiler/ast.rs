@@ -502,6 +502,62 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
     ImlOp::from(ops)
 }
 
+// Traverse an rvalue
+fn traverse_node_rvalue(
+    compiler: &mut Compiler,
+    node: &Dict,
+    call: Result<Option<(usize, bool)>, ()>, //either allow calls with full qualified or without parameters, or no calls but loads
+) -> ImlOp {
+    let emit = node["emit"].borrow();
+    let emit = emit.object::<Str>().unwrap().as_str();
+
+    if emit == "identifier" {
+        let name = node["value"].borrow();
+        let name = name.object::<Str>().unwrap().as_str();
+
+        let offset = traverse_node_offset(node);
+
+        // Check if identifier is valid
+        return if let Err(mut error) = identifier_is_valid(name) {
+            if let Some(offset) = offset {
+                error.patch_offset(offset);
+            }
+
+            compiler.errors.push(error);
+            ImlOp::Nop
+        } else {
+            match call {
+                Ok(args) => ImlOp::call_by_name(compiler, offset, name.to_string(), args),
+                Err(()) => ImlOp::load_by_name(compiler, offset, name.to_string()),
+            }
+        };
+    }
+
+    let ops = traverse_node(compiler, node);
+
+    match call {
+        Ok(args) => {
+            let mut ops = vec![ops];
+
+            match args {
+                Some((args, nargs)) => {
+                    if args == 0 && !nargs {
+                        ops.push(ImlOp::from(Op::Call));
+                    } else if args > 0 && !nargs {
+                        ops.push(ImlOp::from(Op::CallArg(args)));
+                    } else {
+                        ops.push(ImlOp::from(Op::CallArgNamed(args)));
+                    }
+                }
+                None => ops.push(ImlOp::from(Op::CallOrCopy)),
+            }
+
+            ImlOp::from(ops)
+        }
+        Err(()) => ops,
+    }
+}
+
 // Main traversal function, running recursively through the AST
 fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
     // Normal node processing...
@@ -630,7 +686,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         body,
                     );
 
-                    ImlOp::call(None, main, 0, false)
+                    ImlOp::call(None, main, None)
                 }
             } else {
                 ImlOp::Nop
@@ -696,49 +752,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ops.push(ImlOp::from(Op::MakeDict(nargs)));
             }
 
-            // Perform static call or resolved rvalue call
-            let callee = traverse_node_or_list(compiler, &children[0]);
-
-            let mut is_usage = false;
-            /*
-            if let ImlOp::Shared(usage) = &callee {
-                if let ImlOp::Usage(
-                    Usage{ action: Action::Load | Action::CallOrCopy} { name, offset } | Usage::CallOrCopy { name, offset },
-                ) = &*usage
-                {
-                    // Replace Usage::Load by Usage::Call
-                    let replace = Usage::Call {
-                        name: name.to_string(),
-                        args,
-                        nargs: nargs > 0,
-                        offset: *offset,
-                    };
-
-                    if replace.is_consuming() {
-                        compiler.mark_consuming();
-                    }
-
-                    *usage = ImlOp::Usage(replace);
-                    is_usage = true;
-                } else {
-                    unreachable!();
-                }
-            }
-            */
-
-            ops.push(callee);
-
-            if !is_usage {
-                ops.push(traverse_offset(node));
-
-                if args == 0 && nargs == 0 {
-                    ops.push(Op::Call.into());
-                } else if args > 0 && nargs == 0 {
-                    ops.push(Op::CallArg(args).into());
-                } else {
-                    ops.push(Op::CallArgNamed(args).into())
-                }
-            }
+            let rvalue = children[0].borrow();
+            ops.push(traverse_node_rvalue(
+                compiler,
+                rvalue.object::<Dict>().unwrap(),
+                Ok(Some((args, nargs > 0))),
+            ));
 
             ImlOp::from(ops)
         }
@@ -821,43 +840,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             compiler.resolve();
 
             ImlOp::Nop
-        }
-
-        // identifier -----------------------------------------------------
-        "identifier" => {
-            let name = node["value"].borrow();
-            let name = name.object::<Str>().unwrap().as_str();
-
-            // Check if identifier is valid
-            if let Err(mut error) = identifier_is_valid(name) {
-                if let Some(offset) = traverse_node_offset(node) {
-                    error.patch_offset(offset);
-                }
-
-                compiler.errors.push(error);
-                ImlOp::Nop
-            } else {
-                let offset = traverse_node_offset(node);
-
-                todo!();
-                /*
-                let usage = if false
-                /* todo: was previously if call from ImlResult */
-                {
-                    Usage::CallOrCopy {
-                        name: name.to_string(),
-                        offset,
-                    }
-                } else {
-                    Usage::Load {
-                        name: name.to_string(),
-                        offset,
-                    }
-                };
-
-                usage.resolve_or_dispose(compiler)
-                */
-            }
         }
 
         // index ----------------------------------------------------------
@@ -1298,7 +1280,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             for node in children.iter() {
-                ops.push(traverse_node_or_list(compiler, node))
+                ops.push(traverse_node_rvalue(
+                    compiler,
+                    node.borrow().object::<Dict>().unwrap(),
+                    Ok(None),
+                ))
             }
 
             if emit == "sequence" {
@@ -1320,20 +1306,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // value ---------------------------------------------------------
         value if value.starts_with("value_") => {
+            let offset = traverse_node_offset(node);
             let value = traverse_node_value(compiler, node);
 
             if value.is_callable(true) {
-                ImlOp::call(
-                    traverse_node_offset(node),
-                    traverse_node_value(compiler, node),
-                    0,
-                    false,
-                )
+                ImlOp::call(offset, value, None)
             } else {
-                ImlOp::load(
-                    traverse_node_offset(node),
-                    traverse_node_value(compiler, node),
-                )
+                ImlOp::load(offset, value)
             }
         }
 
