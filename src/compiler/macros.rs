@@ -273,7 +273,7 @@ macro_rules! tokay {
 
     // Whitespace
     ( $compiler:expr, _ ) => {
-        Some(ImlOp::call_by_name(&mut $compiler,None, stringify!($ident).to_string(), 0, false))
+        Some(ImlOp::call_by_name(&mut $compiler,None, "_".to_string(), 0, false))
     };
 
     // Match

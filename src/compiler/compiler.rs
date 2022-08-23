@@ -207,7 +207,6 @@ impl Compiler {
 
         // Report any unresolved usage when reaching global scope
         if self.scopes.len() == 1 {
-            todo!();
             /*
             // Check and report any unresolved usages
             for usage in self.usages.drain(..) {
@@ -227,6 +226,11 @@ impl Compiler {
                 }
             }
             */
+
+            let count = self.usages.len();
+            if count > 0 {
+                println!("{} usages still unresolved", count);
+            }
         }
 
         let mut scope = self.scopes.remove(0);

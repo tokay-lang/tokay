@@ -201,13 +201,14 @@ impl ImlOp {
                         }
 
                         *target = ImlTarget::Static(value);
+                        return true;
                     } else if let Some(addr) = compiler.get_local(&name) {
                         *target = ImlTarget::Local(addr);
+                        return true;
                     } else if let Some(addr) = compiler.get_global(&name) {
                         *target = ImlTarget::Global(addr);
+                        return true;
                     }
-
-                    return true;
                 }
             }
             _ => {}
@@ -482,8 +483,10 @@ impl ImlOp {
                 ]);
             }
             ImlOp::Not { body } => {
-                let body_len = body.compile(ops, linker);
+                let mut body_ops = Vec::new();
+                let body_len = body.compile(&mut body_ops, linker);
                 ops.push(Op::Frame(body_len + 3));
+                ops.extend(body_ops);
                 ops.push(Op::Close);
                 ops.push(Op::Next);
             }
