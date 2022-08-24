@@ -122,7 +122,6 @@ impl Compiler {
             return Err(self.errors.drain(..).collect());
         }
 
-        //println!("ret = {:#?}", ret);
         if let ImlOp::Call {
             target: ImlTarget::Static(main),
             ..
@@ -130,7 +129,7 @@ impl Compiler {
         {
             Ok(Linker::new(main).finalize())
         } else {
-            unreachable!();
+            todo!();
         }
     }
 
