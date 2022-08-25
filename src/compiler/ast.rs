@@ -297,7 +297,7 @@ The name attribute is optional and can be used to assign an identifier to parsel
 fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> ImlValue {
     compiler.push_parselet(); // yep, we push a parselet scope here...
 
-    match traverse_node_rvalue(compiler, node, Err(())) {
+    match traverse_node_rvalue(compiler, node, Rvalue::Load) {
         ImlOp::Nop => {
             compiler.pop_parselet(None, None, None, None, None, ImlOp::Nop);
             value!(void).into()
@@ -501,12 +501,20 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
     ImlOp::from(ops)
 }
 
+/** Enum used to specify traverse_node_rvalue code generation.
+
+Rvalue::Load generates code to just load the value,
+Rvalue::CallOrLoad generates code to either call the value without parameters or load it
+Rvalue::Call(args, nargs) generates code for a full-qualified value call
+*/
+enum Rvalue {
+    Load,              // Generate code to just load the value
+    CallOrLoad,        // Generate code for a call without parameters, or load otherwise
+    Call(usize, bool), // Generate code for a full qualified call
+}
+
 // Traverse an rvalue
-fn traverse_node_rvalue(
-    compiler: &mut Compiler,
-    node: &Dict,
-    call: Result<Option<(usize, bool)>, ()>, //either allow calls with full qualified or without parameters, or no calls but loads
-) -> ImlOp {
+fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> ImlOp {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
@@ -515,7 +523,11 @@ fn traverse_node_rvalue(
         "attribute" => ImlOp::from(vec![
             {
                 let children = node["children"].borrow();
-                traverse_node_rvalue(compiler, children.object::<Dict>().unwrap(), Ok(None))
+                traverse_node_rvalue(
+                    compiler,
+                    children.object::<Dict>().unwrap(),
+                    Rvalue::CallOrLoad,
+                )
             },
             ImlOp::from(Op::LoadAttr),
         ]),
@@ -530,7 +542,7 @@ fn traverse_node_rvalue(
                 ops.push(traverse_node_rvalue(
                     compiler,
                     node.borrow().object::<Dict>().unwrap(),
-                    Err(()),
+                    Rvalue::Load,
                 ));
             }
 
@@ -569,7 +581,7 @@ fn traverse_node_rvalue(
                         let param = &param["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        ops.push(traverse_node_rvalue(compiler, param, Ok(None)));
+                        ops.push(traverse_node_rvalue(compiler, param, Rvalue::CallOrLoad));
                         args += 1;
                     }
 
@@ -579,7 +591,7 @@ fn traverse_node_rvalue(
                         let param = &children[1].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        ops.push(traverse_node_rvalue(compiler, param, Ok(None)));
+                        ops.push(traverse_node_rvalue(compiler, param, Rvalue::CallOrLoad));
 
                         let ident = children[0].borrow();
                         let ident = ident.object::<Dict>().unwrap();
@@ -607,7 +619,7 @@ fn traverse_node_rvalue(
             ops.push(traverse_node_rvalue(
                 compiler,
                 rvalue.object::<Dict>().unwrap(),
-                Ok(Some((args, nargs > 0))),
+                Rvalue::Call(args, nargs > 0),
             ));
 
             ImlOp::from(ops)
@@ -617,7 +629,11 @@ fn traverse_node_rvalue(
         "capture_alias" | "capture_expr" => ImlOp::from(vec![
             {
                 let children = node["children"].borrow();
-                traverse_node_rvalue(compiler, children.object::<Dict>().unwrap(), Ok(None))
+                traverse_node_rvalue(
+                    compiler,
+                    children.object::<Dict>().unwrap(),
+                    Rvalue::CallOrLoad,
+                )
             },
             ImlOp::from(Op::LoadCapture),
         ]),
@@ -645,16 +661,24 @@ fn traverse_node_rvalue(
                 compiler.errors.push(error);
                 ImlOp::Nop
             } else {
-                match call {
-                    Ok(args) => {
+                match mode {
+                    Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),
+                    Rvalue::CallOrLoad => {
                         // fixme: this detection might be improved by ImlOp::consumable()
                         if utils::identifier_is_consumable(name) {
                             compiler.mark_consuming();
                         }
 
-                        ImlOp::call_by_name(compiler, offset, name.to_string(), args)
+                        ImlOp::call_by_name(compiler, offset, name.to_string(), None)
                     }
-                    Err(()) => ImlOp::load_by_name(compiler, offset, name.to_string()),
+                    Rvalue::Call(args, nargs) => {
+                        // fixme: this detection might be improved by ImlOp::consumable()
+                        if utils::identifier_is_consumable(name) {
+                            compiler.mark_consuming();
+                        }
+
+                        ImlOp::call_by_name(compiler, offset, name.to_string(), Some((args, nargs)))
+                    }
                 }
             };
         }
@@ -715,10 +739,10 @@ fn traverse_node_rvalue(
             let offset = traverse_node_offset(node);
             let value = traverse_node_value(compiler, node);
 
-            return if let Ok(call) = call {
-                ImlOp::call(offset, value, call)
-            } else {
-                ImlOp::load(offset, value)
+            return match mode {
+                Rvalue::Load => ImlOp::load(offset, value),
+                Rvalue::CallOrLoad => ImlOp::call(offset, value, None),
+                Rvalue::Call(args, nargs) => ImlOp::call(offset, value, Some((args, nargs))),
             };
         }
 
@@ -727,26 +751,19 @@ fn traverse_node_rvalue(
     };
 
     // Rvalue call confguration?
-    match call {
-        Ok(args) => {
-            let mut ops = vec![ops];
-
-            match args {
-                Some((args, nargs)) => {
-                    if args == 0 && !nargs {
-                        ops.push(ImlOp::from(Op::Call));
-                    } else if args > 0 && !nargs {
-                        ops.push(ImlOp::from(Op::CallArg(args)));
-                    } else {
-                        ops.push(ImlOp::from(Op::CallArgNamed(args)));
-                    }
-                }
-                None => ops.push(ImlOp::from(Op::CallOrCopy)),
-            }
-
-            ImlOp::from(ops)
-        }
-        Err(()) => ops,
+    match mode {
+        Rvalue::Load => ops,
+        Rvalue::CallOrLoad => ImlOp::from(vec![ops, ImlOp::from(Op::CallOrCopy)]),
+        Rvalue::Call(args, nargs) => ImlOp::from(vec![
+            ops,
+            if args == 0 && !nargs {
+                ImlOp::from(Op::Call)
+            } else if args > 0 && !nargs {
+                ImlOp::from(Op::CallArg(args))
+            } else {
+                ImlOp::from(Op::CallArgNamed(args))
+            },
+        ]),
     }
 }
 
@@ -765,8 +782,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let (alias, expr) = (&children[0].borrow(), &children[1].borrow());
 
-            let alias = traverse_node_rvalue(compiler, alias.object::<Dict>().unwrap(), Err(()));
-            let expr = traverse_node_rvalue(compiler, expr.object::<Dict>().unwrap(), Ok(None));
+            let alias =
+                traverse_node_rvalue(compiler, alias.object::<Dict>().unwrap(), Rvalue::Load);
+            let expr =
+                traverse_node_rvalue(compiler, expr.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
 
             // Push value first, then the alias
             ImlOp::from(vec![expr, alias, ImlOp::from(Op::MakeAlias)])
@@ -787,7 +806,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             if parts.len() > 1 && parts[1] != "hold" {
                 ops.push(traverse_node_lvalue(compiler, lvalue, false, false));
-                ops.push(traverse_node_rvalue(compiler, value, Err(())));
+                ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
 
                 ops.push(match parts[1] {
                     "add" => ImlOp::from(Op::BinaryOp("iadd")),
@@ -801,7 +820,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ops.push(Op::Drop.into());
                 }
             } else {
-                ops.push(traverse_node_rvalue(compiler, value, Err(())));
+                ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
                 ops.push(traverse_offset(node));
                 ops.push(traverse_node_lvalue(
                     compiler,
@@ -966,7 +985,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         ops.push(traverse_node_rvalue(
                             compiler,
                             &value.object::<Dict>().unwrap(),
-                            Ok(None),
+                            Rvalue::CallOrLoad,
                         ));
 
                         match parts[1] {
@@ -1010,10 +1029,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let (left, right) = (children[0].borrow(), children[1].borrow());
 
-                    let left =
-                        traverse_node_rvalue(compiler, &left.object::<Dict>().unwrap(), Ok(None));
-                    let right =
-                        traverse_node_rvalue(compiler, &right.object::<Dict>().unwrap(), Ok(None));
+                    let left = traverse_node_rvalue(
+                        compiler,
+                        &left.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    );
+                    let right = traverse_node_rvalue(
+                        compiler,
+                        &right.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    );
 
                     // When both results are values, calculate in-place
                     if let (Ok(left), Ok(right)) =
@@ -1047,7 +1072,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    let res = traverse_node_rvalue(compiler, children, Ok(None));
+                    let res = traverse_node_rvalue(compiler, children, Rvalue::CallOrLoad);
 
                     if let Ok(value) = res.get_evaluable_value() {
                         return ImlOp::load(
@@ -1076,10 +1101,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     assert_eq!(children.len(), 2);
 
                     let (left, right) = (children[0].borrow(), children[1].borrow());
-                    let left =
-                        traverse_node_rvalue(compiler, &left.object::<Dict>().unwrap(), Ok(None));
-                    let right =
-                        traverse_node_rvalue(compiler, &right.object::<Dict>().unwrap(), Ok(None));
+                    let left = traverse_node_rvalue(
+                        compiler,
+                        &left.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    );
+                    let right = traverse_node_rvalue(
+                        compiler,
+                        &right.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    );
 
                     // When both results are values, compare in-place
                     if let (Ok(left), Ok(right)) =
@@ -1128,7 +1159,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    let res = traverse_node_rvalue(compiler, children, Ok(None));
+                    let res = traverse_node_rvalue(compiler, children, Rvalue::CallOrLoad);
 
                     if !res.is_consuming() {
                         compiler.errors.push(Error::new(
@@ -1230,19 +1261,19 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let condition = traverse_node_rvalue(
                         compiler,
                         &condition.object::<Dict>().unwrap(),
-                        Ok(None),
+                        Rvalue::CallOrLoad,
                     );
                     let then_part = traverse_node_rvalue(
                         compiler,
                         &then_part.object::<Dict>().unwrap(),
-                        Ok(None),
+                        Rvalue::CallOrLoad,
                     );
                     let else_part = if children.len() == 3 {
                         let else_part = children[2].borrow();
                         traverse_node_rvalue(
                             compiler,
                             &else_part.object::<Dict>().unwrap(),
-                            Ok(None),
+                            Rvalue::CallOrLoad,
                         )
                     } else {
                         ImlOp::from(Op::PushVoid)
@@ -1285,14 +1316,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let body = body.object::<Dict>().unwrap();
 
                     // Initial
-                    let initial = traverse_node_rvalue(compiler, initial, Ok(None));
+                    let initial = traverse_node_rvalue(compiler, initial, Rvalue::CallOrLoad);
 
                     compiler.push_loop();
 
-                    let condition = traverse_node_rvalue(compiler, condition, Ok(None));
+                    let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
                     let body = ImlOp::from(vec![
-                        traverse_node_rvalue(compiler, body, Err(())),
-                        traverse_node_rvalue(compiler, each, Ok(None)),
+                        traverse_node_rvalue(compiler, body, Rvalue::Load),
+                        traverse_node_rvalue(compiler, each, Rvalue::CallOrLoad),
                     ]);
 
                     compiler.pop_loop();
@@ -1321,7 +1352,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),
-                                    Ok(None),
+                                    Rvalue::CallOrLoad,
                                 )),
                             }
                         }
@@ -1334,12 +1365,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 condition: Box::new(traverse_node_rvalue(
                                     compiler,
                                     condition.object::<Dict>().unwrap(),
-                                    Ok(None),
+                                    Rvalue::CallOrLoad,
                                 )),
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),
-                                    Ok(None),
+                                    Rvalue::CallOrLoad,
                                 )),
                             }
                         }
@@ -1374,7 +1405,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ops.push(traverse_node_rvalue(
                     compiler,
                     node.borrow().object::<Dict>().unwrap(),
-                    Ok(None),
+                    Rvalue::CallOrLoad,
                 ))
             }
 
