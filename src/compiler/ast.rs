@@ -513,8 +513,10 @@ fn traverse_node_rvalue(
     let ops = match emit {
         // attribute ------------------------------------------------------
         "attribute" => ImlOp::from(vec![
-            traverse_node_or_list(compiler, &node["children"]),
-            traverse_offset(node),
+            {
+                let children = node["children"].borrow();
+                traverse_node_rvalue(compiler, children.object::<Dict>().unwrap(), Ok(None))
+            },
             ImlOp::from(Op::LoadAttr),
         ]),
 
@@ -525,7 +527,11 @@ fn traverse_node_rvalue(
             let mut ops = vec![traverse_offset(node)];
 
             for node in children.iter() {
-                ops.push(traverse_node_or_list(compiler, node));
+                ops.push(traverse_node_rvalue(
+                    compiler,
+                    node.borrow().object::<Dict>().unwrap(),
+                    Err(()),
+                ));
             }
 
             assert!(ops.len() > 0);
@@ -609,7 +615,10 @@ fn traverse_node_rvalue(
 
         // capture --------------------------------------------------------
         "capture_alias" | "capture_expr" => ImlOp::from(vec![
-            traverse_node_or_list(compiler, &node["children"]),
+            {
+                let children = node["children"].borrow();
+                traverse_node_rvalue(compiler, children.object::<Dict>().unwrap(), Ok(None))
+            },
             ImlOp::from(Op::LoadCapture),
         ]),
 
@@ -637,7 +646,14 @@ fn traverse_node_rvalue(
                 ImlOp::Nop
             } else {
                 match call {
-                    Ok(args) => ImlOp::call_by_name(compiler, offset, name.to_string(), args),
+                    Ok(args) => {
+                        // fixme: this detection might be improved by ImlOp::consumable()
+                        if utils::identifier_is_consumable(name) {
+                            compiler.mark_consuming();
+                        }
+
+                        ImlOp::call_by_name(compiler, offset, name.to_string(), args)
+                    }
                     Err(()) => ImlOp::load_by_name(compiler, offset, name.to_string()),
                 }
             };
@@ -747,13 +763,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let children = node["children"].borrow();
             let children = children.object::<List>().unwrap();
 
-            let (left, right) = (children[0].borrow(), children[1].borrow());
+            let (alias, expr) = (&children[0].borrow(), &children[1].borrow());
 
-            let left = traverse_node(compiler, &left.object::<Dict>().unwrap());
-            let right = traverse_node(compiler, &right.object::<Dict>().unwrap());
+            let alias = traverse_node_rvalue(compiler, alias.object::<Dict>().unwrap(), Err(()));
+            let expr = traverse_node_rvalue(compiler, expr.object::<Dict>().unwrap(), Ok(None));
 
             // Push value first, then the alias
-            ImlOp::from(vec![right, left, ImlOp::from(Op::MakeAlias)])
+            ImlOp::from(vec![expr, alias, ImlOp::from(Op::MakeAlias)])
         }
 
         // assign ---------------------------------------------------------
@@ -889,8 +905,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             // fixme: Restricted to pure values currently.
             let value = traverse_node_static(compiler, Some(&ident), value);
-
-            println!("{} gets {:?}", ident, value);
 
             if value.is_consuming() {
                 if !utils::identifier_is_consumable(ident) {
