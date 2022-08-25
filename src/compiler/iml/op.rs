@@ -298,10 +298,6 @@ impl ImlOp {
                     ImlTarget::Static(value) => {
                         let idx = linker.register(value);
 
-                        if let Some(offset) = offset {
-                            ops.push(Op::Offset(Box::new(*offset)));
-                        }
-
                         match args {
                             // Qualified call
                             Some((args, nargs)) => {

@@ -242,11 +242,11 @@ impl Parser {
             ['[', Ccl, ']', (call ast[(value "value_token_ccl")])]
         }),
 
-        (TokenCall = {
+        (TokenAtom = {
             TokenLiteral,
             [T_Consumable, "(", _, ___, (opt CallParameters), ___, (expect ")"),
                 (call ast[(value "call")])],
-            [T_Consumable, (call ast[(value "call")])],
+            T_Consumable,
             Parselet,
             InlineSequences,
             Block
@@ -254,11 +254,11 @@ impl Parser {
 
         (Token = {
             // Token call modifiers
-            [TokenCall, "+", (call ast[(value "op_mod_pos")])],
-            [TokenCall, "*", (call ast[(value "op_mod_kle")])],
-            [TokenCall, "?", (call ast[(value "op_mod_opt")])],
+            [TokenAtom, "+", (call ast[(value "op_mod_pos")])],
+            [TokenAtom, "*", (call ast[(value "op_mod_kle")])],
+            [TokenAtom, "?", (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
-            TokenCall,
+            TokenAtom,
             ["peek", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_peek")])],
             ["not", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_not")])],
             ["expect", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_expect")])]

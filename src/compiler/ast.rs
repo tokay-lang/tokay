@@ -510,29 +510,6 @@ fn traverse_node_rvalue(
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
-    // Identifier is a special case and might refer to a static
-    if emit == "identifier" {
-        let name = node["value"].borrow();
-        let name = name.object::<Str>().unwrap().as_str();
-
-        let offset = traverse_node_offset(node);
-
-        // Check if identifier is valid
-        return if let Err(mut error) = identifier_is_valid(name) {
-            if let Some(offset) = offset {
-                error.patch_offset(offset);
-            }
-
-            compiler.errors.push(error);
-            ImlOp::Nop
-        } else {
-            match call {
-                Ok(args) => ImlOp::call_by_name(compiler, offset, name.to_string(), args),
-                Err(()) => ImlOp::load_by_name(compiler, offset, name.to_string()),
-            }
-        };
-    }
-
     let ops = match emit {
         // attribute ------------------------------------------------------
         "attribute" => ImlOp::from(vec![
@@ -643,6 +620,29 @@ fn traverse_node_rvalue(
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
+        // identifier -----------------------------------------------------
+        "identifier" => {
+            let name = node["value"].borrow();
+            let name = name.object::<Str>().unwrap().as_str();
+
+            let offset = traverse_node_offset(node);
+
+            // Check if identifier is valid
+            return if let Err(mut error) = identifier_is_valid(name) {
+                if let Some(offset) = offset {
+                    error.patch_offset(offset);
+                }
+
+                compiler.errors.push(error);
+                ImlOp::Nop
+            } else {
+                match call {
+                    Ok(args) => ImlOp::call_by_name(compiler, offset, name.to_string(), args),
+                    Err(()) => ImlOp::load_by_name(compiler, offset, name.to_string()),
+                }
+            };
+        }
+
         // index ----------------------------------------------------------
         "index" => {
             ImlOp::from(vec![
@@ -699,12 +699,11 @@ fn traverse_node_rvalue(
             let offset = traverse_node_offset(node);
             let value = traverse_node_value(compiler, node);
 
-            // fixme... hmmmmm
-            if value.is_callable(true) {
-                ImlOp::call(offset, value, None)
+            return if let Ok(call) = call {
+                ImlOp::call(offset, value, call)
             } else {
                 ImlOp::load(offset, value)
-            }
+            };
         }
 
         // anything else is not an rvalue
@@ -1012,12 +1011,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         );
                     }
 
-                    // Push operation position here
-                    ops.push(traverse_offset(node));
-
                     // Otherwise, generate operational code
                     ops.push(left);
                     ops.push(right);
+
+                    // Push operation position here
+                    //ops.push(traverse_offset(node));
 
                     ImlOp::from(match parts[2] {
                         "add" => Op::BinaryOp("add"),
@@ -1044,7 +1043,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     }
 
                     // Push operation position here
-                    ops.push(traverse_offset(node));
+                    //ops.push(traverse_offset(node));
+
                     ops.push(res);
 
                     ImlOp::from(match parts[2] {
