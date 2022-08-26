@@ -622,7 +622,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
                 Rvalue::Call(args, nargs > 0),
             ));
 
-            ImlOp::from(ops)
+            return ImlOp::from(ops);
         }
 
         // capture --------------------------------------------------------
