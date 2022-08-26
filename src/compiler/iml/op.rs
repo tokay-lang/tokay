@@ -169,7 +169,7 @@ impl ImlOp {
     ) -> ImlOp {
         // Perform early consumable detection depending on identifier's name
         if utils::identifier_is_consumable(&name) {
-            compiler.mark_parselet_consuming();
+            compiler.parselet_mark_consuming();
         }
 
         ImlOp::Call {

@@ -21,12 +21,12 @@ macro_rules! tokay {
 
             //tokay_dump!({ $( $items ),* });
 
-            compiler.push_parselet();  // Main
-            compiler.mark_parselet_consuming();
+            compiler.parselet_push();  // Main
+            compiler.parselet_mark_consuming();
 
             let main = tokay!(compiler, { $( $items ),* });
 
-            let main = compiler.pop_parselet(
+            let main = compiler.parselet_pop(
                 None,
                 Some("__main__".to_string()),
                 None,
@@ -73,8 +73,8 @@ macro_rules! tokay {
     // Assign whitespace
     ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
-            $compiler.push_parselet();
-            $compiler.mark_parselet_consuming();
+            $compiler.parselet_push();
+            $compiler.parselet_mark_consuming();
 
             let items = vec![
                 $(
@@ -89,7 +89,7 @@ macro_rules! tokay {
                     .collect()
             };
 
-            let parselet = $compiler.pop_parselet(
+            let parselet = $compiler.parselet_pop(
                 None,
                 Some("_".to_string()),
                 Some(0), // mark as silent parselet
@@ -114,8 +114,8 @@ macro_rules! tokay {
                 panic!("Parselet identifier must begin with an upper-case letter or underscore!");
             }
 
-            $compiler.push_parselet();
-            $compiler.mark_parselet_consuming();
+            $compiler.parselet_push();
+            $compiler.parselet_mark_consuming();
 
             let items = vec![
                 $(
@@ -130,7 +130,7 @@ macro_rules! tokay {
                     .collect()
             };
 
-            let parselet = $compiler.pop_parselet(
+            let parselet = $compiler.parselet_pop(
                 None,
                 Some(stringify!($name).to_string()),
                 None,

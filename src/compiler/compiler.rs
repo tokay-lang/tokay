@@ -57,7 +57,7 @@ impl Compiler {
 
     The compiler struct serves as some kind of helper that should be used during traversal of a
     Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
-    in different levels. Parselets are created by using the pop_parselet() function with provided
+    in different levels. Parselets are created by using the parselet_pop() function with provided
     parameters.
 
     By default, the prelude should be loaded, otherwise several standard parselets are not available.
@@ -160,7 +160,7 @@ impl Compiler {
     }
 
     /// Push a parselet scope
-    pub(super) fn push_parselet(&mut self) {
+    pub(super) fn parselet_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Parselet {
@@ -175,7 +175,7 @@ impl Compiler {
     }
 
     /// Push a block scope
-    pub(super) fn push_block(&mut self) {
+    pub(super) fn block_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Block {
@@ -186,12 +186,12 @@ impl Compiler {
     }
 
     /// Push a loop scope
-    pub(super) fn push_loop(&mut self) {
+    pub(super) fn loop_push(&mut self) {
         self.scopes.insert(0, Scope::Loop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(super) fn pop_parselet(
+    pub(super) fn parselet_pop(
         &mut self,
         offset: Option<Offset>,
         name: Option<String>,
@@ -290,20 +290,20 @@ impl Compiler {
     }
 
     /// Drops a block scope.
-    pub(super) fn pop_block(&mut self) {
+    pub(super) fn block_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
         self.resolve();
         self.scopes.remove(0);
     }
 
     /// Drops a loop scope.
-    pub(super) fn pop_loop(&mut self) {
+    pub(super) fn loop_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
         self.scopes.remove(0);
     }
 
     /// Marks the nearest parselet scope as consuming
-    pub(super) fn mark_parselet_consuming(&mut self) {
+    pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
             if let Scope::Parselet { is_consuming, .. } = scope {
                 *is_consuming = true;
@@ -315,7 +315,7 @@ impl Compiler {
     }
 
     /// Check if there's a loop
-    pub(super) fn check_loop(&mut self) -> bool {
+    pub(super) fn loop_check(&mut self) -> bool {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
@@ -393,9 +393,9 @@ impl Compiler {
         let mut secondary = None;
 
         if name == "_" || name == "__" {
-            self.push_parselet();
-            self.mark_parselet_consuming();
-            value = self.pop_parselet(
+            self.parselet_push();
+            self.parselet_mark_consuming();
+            value = self.parselet_pop(
                 None,
                 Some("__".to_string()),
                 Some(0), // Zero severity
@@ -409,9 +409,9 @@ impl Compiler {
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            self.push_parselet();
-            self.mark_parselet_consuming();
-            value = self.pop_parselet(
+            self.parselet_push();
+            self.parselet_mark_consuming();
+            value = self.parselet_pop(
                 None,
                 Some(name.to_string()),
                 Some(0), // Zero severity

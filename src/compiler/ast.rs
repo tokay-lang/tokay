@@ -157,7 +157,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         // Parselets
         "value_parselet" => {
-            compiler.push_parselet();
+            compiler.parselet_push();
 
             // Generic signature
             let mut gen: Vec<(String, Option<ImlValue>)> = Vec::new();
@@ -273,7 +273,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let body = traverse_node(compiler, body.borrow().object::<Dict>().unwrap());
 
-            let ret = compiler.pop_parselet(
+            let ret = compiler.parselet_pop(
                 traverse_node_offset(node),
                 None,
                 None,
@@ -295,11 +295,11 @@ The value must either be a literal or something from a known constant.
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
 fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> ImlValue {
-    compiler.push_parselet(); // yep, we push a parselet scope here...
+    compiler.parselet_push(); // yep, we push a parselet scope here...
 
     match traverse_node_rvalue(compiler, node, Rvalue::Load) {
         ImlOp::Nop => {
-            compiler.pop_parselet(None, None, None, None, None, ImlOp::Nop);
+            compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
             value!(void).into()
         }
         // Defined parselet or value
@@ -307,7 +307,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             target: ImlTarget::Static(value),
             ..
         } => {
-            compiler.pop_parselet(None, None, None, None, None, ImlOp::Nop);
+            compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
                 if let ImlValue::Parselet(parselet) = &value {
@@ -319,7 +319,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value
         }
         // Any other code becomes its own parselet without any signature.
-        other => compiler.pop_parselet(
+        other => compiler.parselet_pop(
             traverse_node_offset(node),
             lvalue.and_then(|lvalue| Some(lvalue.to_string())),
             None,
@@ -847,12 +847,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         "block" | "main" => {
             if let Some(ast) = node.get("children") {
                 if emit == "block" {
-                    compiler.push_block();
+                    compiler.block_push();
                 }
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
                 else if compiler.scopes.len() != 1 {
-                    compiler.push_parselet(); // Main
+                    compiler.parselet_push(); // Main
                 }
 
                 let body = if let Some(list) = ast.borrow().object::<List>() {
@@ -870,10 +870,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 };
 
                 if emit == "block" {
-                    compiler.pop_block();
+                    compiler.block_pop();
                     body
                 } else {
-                    let main = compiler.pop_parselet(
+                    let main = compiler.parselet_pop(
                         None,
                         Some("__main__".to_string()),
                         None,
@@ -963,7 +963,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let op = match parts[1] {
                 "accept" | "break" | "exit" | "push" | "repeat" => {
-                    if parts[1] == "break" && !compiler.check_loop() {
+                    if parts[1] == "break" && !compiler.loop_check() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
                             format!("'break' cannot be used outside of a loop."),
@@ -999,7 +999,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 }
 
                 "continue" => {
-                    if !compiler.check_loop() {
+                    if !compiler.loop_check() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
                             format!("'continue' cannot be used outside of a loop."),
@@ -1179,7 +1179,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             ),
                         ));
                     } else {
-                        compiler.mark_parselet_consuming();
+                        compiler.parselet_mark_consuming();
                     }
 
                     // Special operations for Token::Char
@@ -1308,7 +1308,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     // Initial
                     let initial = traverse_node_rvalue(compiler, initial, Rvalue::CallOrLoad);
 
-                    compiler.push_loop();
+                    compiler.loop_push();
 
                     let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
                     let body = ImlOp::from(vec![
@@ -1316,7 +1316,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         traverse_node_rvalue(compiler, each, Rvalue::CallOrLoad),
                     ]);
 
-                    compiler.pop_loop();
+                    compiler.loop_pop();
 
                     ImlOp::Loop {
                         consuming: None,
@@ -1329,7 +1329,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "loop" => {
                     let children = List::from(&node["children"]);
 
-                    compiler.push_loop();
+                    compiler.loop_push();
 
                     let ret = match children.len() {
                         1 => {
@@ -1367,7 +1367,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         _ => unreachable!(),
                     };
 
-                    compiler.pop_loop();
+                    compiler.loop_pop();
 
                     ret
                 }
