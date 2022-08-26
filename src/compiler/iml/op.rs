@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::reader::Offset;
+use crate::utils;
 use crate::Compiler;
 use crate::{Object, RefValue};
 use std::cell::RefCell;
@@ -166,6 +167,11 @@ impl ImlOp {
         name: String,
         args: Option<(usize, bool)>,
     ) -> ImlOp {
+        // Perform early consumable detection depending on identifier's name
+        if utils::identifier_is_consumable(&name) {
+            compiler.mark_parselet_consuming();
+        }
+
         ImlOp::Call {
             offset,
             target: ImlTarget::Identifier(name),

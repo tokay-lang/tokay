@@ -664,19 +664,9 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
                 match mode {
                     Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),
                     Rvalue::CallOrLoad => {
-                        // fixme: this detection might be improved by ImlOp::consumable()
-                        if utils::identifier_is_consumable(name) {
-                            compiler.mark_consuming();
-                        }
-
                         ImlOp::call_by_name(compiler, offset, name.to_string(), None)
                     }
                     Rvalue::Call(args, nargs) => {
-                        // fixme: this detection might be improved by ImlOp::consumable()
-                        if utils::identifier_is_consumable(name) {
-                            compiler.mark_consuming();
-                        }
-
                         ImlOp::call_by_name(compiler, offset, name.to_string(), Some((args, nargs)))
                     }
                 }
@@ -1189,7 +1179,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             ),
                         ));
                     } else {
-                        compiler.mark_consuming();
+                        compiler.mark_parselet_consuming();
                     }
 
                     // Special operations for Token::Char

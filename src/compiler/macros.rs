@@ -22,7 +22,7 @@ macro_rules! tokay {
             //tokay_dump!({ $( $items ),* });
 
             compiler.push_parselet();  // Main
-            compiler.mark_consuming();
+            compiler.mark_parselet_consuming();
 
             let main = tokay!(compiler, { $( $items ),* });
 
@@ -74,7 +74,7 @@ macro_rules! tokay {
     ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
             $compiler.push_parselet();
-            $compiler.mark_consuming();
+            $compiler.mark_parselet_consuming();
 
             let items = vec![
                 $(
@@ -115,7 +115,7 @@ macro_rules! tokay {
             }
 
             $compiler.push_parselet();
-            $compiler.mark_consuming();
+            $compiler.mark_parselet_consuming();
 
             let items = vec![
                 $(

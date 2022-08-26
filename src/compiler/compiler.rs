@@ -26,7 +26,7 @@ pub(super) enum Scope {
         variables: HashMap<String, usize>, // Variable symbol table
         begin: Vec<ImlOp>,  // Begin operations
         end: Vec<ImlOp>,    // End operations
-        consuming: bool, // Determines whether the scope is consuming input for early consumable detection
+        is_consuming: bool, // Determines whether the scope is consuming input for early consumable detection
     },
     Block {
         // block level (constants can be defined here)
@@ -169,7 +169,7 @@ impl Compiler {
                 constants: HashMap::new(),
                 begin: Vec::new(),
                 end: Vec::new(),
-                consuming: false,
+                is_consuming: false,
             },
         )
     }
@@ -238,7 +238,7 @@ impl Compiler {
             variables,
             begin,
             end,
-            consuming,
+            is_consuming,
             ..
         } = &mut scope
         {
@@ -258,27 +258,32 @@ impl Compiler {
                 "signature may not be longer than locals..."
             );
 
+            let begin = ensure_block(begin.drain(..).collect());
+            let end = ensure_block(end.drain(..).collect());
+
             let parselet = ImlParselet {
                 offset,
                 name,
-                consuming: *consuming,
+                consuming: *is_consuming
+                    || begin.is_consuming()
+                    || end.is_consuming()
+                    || body.is_consuming(),
                 severity: severity.unwrap_or(5), // severity
                 constants,                       // constants
                 signature,                       // signature
                 locals: variables.len(),
                 // Ensure that begin and end are blocks.
-                begin: ensure_block(begin.drain(..).collect()),
-                end: ensure_block(end.drain(..).collect()),
+                begin,
+                end,
                 body,
             };
 
             if self.scopes.len() == 0 {
-                *consuming = false;
+                //*consuming = false;
                 self.scopes.push(scope);
             }
 
-            let parselet = Rc::new(RefCell::new(parselet));
-            ImlValue::Parselet(parselet)
+            ImlValue::Parselet(Rc::new(RefCell::new(parselet)))
         } else {
             unreachable!();
         }
@@ -298,10 +303,10 @@ impl Compiler {
     }
 
     /// Marks the nearest parselet scope as consuming
-    pub(super) fn mark_consuming(&mut self) {
+    pub(super) fn mark_parselet_consuming(&mut self) {
         for scope in &mut self.scopes {
-            if let Scope::Parselet { consuming, .. } = scope {
-                *consuming = true;
+            if let Scope::Parselet { is_consuming, .. } = scope {
+                *is_consuming = true;
                 return;
             }
         }
@@ -389,7 +394,7 @@ impl Compiler {
 
         if name == "_" || name == "__" {
             self.push_parselet();
-            self.mark_consuming();
+            self.mark_parselet_consuming();
             value = self.pop_parselet(
                 None,
                 Some("__".to_string()),
@@ -405,7 +410,7 @@ impl Compiler {
 
             // ...and then in-place "_" is defined as `_ : __?`
             self.push_parselet();
-            self.mark_consuming();
+            self.mark_parselet_consuming();
             value = self.pop_parselet(
                 None,
                 Some(name.to_string()),
