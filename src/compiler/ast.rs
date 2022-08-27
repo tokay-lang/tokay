@@ -1182,38 +1182,45 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         compiler.parselet_mark_consuming();
                     }
 
-                    // Special operations for Token::Char
-                    /*
-                    if let ImlOp::Call(ImlOpValue(value), ..) = &res {
-                        // In case of a token, try to replace it with a repeating counterpart.
-                        if let ImlValue::Value(value) = value {
-                            let value = value.borrow();
+                    // Modifiers on usages of Token::Char can be optimized for better efficiency
+                    if let ImlOp::Call {
+                        target: ImlTarget::Static(ImlValue::Value(target)),
+                        ..
+                    } = &res
+                    {
+                        let target = target.borrow();
 
-                            if let Some(token) = value.object::<Token>() {
-                                if let Token::Char(ccl) = token.clone() {
-                                    match parts[2] {
-                                        // mod_pos on Token::Char becomes Token::Chars
-                                        "pos" | "kle" => {
-                                            let mut chars = ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from(Token::Chars(ccl)))), 0, false, traverse_node_offset(node));
-                                            if parts[2] == "kle" {
-                                                // mod_kle on Token::Char becomes Token::Chars.into_optional()
-                                                chars = chars.into_optional();
-                                            }
-
-                                            return chars;
-                                        }
-
-                                        // mod_not on Token::Char becomes negated Token::Char
-                                        "not" => {
-                                            return ImlOp::Call(ImlOpValue(ImlValue::from(RefValue::from(Token::Char(ccl.negate())))), 0, false, traverse_node_offset(node));
-                                        }
-                                        _ => {}
+                        if let Some(Token::Char(ccl)) = target.object::<Token>() {
+                            match parts[2] {
+                                // mod_pos on Token::Char becomes Token::Chars
+                                "pos" | "kle" => {
+                                    let mut chars = ImlOp::call(
+                                        traverse_node_offset(node),
+                                        ImlValue::from(RefValue::from(Token::Chars(ccl.clone()))),
+                                        None,
+                                    );
+                                    if parts[2] == "kle" {
+                                        // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                        chars = chars.into_optional();
                                     }
+
+                                    return chars;
                                 }
+
+                                // mod_not on Token::Char becomes negated Token::Char
+                                "not" => {
+                                    return ImlOp::call(
+                                        traverse_node_offset(node),
+                                        ImlValue::from(RefValue::from(Token::Char(
+                                            ccl.clone().negate(),
+                                        ))),
+                                        None,
+                                    );
+                                }
+                                _ => {}
                             }
                         }
                     }
-                    */
 
                     match parts[2] {
                         "pos" => res.into_positive(),
