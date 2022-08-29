@@ -1411,11 +1411,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             for node in children.iter() {
-                ops.push(traverse_node_rvalue(
+                match traverse_node_rvalue(
                     compiler,
                     node.borrow().object::<Dict>().unwrap(),
-                    Rvalue::CallOrLoad,
-                ))
+                    Rvalue::CallOrLoad, // fixme: only statics or "real" rvalue nodes should be called, others just loaded
+                ) {
+                    // In sequences, destruct unframed sequences and make them part of the sequence itself
+                    ImlOp::Seq { seq, framed } if emit == "sequence" && !framed => {
+                        ops.extend(seq);
+                    }
+                    other => ops.push(other),
+                }
             }
 
             if emit == "sequence" {

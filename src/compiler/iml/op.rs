@@ -761,8 +761,8 @@ impl ImlOp {
         }
     }
 
-    /// Generic querying function taking a closure that either runs on the tree or stops.
-    fn query(&self, func: &mut dyn FnMut(&Self) -> bool) -> bool {
+    /// Generic querying function taking a closure that either walks on the tree or stops.
+    pub fn walk(&self, func: &mut dyn FnMut(&Self) -> bool) -> bool {
         // Call closure on current ImlOp, break on false return
         if !func(self) {
             return false;
@@ -770,10 +770,10 @@ impl ImlOp {
 
         // Query along ImlOp structure
         match self {
-            ImlOp::Shared(op) => op.borrow().query(func),
+            ImlOp::Shared(op) => op.borrow().walk(func),
             ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
                 for item in items {
-                    if !item.query(func) {
+                    if !item.walk(func) {
                         return false;
                     }
                 }
@@ -782,7 +782,7 @@ impl ImlOp {
             }
             ImlOp::If { then, else_, .. } => {
                 for i in [&then, &else_] {
-                    if !i.query(func) {
+                    if !i.walk(func) {
                         return false;
                     }
                 }
@@ -796,7 +796,7 @@ impl ImlOp {
                 ..
             } => {
                 for i in [&init, &condition, &body] {
-                    if !i.query(func) {
+                    if !i.walk(func) {
                         return false;
                     }
                 }
@@ -807,7 +807,7 @@ impl ImlOp {
             ImlOp::Expect { body, .. }
             | ImlOp::Not { body }
             | ImlOp::Peek { body }
-            | ImlOp::Repeat { body, .. } => body.query(func),
+            | ImlOp::Repeat { body, .. } => body.walk(func),
 
             _ => true,
         }
@@ -816,7 +816,7 @@ impl ImlOp {
     pub fn is_consuming(&self) -> bool {
         let mut consuming = false;
 
-        self.query(&mut |op| {
+        self.walk(&mut |op| {
             match op {
                 ImlOp::Call { target, .. } => {
                     if target.is_consuming() {

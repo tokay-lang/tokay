@@ -127,6 +127,10 @@ impl Compiler {
             ..
         } = ret
         {
+            if self.debug > 2 {
+                println!("main = {:#?}", main);
+            }
+
             Ok(Linker::new(main).finalize())
         } else {
             todo!();
@@ -206,29 +210,31 @@ impl Compiler {
 
         // Report any unresolved usage when reaching global scope
         if self.scopes.len() == 1 {
-            /*
             // Check and report any unresolved usages
             for usage in self.usages.drain(..) {
-                if let ImlOp::Usage(usage) = &*usage.borrow() {
-                    self.errors.push(match usage {
-                        Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => {
-                            Error::new(*offset, format!("Use of unresolved symbol '{}'", name))
-                        }
-
-                        Usage::Call {
-                            name,
-                            args: _,
-                            nargs: _,
+                usage.walk(&mut |op| {
+                    match op {
+                        ImlOp::Load {
                             offset,
-                        } => Error::new(*offset, format!("Call to unresolved symbol '{}'", name)),
-                    });
-                }
-            }
-            */
+                            target: ImlTarget::Identifier(name),
+                            ..
+                        } => self.errors.push(Error::new(
+                            *offset,
+                            format!("Use of unresolved symbol '{}'", name),
+                        )),
+                        ImlOp::Call {
+                            offset,
+                            target: ImlTarget::Identifier(name),
+                            ..
+                        } => self.errors.push(Error::new(
+                            *offset,
+                            format!("Call to unresolved symbol '{}'", name),
+                        )),
+                        _ => {}
+                    }
 
-            let count = self.usages.len();
-            if count > 0 {
-                println!("{} usages still unresolved", count);
+                    true
+                });
             }
         }
 
