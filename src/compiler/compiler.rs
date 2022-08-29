@@ -261,6 +261,10 @@ impl Compiler {
             let begin = ensure_block(begin.drain(..).collect());
             let end = ensure_block(end.drain(..).collect());
 
+            //println!("begin = {:?}", begin);
+            //println!("body  = {:?}", body);
+            //println!("end   = {:?}", end);
+
             let parselet = ImlParselet {
                 offset,
                 name,

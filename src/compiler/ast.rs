@@ -354,8 +354,12 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 let children = item["children"].borrow();
 
                 match capture {
-                    "capture_expr" | "capture_alias" => {
-                        ops.push(traverse_node_or_list(compiler, &item["children"]));
+                    "capture_alias" | "capture_expr" => {
+                        ops.push(traverse_node_rvalue(
+                            compiler,
+                            children.object::<Dict>().unwrap(),
+                            Rvalue::CallOrLoad,
+                        ));
 
                         if store {
                             if hold {
@@ -626,23 +630,24 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
         }
 
         // capture --------------------------------------------------------
-        "capture_alias" | "capture_expr" => ImlOp::from(vec![
-            {
-                let children = node["children"].borrow();
-                traverse_node_rvalue(
-                    compiler,
-                    children.object::<Dict>().unwrap(),
-                    Rvalue::CallOrLoad,
-                )
-            },
-            ImlOp::from(Op::LoadCapture),
-        ]),
+        "capture_alias" | "capture_expr" => {
+            return ImlOp::from(vec![
+                {
+                    let children = node["children"].borrow();
+                    traverse_node_rvalue(
+                        compiler,
+                        children.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    )
+                },
+                ImlOp::from(Op::LoadCapture),
+            ])
+        }
 
         "capture_index" => {
             let children = node["children"].borrow();
-            let children = children.object::<Dict>().unwrap();
-            let index = traverse_node_value(compiler, children).value();
-            ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
+            let index = traverse_node_value(compiler, children.object::<Dict>().unwrap()).value();
+            return ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()));
         }
 
         // identifier -----------------------------------------------------
@@ -740,7 +745,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
         _ => return traverse_node(compiler, node),
     };
 
-    // Rvalue call confguration?
+    // Rvalue call confguration of a value known at runtime.
     match mode {
         Rvalue::Load => ops,
         Rvalue::CallOrLoad => ImlOp::from(vec![ops, ImlOp::from(Op::CallOrCopy)]),

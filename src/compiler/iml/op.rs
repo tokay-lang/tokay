@@ -153,6 +153,19 @@ impl ImlOp {
 
     /// Call known value
     pub fn call(offset: Option<Offset>, value: ImlValue, args: Option<(usize, bool)>) -> ImlOp {
+        // When args is unset, and the value is not callable without arguments,
+        // consider this call as a load.
+        if args.is_none() && !value.is_callable(true) {
+            // Currently not planned as final
+            return Self::load(offset, value);
+        }
+
+        // Early recognize call to value which is generally not call-able
+        if !value.is_callable(true) && !value.is_callable(false) {
+            // Currently not planned as final
+            todo!("The value {:?} is generally not callable!", value);
+        }
+
         ImlOp::Call {
             offset,
             target: ImlTarget::Static(value),
