@@ -433,7 +433,7 @@ fn unary_op() {
     // unary minus with object
     assert_eq!(
         crate::run("l = list(), -l", ""),
-        Err("Line 1, column 14: Method 'list_neg' not found".to_string())
+        Err("Line 1, column 13: Method 'list_neg' not found".to_string())
     );
 
     // inline pre-increment

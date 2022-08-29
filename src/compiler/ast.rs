@@ -1050,7 +1050,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ops.push(right);
 
                     // Push operation position here
-                    //ops.push(traverse_offset(node));
+                    ops.push(traverse_offset(node));
 
                     ImlOp::from(match parts[2] {
                         "add" => Op::BinaryOp("add"),
@@ -1076,10 +1076,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         );
                     }
 
-                    // Push operation position here
-                    //ops.push(traverse_offset(node));
-
                     ops.push(res);
+
+                    // Push operation position here
+                    ops.push(traverse_offset(node));
 
                     ImlOp::from(match parts[2] {
                         "not" => Op::UnaryOp("not"),
@@ -1135,6 +1135,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         },
                         _ => {
                             ops.push(right);
+
+                            // Push operation position here
+                            ops.push(traverse_offset(node));
+
                             ImlOp::from(match parts[2] {
                                 "eq" => Op::BinaryOp("eq"),
                                 "neq" => Op::BinaryOp("neq"),
@@ -1226,6 +1230,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             }
                         }
                     }
+
+                    // Push operation position here
+                    ops.push(traverse_offset(node));
 
                     match parts[2] {
                         "pos" => res.into_positive(),

@@ -348,7 +348,7 @@ fn test_list_pop() {
 
     assert_eq!(
         crate::run("l = (1,2,3,4); l.pop(4)", ""),
-        Err("Line 1, column 17: list_pop() index 4 out of range".into())
+        Err("Line 1, column 18: list_pop() index 4 out of range".into())
     );
 
     assert_eq!(crate::run("list_pop(1)", ""), Ok(Some(crate::value!(1))));
