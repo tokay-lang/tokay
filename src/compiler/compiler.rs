@@ -127,11 +127,18 @@ impl Compiler {
             ..
         } = ret
         {
-            if self.debug > 2 {
-                println!("main = {:#?}", main);
+            if self.debug > 1 {
+                println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            Ok(Linker::new(main).finalize())
+            let program = Linker::new(main).finalize();
+
+            if self.debug > 1 {
+                println!("--- Finalized program ---");
+                program.dump();
+            }
+
+            Ok(program)
         } else {
             todo!();
         }

@@ -1411,21 +1411,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             for node in children.iter() {
-                match traverse_node_rvalue(
+                ops.push(traverse_node_rvalue(
                     compiler,
                     node.borrow().object::<Dict>().unwrap(),
                     Rvalue::CallOrLoad, // fixme: only statics or "real" rvalue nodes should be called, others just loaded
-                ) {
-                    // In sequences, destruct unframed sequences and make them part of the sequence itself
-                    ImlOp::Seq { seq, framed } if emit == "sequence" && !framed => {
-                        ops.extend(seq);
-                    }
-                    other => ops.push(other),
-                }
+                ));
             }
 
+            // todo: At least "sequence" and "list" are the same: framed sequences, but with
+            //       the difference that when the sequences is consuming, it grabs Some(1, 5),
+            //       and if its non-consuming it grabs Some(0, 10).
             if emit == "sequence" {
-                if ops.len() == 1 {
+                if ops.len() == 1 && !matches!(ops[0], ImlOp::Seq { framed: false, .. }) {
                     ImlOp::from(ops)
                 } else if ops.len() > 0 {
                     ImlOp::Seq {
