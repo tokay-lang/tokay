@@ -1413,16 +1413,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             //       the difference that when the sequences is consuming, it grabs Some(1, 5),
             //       and if its non-consuming it grabs Some(0, 10).
             if emit == "sequence" {
-                if ops.len() == 1 {
-                    ops.pop().unwrap()
-                } else if ops.len() > 0 {
-                    ImlOp::Seq {
-                        seq: ops,
-                        framed: true,
-                    }
-                } else {
-                    ImlOp::Nop
-                }
+                ImlOp::seq(ops, true)
             } else {
                 ops.push(Op::MakeList(children.len()).into());
                 ImlOp::from(ops)

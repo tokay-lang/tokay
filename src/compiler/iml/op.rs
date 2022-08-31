@@ -134,6 +134,29 @@ pub enum ImlOp {
 }
 
 impl ImlOp {
+    /// Creates a sequence from items, and optimizes stacked, unframed sequences
+    pub fn seq(items: Vec<ImlOp>, framed: bool) -> ImlOp {
+        let mut seq = Vec::new();
+
+        for item in items {
+            if let ImlOp::Seq {
+                framed: false,
+                seq: items,
+            } = item
+            {
+                seq.extend(items);
+            } else {
+                seq.push(item);
+            }
+        }
+
+        match seq.len() {
+            0 => ImlOp::Nop,
+            1 if !framed => seq.pop().unwrap(),
+            _ => ImlOp::Seq { seq, framed },
+        }
+    }
+
     /// Load known value
     pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
         ImlOp::Load {
@@ -873,14 +896,7 @@ impl From<Op> for ImlOp {
 }
 
 impl From<Vec<ImlOp>> for ImlOp {
-    fn from(ops: Vec<ImlOp>) -> Self {
-        match ops.len() {
-            0 => ImlOp::Nop,
-            1 => ops.into_iter().next().unwrap(),
-            _ => ImlOp::Seq {
-                seq: ops,
-                framed: false,
-            },
-        }
+    fn from(items: Vec<ImlOp>) -> Self {
+        ImlOp::seq(items, false)
     }
 }
