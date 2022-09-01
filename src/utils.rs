@@ -10,9 +10,10 @@ pub fn run(src: &str, input: &str) -> Result<Option<RefValue>, String> {
     let mut compiler = Compiler::new(true);
 
     match compiler.compile_from_str(src) {
-        Ok(program) => program
+        Ok(Some(program)) => program
             .run_from_string(input.to_owned())
             .map_err(|err| err.to_string()),
+        Ok(None) => Ok(None),
         Err(errors) => Err(errors
             .into_iter()
             .map(|err| err.to_string())

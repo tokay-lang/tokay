@@ -73,7 +73,7 @@ impl Compiler {
         };
 
         // Compile with the default prelude
-        if with_prelude && false
+        if with_prelude
         //fixme: Temporarily disabled
         /* temporary disabled */
         {
@@ -93,7 +93,7 @@ impl Compiler {
     }
 
     /** Compile a Tokay program from a Reader source into the compiler. */
-    pub fn compile(&mut self, reader: Reader) -> Result<Program, Vec<Error>> {
+    pub fn compile(&mut self, reader: Reader) -> Result<Option<Program>, Vec<Error>> {
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -138,14 +138,14 @@ impl Compiler {
                 program.dump();
             }
 
-            Ok(program)
+            Ok(Some(program))
         } else {
-            todo!();
+            Ok(None)
         }
     }
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
-    pub fn compile_from_str(&mut self, src: &str) -> Result<Program, Vec<Error>> {
+    pub fn compile_from_str(&mut self, src: &str) -> Result<Option<Program>, Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src.to_owned(),
         )))))

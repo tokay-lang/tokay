@@ -120,7 +120,7 @@ fn main() {
     if let Some(mut program) = program {
         let mut compiler = Compiler::new(true);
 
-        if let Ok(program) = compiler.compile(program.get_reader()) {
+        if let Ok(Some(program)) = compiler.compile(program.get_reader()) {
             // In case no stream but a program is specified, use stdin as input stream.
             if streams.len() == 0 {
                 // Run program in its own REPL?
