@@ -21,19 +21,23 @@ macro_rules! tokay {
 
             //tokay_dump!({ $( $items ),* });
 
-            compiler.push_parselet();  // Main
-            compiler.mark_consuming();
+            compiler.parselet_push();  // Main
+            compiler.parselet_mark_consuming();
 
             let main = tokay!(compiler, { $( $items ),* });
 
-            let parselet = compiler.pop_parselet(
+            let main = compiler.parselet_pop(
+                None,
                 Some("__main__".to_string()),
-                Vec::new(),
+                None,
+                None,
+                None,
                 main.unwrap_or(ImlOp::Nop)
             );
 
-            compiler.define_value(parselet.into());  // Define main parselet
+            Linker::new(main).finalize()
 
+            /*
             match compiler.finalize() {
                 Ok(program) => {
                     if compiler.debug > 0 {
@@ -49,6 +53,7 @@ macro_rules! tokay {
                     panic!("Errors in compile!");
                 }
             }
+            */
         }
     };
 
@@ -68,8 +73,8 @@ macro_rules! tokay {
     // Assign whitespace
     ( $compiler:expr, ( _ = { $( $item:tt ),* } ) ) => {
         {
-            $compiler.push_parselet();
-            $compiler.mark_consuming();
+            $compiler.parselet_push();
+            $compiler.parselet_mark_consuming();
 
             let items = vec![
                 $(
@@ -77,21 +82,23 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlAlternation::new(
-                items.into_iter()
+            let body = ImlOp::Alt{
+                alts: items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect()
-            );
+            };
 
-            let mut parselet = $compiler.pop_parselet(
+            let parselet = $compiler.parselet_pop(
+                None,
                 Some("_".to_string()),
-                Vec::new(),
+                Some(0), // mark as silent parselet
+                None,
+                None,
                 body
             );
 
-            parselet.severity = 0;  // mark as silent parselet
-            $compiler.set_constant("_", parselet.into());
+            $compiler.set_constant("_", parselet);
 
             //println!("assign _ = {}", stringify!($item));
             None
@@ -107,8 +114,8 @@ macro_rules! tokay {
                 panic!("Parselet identifier must begin with an upper-case letter or underscore!");
             }
 
-            $compiler.push_parselet();
-            $compiler.mark_consuming();
+            $compiler.parselet_push();
+            $compiler.parselet_mark_consuming();
 
             let items = vec![
                 $(
@@ -116,20 +123,23 @@ macro_rules! tokay {
                 ),*
             ];
 
-            let body = ImlAlternation::new(
-                items.into_iter()
+            let body = ImlOp::Alt{
+                alts: items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect()
-            );
+            };
 
-            let parselet = $compiler.pop_parselet(
+            let parselet = $compiler.parselet_pop(
+                None,
                 Some(stringify!($name).to_string()),
-                Vec::new(),
+                None,
+                None,
+                None,
                 body
             );
 
-            $compiler.set_constant(&name, parselet.into());
+            $compiler.set_constant(&name, parselet);
 
             None
         }
@@ -146,12 +156,13 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlSequence::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
+                ImlOp::Seq{
+                    seq: items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect(),
+                    framed: true
+                }
             )
         }
     };
@@ -172,12 +183,12 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlAlternation::new(
-                    items.into_iter()
-                        .filter(|item| item.is_some())
-                        .map(|item| item.unwrap())
-                        .collect()
-                )
+                ImlOp::Alt{
+                    alts: items.into_iter()
+                    .filter(|item| item.is_some())
+                    .map(|item| item.unwrap())
+                    .collect()
+                }
             )
         }
     };
@@ -199,100 +210,76 @@ macro_rules! tokay {
 
     // Not
     ( $compiler:expr, (not $item:tt) ) => {
-        Some(ImlNot::new(tokay!($compiler, $item).unwrap()))
+        Some(tokay!($compiler, $item).unwrap().into_not())
     };
 
     // Peek
     ( $compiler:expr, (peek $item:tt) ) => {
-        Some(ImlPeek::new(tokay!($compiler, $item).unwrap()))
+        Some(tokay!($compiler, $item).unwrap().into_peek())
     };
 
     // Expect
     ( $compiler:expr, (expect $item:tt) ) => {
         Some(
-            ImlExpect::new(
-                tokay!($compiler, $item).unwrap(),
-                Some(format!("Expecting {}", stringify!($item)))
-            )
+            tokay!($compiler, $item).unwrap().into_expect(Some(format!("Expecting {}", stringify!($item))))
         )
     };
 
     // Expect with literal
     ( $compiler:expr, (expect $item:tt, $msg:literal) ) => {
-        Some(ImlExpect::new(tokay!($compiler, $item).unwrap(), Some($msg.to_string())))
+        Some(tokay!($compiler, $item).unwrap().into_expect(Some($msg.to_string())))
     };
 
     // Value
     ( $compiler:expr, (value $value:tt) ) => {
-        Some(ImlOp::from(Op::LoadStatic($compiler.define_value($crate::value!($value).into()))))
+        Some(ImlOp::load(None, ImlValue::from($crate::value!($value))))
     };
 
     // Token
     ( $compiler:expr, (token $token:tt) ) => {
-        {
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(RefValue::from($token).into()))))
-        }
+        Some(ImlOp::call(None, ImlValue::from(RefValue::from($token)), None))
     };
 
     // Call with parameters
     ( $compiler:expr, (call $ident:ident [ $( $param:tt ),* ] ) ) => {
         {
+            // Push the arguments
             let mut items = vec![
                 $(
                     tokay!($compiler, $param).unwrap()
                 ),*
             ];
 
-            let name = stringify!($ident).to_string();
-
-            let item = Usage::Call{
-                name,
-                args: items.len(),
-                nargs: 0,
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            items.extend(item);
+            // Push call
+            items.push(
+                ImlOp::call_by_name(
+                    &mut $compiler,
+                    None,
+                    stringify!($ident).to_string(),
+                    Some((items.len(), false))
+                )
+            );
 
             //println!("call = {} {:?}", stringify!($ident), items);
-            Some(ImlOp::from_vec(items))
+            Some(ImlOp::from(items))
         }
     };
 
     // Call without parameters
     ( $compiler:expr, $ident:ident ) => {
-        {
-            //println!("call = {}", stringify!($ident));
-            let name = stringify!($ident);
-
-            let item = Usage::CallOrCopy{
-                name: name.to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            Some(ImlOp::from_vec(item))
-        }
+        Some(ImlOp::call_by_name(&mut $compiler, None, stringify!($ident).to_string(), None))
     };
 
     // Whitespace
     ( $compiler:expr, _ ) => {
-        {
-            //println!("expr = {}", stringify!($expr));
-            let item = Usage::CallOrCopy{
-                name: "_".to_string(),
-                offset: None
-            }.resolve_or_dispose(&mut $compiler);
-
-            assert!(item.len() == 1); // Can only process statics here!
-            Some(item.into_iter().next().unwrap())
-        }
+        Some(ImlOp::call_by_name(&mut $compiler,None, "_".to_string(), None))
     };
 
     // Match
     ( $compiler:expr, (MATCH $literal:literal) ) => {
         {
             let token = RefValue::from(Token::Match($literal.to_string()));
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
+            Some(ImlOp::call(None, ImlValue::from(token), None))
         }
     };
 
@@ -300,7 +287,7 @@ macro_rules! tokay {
     ( $compiler:expr, $literal:literal ) => {
         {
             let token = RefValue::from(Token::Touch($literal.to_string()));
-            Some(ImlOp::from(Op::CallStatic($compiler.define_value(token.into()))))
+            Some(ImlOp::call(None, ImlValue::from(token), None))
         }
     };
 

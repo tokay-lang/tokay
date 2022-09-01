@@ -48,9 +48,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "charclass"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "207e3069d865db22c639d50e84b1f285323b8f43bd970867e1b0b79b28f4362a"
+checksum = "a8dfc99f793cb9e9b717665a6959468a7ee2d29dc0ffc2f54393d75c1daa488a"
 
 [[package]]
 name = "clap"

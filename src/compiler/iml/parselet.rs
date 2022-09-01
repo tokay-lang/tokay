@@ -1,99 +1,64 @@
 //! Intermediate representation of a parselet
-
 use super::*;
-use crate::value::Parselet;
+use crate::reader::Offset;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
+/// Intermediate parselet
 pub struct ImlParselet {
-    pub consuming: Option<Consumable>,           // Consumable state
-    pub severity: u8,                            // Capture push severity
-    pub name: Option<String>,                    // Parselet's name from source (for debugging)
-    pub signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    locals: usize,                               // Number of local variables present
-    begin: ImlOp,                                // Begin-operations
-    end: ImlOp,                                  // End-operations
-    body: ImlOp,                                 // Operations
+    pub offset: Option<Offset>,                     // Offset of definition
+    pub consuming: bool, // Flag if parselet is consuming (detected by compiler scopes)
+    pub severity: u8,    // Capture push severity
+    pub name: Option<String>, // Parselet's name from source (for debugging)
+    pub constants: Vec<(String, Option<ImlValue>)>, // Constant signature with default constants; generic parselet when set.
+    pub signature: Vec<(String, Option<ImlValue>)>, // Argument signature with default arguments
+    pub locals: usize, // Total number of local variables present (including arguments)
+    pub begin: ImlOp,  // Begin-operations
+    pub end: ImlOp,    // End-operations
+    pub body: ImlOp,   // Operations
 }
 
+/** Representation of parselet in intermediate code. */
 impl ImlParselet {
-    /// Creates a new intermediate parselet.
-    pub fn new(
-        name: Option<String>,
-        signature: Vec<(String, Option<usize>)>,
-        locals: usize,
-        begin: ImlOp,
-        end: ImlOp,
-        body: ImlOp,
-    ) -> Self {
-        assert!(
-            signature.len() <= locals,
-            "signature may not be longer than locals..."
-        );
+    pub fn id(&self) -> usize {
+        self as *const ImlParselet as usize
+    }
 
-        Self {
-            name,
-            consuming: None,
-            severity: 5,
-            signature,
-            locals,
-            begin,
-            end,
-            body,
+    pub fn finalize(&self, configs: &mut HashMap<usize, Consumable>) -> bool {
+        let mut changes = false;
+        let id = self.id();
+
+        for part in [&self.begin, &self.body, &self.end] {
+            if let Some(result) = part.finalize(&mut HashSet::new(), configs) {
+                if !configs.contains_key(&id) || configs[&id] < result {
+                    configs.insert(id, result);
+                    changes = true;
+                }
+            }
         }
-    }
 
-    // Turns an ImlParselet in to a parselet
-    pub fn into_parselet(&self /* fixme: change to self without & later on... */) -> Parselet {
-        Parselet::new(
-            self.name.clone(),
-            if let Some(Consumable { leftrec, .. }) = self.consuming {
-                Some(leftrec)
-            } else {
-                None
-            },
-            self.severity,
-            self.signature.clone(),
-            self.locals,
-            self.begin.compile(&self),
-            self.end.compile(&self),
-            self.body.compile(&self),
-        )
-    }
-
-    pub fn resolve(&mut self, usages: &mut Vec<Vec<ImlOp>>) {
-        self.begin.resolve(usages);
-        self.end.resolve(usages);
-        self.body.resolve(usages);
-    }
-
-    pub fn finalize(
-        &mut self,
-        values: &Vec<ImlValue>,
-        stack: &mut Vec<(usize, bool)>,
-    ) -> Option<Consumable> {
-        self.body.finalize(values, stack)
+        changes
     }
 }
 
 impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self as *const ImlParselet as usize == other as *const ImlParselet as usize
+        self.id() == other.id()
     }
 }
 
+impl Eq for ImlParselet {}
+
 impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (self as *const ImlParselet as usize).hash(state);
+        self.id().hash(state);
     }
 }
 
 impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let left = self as *const ImlParselet as usize;
-        let right = other as *const ImlParselet as usize;
-
-        left.partial_cmp(&right)
+        self.id().partial_cmp(&other.id())
     }
 }

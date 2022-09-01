@@ -3,11 +3,13 @@
 pub(crate) mod ast;
 mod compiler;
 mod iml;
+mod linker;
 mod macros;
 mod parser;
-mod usage;
 
-pub use compiler::*;
+use compiler::*;
 use iml::*;
+use linker::*;
 use parser::*;
-use usage::*;
+
+pub use compiler::Compiler;

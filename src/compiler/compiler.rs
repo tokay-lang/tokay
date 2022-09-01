@@ -1,13 +1,15 @@
 //! Tokay compiler interface
-use std::collections::HashMap;
-use std::io::BufReader;
 
 use super::*;
 use crate::builtin::Builtin;
 use crate::error::Error;
-use crate::reader::Reader;
+use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::io::BufReader;
+use std::rc::Rc;
 
 /** Compiler symbolic scope.
 
@@ -24,7 +26,7 @@ pub(super) enum Scope {
         variables: HashMap<String, usize>, // Variable symbol table
         begin: Vec<ImlOp>,  // Begin operations
         end: Vec<ImlOp>,    // End operations
-        consuming: bool, // Determines whether the scope is consuming input for early consumable detection
+        is_consuming: bool, // Determines whether the scope is consuming input for early consumable detection
     },
     Block {
         // block level (constants can be defined here)
@@ -38,34 +40,43 @@ pub(super) enum Scope {
 
 A tokay compiler initializes a Tokay parser for later re-use when called multiple times.
 
-The compiler can be set into an interactive mode so that statics, variables and constants once built
-won't be removed and can be accessed later on. This is useful in REPL mode.
+The compiler works in a mode so that statics, variables and constants once built
+won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>,   // Internal Tokay parser
-    pub debug: u8,                    // Compiler debug mode
-    pub(super) values: Vec<ImlValue>, // Constant values and parselets created during compile
-    pub(super) scopes: Vec<Scope>,    // Current compilation scopes
-    pub(super) usages: Vec<Result<Vec<ImlOp>, Usage>>, // Usages of symbols in parselets
-    pub(super) errors: Vec<Error>,    // Collected errors during compilation
+    parser: Option<parser::Parser>, // Internal Tokay parser
+    pub debug: u8,                  // Compiler debug mode
+    //values: HashSet<ImlValue>,           // Set of static intermediate values collected during compile
+    pub(super) scopes: Vec<Scope>, // Current compilation scopes
+    pub(super) usages: Vec<ImlOp>, // Unresolved calls or loads
+    pub(super) errors: Vec<Error>, // Collected errors during compilation
 }
 
 impl Compiler {
-    /** Initialize new compiler.
+    /** Initialize a new compiler.
 
-    By default, the prelude should be loaded, otherwise several standard parselets are not available. */
+    The compiler struct serves as some kind of helper that should be used during traversal of a
+    Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
+    in different levels. Parselets are created by using the parselet_pop() function with provided
+    parameters.
+
+    By default, the prelude should be loaded, otherwise several standard parselets are not available.
+    Ignoring the prelude is only useful on bootstrap currently.
+    */
     pub fn new(with_prelude: bool) -> Self {
         let mut compiler = Self {
             parser: None,
             debug: 0,
-            values: Vec::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
         };
 
         // Compile with the default prelude
-        if with_prelude {
+        if with_prelude
+        //fixme: Temporarily disabled
+        /* temporary disabled */
+        {
             compiler
                 .compile_from_str(include_str!("../prelude.tok"))
                 .unwrap(); // this should panic in case of an error!
@@ -82,7 +93,7 @@ impl Compiler {
     }
 
     /** Compile a Tokay program from a Reader source into the compiler. */
-    pub fn compile(&mut self, reader: Reader) -> Result<(), Vec<Error>> {
+    pub fn compile(&mut self, reader: Reader) -> Result<Option<Program>, Vec<Error>> {
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -101,7 +112,7 @@ impl Compiler {
             ast::print(&ast);
         }
 
-        ast::traverse(self, &ast);
+        let ret = ast::traverse(self, &ast);
 
         if self.errors.len() > 0 {
             for error in &self.errors {
@@ -111,180 +122,56 @@ impl Compiler {
             return Err(self.errors.drain(..).collect());
         }
 
-        Ok(())
+        if let ImlOp::Call {
+            target: ImlTarget::Static(main),
+            ..
+        } = ret
+        {
+            if self.debug > 1 {
+                println!("--- Intermediate main ---\n{:#?}", main);
+            }
+
+            let program = Linker::new(main).finalize();
+
+            if self.debug > 1 {
+                println!("--- Finalized program ---");
+                program.dump();
+            }
+
+            Ok(Some(program))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
-    pub fn compile_from_str(&mut self, src: &str) -> Result<(), Vec<Error>> {
+    pub fn compile_from_str(&mut self, src: &str) -> Result<Option<Program>, Vec<Error>> {
         self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
             src.to_owned(),
         )))))
     }
 
-    /** Converts the current compiler state into a Program. */
-    pub fn finalize(&mut self) -> Result<Program, Vec<Error>> {
-        // Check for correct scope level
-        assert!(self.scopes.len() == 1);
-
-        let mut errors: Vec<Error> = Vec::new();
-
-        // Check and report any unresolved usages
-        let mut usages = self
-            .usages
-            .drain(..)
-            .map(|usage| {
-                match usage {
-                    Ok(usage) => usage,
-                    Err(usage) => {
-                        let error = match usage {
-                            Usage::Load { name, offset } | Usage::CallOrCopy { name, offset } => {
-                                Error::new(offset, format!("Use of unresolved symbol '{}'", name))
-                            }
-
-                            Usage::Call {
-                                name,
-                                args: _,
-                                nargs: _,
-                                offset,
-                            } => {
-                                Error::new(offset, format!("Call to unresolved symbol '{}'", name))
-                            }
-
-                            Usage::Error(error) => error,
-                        };
-
-                        errors.push(error);
-                        vec![ImlOp::Nop] // Dummy instruction
-                    }
-                }
-            })
-            .collect();
-
-        // Obtain intermediate values collected during compilation
-        let values = self.values.clone();
-        self.values.pop(); // pop-off last value, which is always the last main parselet
-
-        /*
-            Finalize the program by resolving any unresolved usages according to a grammar's
-            point of view; This closure algorithm runs until no more changes on any parselet
-            configuration occurs.
-
-            The algorithm detects correct flagging fore nullable and left-recursive for any
-            consuming parselet.
-
-            It requires all parselets consuming input to be known before the finalization phase.
-            Normally, this is already known due to Tokays identifier classification.
-
-            Maybe there will be a better method for this detection in future.
-        */
-        let mut changes = true;
-        let mut loops = 0;
-
-        while changes {
-            changes = false;
-
-            for i in 0..values.len() {
-                if let ImlValue::Parselet(parselet) = &values[i] {
-                    let mut parselet = parselet.borrow_mut();
-
-                    // Resolve usages
-                    if loops == 0 {
-                        parselet.resolve(&mut usages);
-                    }
-
-                    // Don't finalize any non-consuming parselet
-                    if parselet.consuming.is_none() {
-                        continue;
-                    }
-
-                    // Finalize according to grammar view, find left-recursions
-                    let consuming = parselet.consuming.clone().unwrap();
-                    let mut stack = vec![(i, consuming.nullable)];
-                    if let Some(consuming) = parselet.finalize(&values, &mut stack) {
-                        if *parselet.consuming.as_ref().unwrap() < consuming {
-                            parselet.consuming = Some(consuming);
-                            changes = true;
-                        }
-                    }
-                }
-            }
-
-            loops += 1;
-        }
-
-        /*
-        for i in 0..values.len() {
-            if let ImlValue::Parselet(parselet) = &values[i] {
-                let parselet = parselet.borrow();
-
-                println!(
-                    "{} consuming={:?}",
-                    parselet.name.as_deref().unwrap_or("(unnamed)"),
-                    parselet.consuming
-                );
-            }
-        }
-
-        println!("Finalization finished after {} loops", loops);
-        */
-
-        // Stop when any unresolved usages occured;
-        // We do this here so that eventual undefined symbols are replaced by ImlOp::Nop,
-        // and later don't throw other errors.
-        if errors.len() > 0 {
-            for error in &errors {
-                eprintln!("{}", error);
-            }
-
-            return Err(errors);
-        }
-
-        // Compile values into a program
-        let program = Program::new(
-            values
-                .into_iter()
-                .map(|value| match value {
-                    ImlValue::Parselet(parselet) => {
-                        RefValue::from(parselet.borrow().into_parselet())
-                    }
-                    ImlValue::Value(value) => value,
-                })
-                .collect(),
-        );
-
-        if self.debug > 0 {
-            program.dump();
-        }
-
-        Ok(program)
-    }
-
-    /// Resolves usages from current scope
+    /// Tries to resolves open usages from the current scope
     pub(super) fn resolve(&mut self) {
         if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<Result<Vec<ImlOp>, Usage>> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<ImlOp> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again
-            for usage in usages.into_iter() {
-                match usage {
-                    Err(mut usage) => {
-                        if let Some(res) = usage.try_resolve(self) {
-                            self.usages.push(Ok(res))
-                        } else {
-                            self.usages.push(Err(usage))
-                        }
-                    }
-                    Ok(res) => self.usages.push(Ok(res)),
+            for mut op in usages.into_iter() {
+                if op.resolve(self) {
+                    continue;
                 }
+
+                self.usages.push(op); // Hold for later resolve
             }
         }
     }
 
     /// Push a parselet scope
-    pub(super) fn push_parselet(&mut self) {
+    pub(super) fn parselet_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Parselet {
@@ -293,13 +180,13 @@ impl Compiler {
                 constants: HashMap::new(),
                 begin: Vec::new(),
                 end: Vec::new(),
-                consuming: false,
+                is_consuming: false,
             },
         )
     }
 
     /// Push a block scope
-    pub(super) fn push_block(&mut self) {
+    pub(super) fn block_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Block {
@@ -310,27 +197,61 @@ impl Compiler {
     }
 
     /// Push a loop scope
-    pub(super) fn push_loop(&mut self) {
+    pub(super) fn loop_push(&mut self) {
         self.scopes.insert(0, Scope::Loop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(super) fn pop_parselet(
+    pub(super) fn parselet_pop(
         &mut self,
+        offset: Option<Offset>,
         name: Option<String>,
-        sig: Vec<(String, Option<usize>)>,
+        severity: Option<u8>,
+        gen: Option<Vec<(String, Option<ImlValue>)>>,
+        sig: Option<Vec<(String, Option<ImlValue>)>>,
         body: ImlOp,
-    ) -> ImlParselet {
+    ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
+
+        // Report any unresolved usage when reaching global scope
+        if self.scopes.len() == 1 {
+            // Check and report any unresolved usages
+            for usage in self.usages.drain(..) {
+                usage.walk(&mut |op| {
+                    match op {
+                        ImlOp::Load {
+                            offset,
+                            target: ImlTarget::Identifier(name),
+                            ..
+                        } => self.errors.push(Error::new(
+                            *offset,
+                            format!("Use of unresolved symbol '{}'", name),
+                        )),
+                        ImlOp::Call {
+                            offset,
+                            target: ImlTarget::Identifier(name),
+                            ..
+                        } => self.errors.push(Error::new(
+                            *offset,
+                            format!("Call to unresolved symbol '{}'", name),
+                        )),
+                        _ => {}
+                    }
+
+                    true
+                });
+            }
+        }
+
         let mut scope = self.scopes.remove(0);
 
         if let Scope::Parselet {
             variables,
             begin,
             end,
-            consuming,
+            is_consuming,
             ..
         } = &mut scope
         {
@@ -338,58 +259,71 @@ impl Compiler {
                 match ops.len() {
                     0 => ImlOp::Nop,
                     1 => ops.into_iter().next().unwrap(),
-                    _ => ImlAlternation::new(ops).into_op(),
+                    _ => ImlOp::Alt { alts: ops },
                 }
             }
 
-            let mut parselet = ImlParselet::new(
-                name,
-                sig,
-                variables.len(),
-                // Ensure that begin and end are blocks.
-                ensure_block(begin.drain(..).collect()),
-                ensure_block(end.drain(..).collect()),
-                body,
+            let signature = sig.unwrap_or(Vec::new());
+            let constants = gen.unwrap_or(Vec::new());
+
+            assert!(
+                signature.len() <= variables.len(),
+                "signature may not be longer than locals..."
             );
 
-            parselet.consuming = if *consuming {
-                Some(Consumable {
-                    leftrec: false,
-                    nullable: false,
-                })
-            } else {
-                None
+            let begin = ensure_block(begin.drain(..).collect());
+            let end = ensure_block(end.drain(..).collect());
+
+            //println!("begin = {:?}", begin);
+            //println!("body  = {:?}", body);
+            //println!("end   = {:?}", end);
+
+            let parselet = ImlParselet {
+                offset,
+                name,
+                consuming: *is_consuming
+                    || begin.is_consuming()
+                    || end.is_consuming()
+                    || body.is_consuming(),
+                severity: severity.unwrap_or(5), // severity
+                constants,                       // constants
+                signature,                       // signature
+                locals: variables.len(),
+                // Ensure that begin and end are blocks.
+                begin,
+                end,
+                body,
             };
 
             if self.scopes.len() == 0 {
-                *consuming = false;
+                //*consuming = false;
                 self.scopes.push(scope);
             }
 
-            parselet
+            ImlValue::Parselet(Rc::new(RefCell::new(parselet)))
         } else {
             unreachable!();
         }
     }
 
     /// Drops a block scope.
-    pub(super) fn pop_block(&mut self) {
+    pub(super) fn block_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
         self.resolve();
         self.scopes.remove(0);
     }
 
     /// Drops a loop scope.
-    pub(super) fn pop_loop(&mut self) {
+    pub(super) fn loop_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
         self.scopes.remove(0);
     }
 
     /// Marks the nearest parselet scope as consuming
-    pub(super) fn mark_consuming(&mut self) {
+    pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
-            if let Scope::Parselet { consuming, .. } = scope {
-                *consuming = true;
+            if let Scope::Parselet { is_consuming, .. } = scope {
+                *is_consuming = true;
                 return;
             }
         }
@@ -398,7 +332,7 @@ impl Compiler {
     }
 
     /// Check if there's a loop
-    pub(super) fn check_loop(&mut self) -> bool {
+    pub(super) fn loop_check(&mut self) -> bool {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
@@ -476,46 +410,33 @@ impl Compiler {
         let mut secondary = None;
 
         if name == "_" || name == "__" {
-            // First of all, "__" is defined as `__ : Value+`...
-            let mut parselet = ImlParselet::new(
+            self.parselet_push();
+            self.parselet_mark_consuming();
+            value = self.parselet_pop(
+                None,
                 Some("__".to_string()),
-                Vec::new(),
-                0,
-                ImlOp::Nop,
-                ImlOp::Nop,
+                Some(0), // Zero severity
+                None,
+                None,
                 // becomes `Value+`
-                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 1, 0).into_op(),
+                ImlOp::call(None, value, None).into_positive(),
             );
 
-            parselet.consuming = Some(Consumable {
-                leftrec: false,
-                nullable: false,
-            });
-            parselet.severity = 0;
-
-            value = parselet.into();
-
-            // Insert "__" as new constant
+            // Remind "__" as new constant
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            let mut parselet = ImlParselet::new(
+            self.parselet_push();
+            self.parselet_mark_consuming();
+            value = self.parselet_pop(
+                None,
                 Some(name.to_string()),
-                Vec::new(),
-                0,
-                ImlOp::Nop,
-                ImlOp::Nop,
+                Some(0), // Zero severity
+                None,
+                None,
                 // becomes `Value?`
-                ImlRepeat::new(Op::CallStatic(self.define_value(value)).into(), 0, 1).into_op(),
+                ImlOp::call(None, value, None).into_optional(),
             );
-
-            parselet.consuming = Some(Consumable {
-                leftrec: false,
-                nullable: false,
-            });
-            parselet.severity = 0;
-
-            value = parselet.into();
 
             // Insert "_" afterwards
         }
@@ -569,24 +490,6 @@ impl Compiler {
         }
 
         None
-    }
-
-    /** Defines a new constant value for compilation.
-    Constants are only being inserted once when they already exist. */
-    pub(super) fn define_value(&mut self, value: ImlValue) -> usize {
-        // Check if there exists already a n equivalent constant
-        // fixme: A HashTab might be faster here...
-        {
-            for (i, known) in self.values.iter().enumerate() {
-                if *known == value {
-                    return i; // Reuse existing value address
-                }
-            }
-        }
-
-        // Save value as new
-        self.values.push(value);
-        self.values.len() - 1
     }
 }
 

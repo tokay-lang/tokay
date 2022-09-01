@@ -12,28 +12,25 @@ A program is the result of a successful compiler run. */
 #[derive(Debug)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
-    main: Option<ParseletRef>,         // The main parselet
 }
 
 impl Program {
     pub fn new(statics: Vec<RefValue>) -> Self {
-        let mut main = None;
-
-        // Find main parselet by selecting the last parselet defined.
-        // todo: allow to specify main parselet.
-        for i in (0..statics.len()).rev() {
-            if let Some(parselet) = statics[i].borrow().object::<ParseletRef>() {
-                main = Some(parselet.clone());
-                break;
-            }
-        }
-
-        Self { statics, main }
+        //println!("Program with {} statics in total", statics.len());
+        Self { statics }
     }
 
     /// Returns a reference to the program's main parselet.
-    pub fn main(&self) -> &ParseletRef {
-        self.main.as_ref().unwrap()
+    pub fn main(&self) -> ParseletRef {
+        // Find main parselet by selecting the last parselet defined.
+        // todo: allow to specify main parselet.
+        for i in 0..self.statics.len() {
+            if let Some(parselet) = self.statics[i].borrow().object::<ParseletRef>() {
+                return parselet.clone();
+            }
+        }
+
+        panic!("No main parselet found")
     }
 
     pub fn dump(&self) {
@@ -43,25 +40,22 @@ impl Program {
     }
 
     pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        if let Some(main) = &self.main {
-            match main
-                .0
-                .borrow()
-                .run(runtime, runtime.stack.len(), None, true, 0)
-            {
-                Ok(Accept::Push(Capture::Value(value, ..))) => {
-                    if value.is_void() {
-                        Ok(None)
-                    } else {
-                        Ok(Some(value.clone()))
-                    }
+        match self
+            .main()
+            .0
+            .borrow()
+            .run(runtime, runtime.stack.len(), None, true, 0)
+        {
+            Ok(Accept::Push(Capture::Value(value, ..))) => {
+                if value.is_void() {
+                    Ok(None)
+                } else {
+                    Ok(Some(value.clone()))
                 }
-                Ok(_) => Ok(None),
-                Err(Reject::Error(error)) => Err(*error),
-                Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
             }
-        } else {
-            Ok(None)
+            Ok(_) => Ok(None),
+            Err(Reject::Error(error)) => Err(*error),
+            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
         }
     }
 

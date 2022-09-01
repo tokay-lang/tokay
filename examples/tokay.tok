@@ -189,20 +189,20 @@ TokenLiteral : @{
     '[' Ccl ']'  ast("value_token_ccl")
 }
 
-TokenCall : @{
+TokenAtom : @{
     TokenLiteral
     T_Consumable '(' _ ___ CallParameters? ___ expect ')'  ast("call")
-    T_Consumable  ast("call")
+    T_Consumable
     Parselet
     InlineSequences
     Block
 }
 
 Token1 : @{  # todo: Token1 can be renamed back to Token again when #31 is fixed and Self is used.
-    TokenCall '+'  ast("op_mod_pos")
-    TokenCall '*'  ast("op_mod_kle")
-    TokenCall '?'  ast("op_mod_opt")
-    TokenCall
+    TokenAtom '+'  ast("op_mod_pos")
+    TokenAtom '*'  ast("op_mod_kle")
+    TokenAtom '?'  ast("op_mod_opt")
+    TokenAtom
     'peek' _SeparatedIdentifier expect Token1  ast("op_mod_peek")
     'not' _SeparatedIdentifier expect Token1  ast("op_mod_not")
     'expect' _SeparatedIdentifier expect Token1  ast("op_mod_expect")
@@ -283,10 +283,7 @@ LogicalOr : @{
 }
 
 Expression : @{
-    Lvalue _ '=' not {
-        '>'
-        '='
-    } _ expect Expression  ast("assign_hold")
+    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign_hold")
     Lvalue _ '+=' _ expect Expression  ast("assign_add_hold")
     Lvalue _ '-=' _ expect Expression  ast("assign_sub_hold")
     Lvalue _ '*=' _ expect Expression  ast("assign_mul_hold")
@@ -311,10 +308,7 @@ Statement : @{
     'reject' _SeparatedIdentifier  ast("op_reject")
     'repeat' _SeparatedIdentifier Expression?  ast("op_repeat")
     'return' _SeparatedIdentifier Expression?  ast("op_accept")
-    Lvalue _ '=' not {
-        '>'
-        '='
-    } _ expect Expression  ast("assign")
+    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign")
     Lvalue _ '+=' _ expect Expression  ast("assign_add")
     Lvalue _ '-=' _ expect Expression  ast("assign_sub")
     Lvalue _ '*=' _ expect Expression  ast("assign_mul")
@@ -325,8 +319,17 @@ Statement : @{
 # Parselet
 
 Parselet : @{
-    '@' _ Arguments? Block  ast("value_parselet")
-    '@' _ Arguments? Token1  ast("value_parselet")
+    '@' _ Generics? _ Arguments? Expression  ast("value_parselet")
+}
+
+## Parselet: Generics
+
+Generic : @{
+    T_Identifier _ (':' _ expect Atomic)? ast("gen")
+}
+
+Generics : @{
+    '<' _ (Generic (',' _)?)* _ expect '>' _
 }
 
 ## Parselet: Arguments

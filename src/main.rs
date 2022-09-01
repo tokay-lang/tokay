@@ -120,85 +120,83 @@ fn main() {
     if let Some(mut program) = program {
         let mut compiler = Compiler::new(true);
 
-        if compiler.compile(program.get_reader()).is_ok() {
-            if let Ok(program) = compiler.finalize() {
-                // In case no stream but a program is specified, use stdin as input stream.
-                if streams.len() == 0 {
-                    // Run program in its own REPL?
-                    if opts.repl {
-                        let mut readline = rustyline::Editor::<()>::new();
-                        readline.load_history(".tokayrepl").ok();
-
-                        loop {
-                            let code = match readline.readline("<<< ") {
-                                Err(rustyline::error::ReadlineError::Interrupted)
-                                | Err(rustyline::error::ReadlineError::Eof) => break,
-                                Err(err) => {
-                                    eprintln!("Error {:?}", err);
-                                    break;
-                                }
-
-                                Ok(code) => code,
-                            };
-
-                            // Stop when program is empty.
-                            if code.trim().is_empty() {
-                                continue;
-                            }
-
-                            readline.add_history_entry(code.as_str());
-
-                            match program
-                                .run_from_reader(Reader::new(Box::new(std::io::Cursor::new(code))))
-                            {
-                                Ok(None) => {
-                                    if streams.len() > 1 {
-                                        print!("\n")
-                                    }
-                                }
-                                Ok(Some(value)) => println!("{}", value.to_string()),
-                                Err(error) => eprintln!("{}", error),
-                            }
-                        }
-
-                        readline.save_history(".tokayrepl").unwrap();
-                        std::process::exit(0);
-                    }
-
-                    streams.push((
-                        "",
-                        // When program's main is consuming, read from stdin
-                        if program.main().is_consuming() {
-                            RefCell::new(Stream::Stdin)
-                        }
-                        // otherwise just work on an empty input
-                        else {
-                            RefCell::new(Stream::String("".to_string()))
-                        },
-                    ));
-                }
-
+        if let Ok(Some(program)) = compiler.compile(program.get_reader()) {
+            // In case no stream but a program is specified, use stdin as input stream.
+            if streams.len() == 0 {
+                // Run program in its own REPL?
                 if opts.repl {
-                    eprintln!("REPL-mode not allowed in combination with provided INPUT");
-                    std::process::exit(1);
+                    let mut readline = rustyline::Editor::<()>::new();
+                    readline.load_history(".tokayrepl").ok();
+
+                    loop {
+                        let code = match readline.readline("<<< ") {
+                            Err(rustyline::error::ReadlineError::Interrupted)
+                            | Err(rustyline::error::ReadlineError::Eof) => break,
+                            Err(err) => {
+                                eprintln!("Error {:?}", err);
+                                break;
+                            }
+
+                            Ok(code) => code,
+                        };
+
+                        // Stop when program is empty.
+                        if code.trim().is_empty() {
+                            continue;
+                        }
+
+                        readline.add_history_entry(code.as_str());
+
+                        match program
+                            .run_from_reader(Reader::new(Box::new(std::io::Cursor::new(code))))
+                        {
+                            Ok(None) => {
+                                if streams.len() > 1 {
+                                    print!("\n")
+                                }
+                            }
+                            Ok(Some(value)) => println!("{}", value.to_string()),
+                            Err(error) => eprintln!("{}", error),
+                        }
+                    }
+
+                    readline.save_history(".tokayrepl").unwrap();
+                    std::process::exit(0);
                 }
 
-                for (name, stream) in &streams {
-                    let ret = program.run_from_reader(stream.borrow_mut().get_reader());
-
-                    if streams.len() > 1 {
-                        print!("{}: ", name);
+                streams.push((
+                    "",
+                    // When program's main is consuming, read from stdin
+                    if program.main().is_consuming() {
+                        RefCell::new(Stream::Stdin)
                     }
+                    // otherwise just work on an empty input
+                    else {
+                        RefCell::new(Stream::String("".to_string()))
+                    },
+                ));
+            }
 
-                    match ret {
-                        Ok(None) => {
-                            if streams.len() > 1 {
-                                print!("\n")
-                            }
+            if opts.repl {
+                eprintln!("REPL-mode not allowed in combination with provided INPUT");
+                std::process::exit(1);
+            }
+
+            for (name, stream) in &streams {
+                let ret = program.run_from_reader(stream.borrow_mut().get_reader());
+
+                if streams.len() > 1 {
+                    print!("{}: ", name);
+                }
+
+                match ret {
+                    Ok(None) => {
+                        if streams.len() > 1 {
+                            print!("\n")
                         }
-                        Ok(Some(value)) => println!("{}", value.to_string()),
-                        Err(error) => eprintln!("{}", error),
                     }
+                    Ok(Some(value)) => println!("{}", value.to_string()),
+                    Err(error) => eprintln!("{}", error),
                 }
             }
         }

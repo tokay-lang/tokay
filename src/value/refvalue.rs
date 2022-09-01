@@ -1,13 +1,14 @@
-use super::{BoxedObject, Dict, Method, Object, Value};
-use crate::builtin::Builtin;
+use super::{BoxedObject, Dict, Method, Object, Str, Token, Value};
+use crate::builtin::{Builtin, BuiltinRef};
 use crate::value;
 use crate::{Accept, Context, Error, Reject};
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
 use std::cell::RefCell;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Eq)]
 pub struct RefValue {
     value: Rc<RefCell<Value>>,
 }
@@ -323,6 +324,40 @@ impl Object for RefValue {
     }
 }
 
+impl Hash for RefValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match &*self.borrow() {
+            Value::Void => state.write_u8('v' as u8),
+            Value::Null => state.write_u8('n' as u8),
+            Value::True => state.write_u8('t' as u8),
+            Value::False => state.write_u8('f' as u8),
+            Value::Int(i) => {
+                state.write_u8('i' as u8);
+                i.hash(state);
+            }
+            Value::Float(f) => {
+                state.write_u8('f' as u8);
+                f.to_bits().hash(state);
+            }
+            Value::Object(o) => {
+                if let Some(s) = o.as_any().downcast_ref::<Str>() {
+                    state.write_u8('s' as u8);
+                    s.as_str().hash(state);
+                } else if let Some(b) = o.as_any().downcast_ref::<BuiltinRef>() {
+                    state.write_u8('b' as u8);
+                    b.0.name.hash(state);
+                } else if let Some(t) = o.as_any().downcast_ref::<Token>() {
+                    state.write_u8('t' as u8);
+                    t.hash(state);
+                } else {
+                    state.write_u8('o' as u8);
+                    o.id().hash(state);
+                }
+            }
+        }
+    }
+}
+
 impl std::ops::Deref for RefValue {
     type Target = Rc<RefCell<Value>>;
 
@@ -398,7 +433,7 @@ fn unary_op() {
     // unary minus with object
     assert_eq!(
         crate::run("l = list(), -l", ""),
-        Err("Line 1, column 14: Method 'list_neg' not found".to_string())
+        Err("Line 1, column 13: Method 'list_neg' not found".to_string())
     );
 
     // inline pre-increment

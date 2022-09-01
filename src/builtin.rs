@@ -98,13 +98,13 @@ impl Object for BuiltinRef {
 
 impl PartialEq for BuiltinRef {
     fn eq(&self, other: &Self) -> bool {
-        self.id() == other.id()
+        self.0.name == other.0.name
     }
 }
 
 impl PartialOrd for BuiltinRef {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id().partial_cmp(&other.id())
+        self.0.name.partial_cmp(&other.0.name)
     }
 }
 

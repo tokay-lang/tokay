@@ -19,6 +19,7 @@ pub struct Parser(Program);
 impl Parser {
     pub fn new() -> Self {
         Self(tokay!({
+
         // ----------------------------------------------------------------------------
 
         // Whitespace & EOL
@@ -241,11 +242,11 @@ impl Parser {
             ['[', Ccl, ']', (call ast[(value "value_token_ccl")])]
         }),
 
-        (TokenCall = {
+        (TokenAtom = {
             TokenLiteral,
             [T_Consumable, "(", _, ___, (opt CallParameters), ___, (expect ")"),
                 (call ast[(value "call")])],
-            [T_Consumable, (call ast[(value "call")])],
+            T_Consumable,
             Parselet,
             InlineSequences,
             Block
@@ -253,11 +254,11 @@ impl Parser {
 
         (Token = {
             // Token call modifiers
-            [TokenCall, "+", (call ast[(value "op_mod_pos")])],
-            [TokenCall, "*", (call ast[(value "op_mod_kle")])],
-            [TokenCall, "?", (call ast[(value "op_mod_opt")])],
+            [TokenAtom, "+", (call ast[(value "op_mod_pos")])],
+            [TokenAtom, "*", (call ast[(value "op_mod_kle")])],
+            [TokenAtom, "?", (call ast[(value "op_mod_opt")])],
             // todo: {min}, {min, max} maybe with expression?
-            TokenCall,
+            TokenAtom,
             ["peek", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_peek")])],
             ["not", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_not")])],
             ["expect", _SeparatedIdentifier, (expect Token), (call ast[(value "op_mod_expect")])]
@@ -399,9 +400,20 @@ impl Parser {
         // Parselet
 
         (Parselet = {
-            ["@", _, (opt Arguments), Block, (call ast[(value "value_parselet")])],
-            ["@", _, (opt Arguments), Token, (call ast[(value "value_parselet")])]
+            ["@", _, (opt Generics), _, (opt Arguments), Expression, (call ast[(value "value_parselet")])]
         }),
+
+        // Parselet: Generics
+
+        (Generic = {
+            [T_Identifier, _, (opt [':', _, (expect Atomic)]), (call ast[(value "gen")])]
+        }),
+
+        (Generics = {
+            ["<", _, (kle [Generic, _, (opt [',', _])]), (expect ">"), _]
+        }),
+
+        // Parselet: Arguments
 
         (Argument = {
             [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call ast[(value "arg")])]
@@ -457,32 +469,6 @@ impl Parser {
         // --- Test Environment -----------------------------------------------
 
         /*
-        (T_EOL = {  // end-of-line
-            [";", (Op::Skip)],
-            [(token (Token::EOF)), (Op::Skip)],
-            [(peek "}"), (Op::Skip)]
-        }),
-
-        (T_Integer = {
-            [(token (Token::Chars(charclass!['0' => '9']))), (call ast[(value "value_integer")])]
-        }),
-
-        (Instruction = {
-            T_Integer,
-            [T_EOL, (Op::Skip)]
-        }),
-
-        (Block = {
-            ["{", (pos Instruction), (expect "}"), (call ast[(value "block")])],
-            ["{", (kle T_EOL), (expect "}"), (call ast[(value "value_void")])]
-        }),
-
-        [Block,
-            (expect (token (Token::EOF)), "Parse error, expecting end-of-file"),
-            (call ast[(value "main")])]
-        */
-
-        /*
         (T_Float = {
             [(token (Token::Chars(charclass!['0' => '9']))), ".", (opt (token (Token::Chars(charclass!['0' => '9'])))),
                 (call ast[(value "value_float"), (Op::LoadFastCapture(0))])],
@@ -491,10 +477,29 @@ impl Parser {
         }),
 
         T_Float
+
+        (X = {
+            [Y, (MATCH "c")]
+        }),
+        (Y = {
+            [Z, (MATCH "b")]
+        }),
+        (Z = {
+            X,
+            Y,
+            (MATCH "a")
+        }),
+        Z
+
+        (A = {
+            (MATCH 'x'),
+            Void
+        }),
+        A
         */
 
         // ----------------------------------------------------------------------------
-                    }))
+        }))
     }
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
@@ -569,6 +574,13 @@ fn parser_eol() {
 
 #[test]
 fn parser_indirectleftrec() {
+    /*
+        X: Y 'c'
+        Y: Z 'b'
+        Z: X | Y | 'a'
+        Z
+    */
+
     let program = tokay!({
         (X = {
             [Y, (MATCH "c")]

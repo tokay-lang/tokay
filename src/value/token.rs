@@ -8,7 +8,7 @@ use num_parse::*;
 use tokay_macros::tokay_token;
 extern crate self as tokay;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd)]
 pub enum Token {
     Void,                               // Matches the empty word
     EOF,                                // Matches End of File
