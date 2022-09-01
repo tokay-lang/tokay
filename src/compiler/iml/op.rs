@@ -494,8 +494,8 @@ impl ImlOp {
                 let mut repeat = Vec::new();
 
                 if condition.compile(&mut repeat, linker) > 0 {
-                    ops.push(Op::ForwardIfTrue(2));
-                    ops.push(Op::Break);
+                    repeat.push(Op::ForwardIfTrue(2));
+                    repeat.push(Op::Break);
                 }
 
                 body.compile(&mut repeat, linker);
