@@ -139,14 +139,13 @@ impl ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
-            if let ImlOp::Seq {
-                framed: false,
-                seq: items,
-            } = item
-            {
-                seq.extend(items);
-            } else {
-                seq.push(item);
+            match item {
+                ImlOp::Nop => {}
+                ImlOp::Seq {
+                    framed: false,
+                    seq: items,
+                } => seq.extend(items),
+                item => seq.push(item),
             }
         }
 

@@ -719,7 +719,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let mut alts = Vec::new();
 
                     for item in list.iter() {
-                        alts.push(traverse(compiler, item));
+                        match traverse(compiler, item) {
+                            ImlOp::Nop => {}
+                            item => alts.push(item),
+                        }
                     }
 
                     ImlOp::Alt { alts }
