@@ -12,6 +12,12 @@ Current main branch.
     - `()` the empty list
     - `(1,)` list with one item (explicit comma required)
 - Compiler
+  - Entire revision of the compiler component
+    - Removal of `Usage`, `ImlResult` and integrating all `Compileable`s into ImlOp intermediate operation
+    - Code construction happens in ImlOp as well
+    - Added required changes to
+      - determine whether a part of code consumes input
+      - preliminaries to generic parselets
   - Include `prelude.tok` with default parselets
     - `Number` matches either `Float` or `Int`
     - `Token` matches arbitrary tokens
