@@ -86,9 +86,9 @@ pub enum ImlOp {
     // Sequence of ops, optionally framed
     Seq {
         seq: Vec<ImlOp>,
-        framed: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
-                      the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
-                      processed, including data changes, which is a wanted behavior. */
+        framed: Option<u8>, /* According to these operation's semantics, or when an entire sequence is completely recognized,
+                            the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
+                            processed, including data changes, which is a wanted behavior. */
     },
 
     // Conditional block
@@ -135,14 +135,14 @@ pub enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, framed: bool) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, framed: Option<u8>) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    framed: false,
+                    framed: None,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -151,7 +151,7 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if !framed => seq.pop().unwrap(),
+            1 if framed.is_none() => seq.pop().unwrap(),
             _ => ImlOp::Seq { seq, framed },
         }
     }
@@ -417,9 +417,9 @@ impl ImlOp {
                 for item in seq.iter() {
                     item.compile(ops, linker);
 
-                    // In case there is an inline operation within a sequence, its result must be duplicated
-                    // to stay consistent inside of the sequence's result.
-                    if *framed {
+                    // In case a sequence item is an inline-operation, its result must be copied
+                    // into a separate value object, to stay consistent.
+                    if framed.is_some() {
                         match ops.last().unwrap() {
                             Op::UnaryOp(op) | Op::BinaryOp(op) if op.starts_with("i") => {
                                 ops.push(Op::Sep);
@@ -430,7 +430,7 @@ impl ImlOp {
                 }
 
                 // Create a frame and collect in framed mode and when there's more than one operation inside ret.
-                if *framed
+                if framed.is_some()
                     && ops[start..]
                         .iter()
                         .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
@@ -438,7 +438,7 @@ impl ImlOp {
                         > 1
                 {
                     ops.insert(start, Op::Frame(0));
-                    ops.push(Op::Collect(0, 5));
+                    ops.push(Op::Collect(0, framed.unwrap()));
                     ops.push(Op::Close);
                 }
             }
@@ -896,6 +896,6 @@ impl From<Op> for ImlOp {
 
 impl From<Vec<ImlOp>> for ImlOp {
     fn from(items: Vec<ImlOp>) -> Self {
-        ImlOp::seq(items, false)
+        ImlOp::seq(items, None)
     }
 }

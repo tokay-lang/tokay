@@ -417,8 +417,32 @@ fn scoping() {
 // Tests for dicts and lists ----------------------------------------------------------------------
 
 #[test]
-// Test for parsing inline-sequences, which may result in lists or dicts.
-fn inline_sequences() {
+// Test for parsing sequences, which may result in lists or dicts.
+fn sequences() {
+    // Sequences
+    assert_eq!(run("1 2 3", ""), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("1 (2) 3", ""), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("1 (2,) 3", ""), Ok(Some(value!([1, [2], 3]))));
+    assert_eq!(run("1 (2 3) 4", ""), Ok(Some(value!([1, [2, 3], 4]))));
+
+    assert_eq!(run("(1 2 3)", ""), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("(1 (2) 3)", ""), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("(1 (2,) 3)", ""), Ok(Some(value!([1, [2], 3]))));
+    assert_eq!(run("(1 (2 3) 4)", ""), Ok(Some(value!([1, [2, 3], 4]))));
+
+    assert_eq!(run("1 'a' 2 3", "a"), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("1 ('a' 2) 3", "a"), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("1 (2 'a' 3) 4", "a"), Ok(Some(value!([1, [2, 3], 4]))));
+    assert_eq!(run("1 (2 'a' 3) 4", "b"), Ok(None));
+
+    assert_eq!(run("(1 'a' 2 3)", "a"), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(run("(1 ('a' 2) 3)", "a"), Ok(Some(value!([1, 2, 3]))));
+    assert_eq!(
+        run("(1 (2 'a' 3) 4)", "a"),
+        Ok(Some(value!([1, [2, 3], 4])))
+    );
+    assert_eq!(run("(1 (2 'a' 3) 4)", "b"), Ok(None));
+
     // Inline alternation
     assert_eq!(run("('a' | 'b' | 'c')", "b"), Ok(Some(value!("b"))));
 

@@ -196,7 +196,7 @@ impl Parser {
             Variable
         }),
 
-        // Inline sequences are used to construct lists and dicts as well
+        // Inline sequence (for building grammatical sub-constructs, or lists or dicts inside of `(`...`)`)
 
         (InlineSequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
@@ -208,7 +208,7 @@ impl Parser {
             // Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
             [Expression, ___, ",", _, ___, (peek ")"), (call ast[(value "list")])],
             // A sequence is a list of items optionally separated by ","
-            [(pos [InlineSequenceItem, ___, (opt [",", _]), ___]), (call ast[(value "sequence")])],
+            [(pos [InlineSequenceItem, ___, (opt [",", _]), ___]), (call ast[(value "inline_sequence")])],
             // The empty sequences generates an empty list
             [Void, (call ast[(value "list")])]
         }),

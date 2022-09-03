@@ -145,7 +145,7 @@ Load : @{
     Variable
 }
 
-# Inline sequence (for building lists and dicts inside of `(`...`)`)
+# Inline sequence (for building grammatical sub-constructs, or lists or dicts inside of `(`...`)`)
 
 InlineSequenceItem : @{
     T_Alias _ '=>' _ expect Expression  ast("alias")
@@ -158,7 +158,7 @@ InlineSequence : @{
     Expression ___ (',' _)? ___ peek ')'  ast("list")
 
     # A sequence is a list of items optionally separated by ","
-    (InlineSequenceItem ___ (',' _)? ___)+  ast("sequence")
+    (InlineSequenceItem ___ (',' _)? ___)+  ast("inline_sequence")
 
     # The empty sequences generates an empty list
     Void  ast("list")

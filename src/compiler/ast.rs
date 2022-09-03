@@ -1395,7 +1395,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         }
 
         // sequence  ------------------------------------------------------
-        "sequence" | "list" => {
+        "sequence" | "inline_sequence" | "list" => {
             let children = if let Some(children) = node.get("children") {
                 List::from(children)
             } else {
@@ -1412,14 +1412,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ));
             }
 
-            // todo: At least "sequence" and "list" are the same: framed sequences, but with
-            //       the difference that when the sequences is consuming, it grabs Some(1, 5),
-            //       and if its non-consuming it grabs Some(0, 10).
-            if emit == "sequence" {
-                ImlOp::seq(ops, true)
-            } else {
+            // Lists are definitive lists with a given length
+            if emit == "list" {
                 ops.push(Op::MakeList(children.len()).into());
                 ImlOp::from(ops)
+            }
+            // In most cases, lists are parsed as sequences;
+            // inline-sequence always have a higher return severity.
+            else {
+                ImlOp::seq(ops, Some(if emit == "sequence" { 5 } else { 10 }))
             }
         }
 

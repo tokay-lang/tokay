@@ -161,7 +161,7 @@ macro_rules! tokay {
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect(),
-                    framed: true
+                    framed: Some(5)
                 }
             )
         }
