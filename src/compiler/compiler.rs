@@ -111,11 +111,7 @@ impl Compiler {
 
         let ret = ast::traverse(self, &ast);
 
-        if self.errors.len() > 0 {
-            for error in &self.errors {
-                eprintln!("{}", error);
-            }
-
+        if !self.errors.is_empty() {
             return Err(self.errors.drain(..).collect());
         }
 
@@ -128,14 +124,17 @@ impl Compiler {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            let program = Linker::new(main).finalize();
+            match Linker::new(main).finalize() {
+                Ok(program) => {
+                    if self.debug > 1 {
+                        println!("--- Finalized program ---");
+                        program.dump();
+                    }
 
-            if self.debug > 1 {
-                println!("--- Finalized program ---");
-                program.dump();
+                    Ok(Some(program))
+                }
+                Err(errors) => Err(errors),
             }
-
-            Ok(Some(program))
         } else {
             Ok(None)
         }
@@ -156,13 +155,13 @@ impl Compiler {
             // Cut out usages created inside this scope for processing
             let usages: Vec<ImlOp> = self.usages.drain(usage_start..).collect();
 
-            // Afterwards, resolve and insert them again
+            // Afterwards, resolve and insert them again in case there where not resolved
             for mut op in usages.into_iter() {
                 if op.resolve(self) {
                     continue;
                 }
 
-                self.usages.push(op); // Hold for later resolve
+                self.usages.push(op); // Insert again for later resolve
             }
         }
     }
@@ -212,34 +211,9 @@ impl Compiler {
 
         self.resolve();
 
-        // Report any unresolved usage when reaching global scope
+        // Clear any unresolved usages when reaching global scope
         if self.scopes.len() == 1 {
-            // Check and report any unresolved usages
-            for usage in self.usages.drain(..) {
-                usage.walk(&mut |op| {
-                    match op {
-                        ImlOp::Load {
-                            offset,
-                            target: ImlTarget::Identifier(name),
-                            ..
-                        } => self.errors.push(Error::new(
-                            *offset,
-                            format!("Use of unresolved symbol '{}'", name),
-                        )),
-                        ImlOp::Call {
-                            offset,
-                            target: ImlTarget::Identifier(name),
-                            ..
-                        } => self.errors.push(Error::new(
-                            *offset,
-                            format!("Call to unresolved symbol '{}'", name),
-                        )),
-                        _ => {}
-                    }
-
-                    true
-                });
-            }
+            self.usages.clear();
         }
 
         let mut scope = self.scopes.remove(0);

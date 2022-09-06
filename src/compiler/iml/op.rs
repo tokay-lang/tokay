@@ -4,6 +4,7 @@ use super::*;
 use crate::reader::Offset;
 use crate::utils;
 use crate::Compiler;
+use crate::Error;
 use crate::{Object, RefValue};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -319,7 +320,14 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlTarget::Identifier(name) => panic!("Unresolved load of {}", name),
+                    ImlTarget::Identifier(name) => {
+                        linker.errors.push(Error::new(
+                            *offset,
+                            format!("Use of unresolved symbol '{}'", name),
+                        ));
+
+                        Op::Nop
+                    }
                     ImlTarget::Static(value) => linker.push(value),
                     ImlTarget::Local(idx) => Op::LoadFast(*idx),
                     ImlTarget::Global(idx) => Op::LoadGlobal(*idx),
@@ -335,7 +343,12 @@ impl ImlOp {
                 }
 
                 match target {
-                    ImlTarget::Identifier(name) => panic!("Unresolved call to {}", name),
+                    ImlTarget::Identifier(name) => {
+                        linker.errors.push(Error::new(
+                            *offset,
+                            format!("Call to unresolved symbol '{}'", name),
+                        ));
+                    }
                     ImlTarget::Static(value) => {
                         let idx = linker.register(value);
 

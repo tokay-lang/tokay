@@ -35,10 +35,7 @@ macro_rules! tokay {
                 main.unwrap_or(ImlOp::Nop)
             );
 
-            Linker::new(main).finalize()
-
-            /*
-            match compiler.finalize() {
+            match Linker::new(main).finalize() {
                 Ok(program) => {
                     if compiler.debug > 0 {
                         program.dump();
@@ -53,7 +50,6 @@ macro_rules! tokay {
                     panic!("Errors in compile!");
                 }
             }
-            */
         }
     };
 

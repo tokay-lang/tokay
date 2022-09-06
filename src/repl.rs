@@ -81,10 +81,9 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                 println!("<<< Debug switched off")
             }
             */
-            _ => {
-                if let Ok(Some(program)) =
-                    compiler.compile(Reader::new(Box::new(io::Cursor::new(code))))
-                {
+            _ => match compiler.compile(Reader::new(Box::new(io::Cursor::new(code)))) {
+                Ok(None) => {}
+                Ok(Some(program)) => {
                     for (name, stream) in &streams {
                         let mut reader = stream.borrow_mut().get_reader();
                         let mut runtime = Runtime::new(&program, &mut reader);
@@ -110,7 +109,12 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                         globals = runtime.save_stack();
                     }
                 }
-            }
+                Err(errors) => {
+                    for error in errors {
+                        eprintln!("{}", error);
+                    }
+                }
+            },
         }
     }
 

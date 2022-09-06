@@ -1,6 +1,9 @@
+//! The Linker merges ImlParselets into statics, which are transferred into a VM program afterwards.
+
 use super::iml::*;
 use crate::value::Parselet;
 use crate::vm::{Op, Program};
+use crate::Error;
 use crate::{RefValue, Value};
 use indexmap::IndexMap;
 use num::ToPrimitive;
@@ -10,6 +13,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub(super) struct Linker {
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
+    pub(super) errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
 }
 
 impl Linker {
@@ -17,7 +21,10 @@ impl Linker {
         let mut statics = IndexMap::new();
         statics.insert(main, None);
 
-        Linker { statics }
+        Linker {
+            statics,
+            errors: Vec::new(),
+        }
     }
 
     /** Registers an ImlValue in the Linker's statics map and returns its index.
@@ -59,7 +66,7 @@ impl Linker {
     This closure algorithm runs until no more changes on any parselet configurations regarding left-recursive
     and nullable parselet detection occurs.
     */
-    pub fn finalize(mut self) -> Program {
+    pub fn finalize(mut self) -> Result<Program, Vec<Error>> {
         let mut finalize = Vec::new(); // list of consuming parselets required to be finalized
 
         // Loop until end of statics is reached
@@ -149,6 +156,12 @@ impl Linker {
         }
         */
 
+        // Stop on any raised error
+        if !self.errors.is_empty() {
+            return Err(self.errors);
+        }
+
+        // Assemble all statics to be transferred into a Program
         let statics: Vec<RefValue> = self
             .statics
             .into_iter()
@@ -174,6 +187,6 @@ impl Linker {
         }
         */
 
-        Program::new(statics)
+        Ok(Program::new(statics))
     }
 }
