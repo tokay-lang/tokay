@@ -10,26 +10,13 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-/*
-    Todo / Ideas for this module
-
-    - [x] Usage is integrated into ImlOp, eventually by using Rc<RefCell>?
-    - [x] Compilable is integrated into ImlOp as full variation
-      - [x] Alternation, Sequence, If, Loop
-      - [ ] Replace expect, not, peek, repeat by their generic counterparts
-        - [ ] Thinking about inline-parselets, whose VM code will be inserted right in place (or already on ImlOp level)
-    - [ ] Integrate ImlResult into ImlOp
-    - [ ] Finalization must be re-defined, as this is only possible on consumable constructs
-      - find left-recursions
-      - find nullables
-*/
-
 pub type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 /// Target of a call or load
 #[derive(Clone)]
 pub enum ImlTarget {
-    Identifier(String), // Compile-time identifier (unresolved!)
+    Unresolved(String), // Compile-time identifier (unresolved!)
+    Generic(String),    // Compile-time generic identifier
     Static(ImlValue),   // Compile-time static value
     Local(usize),       // Runtime local value
     Global(usize),      // Runtime global value
@@ -38,7 +25,9 @@ pub enum ImlTarget {
 impl ImlTarget {
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Identifier(name) => crate::utils::identifier_is_consumable(name),
+            Self::Unresolved(name) | Self::Generic(name) => {
+                crate::utils::identifier_is_consumable(name)
+            }
             Self::Static(value) => value.is_consuming(),
             _ => false, // cannot determine!
         }
@@ -48,7 +37,7 @@ impl ImlTarget {
 impl std::fmt::Debug for ImlTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Identifier(name) => write!(f, "\"{}\"", name),
+            Self::Unresolved(name) | Self::Generic(name) => write!(f, "\"{}\"", name),
             Self::Static(value) => match value {
                 ImlValue::Parselet(p) => write!(
                     f,
@@ -169,7 +158,7 @@ impl ImlOp {
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
         ImlOp::Load {
             offset,
-            target: ImlTarget::Identifier(name),
+            target: ImlTarget::Unresolved(name),
         }
         .try_resolve(compiler)
     }
@@ -210,7 +199,7 @@ impl ImlOp {
 
         ImlOp::Call {
             offset,
-            target: ImlTarget::Identifier(name),
+            target: ImlTarget::Unresolved(name),
             args,
         }
         .try_resolve(compiler)
@@ -231,14 +220,15 @@ impl ImlOp {
         match self {
             Self::Shared(op) => return op.borrow_mut().resolve(compiler),
             Self::Load { target, .. } | Self::Call { target, .. } => {
-                if let ImlTarget::Identifier(name) = target {
+                if let ImlTarget::Unresolved(name) = target {
                     if let Some(value) = compiler.get_constant(&name) {
-                        // Undetermined usages need to remain untouched.
-                        if matches!(value, ImlValue::Undetermined(_)) {
-                            return false;
+                        // In case this is a generic, the value is resolved to a generic for later dispose
+                        if matches!(value, ImlValue::Generic(_)) {
+                            *target = ImlTarget::Generic(name.clone());
+                        } else {
+                            *target = ImlTarget::Static(value);
                         }
 
-                        *target = ImlTarget::Static(value);
                         return true;
                     } else if let Some(addr) = compiler.get_local(&name) {
                         *target = ImlTarget::Local(addr);
@@ -320,13 +310,16 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlTarget::Identifier(name) => {
+                    ImlTarget::Unresolved(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Use of unresolved symbol '{}'", name),
                         ));
 
                         Op::Nop
+                    }
+                    ImlTarget::Generic(name) => {
+                        unreachable!("Use of generic symbol '{}' may not occur", name)
                     }
                     ImlTarget::Static(value) => linker.push(value),
                     ImlTarget::Local(idx) => Op::LoadFast(*idx),
@@ -343,11 +336,14 @@ impl ImlOp {
                 }
 
                 match target {
-                    ImlTarget::Identifier(name) => {
+                    ImlTarget::Unresolved(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Call to unresolved symbol '{}'", name),
                         ));
+                    }
+                    ImlTarget::Generic(name) => {
+                        unreachable!("Call to generic symbol '{}' may not occur", name)
                     }
                     ImlTarget::Static(value) => {
                         let idx = linker.register(value);

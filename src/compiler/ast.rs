@@ -190,7 +190,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             gen_names.insert(ident.clone());
                         }
 
-                        compiler.set_constant(&ident, ImlValue::Undetermined(ident.to_string()));
+                        compiler.set_constant(&ident, ImlValue::Generic(ident.to_string()));
 
                         assert!(children.len() <= 2);
                         let default = if children.len() == 2 {
