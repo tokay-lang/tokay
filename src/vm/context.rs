@@ -212,11 +212,12 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     */
     pub(crate) fn collect(
         &mut self,
-        capture_start: usize,
-        copy: bool,
-        single: bool,
-        mut inherit: bool,
-        severity: u8,
+        capture_start: usize, // Stack offset to start from
+        copy: bool,           // Copy values instead of draining them from the stack
+        single: bool,         // Lists with single value become a single value, not a list
+        mut inherit: bool,    // Inherit capture for pushing it on the stack again
+        severity: u8,         // Discard any values below given severity
+        debug: bool,          // Print debug information
     ) -> Result<Option<RefValue>, Capture> {
         if capture_start > self.runtime.stack.len() {
             return Ok(None);
@@ -238,13 +239,14 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 .collect()
         };
 
-        if self.runtime.debug > 5 {
+        if debug {
             self.debug(&format!(
                 "collect captures = {} single = {}, severity = {}",
                 captures.len(),
                 single,
                 severity
             ));
+
             for i in 0..captures.len() {
                 self.debug(&format!(" {}: {:?}", i, captures[i]));
             }
@@ -307,9 +309,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             };
         }
 
-        if self.runtime.debug > 6 {
-            println!("list = {:?}", list);
-            println!("dict = {:?}", dict);
+        if debug {
+            self.debug(&format!("list = {:?}", list));
+            self.debug(&format!("dict = {:?}", dict));
         }
 
         if dict.len() == 0 {
