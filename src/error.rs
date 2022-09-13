@@ -55,7 +55,9 @@ tokay_function!("error(msg, collect=false)", {
     let mut msg = msg.to_string();
 
     if collect.is_true() {
-        if let Ok(Some(value)) = context.collect(context.capture_start, false, true, false, 0) {
+        if let Ok(Some(value)) =
+            context.collect(context.capture_start, false, true, false, 0, false)
+        {
             let value = value.borrow();
 
             if let Some(s) = value.object::<Str>() {

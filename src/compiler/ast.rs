@@ -1490,19 +1490,34 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-tokay_function!("ast(emit, value=void, flatten=true)", {
+tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
     let context = context.unwrap();
 
     let mut ret = Dict::new();
-    ret.insert("emit".to_string(), emit);
+    ret.insert("emit".to_string(), emit.clone());
 
     let value = if value.is_void() {
         context
-            .collect(context.capture_start, false, true, false, 0)
+            .collect(
+                context.capture_start,
+                false,
+                true,
+                false,
+                0,
+                debug.is_true(),
+            )
             .unwrap_or(None)
     } else {
         Some(value)
     };
+
+    // Debug
+    if debug.is_true() {
+        println!(
+            "ast(emit={:?}, value={:?}, flatten={:?})",
+            emit, value, flatten
+        );
+    }
 
     if let Some(value) = value {
         // Lists can be flattened

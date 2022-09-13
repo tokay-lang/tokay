@@ -230,7 +230,14 @@ impl Op {
                 }
 
                 Op::Collect(collect, push) => {
-                    match context.collect(frame.capture_start, false, true, true, *collect) {
+                    match context.collect(
+                        frame.capture_start,
+                        false,
+                        true,
+                        true,
+                        *collect,
+                        context.runtime.debug > 5,
+                    ) {
                         Err(capture) => Ok(Accept::Push(capture)),
                         Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, *push))),
                         Ok(None) => Ok(Accept::Next),

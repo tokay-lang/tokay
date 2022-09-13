@@ -361,7 +361,7 @@ Sequence : @{
 }
 
 Sequences : @{
-    Sequence ('|' _ Sequence)+  ast("block")
+    Sequence {'|' _ Sequence}+  ast("block")
     Sequence
 }
 
