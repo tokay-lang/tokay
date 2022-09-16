@@ -213,7 +213,7 @@ impl Parser {
             [Void, (call ast[(value "list")])]
         }),
 
-        (InlineSequences = {
+        (InlineBlock = {
             // Multiple sequences delimited by "|" are an alternative form of the block syntax
             ["(", _, ___, InlineSequence,
                 (pos [___, "|", _, ___, InlineSequence]), (expect ")"),
@@ -224,13 +224,32 @@ impl Parser {
 
         // Calls
 
-        (CallParameter = {
-            [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "param_named")])],
-            [Expression, (call ast[(value "param")])]
+        (CallArgument = {
+            [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "callarg_named")])],
+            [Expression, (call ast[(value "callarg")])]
         }),
 
-        (CallParameters = {
-            (pos [CallParameter, (opt [",", _]), ___])
+        (CallArguments = {
+            (pos [CallArgument, (opt [",", _]), ___])
+        }),
+
+        // Instances of Parselets
+
+        (StaticParseletInstance = {
+            T_Consumable,
+            InlineParselet
+        }),
+
+        (ParseletInstanceArgument = {
+            [T_Identifier, _, ":", _, (expect Atomic), _, (call ast[(value "genarg_named")])],
+            [Atomic, _, (call ast[(value "genarg")])]
+        }),
+
+        (ParseletInstance = {
+            [StaticParseletInstance, "<", _, (pos [
+                ParseletInstanceArgument, (opt [",", _])
+            ]), _, (expect ">"), _,  (call ast[(value "generic")])],
+            StaticParseletInstance
         }),
 
         // Tokens
@@ -244,11 +263,10 @@ impl Parser {
 
         (TokenAtom = {
             TokenLiteral,
-            [T_Consumable, "(", _, ___, (opt CallParameters), ___, (expect ")"),
+            [ParseletInstance, "(", _, ___, (opt CallArguments), ___, (expect ")"),
                 (call ast[(value "call")])],
-            T_Consumable,
-            Parselet,
-            InlineSequences,
+            ParseletInstance,
+            InlineBlock,
             Block
         }),
 
@@ -305,7 +323,7 @@ impl Parser {
         }),
 
         (Rvalue = {
-            [Rvalue, "(", _, ___, (opt CallParameters), (expect ")"),
+            [Rvalue, "(", _, ___, (opt CallArguments), (expect ")"),
                 (call ast[(value "call")])],
             [Rvalue, (kle {
                 Attribute,
@@ -399,35 +417,43 @@ impl Parser {
 
         // Parselet
 
+        (InlineParselet = {
+            // Inline parselet requires for an explicit block instead of an expression
+            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Block),
+                (call ast[(value "value_parselet")])]
+
+        }),
+
         (Parselet = {
-            ["@", _, (opt Generics), _, (opt Arguments), Expression, (call ast[(value "value_parselet")])]
+            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Expression),
+                (call ast[(value "value_parselet")])]
         }),
 
         // Parselet: Generics
 
-        (Generic = {
-            [T_Identifier, _, (opt [':', _, (expect Atomic)]), (call ast[(value "gen")])]
+        (ParseletGeneric = {
+            [T_Identifier, _, (opt [':', _, (expect Sequences)]), (call ast[(value "gen")])]
         }),
 
-        (Generics = {
-            ["<", _, (kle [Generic, _, (opt [',', _])]), (expect ">"), _]
+        (ParseletGenerics = {
+            ["<", _, (kle [ParseletGeneric, _, (opt [',', _])]), (expect ">"), _]
         }),
 
         // Parselet: Arguments
 
-        (Argument = {
-            [T_Identifier, _, (opt ["=", _, (opt Expression)]), (call ast[(value "arg")])]
+        (ParseletArgument = {
+            [T_Identifier, _, (opt ["=", _, (expect Expression)]), (call ast[(value "arg")])]
         }),
 
-        (Arguments = {
-            (pos [Argument, (opt [",", _])])
+        (ParseletArguments = {
+            (pos [ParseletArgument, (opt [",", _])])
         }),
 
         // Blocks and Sequences
 
         (Block = {
             ["{", _, ___, "}", (call ast[(value "value_void")])],
-            ["{", _, (pos Instruction), _, (expect "}"), (call ast[(value "block")])]
+            ["{", _, (kle Instruction), _, (expect "}"), (call ast[(value "block")])]
         }),
 
         (SequenceItem = {

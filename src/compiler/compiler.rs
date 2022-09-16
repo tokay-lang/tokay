@@ -115,6 +115,11 @@ impl Compiler {
             return Err(self.errors.drain(..).collect());
         }
 
+        if self.debug > 1 {
+            assert!(self.scopes.len() == 1);
+            println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
+        }
+
         if let ImlOp::Call {
             target: ImlTarget::Static(main),
             ..

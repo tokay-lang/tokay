@@ -164,20 +164,34 @@ InlineSequence : @{
     Void  ast("list")
 }
 
-InlineSequences : @{
+InlineBlock : @{
     '(' _ ___ InlineSequence (___ '|' _ ___ InlineSequence)+ ___ expect ')'  ast("block")
     '(' _ ___ InlineSequence ___ expect ')'
 }
 
-# Call parameters (used by Tokens and Rvalue)
+# Call parameters (used by calls and rvalues)
 
-CallParameter : @{
-    T_Identifier _ '=' _ expect Expression  ast("param_named")
-    Expression  ast("param")
+CallArgument : @{
+    T_Identifier _ '=' _ expect Expression  ast("callarg_named")
+    Expression  ast("callarg")
 }
 
-CallParameters : @{
-    (CallParameter (',' _)? ___)+
+CallArguments : @{
+    (CallArgument (',' _)? ___)+
+}
+
+# Instances of Parselets
+
+StaticParseletInstance : T_Consumable | InlineParselet
+
+ParseletInstanceArgument : @{
+    T_Identifier _ ':' _ expect Atomic _  ast("genarg_named")
+    Atomic _  ast("genarg")
+}
+
+ParseletInstance : @{
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("generic")
+    StaticParseletInstance
 }
 
 # Token
@@ -191,10 +205,9 @@ TokenLiteral : @{
 
 TokenAtom : @{
     TokenLiteral
-    T_Consumable '(' _ ___ CallParameters? ___ expect ')'  ast("call")
-    T_Consumable
-    Parselet
-    InlineSequences
+    ParseletInstance '(' _ ___ CallArguments? ___ expect ')'  ast("call")
+    ParseletInstance
+    InlineBlock
     Block
 }
 
@@ -239,7 +252,7 @@ Atomic : @{
 # Rvalue can be a function call or value attribute/subscript
 
 Rvalue : @{
-    Rvalue '(' _ ___ CallParameters? expect ')' _  ast("call")
+    Rvalue '(' _ ___ CallArguments? expect ')' _  ast("call")
     Rvalue (Attribute | Subscript)*  ast("rvalue")
     Atomic
 }
@@ -318,28 +331,33 @@ Statement : @{
 
 # Parselet
 
+InlineParselet : @{
+    # Inline parselet requires for an explicit block instead of an expression
+    '@' _ ParseletGenerics? _ ParseletArguments? expect Block  ast("value_parselet")
+}
+
 Parselet : @{
-    '@' _ Generics? _ Arguments? Expression  ast("value_parselet")
+    '@' _ ParseletGenerics? _ ParseletArguments? expect Expression  ast("value_parselet")
 }
 
 ## Parselet: Generics
 
-Generic : @{
-    T_Identifier _ (':' _ expect Atomic)? ast("gen")
+ParseletGeneric : @{
+    T_Identifier _ (':' _ expect Sequences)?  ast("gen")
 }
 
-Generics : @{
-    '<' _ (Generic (',' _)?)* _ expect '>' _
+ParseletGenerics : @{
+    '<' _ (ParseletGeneric (',' _)?)* _ expect '>' _
 }
 
 ## Parselet: Arguments
 
-Argument : @{
-    T_Identifier _ ('=' _ Expression?)?  ast("arg")
+ParseletArgument : @{
+    T_Identifier _ ('=' _ expect Expression?)?  ast("arg")
 }
 
-Arguments : @{
-    (Argument (',' _)?)+
+ParseletArguments : @{
+    (ParseletArgument (',' _)?)+
 }
 
 
@@ -347,7 +365,7 @@ Arguments : @{
 
 Block : @{
     '{' _ ___ '}'  ast("value_void")
-    '{' _ Instruction+ _ expect '}'  ast("block")
+    '{' _ Instruction* _ expect '}'  ast("block")
 }
 
 SequenceItem : @{

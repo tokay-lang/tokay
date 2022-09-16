@@ -768,7 +768,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 let emit = param["emit"].borrow();
 
                 match emit.object::<Str>().unwrap().as_str() {
-                    "param" => {
+                    "callarg" => {
                         if nargs > 0 {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
@@ -787,7 +787,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         args += 1;
                     }
 
-                    "param_named" => {
+                    "callarg_named" => {
                         let children = List::from(&param["children"]);
 
                         let param = &children[1].borrow();
