@@ -266,7 +266,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 }
             }
 
-            let body = traverse(compiler, &body);
+            let body = body.borrow();
+            let body = traverse_node_rvalue(compiler, body.object::<Dict>().unwrap(), Rvalue::Load);
 
             let ret = compiler.parselet_pop(
                 traverse_node_offset(node),

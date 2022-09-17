@@ -100,7 +100,6 @@ impl Compiler {
         let ast = match parser.parse(reader) {
             Ok(ast) => ast,
             Err(error) => {
-                eprintln!("{}", error);
                 return Err(vec![error]);
             }
         };
