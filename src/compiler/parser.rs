@@ -159,7 +159,7 @@ impl Parser {
             [(kle CclRange), (call ast[(value "ccl")])]
         }),
 
-        // Statics, Variables & Constants
+        // Statics, Variables, Loads
 
         (Subscript = {
             ["[", _, Expression, "]", _, (call ast[(value "index")])]
@@ -196,7 +196,60 @@ impl Parser {
             Variable
         }),
 
-        // Inline sequence (for building grammatical sub-constructs, or lists or dicts inside of `(`...`)`)
+        // Parselet
+
+        (InlineParselet = {
+            // Inline parselet requires for an explicit block instead of an expression
+            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Block),
+                (call ast[(value "value_parselet")])]
+
+        }),
+
+        (Parselet = {
+            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Expression),
+                (call ast[(value "value_parselet")])]
+        }),
+
+        // Parselet: Generics
+
+        (ParseletGeneric = {
+            [T_Identifier, _, (opt [':', _, (expect Sequences)]), (call ast[(value "gen")])]
+        }),
+
+        (ParseletGenerics = {
+            ["<", _, (kle [ParseletGeneric, _, (opt [',', _])]), (expect ">"), _]
+        }),
+
+        // Parselet: Arguments
+
+        (ParseletArgument = {
+            [T_Identifier, _, (opt ["=", _, (expect Expression)]), (call ast[(value "arg")])]
+        }),
+
+        (ParseletArguments = {
+            (pos [ParseletArgument, (opt [",", _])])
+        }),
+
+        // Parselet: Instance
+
+        (StaticParseletInstance = {
+            T_Consumable,
+            InlineParselet
+        }),
+
+        (ParseletInstanceArgument = {
+            [T_Identifier, _, ":", _, (expect Atomic), _, (call ast[(value "genarg_named")])],
+            [Atomic, _, (call ast[(value "genarg")])]
+        }),
+
+        (ParseletInstance = {
+            [StaticParseletInstance, "<", _, (pos [
+                ParseletInstanceArgument, (opt [",", _])
+            ]), _, (expect ">"), _,  (call ast[(value "generic")])],
+            StaticParseletInstance
+        }),
+
+        // Inline Blocks and Sequences
 
         (InlineSequenceItem = {
             [T_Alias, _, "=>", _, (expect Expression), (call ast[(value "alias")])],
@@ -222,7 +275,7 @@ impl Parser {
             ["(", _, ___, InlineSequence, (expect ")")]
         }),
 
-        // Calls
+        // Call
 
         (CallArgument = {
             [T_Identifier, _, "=", _, (expect Expression), (call ast[(value "callarg_named")])],
@@ -231,25 +284,6 @@ impl Parser {
 
         (CallArguments = {
             (pos [CallArgument, (opt [",", _]), ___])
-        }),
-
-        // Instances of Parselets
-
-        (StaticParseletInstance = {
-            T_Consumable,
-            InlineParselet
-        }),
-
-        (ParseletInstanceArgument = {
-            [T_Identifier, _, ":", _, (expect Atomic), _, (call ast[(value "genarg_named")])],
-            [Atomic, _, (call ast[(value "genarg")])]
-        }),
-
-        (ParseletInstance = {
-            [StaticParseletInstance, "<", _, (pos [
-                ParseletInstanceArgument, (opt [",", _])
-            ]), _, (expect ">"), _,  (call ast[(value "generic")])],
-            StaticParseletInstance
         }),
 
         // Tokens
@@ -413,40 +447,6 @@ impl Parser {
             [Lvalue, _, "/=", _, (expect Expression), (call ast[(value "assign_div")])],
 
             Expression
-        }),
-
-        // Parselet
-
-        (InlineParselet = {
-            // Inline parselet requires for an explicit block instead of an expression
-            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Block),
-                (call ast[(value "value_parselet")])]
-
-        }),
-
-        (Parselet = {
-            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Expression),
-                (call ast[(value "value_parselet")])]
-        }),
-
-        // Parselet: Generics
-
-        (ParseletGeneric = {
-            [T_Identifier, _, (opt [':', _, (expect Sequences)]), (call ast[(value "gen")])]
-        }),
-
-        (ParseletGenerics = {
-            ["<", _, (kle [ParseletGeneric, _, (opt [',', _])]), (expect ">"), _]
-        }),
-
-        // Parselet: Arguments
-
-        (ParseletArgument = {
-            [T_Identifier, _, (opt ["=", _, (expect Expression)]), (call ast[(value "arg")])]
-        }),
-
-        (ParseletArguments = {
-            (pos [ParseletArgument, (opt [",", _])])
         }),
 
         // Blocks and Sequences

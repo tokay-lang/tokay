@@ -111,7 +111,7 @@ Ccl : @{
     CclRange*  ast("ccl")
 }
 
-# Statics, Variables & Constants
+# Statics, Variables, Loads
 
 Subscript : @{
     '[' _ Expression ']' _  ast("index")
@@ -145,7 +145,52 @@ Load : @{
     Variable
 }
 
-# Inline sequence (for building grammatical sub-constructs, or lists or dicts inside of `(`...`)`)
+# Parselet
+
+InlineParselet : @{
+    # Inline parselet requires for an explicit block instead of an expression
+    '@' _ ParseletGenerics? _ ParseletArguments? expect Block  ast("value_parselet")
+}
+
+Parselet : @{
+    '@' _ ParseletGenerics? _ ParseletArguments? expect Expression  ast("value_parselet")
+}
+
+## Parselet: Generics
+
+ParseletGeneric : @{
+    T_Identifier _ (':' _ expect Sequences)?  ast("gen")
+}
+
+ParseletGenerics : @{
+    '<' _ (ParseletGeneric (',' _)?)* _ expect '>' _
+}
+
+## Parselet: Arguments
+
+ParseletArgument : @{
+    T_Identifier _ ('=' _ expect Expression?)?  ast("arg")
+}
+
+ParseletArguments : @{
+    (ParseletArgument (',' _)?)+
+}
+
+# Parselet: Instance
+
+StaticParseletInstance : T_Consumable | InlineParselet
+
+ParseletInstanceArgument : @{
+    T_Identifier _ ':' _ expect Atomic _  ast("genarg_named")
+    Atomic _  ast("genarg")
+}
+
+ParseletInstance : @{
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("generic")
+    StaticParseletInstance
+}
+
+# Inline Blocks and Sequences
 
 InlineSequenceItem : @{
     T_Alias _ '=>' _ expect Expression  ast("alias")
@@ -178,20 +223,6 @@ CallArgument : @{
 
 CallArguments : @{
     (CallArgument (',' _)? ___)+
-}
-
-# Instances of Parselets
-
-StaticParseletInstance : T_Consumable | InlineParselet
-
-ParseletInstanceArgument : @{
-    T_Identifier _ ':' _ expect Atomic _  ast("genarg_named")
-    Atomic _  ast("genarg")
-}
-
-ParseletInstance : @{
-    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("generic")
-    StaticParseletInstance
 }
 
 # Token
@@ -328,38 +359,6 @@ Statement : @{
     Lvalue _ '/=' _ expect Expression  ast("assign_div")
     Expression
 }
-
-# Parselet
-
-InlineParselet : @{
-    # Inline parselet requires for an explicit block instead of an expression
-    '@' _ ParseletGenerics? _ ParseletArguments? expect Block  ast("value_parselet")
-}
-
-Parselet : @{
-    '@' _ ParseletGenerics? _ ParseletArguments? expect Expression  ast("value_parselet")
-}
-
-## Parselet: Generics
-
-ParseletGeneric : @{
-    T_Identifier _ (':' _ expect Sequences)?  ast("gen")
-}
-
-ParseletGenerics : @{
-    '<' _ (ParseletGeneric (',' _)?)* _ expect '>' _
-}
-
-## Parselet: Arguments
-
-ParseletArgument : @{
-    T_Identifier _ ('=' _ expect Expression?)?  ast("arg")
-}
-
-ParseletArguments : @{
-    (ParseletArgument (',' _)?)+
-}
-
 
 # Blocks and Sequences
 
