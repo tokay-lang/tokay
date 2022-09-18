@@ -21,7 +21,6 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 
 _SeparatedIdentifier : @{  # helper parselet to ensure that identifiers are separated
     peek not [A-Z_a-z] _
-    EOF
 }
 
 T_EOL : @{
@@ -34,26 +33,29 @@ T_EOL : @{
 
 # Prime Tokens
 
-T_OctDigit : @{
-    [0-7]
-}
+T_OctDigit : [0-7]
 
-T_HexDigit : @{
-    [0-9A-Fa-f]
-}
+T_HexDigit : [0-9A-Fa-f]
 
 T_EscapeSequence : @{
-    'a' "\x07"
-    'b' "\x08"
-    'f' "\x0c"
-    'n' "\n"
-    'r' "\r"
-    't' "\t"
-    'v' "\x0b"
-    T_OctDigit T_OctDigit T_OctDigit
-    'x' T_HexDigit T_HexDigit
-    'u' T_HexDigit T_HexDigit T_HexDigit T_HexDigit
-    'U' T_HexDigit T_HexDigit T_HexDigit T_HexDigit T_HexDigit T_HexDigit T_HexDigit T_HexDigit
+    'a'  "\x07"
+    'b'  "\x08"
+    'f'  "\x0c"
+    'n'  "\n"
+    'r'  "\r"
+    't'  "\t"
+    'v'  "\x0b"
+
+    # fixme: This can be resolved better as soon as the Repeat generic builtin is ready
+    # fixme: In case too less digits had been provided, a syntax error occur.
+    #        This is like in Python: "\x2" SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 0-2: truncated \xXX escape
+    T_OctDigit T_OctDigit T_OctDigit  chr(int($1) * 8 * 8 + int($2) * 8 + int($3))
+    'x' T_HexDigit T_HexDigit chr(int("0x" + $0.substr(1)))
+    'u' T_HexDigit T_HexDigit T_HexDigit T_HexDigit  chr(int("0x" + $0.substr(1)))
+    'U' T_HexDigit T_HexDigit T_HexDigit T_HexDigit \
+        T_HexDigit T_HexDigit T_HexDigit T_HexDigit \
+        chr(int("0x" + $0.substr(1)))
+
     Any
 }
 
@@ -102,7 +104,7 @@ CclChar : @{
 }
 
 CclRange : @{
-    CclChar '-' CclChar  ast("range", ($1, $3))
+    CclChar '-' CclChar  ast("range", $1 + $3)
     CclChar  ast("char")
 }
 
@@ -200,7 +202,7 @@ InlineSequenceItem : @{
 
 InlineSequence : @{
     # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
-    Expression ___ (',' _)? ___ peek ')'  ast("list")
+    Expression ___ ',' _ ___ peek ')'  ast("list")
 
     # A sequence is a list of items optionally separated by ","
     (InlineSequenceItem ___ (',' _)? ___)+  ast("inline_sequence")
@@ -210,7 +212,7 @@ InlineSequence : @{
 }
 
 InlineBlock : @{
-    '(' _ ___ InlineSequence (___ '|' _ ___ InlineSequence)+ ___ expect ')'  ast("block")
+    '(' _ ___ InlineSequence {___ '|' _ ___ InlineSequence}+ ___ expect ')'  ast("block")
     '(' _ ___ InlineSequence ___ expect ')'
 }
 
@@ -283,7 +285,7 @@ Atomic : @{
 # Rvalue can be a function call or value attribute/subscript
 
 Rvalue : @{
-    Rvalue '(' _ ___ CallArguments? expect ')' _  ast("call")
+    Rvalue '(' _ ___ CallArguments? expect ')'  ast("call")
     Rvalue (Attribute | Subscript)*  ast("rvalue")
     Atomic
 }

@@ -272,7 +272,7 @@ impl Parser {
                 (pos [___, "|", _, ___, InlineSequence]), (expect ")"),
                     (call ast[(value "block")])],
             // In case there's only a single sequence, handle it just as a sequence without a block
-            ["(", _, ___, InlineSequence, (expect ")")]
+            ["(", _, ___, InlineSequence, ___, (expect ")")]
         }),
 
         // Call
