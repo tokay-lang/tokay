@@ -281,6 +281,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             //println!("parselet = {:#?}", ret);
             return ret;
         }
+
         _ => unimplemented!("unhandled value node {}", emit),
     }
 }
@@ -314,6 +315,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
 
             value
         }
+
         // Any other code becomes its own parselet without any signature.
         other => compiler.parselet_pop(
             traverse_node_offset(node),

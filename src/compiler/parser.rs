@@ -213,7 +213,7 @@ impl Parser {
         // Parselet: Generics
 
         (ParseletGeneric = {
-            [T_Identifier, _, (opt [':', _, (expect Sequences)]), (call ast[(value "gen")])]
+            [T_Identifier, _, (opt [':', _, (expect Atomic)]), (call ast[(value "gen")])]
         }),
 
         (ParseletGenerics = {
@@ -245,7 +245,7 @@ impl Parser {
         (ParseletInstance = {
             [StaticParseletInstance, "<", _, (pos [
                 ParseletInstanceArgument, (opt [",", _])
-            ]), _, (expect ">"), _,  (call ast[(value "generic")])],
+            ]), _, (expect ">"), _,  (call ast[(value "value_generic")])],
             StaticParseletInstance
         }),
 

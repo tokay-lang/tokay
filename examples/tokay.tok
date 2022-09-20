@@ -161,7 +161,7 @@ Parselet : @{
 ## Parselet: Generics
 
 ParseletGeneric : @{
-    T_Identifier _ (':' _ expect Sequences)?  ast("gen")
+    T_Identifier _ (':' _ expect Atomic)?  ast("gen")
 }
 
 ParseletGenerics : @{
@@ -188,7 +188,7 @@ ParseletInstanceArgument : @{
 }
 
 ParseletInstance : @{
-    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("generic")
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("value_generic")
     StaticParseletInstance
 }
 
