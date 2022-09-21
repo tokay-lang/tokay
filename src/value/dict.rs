@@ -37,6 +37,7 @@ impl Object for Dict {
                 ret.push('"');
                 for ch in key.chars() {
                     match ch {
+                        '\\' => ret.push_str("\\\\"),
                         '\n' => ret.push_str("\\n"),
                         '\r' => ret.push_str("\\r"),
                         '\t' => ret.push_str("\\t"),

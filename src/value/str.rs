@@ -27,6 +27,7 @@ impl Object for Str {
 
         for ch in self.string.chars() {
             match ch {
+                '\\' => ret.push_str("\\\\"),
                 '\"' => ret.push_str("\\\""),
                 '\n' => ret.push_str("\\n"),
                 '\r' => ret.push_str("\\r"),
