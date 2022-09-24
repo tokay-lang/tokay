@@ -23,6 +23,10 @@ Current main branch.
     - `Token` matches arbitrary tokens
 - Values
   - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
+- Builtins
+  - Added `dict_push()`
+  - Renamed `dict_update()` into `dict_merge()`
+
 
 ## [v0.5]
 
