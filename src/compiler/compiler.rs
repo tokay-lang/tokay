@@ -506,6 +506,27 @@ fn test_whitespace() {
         crate::run("Word __; ", abc),
         Ok(Some(crate::value![["abc", "def", "ghi"]]))
     );
+
+    let prog = "Int ',' _ Int (1=>$1, 2=>$2, 3=>$3, 4=>$4)";
+
+    assert_eq!(
+        crate::run(prog, "23, 42"),
+        Ok(Some(
+            crate::value!(["1" => 23, "2" => ",", "3" => " ", "4" => 42])
+        ))
+    );
+
+    assert_eq!(
+        crate::run(prog, "23,42"),
+        Ok(Some(
+            crate::value!(["1" => 23, "2" => ",", "3" => void, "4" => 42])
+        ))
+    );
+
+    assert_eq!(
+        crate::run("Int ',' _ Int", "23, 42"),
+        Ok(Some(crate::value!([23, 42])))
+    );
 }
 
 #[test]

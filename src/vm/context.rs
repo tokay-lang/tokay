@@ -259,7 +259,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         let mut list = List::new();
         let mut dict = Dict::new();
-        let mut max = 1;
+        let mut max = 0;
 
         // Capture inheritance is only possible when there is only one capture
         if inherit && captures.len() > 1 {
