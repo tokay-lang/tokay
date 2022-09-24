@@ -216,15 +216,16 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         copy: bool,           // Copy values instead of draining them from the stack
         single: bool,         // Lists with single value become a single value, not a list
         mut inherit: bool,    // Inherit capture for pushing it on the stack again
-        severity: u8,         // Discard any values below given severity
         debug: bool,          // Print debug information
-    ) -> Result<Option<RefValue>, Capture> {
+    ) -> (Result<Option<RefValue>, Capture>, u8) {
+        // Early abort when capture_start is behind stack len
         if capture_start > self.runtime.stack.len() {
-            return Ok(None);
+            return (Ok(None), 0);
         }
 
         // Eiter copy or drain captures from stack
         let captures: Vec<Capture> = if copy {
+            // fixme: copy feature isn't used...
             Vec::from_iter(
                 self.runtime.stack[capture_start..]
                     .iter()
@@ -241,10 +242,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if debug {
             self.debug(&format!(
-                "collect captures = {} single = {}, severity = {}",
+                "collect captures = {} single = {}",
                 captures.len(),
-                single,
-                severity
+                single
             ));
 
             for i in 0..captures.len() {
@@ -252,14 +252,14 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
             }
         }
 
-        // No captures, then just stop!
+        // Early abort when no valuable captures had been taken
         if captures.len() == 0 {
-            return Ok(None);
+            return (Ok(None), 0);
         }
 
         let mut list = List::new();
         let mut dict = Dict::new();
-        let mut max = severity;
+        let mut max = 1;
 
         // Capture inheritance is only possible when there is only one capture
         if inherit && captures.len() > 1 {
@@ -281,8 +281,8 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
                     } else if inherit {
-                        return Err(Capture::Range(range, alias, severity));
-                    } else {
+                        return (Err(Capture::Range(range, alias, severity)), max);
+                    } else if !value.is_void() {
                         list.push(value);
                     }
                 }
@@ -294,14 +294,12 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                         dict.clear();
                     }
 
-                    if !value.is_void() {
-                        if let Some(alias) = alias {
-                            dict.insert(alias, value);
-                        } else if inherit {
-                            return Err(Capture::Value(value, alias, severity));
-                        } else {
-                            list.push(value);
-                        }
+                    if let Some(alias) = alias {
+                        dict.insert(alias, value);
+                    } else if inherit {
+                        return (Err(Capture::Value(value, alias, severity)), max);
+                    } else if !value.is_void() {
+                        list.push(value);
                     }
                 }
 
@@ -316,11 +314,11 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         if dict.len() == 0 {
             if list.len() > 1 || (list.len() > 0 && !single) {
-                Ok(Some(RefValue::from(list)))
+                (Ok(Some(RefValue::from(list))), max)
             } else if list.len() == 1 {
-                Ok(Some(list.pop().unwrap()))
+                (Ok(Some(list.pop().unwrap())), max)
             } else {
-                Ok(None)
+                (Ok(None), max)
             }
         } else {
             // Store list-items additionally when there is a dict?
@@ -340,7 +338,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            Ok(Some(RefValue::from(dict)))
+            (Ok(Some(RefValue::from(dict))), max)
         }
     }
 
