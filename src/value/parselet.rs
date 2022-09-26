@@ -82,8 +82,11 @@ impl Parselet {
         let mut debug = context.runtime.debug;
         if debug < 3 {
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
-                if inspect.find(&self.name).is_some() {
-                    debug = 6;
+                for name in inspect.split(" ") {
+                    if name == self.name {
+                        debug = 6;
+                        break
+                    }
                 }
             }
         }
