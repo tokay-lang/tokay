@@ -541,6 +541,7 @@ impl ImlOp {
                 ops.extend(body_ops);
                 ops.push(Op::Close);
                 ops.push(Op::Next);
+                ops.push(Op::Close);
             }
             ImlOp::Peek { body } => {
                 ops.push(Op::Frame(0));
@@ -566,7 +567,7 @@ impl ImlOp {
                             Op::Commit,
                             Op::Backward(body_len + 3), // repeat the body
                             Op::Close,
-                            Op::Collect, // collect only values with severity > 0
+                            Op::Collect,
                             Op::Close,
                         ]);
                     }
@@ -586,15 +587,15 @@ impl ImlOp {
                             Op::Commit,
                             Op::Backward(body_len + 3), // repeat the body
                             Op::Close,
-                            Op::Collect, // collect only values with severity > 0
+                            Op::Collect,
                             Op::Close,
                         ]);
                     }
                     (0, 1) => {
                         // Optional
-                        ops.push(Op::Frame(body_len + 2));
+                        ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
                         ops.extend(body_ops);
-                        ops.push(Op::Collect); // collect only values with severity > 0
+                        ops.push(Op::Collect);
                         ops.push(Op::Close);
                     }
                     (1, 1) => {}

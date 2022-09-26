@@ -85,7 +85,7 @@ impl Parselet {
                 for name in inspect.split(" ") {
                     if name == self.name {
                         debug = 6;
-                        break
+                        break;
                     }
                 }
             }

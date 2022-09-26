@@ -241,7 +241,7 @@ impl Op {
                         (Ok(Some(value)), severity) => {
                             Ok(Accept::Push(Capture::Value(value, None, severity)))
                         }
-                        (Ok(None), _) => Ok(Accept::Next),
+                        (Ok(None), _) => Ok(Accept::Push(Capture::Empty)),
                     }
                 }
 
