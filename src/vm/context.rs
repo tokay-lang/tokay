@@ -214,13 +214,11 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         &mut self,
         capture_start: usize, // Stack offset to start from
         copy: bool,           // Copy values instead of draining them from the stack
-        single: bool,         // Lists with single value become a single value, not a list
-        mut inherit: bool,    // Inherit capture for pushing it on the stack again
         debug: bool,          // Print debug information
-    ) -> (Result<Option<RefValue>, Capture>, u8) {
+    ) -> Capture {
         // Early abort when capture_start is behind stack len
         if capture_start > self.runtime.stack.len() {
-            return (Ok(None), 0);
+            return Capture::Empty;
         }
 
         // Eiter copy or drain captures from stack
@@ -241,11 +239,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         };
 
         if debug {
-            self.debug(&format!(
-                "collect captures = {} single = {}",
-                captures.len(),
-                single
-            ));
+            self.debug(&format!("collect captures = {}", captures.len(),));
 
             for i in 0..captures.len() {
                 self.debug(&format!(" {}: {:?}", i, captures[i]));
@@ -254,17 +248,15 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         // Early abort when no valuable captures had been taken
         if captures.len() == 0 {
-            return (Ok(None), 0);
+            return Capture::Empty;
         }
+
+        // Capture inheritance is only possible when there is only one capture available
+        let inherit = captures.len() == 1;
 
         let mut list = List::new();
         let mut dict = Dict::new();
         let mut max = 0;
-
-        // Capture inheritance is only possible when there is only one capture
-        if inherit && captures.len() > 1 {
-            inherit = false;
-        }
 
         // Collect any significant captures and values
         for capture in captures.into_iter() {
@@ -281,7 +273,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
                     } else if inherit {
-                        return (Err(Capture::Range(range, alias, severity)), max);
+                        return Capture::Range(range, alias, severity);
                     } else if !value.is_void() {
                         list.push(value);
                     }
@@ -297,7 +289,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                     if let Some(alias) = alias {
                         dict.insert(alias, value);
                     } else if inherit {
-                        return (Err(Capture::Value(value, alias, severity)), max);
+                        return Capture::Value(value, alias, severity);
                     } else if !value.is_void() {
                         list.push(value);
                     }
@@ -313,12 +305,12 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         }
 
         if dict.len() == 0 {
-            if list.len() > 1 || (list.len() > 0 && !single) {
-                (Ok(Some(RefValue::from(list))), max)
+            if list.len() > 1 {
+                Capture::Value(RefValue::from(list), None, max)
             } else if list.len() == 1 {
-                (Ok(Some(list.pop().unwrap())), max)
+                Capture::Value(list.pop().unwrap(), None, max)
             } else {
-                (Ok(None), max)
+                Capture::Empty
             }
         } else {
             // Store list-items additionally when there is a dict?
@@ -338,7 +330,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 idx += 1;
             }
 
-            (Ok(Some(RefValue::from(dict))), max)
+            Capture::Value(RefValue::from(dict), None, max)
         }
     }
 

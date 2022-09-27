@@ -229,21 +229,11 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Collect => {
-                    match context.collect(
-                        frame.capture_start,
-                        false,
-                        true,
-                        true,
-                        context.runtime.debug > 5,
-                    ) {
-                        (Err(capture), _) => Ok(Accept::Push(capture)),
-                        (Ok(Some(value)), severity) => {
-                            Ok(Accept::Push(Capture::Value(value, None, severity)))
-                        }
-                        (Ok(None), _) => Ok(Accept::Push(Capture::Empty)),
-                    }
-                }
+                Op::Collect => Ok(Accept::Push(context.collect(
+                    frame.capture_start,
+                    false,
+                    context.runtime.debug > 5,
+                ))),
 
                 Op::Fuse(addr) => {
                     frame.fuse = Some(ip + *addr);

@@ -55,17 +55,15 @@ tokay_function!("error(msg, collect=false)", {
     let mut msg = msg.to_string();
 
     if collect.is_true() {
-        if let Ok(Some(value)) = context
-            .collect(context.capture_start, false, true, false, false)
-            .0
-        {
-            let value = value.borrow();
+        let mut capture = context.collect(context.capture_start, false, false);
+        let value = capture.extract(&context.runtime.reader);
 
-            if let Some(s) = value.object::<Str>() {
-                msg.push_str(&format!(": '{}'", s))
-            } else {
-                msg.push_str(&format!(": {}", value.repr()))
-            }
+        let value = value.borrow();
+
+        if let Some(s) = value.object::<Str>() {
+            msg.push_str(&format!(": '{}'", s))
+        } else {
+            msg.push_str(&format!(": {}", value.repr()))
         }
     }
 

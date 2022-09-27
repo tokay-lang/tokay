@@ -1497,10 +1497,11 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
     ret.insert("emit".to_string(), emit.clone());
 
     let value = if value.is_void() {
-        context
-            .collect(context.capture_start, false, true, false, debug.is_true())
-            .0
-            .unwrap_or(None)
+        Some(
+            context
+                .collect(context.capture_start, false, debug.is_true())
+                .extract(&context.runtime.reader),
+        )
     } else {
         Some(value)
     };

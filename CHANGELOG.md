@@ -6,6 +6,14 @@ Current main branch.
 
 - General
   - Use of numeric parsing features from [num-parse](https://crates.io/crates/num-parse) for `Int` and internal string-to-int conversion ("parseInt()"-like behavior)
+  - The way how sequence values are being collected has been entirely revised:
+    - Any items with a severity of at least 1 are being collected, but higher severities always win
+    - Results of a collection (either list or dict) inherit the highest collected severity
+    - Token severity was re-arranged:
+      - 0: Whitespace
+      - 1: Touch
+      - 5: Match, character-class, parselet
+    - Refactoring of the essential `Context::collect()`-function
 - Syntax
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
