@@ -73,12 +73,12 @@ pub enum ImlOp {
         alts: Vec<ImlOp>,
     },
 
-    // Sequence of ops, optionally framed
+    // Sequence of ops, optionally a collection
     Seq {
         seq: Vec<ImlOp>,
-        framed: Option<u8>, /* According to these operation's semantics, or when an entire sequence is completely recognized,
-                            the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
-                            processed, including data changes, which is a wanted behavior. */
+        collection: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
+                          the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
+                          processed, including data changes, which is a wanted behavior. */
     },
 
     // Conditional block
@@ -125,14 +125,14 @@ pub enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, framed: Option<u8>) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, collection: bool) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    framed: None,
+                    collection: false,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -141,8 +141,8 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if framed.is_none() => seq.pop().unwrap(),
-            _ => ImlOp::Seq { seq, framed },
+            1 if !collection => seq.pop().unwrap(),
+            _ => ImlOp::Seq { seq, collection },
         }
     }
 
@@ -422,13 +422,13 @@ impl ImlOp {
 
                 ops.extend(ret);
             }
-            ImlOp::Seq { seq, framed } => {
+            ImlOp::Seq { seq, collection } => {
                 for item in seq.iter() {
                     item.compile(ops, linker);
 
                     // In case a sequence item is an inline-operation, its result must be copied
                     // into a separate value object, to stay consistent.
-                    if framed.is_some() {
+                    if *collection {
                         match ops.last().unwrap() {
                             Op::UnaryOp(op) | Op::BinaryOp(op) if op.starts_with("i") => {
                                 ops.push(Op::Sep);
@@ -438,8 +438,8 @@ impl ImlOp {
                     }
                 }
 
-                // Create a frame and collect in framed mode and when there's more than one operation inside ret.
-                if framed.is_some()
+                // Create a frame and collect in collection-mode and when there's more than one operation inside ret.
+                if *collection
                     && ops[start..]
                         .iter()
                         .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
@@ -447,7 +447,7 @@ impl ImlOp {
                         > 1
                 {
                     ops.insert(start, Op::Frame(0));
-                    ops.push(Op::Collect(0, framed.unwrap()));
+                    ops.push(Op::Collect);
                     ops.push(Op::Close);
                 }
             }
@@ -550,6 +550,7 @@ impl ImlOp {
                 ops.extend(body_ops);
                 ops.push(Op::Close);
                 ops.push(Op::Next);
+                ops.push(Op::Close);
             }
             ImlOp::Peek { body } => {
                 ops.push(Op::Frame(0));
@@ -575,7 +576,7 @@ impl ImlOp {
                             Op::Commit,
                             Op::Backward(body_len + 3), // repeat the body
                             Op::Close,
-                            Op::Collect(1, 5), // collect only values with severity > 0
+                            Op::Collect,
                             Op::Close,
                         ]);
                     }
@@ -595,15 +596,15 @@ impl ImlOp {
                             Op::Commit,
                             Op::Backward(body_len + 3), // repeat the body
                             Op::Close,
-                            Op::Collect(1, 5), // collect only values with severity > 0
+                            Op::Collect,
                             Op::Close,
                         ]);
                     }
                     (0, 1) => {
                         // Optional
-                        ops.push(Op::Frame(body_len + 2));
+                        ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
                         ops.extend(body_ops);
-                        ops.push(Op::Collect(1, 5)); // collect only values with severity > 0
+                        ops.push(Op::Collect);
                         ops.push(Op::Close);
                     }
                     (1, 1) => {}
@@ -905,6 +906,6 @@ impl From<Op> for ImlOp {
 
 impl From<Vec<ImlOp>> for ImlOp {
     fn from(items: Vec<ImlOp>) -> Self {
-        ImlOp::seq(items, None)
+        ImlOp::seq(items, false)
     }
 }

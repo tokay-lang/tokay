@@ -1423,7 +1423,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             // In most cases, lists are parsed as sequences;
             // inline-sequence always have a higher return severity.
             else {
-                ImlOp::seq(ops, Some(if emit == "sequence" { 5 } else { 10 }))
+                ImlOp::seq(ops, true)
             }
         }
 
@@ -1500,16 +1500,11 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
     ret.insert("emit".to_string(), emit.clone());
 
     let value = if value.is_void() {
-        context
-            .collect(
-                context.capture_start,
-                false,
-                true,
-                false,
-                0,
-                debug.is_true(),
-            )
-            .unwrap_or(None)
+        Some(
+            context
+                .collect(context.capture_start, false, debug.is_true())
+                .extract(&context.runtime.reader),
+        )
     } else {
         Some(value)
     };

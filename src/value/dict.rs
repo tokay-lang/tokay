@@ -1,5 +1,6 @@
 //! Dictionary object
 use super::{BoxedObject, Object, RefValue};
+use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
@@ -87,8 +88,9 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_update(dict, other)", {
+    tokay_method!("dict_merge(dict, other)", {
         {
+            println!("dict = {:?} other = {:?}", dict, other);
             let dict = &mut *dict.borrow_mut();
             let other = &*other.borrow();
 
@@ -116,6 +118,26 @@ impl Dict {
         }
 
         Ok(dict)
+    });
+
+    tokay_method!("dict_push(dict, key, value)", {
+        let dict = &mut *dict.borrow_mut();
+
+        if let Some(dict) = dict.object_mut::<Dict>() {
+            let key = key.to_string();
+            Ok(if let Some(old) = dict.insert(key, value) {
+                old
+            } else {
+                value!(void)
+            })
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
     });
 
     /*
@@ -234,9 +256,22 @@ fn test_dict_len() {
 }
 
 #[test]
-fn test_dict_update() {
+fn test_dict_merge() {
     assert_eq!(
-        crate::run("d = (a => 1, b => 2); d.update((c => 3)); d", ""),
+        crate::run("d = (a => 1, b => 2); d.merge((c => 3)); d", ""),
         Ok(Some(crate::value!(["a" => 1, "b" => 2, "c" => 3])))
     )
+}
+
+#[test]
+fn test_dict_push() {
+    assert_eq!(
+        crate::run("d = dict(); d.push(1, 2); d.push(2, 3); d", ""),
+        Ok(Some(crate::value!(["1" => 2, "2" => 3])))
+    );
+
+    assert_eq!(
+        crate::run("d = dict(); d.push(1, 2); d.push(2, 3); d.push(1, 4)", ""),
+        Ok(Some(crate::value!(2)))
+    );
 }

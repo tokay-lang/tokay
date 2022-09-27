@@ -163,7 +163,7 @@ impl Token {
                         range,
                         None,
                         if matches!(self, Token::Touch(_)) {
-                            0
+                            1
                         } else {
                             5
                         },

@@ -21,12 +21,12 @@ pub enum Op {
     Rust(Rust),          // Native rust callback
 
     // Capture frames
-    Frame(usize),    // Start new frame with optional forward fuse
-    Commit,          // Commit frame
-    Reset,           // Reset frame
-    Close,           // Close frame
-    Collect(u8, u8), // Collect stack values from current frame
-    Fuse(usize),     // Set frame fuse to forward address
+    Frame(usize), // Start new frame with optional forward fuse
+    Commit,       // Commit frame
+    Reset,        // Reset frame
+    Close,        // Close frame
+    Collect,      // Collect stack values from current frame
+    Fuse(usize),  // Set frame fuse to forward address
 
     // Loop frames
     Loop(usize), // Loop frame
@@ -229,20 +229,11 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Collect(collect, push) => {
-                    match context.collect(
-                        frame.capture_start,
-                        false,
-                        true,
-                        true,
-                        *collect,
-                        context.runtime.debug > 5,
-                    ) {
-                        Err(capture) => Ok(Accept::Push(capture)),
-                        Ok(Some(value)) => Ok(Accept::Push(Capture::Value(value, None, *push))),
-                        Ok(None) => Ok(Accept::Next),
-                    }
-                }
+                Op::Collect => Ok(Accept::Push(context.collect(
+                    frame.capture_start,
+                    false,
+                    context.runtime.debug > 5,
+                ))),
 
                 Op::Fuse(addr) => {
                     frame.fuse = Some(ip + *addr);

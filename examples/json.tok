@@ -16,7 +16,7 @@ Object : @{
 }
 
 Pairs : @{
-    Pairs ',' _ Pair?  dict_update($1, $4)
+    Pairs ',' _ Pair  dict_merge($1, $4)
     Pair
 }
 
@@ -26,6 +26,7 @@ Pair : @{
 
 Array : @{
     '[' _ Values ']' _
+    '[' _ ']' _ list()
 }
 
 Values : @{
@@ -34,7 +35,7 @@ Values : @{
 }
 
 Value : @{
-    Identifier _
+    Ident _
     Float _
     Int _
     ''null'' _

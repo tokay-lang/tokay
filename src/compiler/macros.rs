@@ -152,13 +152,13 @@ macro_rules! tokay {
             ];
 
             Some(
-                ImlOp::Seq{
-                    seq: items.into_iter()
+                ImlOp::seq(
+                    items.into_iter()
                     .filter(|item| item.is_some())
                     .map(|item| item.unwrap())
                     .collect(),
-                    framed: Some(5)
-                }
+                    true
+                )
             )
         }
     };
