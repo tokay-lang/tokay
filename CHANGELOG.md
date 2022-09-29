@@ -35,6 +35,9 @@ Current main branch.
 - Builtins
   - Added `dict_push()`
   - Renamed `dict_update()` into `dict_merge()`
+- Examples
+  - The self-hosted Tokay parser in `examples/tokay.tok` was syncronized with the builtin parser, so both construct equally the same abstract syntax tree
+  - The JSON parser example in `examples/json.tok` was improved to latest developments
 
 
 ## [v0.5]
@@ -72,7 +75,7 @@ Released on May 17, 2022
     - `Ident` renamed (from `Identifier`)
     - `Int` renamed (from `Integer`) and accepting parameters like a radix base
     - `Word` skipping words not in the wanted word size, but not rejecting
-- New example files
+- Examples
   - Self-hosted Tokay parser in `examples/tokay.tok`
   - Simple JSON parser in `examples/json.tok`
 
