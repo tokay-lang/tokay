@@ -203,6 +203,19 @@ pub trait Object:
         false
     }
 
+    /** Check whether the object is mutable in itself.
+
+    Most objects are not mutable, they represent a single value that doesn't change.
+    For example, Tokay's `str`-objects are not mutable in itself, `str`-methods do always return
+    a new `str`-object. This is different for `list` or `dict`, they are mutable in theirself.
+
+    The mutability setting changes stack behavior: Objects are (mostly) referenced when they are
+    mutable, and copied when they are imutable.
+    */
+    fn is_mutable(&self) -> bool {
+        false
+    }
+
     /// Call object with a given context, argument and named argument set.
     fn call(
         &self,
@@ -212,4 +225,22 @@ pub trait Object:
     ) -> Result<Accept, Reject> {
         Err(format!("'{}' object is not callable", self.name()).into())
     }
+}
+
+#[test]
+fn mutable_objects() {
+    assert_eq!(
+        crate::run("a = true b = a a += true a b", ""), // issue #70
+        Ok(Some(crate::value!([2, true])))
+    );
+
+    assert_eq!(
+        crate::run("(1, 2) $1 + 3", ""),
+        Ok(Some(crate::value!([[1, 2], [1, 2, 3]])))
+    );
+
+    assert_eq!(
+        crate::run("(1, 2) $1 += 3", ""),
+        Ok(Some(crate::value!([1, 2, 3])))
+    );
 }

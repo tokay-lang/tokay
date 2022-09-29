@@ -192,6 +192,14 @@ impl Object for Value {
         }
     }
 
+    fn is_mutable(&self) -> bool {
+        if let Self::Object(object) = self {
+            object.is_mutable()
+        } else {
+            false
+        }
+    }
+
     fn call(
         &self,
         context: &mut Context,

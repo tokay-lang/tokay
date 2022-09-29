@@ -1,12 +1,12 @@
 use crate::reader::{Range, Reader};
-use crate::value::RefValue;
+use crate::value::{Object, RefValue};
 
 /** Captures are stack items where the VM operates on.
 
 A capture can either be just empty, a range from the input or a full qualified value (RefValue).
 In case the capture is a range, it can be turned into a string value on demand and in-place.
 */
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Capture {
     Empty,                               // Empty capture
     Range(Range, Option<String>, u8),    // Captured range
@@ -70,6 +70,29 @@ impl Capture {
 impl From<RefValue> for Capture {
     fn from(value: RefValue) -> Self {
         Capture::Value(value, None, 10)
+    }
+}
+
+impl std::fmt::Debug for Capture {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "(empty)"),
+            Self::Range(range, alias, severity) => {
+                if let Some(alias) = alias {
+                    write!(f, "{:?} => ", alias)?;
+                }
+
+                range.fmt(f)?;
+                write!(f, "({})", severity)
+            }
+            Self::Value(value, alias, severity) => {
+                if let Some(alias) = alias {
+                    write!(f, "{:?} => ", alias)?;
+                }
+
+                write!(f, "[{:x?}] {} ({})", value.id(), value.repr(), severity)
+            }
+        }
     }
 }
 

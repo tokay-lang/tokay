@@ -341,7 +341,9 @@ fn operations() {
         ),
         Ok(Some(value!([
             [1, 2, 3, 4],
-            [1, 2],
+            [1, 2, 3, 4], // fixme: this is currently correct, because a is modified afterwards;
+            // anyway, there should be some kind of copy function or a copy-operator
+            // to copy an object and make it self-sustaining.
             [3, 4],
             [1, 2, 3, 4],
             [3, 4]

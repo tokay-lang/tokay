@@ -42,6 +42,10 @@ impl Object for List {
     fn is_true(&self) -> bool {
         self.len() > 0
     }
+
+    fn is_mutable(&self) -> bool {
+        true
+    }
 }
 
 impl List {

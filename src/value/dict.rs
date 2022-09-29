@@ -62,6 +62,10 @@ impl Object for Dict {
     fn is_true(&self) -> bool {
         self.len() > 0
     }
+
+    fn is_mutable(&self) -> bool {
+        true
+    }
 }
 
 impl Dict {
@@ -90,30 +94,30 @@ impl Dict {
 
     tokay_method!("dict_merge(dict, other)", {
         {
-            println!("dict = {:?} other = {:?}", dict, other);
             let dict = &mut *dict.borrow_mut();
-            let other = &*other.borrow();
 
-            if let Some(dict) = dict.object_mut::<Dict>() {
-                if let Some(other) = other.object::<Dict>() {
-                    for (k, v) in other.iter() {
-                        dict.insert(k.clone(), v.clone());
+            if let Ok(other) = other.try_borrow() {
+                if let Some(dict) = dict.object_mut::<Dict>() {
+                    if let Some(other) = other.object::<Dict>() {
+                        for (k, v) in other.iter() {
+                            dict.insert(k.clone(), v.clone());
+                        }
+                    } else {
+                        return Err(Error::from(format!(
+                            "{} only accepts '{}' as second parameter, not '{}'",
+                            __function,
+                            dict.name(),
+                            other.name()
+                        )));
                     }
                 } else {
                     return Err(Error::from(format!(
-                        "{} only accepts '{}' as second parameter, not '{}'",
+                        "{} only accepts '{}' as first parameter, not '{}'",
                         __function,
-                        dict.name(),
-                        other.name()
+                        "dict",
+                        dict.name()
                     )));
                 }
-            } else {
-                return Err(Error::from(format!(
-                    "{} only accepts '{}' as first parameter, not '{}'",
-                    __function,
-                    "dict",
-                    dict.name()
-                )));
             }
         }
 
@@ -252,7 +256,7 @@ fn test_dict_len() {
     assert_eq!(
         crate::run("dict_len(\"Donkey\")", ""),
         Err("Line 1, column 1: dict_len() only accepts 'dict' as parameter, not 'str'".to_string())
-    )
+    );
 }
 
 #[test]
@@ -260,7 +264,21 @@ fn test_dict_merge() {
     assert_eq!(
         crate::run("d = (a => 1, b => 2); d.merge((c => 3)); d", ""),
         Ok(Some(crate::value!(["a" => 1, "b" => 2, "c" => 3])))
-    )
+    );
+
+    // issue #74
+    assert_eq!(
+        crate::run("d = (a => 1, b => 2); d.merge(d)", ""),
+        Ok(Some(crate::value!(["a" => 1, "b" => 2])))
+    );
+
+    // issue #74
+    assert_eq!(
+        crate::run("(a => 1, b => 2) $1.merge($1)", ""),
+        Ok(Some(
+            crate::value!([["a" => 1, "b" => 2], ["a" => 1, "b" => 2]])
+        ))
+    );
 }
 
 #[test]

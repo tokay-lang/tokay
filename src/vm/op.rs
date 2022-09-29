@@ -396,9 +396,20 @@ impl Op {
                 Op::CallOrCopy => {
                     let value = context.pop();
 
+                    if false && debug > 3 {
+                        println!(
+                            "CallOrCopy is_callable={:?} is_mutable={:?}",
+                            value.is_callable(true),
+                            value.is_mutable()
+                        )
+                    }
+
                     if value.is_callable(true) {
                         // Call the value without parameters
                         value.call(context, 0, None)
+                    } else if value.is_mutable() {
+                        // Push a reference to the value
+                        context.push(value)
                     } else {
                         // Push a copy of the value
                         context.push(value.borrow().clone().into())
@@ -515,22 +526,21 @@ impl Op {
 
                 Op::StoreGlobal(addr) => {
                     // todo: bounds checking?
-                    let value = context.pop();
+                    let value = context.pop().ref_or_clone();
                     context.runtime.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
                 Op::StoreGlobalHold(addr) => {
                     // todo: bounds checking?
-                    let value = context.peek();
-                    context.runtime.stack[*addr] =
-                        Capture::Value(value.borrow().clone().into(), None, 0);
+                    let value = context.peek().ref_or_clone();
+                    context.runtime.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
                 Op::StoreFast(addr) => {
                     // todo: bounds checking?
-                    let value = context.pop();
+                    let value = context.pop().ref_or_clone();
                     context.runtime.stack[context.stack_start + *addr] =
                         Capture::Value(value, None, 0);
                     Ok(Accept::Push(Capture::Empty))
@@ -538,23 +548,23 @@ impl Op {
 
                 Op::StoreFastHold(addr) => {
                     // todo: bounds checking?
-                    let value = context.peek();
+                    let value = context.peek().ref_or_clone();
                     context.runtime.stack[context.stack_start + *addr] =
-                        Capture::Value(value.borrow().clone().into(), None, 0);
+                        Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
                 Op::StoreFastCapture(index) => {
-                    let value = context.pop();
+                    let value = context.pop().ref_or_clone();
 
                     context.set_capture(*index, value);
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreFastCaptureHold(index) => {
-                    let value = context.peek();
+                    let value = context.peek().ref_or_clone();
 
-                    context.set_capture(*index, value.borrow().clone().into());
+                    context.set_capture(*index, value);
                     Ok(Accept::Next)
                 }
 
@@ -564,22 +574,22 @@ impl Op {
 
                     if let Some(alias) = index.object::<Str>() {
                         if matches!(op, Op::StoreCapture) {
-                            let value = context.pop();
+                            let value = context.pop().ref_or_clone();
                             context.set_capture_by_name(alias, value);
                             Ok(Accept::Push(Capture::Empty))
                         } else {
-                            let value = context.peek();
-                            context.set_capture_by_name(alias, value.borrow().clone().into());
+                            let value = context.peek().ref_or_clone();
+                            context.set_capture_by_name(alias, value);
                             Ok(Accept::Next)
                         }
                     } else {
                         if matches!(op, Op::StoreCapture) {
-                            let value = context.pop();
+                            let value = context.pop().ref_or_clone();
                             context.set_capture(index.to_usize()?, value);
                             Ok(Accept::Push(Capture::Empty))
                         } else {
-                            let value = context.peek();
-                            context.set_capture(index.to_usize()?, value.borrow().clone().into());
+                            let value = context.peek().ref_or_clone();
+                            context.set_capture(index.to_usize()?, value);
                             Ok(Accept::Next)
                         }
                     }

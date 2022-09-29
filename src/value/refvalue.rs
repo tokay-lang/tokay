@@ -14,6 +14,16 @@ pub struct RefValue {
 }
 
 impl RefValue {
+    /** Either creates a copy of a value or a reference, which is configured by the
+    is_mutable() function of the underlying object. */
+    pub fn ref_or_clone(self) -> Self {
+        if self.is_mutable() {
+            self
+        } else {
+            RefValue::from(self.borrow().clone())
+        }
+    }
+
     /** Creates a callable Method object from a RefValue and a given method name. */
     pub fn create_method(&self, method_name: &str) -> Result<RefValue, Error> {
         let builtin = Builtin::get_method(self.name(), method_name)?;
@@ -312,6 +322,10 @@ impl Object for RefValue {
 
     fn is_nullable(&self) -> bool {
         self.borrow().is_nullable()
+    }
+
+    fn is_mutable(&self) -> bool {
+        self.borrow().is_mutable()
     }
 
     fn call(
