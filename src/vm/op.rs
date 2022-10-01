@@ -21,12 +21,12 @@ pub enum Op {
     Rust(Rust),          // Native rust callback
 
     // Capture frames
-    Frame(usize), // Start new frame with optional forward fuse
+    Frame(usize), // Start new frame with optional relative forward address fuse
     Commit,       // Commit frame
     Reset,        // Reset frame
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
-    Fuse(usize),  // Set frame fuse to forward address
+    Fuse(usize),  // Set frame fuse to relative forward address
 
     // Loop frames
     Loop(usize), // Loop frame
@@ -103,6 +103,7 @@ pub enum Op {
 
     // Operations
     Drop,  // drop TOS
+    Inv,   // invalidate TOS to empty capture
     Sep,   // separate, ensure TOS value is not shared
     Clone, // clone TOS
     Dup,   // duplicate TOS
@@ -661,6 +662,11 @@ impl Op {
                 Op::Drop => {
                     context.pop();
                     Ok(Accept::Next)
+                }
+
+                Op::Inv => {
+                    context.pop();
+                    Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::Sep => {

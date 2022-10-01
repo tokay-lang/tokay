@@ -425,20 +425,10 @@ impl ImlOp {
             ImlOp::Seq { seq, collection } => {
                 for item in seq.iter() {
                     item.compile(ops, linker);
-
-                    // In case a sequence item is an inline-operation, its result must be copied
-                    // into a separate value object, to stay consistent.
-                    if *collection {
-                        match ops.last().unwrap() {
-                            Op::UnaryOp(op) | Op::BinaryOp(op) if op.starts_with("i") => {
-                                ops.push(Op::Sep);
-                            }
-                            _ => {}
-                        }
-                    }
                 }
 
-                // Create a frame and collect in collection-mode and when there's more than one operation inside ret.
+                // Create a frame and collect in collection-mode,
+                // when there's more than one operation inside ret.
                 if *collection
                     && ops[start..]
                         .iter()

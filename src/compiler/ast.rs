@@ -670,7 +670,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 });
 
                 if *parts.last().unwrap() != "hold" {
-                    ops.push(Op::Drop.into());
+                    ops.push(Op::Inv.into());
                 }
             } else {
                 ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
@@ -938,6 +938,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         }
                         .into(),
                     );
+                    ops.push(ImlOp::from(Op::Sep)); // Separate TOS
                 }
                 "post" => {
                     ops.extend(vec![

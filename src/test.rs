@@ -445,6 +445,17 @@ fn sequences() {
     );
     assert_eq!(run("(1 (2 'a' 3) 4)", "b"), Ok(None));
 
+    // Inline operations
+    assert_eq!(
+        run(
+            r#"
+        a = 1 "x" a += 2 "y" a "z" $6 $5 $4 $3 $2 $1
+        #for i = 1; i <= 6; i++ print(i + ": " + $(i))"#,
+            ""
+        ),
+        Ok(Some(value!(["x", "y", 3, "z", "z", 3, "y", "x"])))
+    );
+
     // Inline alternation
     assert_eq!(run("('a' | 'b' | 'c')", "b"), Ok(Some(value!("b"))));
 
