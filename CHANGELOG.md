@@ -33,7 +33,7 @@ Current main branch.
   - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
   - Definition of mutable objects; Imutable objects push a clone of, mutable objects push a ref on the object.
 - Builtins
-  - Added `dict_push()`
+  - Added `dict_push()`, `dict.pop()`
   - Renamed `dict_update()` into `dict_merge()`
 - Examples
   - The self-hosted Tokay parser in `examples/tokay.tok` was syncronized with the builtin parser, so both construct equally the same abstract syntax tree

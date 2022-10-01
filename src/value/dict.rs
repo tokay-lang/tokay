@@ -129,10 +129,32 @@ impl Dict {
 
         if let Some(dict) = dict.object_mut::<Dict>() {
             let key = key.to_string();
+
             Ok(if let Some(old) = dict.insert(key, value) {
                 old
             } else {
                 value!(void)
+            })
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_pop(dict, key, default=void)", {
+        let dict = &mut *dict.borrow_mut();
+
+        if let Some(dict) = dict.object_mut::<Dict>() {
+            let key = key.to_string();
+
+            Ok(if let Some(value) = dict.remove(&key) {
+                value
+            } else {
+                default
             })
         } else {
             Err(Error::from(format!(
@@ -291,5 +313,16 @@ fn test_dict_push() {
     assert_eq!(
         crate::run("d = dict(); d.push(1, 2); d.push(2, 3); d.push(1, 4)", ""),
         Ok(Some(crate::value!(2)))
+    );
+}
+
+#[test]
+fn test_dict_pop() {
+    assert_eq!(
+        crate::run(
+            r#"d = ("esel" => 1, "bert" => 2) d.pop("franz") d.pop("franz", "eugen") d.pop("bert") d"#,
+            ""
+        ),
+        Ok(Some(crate::value!(["eugen", 2, ["esel" => 1]])))
     );
 }
