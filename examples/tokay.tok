@@ -385,9 +385,13 @@ Sequences : @{
 }
 
 Instruction : @{
-    'begin' _SeparatedIdentifier Sequence expect T_EOL  ast("begin")
-    'end' _SeparatedIdentifier Sequence expect T_EOL  ast("end")
-    T_Identifier _ ':' _ (Statement peek T_EOL | Sequences) expect T_EOL  ast("constant")
+    'begin' _SeparatedIdentifier Sequences expect T_EOL  ast("begin")
+    'end' _SeparatedIdentifier Sequences expect T_EOL  ast("end")
+    T_Identifier _ ':' _ {
+        Literal _ peek T_EOL
+        Token _ peek T_EOL
+        Sequences
+    } expect T_EOL  ast("constant")
     Sequences expect T_EOL
     T_EOL
 }

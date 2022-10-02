@@ -472,10 +472,11 @@ impl Parser {
         }),
 
         (Instruction = {
-            ["begin", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "begin")])],
-            ["end", _SeparatedIdentifier, Sequence, (expect T_EOL), (call ast[(value "end")])],
+            ["begin", _SeparatedIdentifier, Sequences, (expect T_EOL), (call ast[(value "begin")])],
+            ["end", _SeparatedIdentifier, Sequences, (expect T_EOL), (call ast[(value "end")])],
             [T_Identifier, _, ":", _, {
-                [Statement, (peek T_EOL)],
+                [Literal, _, (peek T_EOL)],
+                [Token, _, (peek T_EOL)],
                 Sequences
             }, (expect T_EOL), (call ast[(value "constant")])],
             [Sequences, (expect T_EOL)],

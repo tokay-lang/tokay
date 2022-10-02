@@ -493,6 +493,9 @@ fn sequences() {
             ["a" => 42, "20" => "Hello", "c" => 23.5]
         ])))
     );
+
+    // Issue 63
+    testcase("tests/test_sequence_issue_63.tok");
 }
 
 // Tests for tokens -------------------------------------------------------------------------------
