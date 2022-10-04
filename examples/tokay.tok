@@ -6,7 +6,17 @@
 #
 # This parser can be executed by Tokay and parse itself with the call
 #
-#     tokay examples/tokay.tok -- examples/tokay.tok
+#   tokay examples/tokay.tok -- examples/tokay.tok
+#
+# To verify compatiblity with Tokay's native parser, run
+#
+#   tokay -d examples/tokay.tok -- "" >/tmp/ast1
+#   tokay examples/tokay.tok -- examples/tokay.tok >/tmp/ast2
+#   diff /tmp/ast1 /tmp/ast2
+#
+# This should finally output one diff like
+#
+#   < main [start 1:1, end 1:1] => void
 #
 
 # Whitespace & EOL
@@ -389,7 +399,7 @@ Instruction : @{
     'end' _SeparatedIdentifier Sequences expect T_EOL  ast("end")
     T_Identifier _ ':' _ {
         Literal _ peek T_EOL
-        Token _ peek T_EOL
+        Token1 _ peek T_EOL
         Sequences
     } expect T_EOL  ast("constant")
     Sequences expect T_EOL
