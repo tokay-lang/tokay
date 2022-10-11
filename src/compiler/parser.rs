@@ -479,6 +479,7 @@ impl Parser {
                 [Token, _, (peek T_EOL)],
                 Sequences
             }, (expect T_EOL), (call ast[(value "constant")])],
+            [Statement, T_EOL],
             [Sequences, (expect T_EOL)],
             T_EOL
         }),

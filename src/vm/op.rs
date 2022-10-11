@@ -751,6 +751,10 @@ impl Op {
             }
         }
 
+        if context.runtime.debug > 3 {
+            context.debug(&format!("exit state = {:?}", state));
+        }
+
         state
     }
 }

@@ -75,7 +75,6 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
     /// Shortcut for an Ok(Accept::Push) with the given value.
     /// To push a value immediatelly, use context.runtime.stack.push().
-    // fixme: Replace later by real push, when recursive VM is removed.
     #[inline]
     pub fn push(&self, value: RefValue) -> Result<Accept, Reject> {
         Ok(Accept::Push(Capture::Value(value, None, 10)))

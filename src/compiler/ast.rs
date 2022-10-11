@@ -35,7 +35,7 @@ pub(super) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
 
         ImlOp::from(ops)
     } else if let Some(dict) = ast.borrow().object::<Dict>() {
-        traverse_node(compiler, dict)
+        traverse_node_rvalue(compiler, dict, Rvalue::CallOrLoad)
     } else {
         ImlOp::load(None, ImlValue::from(RefValue::from(ast.clone())))
     }
@@ -730,7 +730,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     ImlOp::Alt { alts }
                 } else if let Some(dict) = ast.borrow().object::<Dict>() {
-                    traverse_node(compiler, dict)
+                    traverse_node_rvalue(compiler, dict, Rvalue::CallOrLoad)
                 } else {
                     unreachable!();
                 };

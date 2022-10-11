@@ -402,6 +402,7 @@ Instruction : @{
         Token1 _ peek T_EOL
         Sequences
     } expect T_EOL  ast("constant")
+    Statement T_EOL
     Sequences expect T_EOL
     T_EOL
 }
