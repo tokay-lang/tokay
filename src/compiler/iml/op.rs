@@ -394,29 +394,44 @@ impl ImlOp {
                 let mut ret = Vec::new();
                 let mut iter = alts.iter();
                 let mut jumps = Vec::new();
+                let mut initial_fuse = None;
 
                 while let Some(item) = iter.next() {
                     let mut alt = Vec::new();
                     item.compile(&mut alt, linker);
 
+                    // Fuse alternation branch, except at the last
                     if iter.len() > 0 {
-                        ret.push(Op::Fuse(alt.len() + 3));
-                        ret.extend(alt);
-                        ret.push(Op::Nop);
-                        ret.push(Op::Reset);
+                        let fuse = alt.len() + if item.is_consuming() { 3 } else { 2 };
 
-                        jumps.push(ret.len() - 2);
+                        if initial_fuse.is_none() {
+                            initial_fuse = Some(fuse)
+                        } else {
+                            ret.push(Op::Fuse(fuse));
+                        }
+
+                        ret.extend(alt);
+
+                        if item.is_consuming() {
+                            // Insert Nop as location for later jump backpatch
+                            ret.push(Op::Nop);
+                            jumps.push(ret.len() - 1);
+                        }
+
+                        ret.push(Op::Reset);
                     } else {
                         ret.extend(alt);
                     }
                 }
 
+                // Backpatch remembered jumps
                 while let Some(addr) = jumps.pop() {
                     ret[addr] = Op::ForwardIfConsumed(ret.len() - addr);
                 }
 
-                if alts.len() > 1 {
-                    ret.insert(0, Op::Frame(0));
+                // Wrap in its own frame when alts.len() > 1
+                if let Some(fuse) = initial_fuse {
+                    ret.insert(0, Op::Frame(fuse));
                     ret.push(Op::Close);
                 }
 
