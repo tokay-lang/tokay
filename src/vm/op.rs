@@ -130,33 +130,14 @@ impl Op {
             }
         }
 
-        // Frame ---------------------------------------------------------------
-        #[derive(Debug)]
-        struct Frame {
-            fuse: Option<usize>,  // fuse
-            capture_start: usize, // capture start
-            reader_start: Offset, // reader start
-        }
-
-        impl Frame {
-            // Creates a new frame from context.
-            fn new(context: &Context) -> Frame {
-                Frame {
-                    fuse: None,
-                    capture_start: context.runtime.stack.len(),
-                    reader_start: context.runtime.reader.tell(),
-                }
-            }
-        }
+        assert!(context.frames.len() == 0);
 
         // ---------------------------------------------------------------------
 
         let mut ip = 0; // Instruction pointer
-        let mut frames: Vec<Frame> = Vec::new(); // Frames
-        let mut loops: Vec<(usize, usize, usize)> = Vec::new(); // Loops
-
-        let mut frame = Frame::new(context); // Main capture
         let mut state = Ok(Accept::Next);
+
+        let mut loops: Vec<(usize, usize, usize)> = Vec::new(); // Loop stack
 
         while ip < ops.len() {
             let op = &ops[ip];
@@ -177,11 +158,11 @@ impl Op {
                     }
 
                     context.debug("--- Frames ---");
-                    for i in 0..frames.len() {
-                        context.debug(&format!(" {:03} {:?}", i, frames[i]));
+                    for i in 0..context.frames.len() {
+                        context.debug(&format!(" {:03} {:?}", i, context.frames[i]));
                     }
 
-                    context.debug(&format!(" {:03} {:?}", frames.len(), frame));
+                    context.debug(&format!(" {:03} {:?}", context.frames.len(), context.frame));
                 }
 
                 // Step-by-step
@@ -203,49 +184,53 @@ impl Op {
 
                 // Frames
                 Op::Frame(fuse) => {
-                    frames.push(frame);
-                    frame = Frame::new(context);
-
-                    if *fuse > 0 {
-                        frame.fuse = Some(ip + *fuse);
-                    }
+                    context.frames.push(context.frame);
+                    context.frame = Frame {
+                        fuse: if *fuse > 0 { Some(ip + *fuse) } else { None },
+                        capture_start: context.runtime.stack.len(),
+                        reader_start: context.runtime.reader.tell(),
+                    };
 
                     Ok(Accept::Next)
                 }
 
                 Op::Commit => {
-                    frame.capture_start = context.runtime.stack.len();
-                    frame.reader_start = context.runtime.reader.tell();
+                    context.frame.capture_start = context.runtime.stack.len();
+                    context.frame.reader_start = context.runtime.reader.tell();
                     Ok(Accept::Next)
                 }
 
                 Op::Reset => {
-                    context.runtime.stack.truncate(frame.capture_start);
-                    context.runtime.reader.reset(frame.reader_start);
+                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.runtime.reader.reset(context.frame.reader_start);
                     Ok(Accept::Next)
                 }
 
                 Op::Close => {
-                    frame = frames.pop().unwrap();
+                    context.frame = context.frames.pop().unwrap();
                     Ok(Accept::Next)
                 }
 
                 Op::Collect => Ok(Accept::Push(context.collect(
-                    frame.capture_start,
+                    context.frame.capture_start,
                     false,
                     context.runtime.debug > 5,
                 ))),
 
                 Op::Fuse(addr) => {
-                    frame.fuse = Some(ip + *addr);
+                    context.frame.fuse = Some(ip + *addr);
                     Ok(Accept::Next)
                 }
 
                 // Loops
                 Op::Loop(size) => {
-                    frames.push(frame);
-                    frame = Frame::new(context);
-                    loops.push((frames.len(), ip, ip + *size));
+                    context.frames.push(context.frame);
+                    context.frame = Frame {
+                        fuse: None,
+                        capture_start: context.runtime.stack.len(),
+                        reader_start: context.runtime.reader.tell(),
+                    };
+                    loops.push((context.frames.len(), ip, ip + *size));
                     Ok(Accept::Next)
                 }
 
@@ -260,9 +245,9 @@ impl Op {
                     };
 
                     // Discard all open frames inside current loop.
-                    while frames.len() >= current.0 {
-                        frame = frames.pop().unwrap();
-                        context.runtime.stack.truncate(frame.capture_start);
+                    while context.frames.len() >= current.0 {
+                        context.frame = context.frames.pop().unwrap();
+                        context.runtime.stack.truncate(context.frame.capture_start);
                     }
 
                     // Jump behind loop
@@ -279,11 +264,11 @@ impl Op {
                     let current = loops.last().unwrap();
 
                     // Discard all open frames inside current loop.
-                    while frames.len() > current.0 {
-                        frame = frames.pop().unwrap();
+                    while context.frames.len() > current.0 {
+                        context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.runtime.stack.truncate(frame.capture_start);
+                    context.runtime.stack.truncate(context.frame.capture_start);
 
                     // Jump to loop start.
                     ip = current.1;
@@ -312,7 +297,7 @@ impl Op {
                 }
 
                 Op::ForwardIfConsumed(goto) => {
-                    if frame.reader_start != context.runtime.reader.tell() {
+                    if context.frame.reader_start != context.runtime.reader.tell() {
                         ip += goto;
                         Ok(Accept::Hold)
                     } else {
@@ -341,7 +326,7 @@ impl Op {
                 }
 
                 Op::BackwardIfConsumed(goto) => {
-                    if frame.reader_start != context.runtime.reader.tell() {
+                    if context.frame.reader_start != context.runtime.reader.tell() {
                         ip -= goto;
                         Ok(Accept::Hold)
                     } else {
@@ -387,9 +372,10 @@ impl Op {
 
                 Op::Error(msg) => {
                     if let Some(msg) = msg {
-                        Error::new(Some(frame.reader_start), msg.clone()).into()
+                        Error::new(Some(context.frame.reader_start), msg.clone()).into()
                     } else {
-                        Error::new(Some(frame.reader_start), context.pop().to_string()).into()
+                        Error::new(Some(context.frame.reader_start), context.pop().to_string())
+                            .into()
                     }
                 }
 
@@ -728,31 +714,35 @@ impl Op {
                     state = Ok(Accept::Next);
                     ip += 1;
                 }
-                Err(Reject::Next) if frames.len() > 0 => loop {
-                    context.runtime.stack.truncate(frame.capture_start);
-                    context.runtime.reader.reset(frame.reader_start);
+                Err(Reject::Next) if context.frames.len() > 0 => loop {
+                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.runtime.reader.reset(context.frame.reader_start);
 
-                    if let Some(fuse) = frame.fuse {
+                    if let Some(fuse) = context.frame.fuse {
                         if fuse > ip {
                             ip = fuse;
                             break;
                         }
                     }
 
-                    if frames.len() == 0 {
+                    if context.frames.len() == 0 {
                         return Err(Reject::Next);
                     }
 
-                    frame = frames.pop().unwrap();
+                    context.frame = context.frames.pop().unwrap();
                 },
-                _ => {
-                    return state;
-                }
+                _ => break
             }
         }
 
         if context.runtime.debug > 3 {
             context.debug(&format!("exit state = {:?}", state));
+        }
+
+        // Clear all frames except the base frame
+        if !context.frames.is_empty() {
+            context.frames.truncate(1);
+            context.frame = context.frames.pop().unwrap();
         }
 
         state

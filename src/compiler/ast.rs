@@ -1500,10 +1500,13 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
     let mut ret = Dict::new();
     ret.insert("emit".to_string(), emit.clone());
 
+    // Need current frame position
+    let capture_start = context.frame0().capture_start;
+
     let value = if value.is_void() {
         Some(
             context
-                .collect(context.capture_start, false, debug.is_true())
+                .collect(capture_start, false, debug.is_true())
                 .extract(&context.runtime.reader),
         )
     } else {
@@ -1540,13 +1543,15 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
         }
     }
 
+    let reader_start = context.frame0().reader_start;
+
     // Store positions of reader start
     ret.insert(
         "offset".to_string(),
-        value!(context.reader_start.offset + context.runtime.start),
+        value!(reader_start.offset + context.runtime.start),
     );
-    ret.insert("row".to_string(), value!(context.reader_start.row as usize));
-    ret.insert("col".to_string(), value!(context.reader_start.col as usize));
+    ret.insert("row".to_string(), value!(reader_start.row as usize));
+    ret.insert("col".to_string(), value!(reader_start.col as usize));
 
     // Store positions of reader stop
     let current = context.runtime.reader.tell();
