@@ -11,9 +11,9 @@ use std::collections::HashMap;
 
 /// The linker glues compiled intermediate program and finalized VM program together.
 #[derive(Debug)]
-pub(super) struct Linker {
+pub(in crate::compiler) struct Linker {
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
-    pub(super) errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
+    pub errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
 }
 
 impl Linker {

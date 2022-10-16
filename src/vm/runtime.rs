@@ -11,12 +11,12 @@ use crate::value::RefValue;
 Holds additional runtime information, like the stack or memoization table.
 */
 pub struct Runtime<'program, 'reader> {
-    pub(crate) program: &'program Program,  // program to execute
-    pub(crate) reader: &'reader mut Reader, // reader to read from
-    pub(crate) start: usize,                // absolute start offset in relation to reader
+    pub program: &'program Program,  // program to execute
+    pub reader: &'reader mut Reader, // reader to read from
+    pub start: usize,                // absolute start offset in relation to reader
 
-    pub(crate) memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // memoization table
-    pub(crate) stack: Vec<Capture>,                                             // value stack
+    pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // memoization table
+    pub stack: Vec<Capture>,                                             // value stack
 
     pub debug: u8, // Debug level
 }

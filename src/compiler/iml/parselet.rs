@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 /// Intermediate parselet
-pub struct ImlParselet {
+pub(in crate::compiler) struct ImlParselet {
     pub offset: Option<Offset>,                     // Offset of definition
     pub consuming: bool, // Flag if parselet is consuming (detected by compiler scopes)
     pub severity: u8,    // Capture push severity

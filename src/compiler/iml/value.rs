@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 /** Compile-time values */
 #[derive(Clone, PartialEq, Eq)]
-pub enum ImlValue {
+pub(in crate::compiler) enum ImlValue {
     Generic(String),
     Parselet(Rc<RefCell<ImlParselet>>),
     Value(RefValue),

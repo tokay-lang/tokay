@@ -29,6 +29,8 @@ Current main branch.
   - Include `prelude.tok` with default parselets
     - `Number` matches either `Float` or `Int`
     - `Token` matches arbitrary tokens
+- VM
+  - Frame is now managed by Context
 - Values
   - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
   - Definition of mutable objects; Imutable objects push a clone of, mutable objects push a ref on the object.

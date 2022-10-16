@@ -10,11 +10,11 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-pub type SharedImlOp = Rc<RefCell<ImlOp>>;
+pub(in crate::compiler) type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 /// Target of a call or load
 #[derive(Clone)]
-pub enum ImlTarget {
+pub(in crate::compiler) enum ImlTarget {
     Unresolved(String), // Compile-time identifier (unresolved!)
     Generic(String),    // Compile-time generic identifier
     Static(ImlValue),   // Compile-time static value
@@ -53,7 +53,7 @@ impl std::fmt::Debug for ImlTarget {
 }
 
 #[derive(Debug, Clone)]
-pub enum ImlOp {
+pub(in crate::compiler) enum ImlOp {
     Nop,                 // Empty operation
     Op(Op),              // VM Operation
     Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation

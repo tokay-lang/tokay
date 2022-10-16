@@ -15,7 +15,7 @@ pub use dict::Dict;
 pub use list::List;
 pub use method::Method;
 pub use object::{BoxedObject, Object};
-pub use parselet::{Parselet, ParseletRef};
+pub(crate) use parselet::{Parselet, ParseletRef};
 pub use refvalue::RefValue;
 pub use token::Token;
 pub use value::Value;

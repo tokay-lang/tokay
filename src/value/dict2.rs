@@ -1,4 +1,6 @@
-//! Dictionary object
+//! Test stub for a Dict type that uses RefValue as key
+/// This shall become standard in combination with the is_mutable() flag
+
 use super::{BoxedObject, Object, RefValue};
 use indexmap::IndexMap;
 

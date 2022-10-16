@@ -9,9 +9,9 @@ use crate::value::{Dict, List, Object, Parselet, RefValue};
 /** Representation of a stack-frame based on current context. */
 #[derive(Debug, Clone, Copy)]
 pub struct Frame {
-    pub(super) fuse: Option<usize>,  // optional fuse
-    pub(crate) capture_start: usize, // capture start
-    pub(crate) reader_start: Offset, // reader start
+    pub fuse: Option<usize>,  // optional fuse
+    pub capture_start: usize, // capture start
+    pub reader_start: Offset, // reader start
 }
 
 /** Contexts represent stack frames for parselet calls.
@@ -19,17 +19,17 @@ pub struct Frame {
 Via the context, most operations regarding capture storing and loading is performed. */
 pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     // References
-    pub(crate) runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
-    pub(crate) parselet: &'parselet Parselet, // Current parselet that is executed
-    pub(crate) depth: usize,                  // Recursion depth
+    pub runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
+    pub parselet: &'parselet Parselet,                     // Current parselet that is executed
+    pub depth: usize,                                      // Recursion depth
 
     // Positions
-    pub(crate) stack_start: usize, // Stack start (including locals and parameters)
-    hold: usize,                   // Defines number of stack items to hold on context drop
+    pub stack_start: usize, // Stack start (including locals and parameters)
+    hold: usize,            // Defines number of stack items to hold on context drop
 
     // Virtual machine
-    pub(super) frames: Vec<Frame>, // Frame stack
-    pub frame: Frame,              // Current frame
+    pub frames: Vec<Frame>, // Frame stack
+    pub frame: Frame,       // Current frame
 
     // Variables
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
@@ -254,7 +254,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     This function is internally used for automatic AST construction and value
     inheriting.
     */
-    pub(crate) fn collect(
+    pub fn collect(
         &mut self,
         capture_start: usize, // Stack offset to start from
         copy: bool,           // Copy values instead of draining them from the stack
@@ -381,7 +381,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     /// Drains n items off the stack into a vector of values
-    pub(crate) fn drain(&mut self, n: usize) -> Vec<RefValue> {
+    pub fn drain(&mut self, n: usize) -> Vec<RefValue> {
         let tos = self.runtime.stack.len();
         assert!(n <= tos - self.frame0().capture_start);
 
@@ -399,7 +399,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 
     /// Run the current context with the associated parselet
-    pub(crate) fn run(&mut self, main: bool) -> Result<Accept, Reject> {
+    pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
         let mut results = List::new();
         let mut first = self.parselet.begin.len() > 0;

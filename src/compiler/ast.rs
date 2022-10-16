@@ -25,7 +25,7 @@ fn identifier_is_valid(ident: &str) -> Result<(), Error> {
 }
 
 /// AST traversal entry
-pub(super) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
+pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
     if let Some(list) = ast.borrow().object::<List>() {
         let mut ops = Vec::new();
 

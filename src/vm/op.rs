@@ -15,7 +15,7 @@ Atomic operations.
 Specifies all atomic level VM code operations to run the Tokay VM.
 */
 #[derive(Debug, Clone)]
-pub enum Op {
+pub(crate) enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging
     Rust(Rust),          // Native rust callback
@@ -731,7 +731,7 @@ impl Op {
 
                     context.frame = context.frames.pop().unwrap();
                 },
-                _ => break
+                _ => break,
             }
         }
 

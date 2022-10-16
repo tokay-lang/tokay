@@ -23,19 +23,19 @@ the generated parse tree automatically until no more input can be consumed.
 
 #[derive(Debug)]
 pub struct Parselet {
-    pub(crate) name: String, // Parselet's name from source (for debugging)
+    pub name: String,                   // Parselet's name from source (for debugging)
     pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
-    pub(crate) severity: u8, // Capture push severity
+    pub(crate) severity: u8,            // Capture push severity
     signature: Vec<(String, Option<usize>)>, // Argument signature with default arguments
-    pub(crate) locals: usize, // Number of local variables present
-    pub(crate) begin: Vec<Op>, // Begin-operations
-    pub(crate) end: Vec<Op>, // End-operations
-    pub(crate) body: Vec<Op>, // Operations
+    pub(crate) locals: usize,           // Number of local variables present
+    pub(crate) begin: Vec<Op>,          // Begin-operations
+    pub(crate) end: Vec<Op>,            // End-operations
+    pub(crate) body: Vec<Op>,           // Operations
 }
 
 impl Parselet {
     /// Creates a new parselet.
-    pub fn new(
+    pub(crate) fn new(
         name: Option<String>,
         consuming: Option<bool>,
         severity: u8,
