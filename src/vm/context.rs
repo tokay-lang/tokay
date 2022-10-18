@@ -128,17 +128,21 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
         self.push(value)
     }
 
-    // Return current frame
-    pub fn frame(&self) -> &Frame {
-        &self.frame
-    }
-
-    // Return top-level frame
+    /// Return top-level frame
     pub fn frame0(&self) -> &Frame {
         if self.frames.is_empty() {
             &self.frame
         } else {
             &self.frames[0]
+        }
+    }
+
+    /// Return mutable top-level frame
+    pub fn frame0_mut(&mut self) -> &mut Frame {
+        if self.frames.is_empty() {
+            &mut self.frame
+        } else {
+            &mut self.frames[0]
         }
     }
 

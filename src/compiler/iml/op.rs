@@ -76,9 +76,7 @@ pub(in crate::compiler) enum ImlOp {
     // Sequence of ops, optionally a collection
     Seq {
         seq: Vec<ImlOp>,
-        collection: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
-                          the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
-                          processed, including data changes, which is a wanted behavior. */
+        collection: Option<bool>, // Sequence is constructed as a collection, with optional reader extend of outer frame
     },
 
     // Conditional block
@@ -125,14 +123,14 @@ pub(in crate::compiler) enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, collection: bool) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, collection: Option<bool>) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    collection: false,
+                    collection: None,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -141,7 +139,7 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if !collection => seq.pop().unwrap(),
+            1 if collection.is_none() => seq.pop().unwrap(),
             _ => ImlOp::Seq { seq, collection },
         }
     }
@@ -442,18 +440,23 @@ impl ImlOp {
                     item.compile(ops, linker);
                 }
 
-                // Create a frame and collect in collection-mode,
-                // when there's more than one operation inside ret.
-                if *collection
-                    && ops[start..]
-                        .iter()
-                        .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
-                        .sum::<usize>()
-                        > 1
+                // Check if the sequence exists of more than one operational instruction
+                if ops[start..]
+                    .iter()
+                    .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
+                    .sum::<usize>()
+                    > 1
                 {
-                    ops.insert(start, Op::Frame(0));
-                    ops.push(Op::Collect);
-                    ops.push(Op::Close);
+                    // Create a frame and collect in collection-mode
+                    if let Some(extend) = collection {
+                        ops.insert(start, Op::Frame(0));
+                        ops.push(Op::Collect);
+                        ops.push(Op::Close);
+
+                        if *extend {
+                            ops.push(Op::Extend);
+                        }
+                    }
                 }
             }
             ImlOp::If {
@@ -572,14 +575,15 @@ impl ImlOp {
                         // Kleene
                         ops.extend(vec![
                             Op::Frame(0),            // The overall capture
-                            Op::Frame(body_len + 5), // The fused capture for repetition
+                            Op::Frame(body_len + 6), // The fused capture for repetition
                         ]);
                         ops.extend(body_ops); // here comes the body
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(3),           // otherwise leave the loop
-                            Op::Commit,
-                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Forward(4),           // otherwise leave the loop
+                            Op::Capture,
+                            Op::Extend,
+                            Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
                             Op::Collect,
                             Op::Close,
@@ -592,14 +596,15 @@ impl ImlOp {
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // If nothing was consumed, then...
                             Op::Next,                 //...reject
-                            Op::Frame(body_len + 5),  // The fused capture for repetition
+                            Op::Frame(body_len + 6),  // The fused capture for repetition
                         ]);
                         ops.extend(body_ops); // here comes the body again inside the repetition
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(3),           // otherwise leave the loop
-                            Op::Commit,
-                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Forward(4),           // otherwise leave the loop
+                            Op::Capture,
+                            Op::Extend,
+                            Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
                             Op::Collect,
                             Op::Close,
@@ -911,6 +916,6 @@ impl From<Op> for ImlOp {
 
 impl From<Vec<ImlOp>> for ImlOp {
     fn from(items: Vec<ImlOp>) -> Self {
-        ImlOp::seq(items, false)
+        ImlOp::seq(items, None)
     }
 }
