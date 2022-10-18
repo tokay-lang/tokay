@@ -640,8 +640,9 @@ fn examples() {
         Ok(Some(value!(24)))
     );
 
-    // todo: Move this to a separate function
+    // todo: Move stuff below to a separate function
     testcase("tests/test_piped_grammar.tok");
+    testcase("tests/test_inline_parseable_sequence.tok");
 }
 
 // Tests for control flow -------------------------------------------------------------------------
