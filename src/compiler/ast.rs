@@ -1501,7 +1501,7 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
     ret.insert("emit".to_string(), emit.clone());
 
     // Need current frame position
-    let capture_start = context.frame0().capture_start;
+    let capture_start = context.frame.capture_start;
 
     let value = if value.is_void() {
         Some(
@@ -1543,7 +1543,7 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
         }
     }
 
-    let reader_start = context.frame0().reader_start;
+    let reader_start = context.frame.reader_start;
 
     // Store positions of reader start
     ret.insert(
