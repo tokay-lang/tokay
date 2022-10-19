@@ -198,13 +198,6 @@ impl Parser {
 
         // Parselet
 
-        (InlineParselet = {
-            // Inline parselet requires for an explicit block instead of an expression
-            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Block),
-                (call ast[(value "value_parselet")])]
-
-        }),
-
         (Parselet = {
             ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Expression),
                 (call ast[(value "value_parselet")])]
@@ -234,7 +227,7 @@ impl Parser {
 
         (StaticParseletInstance = {
             T_Consumable,
-            InlineParselet
+            Parselet
         }),
 
         (ParseletInstanceArgument = {
