@@ -159,11 +159,6 @@ Load : @{
 
 # Parselet
 
-InlineParselet : @{
-    # Inline parselet requires for an explicit block instead of an expression
-    '@' _ ParseletGenerics? _ ParseletArguments? expect Block  ast("value_parselet")
-}
-
 Parselet : @{
     '@' _ ParseletGenerics? _ ParseletArguments? expect Expression  ast("value_parselet")
 }
@@ -190,7 +185,7 @@ ParseletArguments : @{
 
 # Parselet: Instance
 
-StaticParseletInstance : T_Consumable | InlineParselet
+StaticParseletInstance : T_Consumable | Parselet
 
 ParseletInstanceArgument : @{
     T_Identifier _ ':' _ expect Atomic _  ast("genarg_named")
