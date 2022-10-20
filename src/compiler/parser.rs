@@ -199,7 +199,7 @@ impl Parser {
         // Parselet
 
         (Parselet = {
-            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Expression),
+            ["@", _, (opt ParseletGenerics), _, (opt ParseletArguments), (expect Block),
                 (call ast[(value "value_parselet")])]
         }),
 

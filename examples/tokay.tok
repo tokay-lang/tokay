@@ -160,7 +160,7 @@ Load : @{
 # Parselet
 
 Parselet : @{
-    '@' _ ParseletGenerics? _ ParseletArguments? expect Expression  ast("value_parselet")
+    '@' _ ParseletGenerics? _ ParseletArguments? expect Block  ast("value_parselet")
 }
 
 ## Parselet: Generics
