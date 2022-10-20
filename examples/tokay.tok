@@ -243,10 +243,11 @@ TokenLiteral : @{
 
 TokenAtom : @{
     TokenLiteral
+    InlineBlock
+    '@' _ InlineBlock  ast("area")
+    Block
     ParseletInstance '(' _ ___ CallArguments? ___ expect ')'  ast("call")
     ParseletInstance
-    InlineBlock
-    Block
 }
 
 Token1 : @{  # todo: Token1 can be renamed back to Token again when #31 is fixed and Self is used.
