@@ -442,8 +442,7 @@ impl ImlOp {
                     item.compile(ops, linker);
                 }
 
-                // Create a frame and collect in collection-mode,
-                // when there's more than one operation inside ret.
+                // Check if the sequence exists of more than one operational instruction
                 if *collection
                     && ops[start..]
                         .iter()
@@ -572,14 +571,15 @@ impl ImlOp {
                         // Kleene
                         ops.extend(vec![
                             Op::Frame(0),            // The overall capture
-                            Op::Frame(body_len + 5), // The fused capture for repetition
+                            Op::Frame(body_len + 6), // The fused capture for repetition
                         ]);
                         ops.extend(body_ops); // here comes the body
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(3),           // otherwise leave the loop
-                            Op::Commit,
-                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Forward(4),           // otherwise leave the loop
+                            Op::Capture,
+                            Op::Extend,
+                            Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
                             Op::Collect,
                             Op::Close,
@@ -592,14 +592,15 @@ impl ImlOp {
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // If nothing was consumed, then...
                             Op::Next,                 //...reject
-                            Op::Frame(body_len + 5),  // The fused capture for repetition
+                            Op::Frame(body_len + 6),  // The fused capture for repetition
                         ]);
                         ops.extend(body_ops); // here comes the body again inside the repetition
                         ops.extend(vec![
                             Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(3),           // otherwise leave the loop
-                            Op::Commit,
-                            Op::Backward(body_len + 3), // repeat the body
+                            Op::Forward(4),           // otherwise leave the loop
+                            Op::Capture,
+                            Op::Extend,
+                            Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
                             Op::Collect,
                             Op::Close,

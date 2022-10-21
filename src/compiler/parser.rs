@@ -290,11 +290,12 @@ impl Parser {
 
         (TokenAtom = {
             TokenLiteral,
+            InlineBlock,
+            ["@", _, InlineBlock, (call ast[(value "area")])],
+            Block,
             [ParseletInstance, "(", _, ___, (opt CallArguments), ___, (expect ")"),
                 (call ast[(value "call")])],
-            ParseletInstance,
-            InlineBlock,
-            Block
+            ParseletInstance
         }),
 
         (Token = {

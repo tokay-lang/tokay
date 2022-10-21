@@ -644,6 +644,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             ImlOp::from(vec![expr, alias, ImlOp::from(Op::MakeAlias)])
         }
 
+        // area -----------------------------------------------------------
+        "area" => {
+            let body = traverse(compiler, &node["children"]);
+            ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], false)
+        }
+
         // assign ---------------------------------------------------------
         assign if assign.starts_with("assign") => {
             let children = node["children"].borrow();
@@ -1416,13 +1422,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ));
             }
 
-            // Lists are definitive lists with a given length
+            // Lists are definitive lists with a given length and only non-aliased values
             if emit == "list" {
                 ops.push(Op::MakeList(children.len()).into());
                 ImlOp::from(ops)
             }
             // In most cases, lists are parsed as sequences;
-            // inline-sequence always have a higher return severity.
             else {
                 ImlOp::seq(ops, true)
             }

@@ -1,0 +1,10 @@
+print("stage 1 " + repr(x))
+#Int _ x = (Int expect EOF  ast("test")) ast("yo")
+x = @(Int _ Int ast("test") | Void)
+print("stage 2 " + repr(x))
+#end x
+#---
+#1 2
+#---
+#stage 1 void
+#stage 2 (emit => "test", children => (1, 2), offset => 0, row => 1, col => 1, stop_offset => 3, stop_row => 1, stop_col => 4)

@@ -22,7 +22,8 @@ pub(crate) enum Op {
 
     // Capture frames
     Frame(usize), // Start new frame with optional relative forward address fuse
-    Commit,       // Commit frame
+    Capture,      // Reset frame capture to current stack size, saving captures
+    Extend,       // Extend frame's reader to current position
     Reset,        // Reset frame
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
@@ -194,8 +195,12 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Commit => {
+                Op::Capture => {
                     context.frame.capture_start = context.runtime.stack.len();
+                    Ok(Accept::Next)
+                }
+
+                Op::Extend => {
                     context.frame.reader_start = context.runtime.reader.tell();
                     Ok(Accept::Next)
                 }
