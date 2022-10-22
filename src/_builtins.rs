@@ -43,8 +43,8 @@ pub static BUILTINS: [Builtin; 44] = [
         func: crate::value::dict::Dict::tokay_method_dict,
     },
     Builtin {
-        name: "dict_getitem",
-        func: crate::value::dict::Dict::tokay_method_dict_getitem,
+        name: "dict_get_item",
+        func: crate::value::dict::Dict::tokay_method_dict_get_item,
     },
     Builtin {
         name: "dict_len",
@@ -63,8 +63,8 @@ pub static BUILTINS: [Builtin; 44] = [
         func: crate::value::dict::Dict::tokay_method_dict_push,
     },
     Builtin {
-        name: "dict_setitem",
-        func: crate::value::dict::Dict::tokay_method_dict_setitem,
+        name: "dict_set_item",
+        func: crate::value::dict::Dict::tokay_method_dict_set_item,
     },
     Builtin {
         name: "error",

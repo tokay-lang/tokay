@@ -26,6 +26,10 @@ impl Object for Dict {
     }
 
     fn repr(&self) -> String {
+        if self.is_empty() {
+            return "dict()".to_string();
+        }
+
         let mut ret = "(".to_string();
 
         for (key, value) in self.iter() {
@@ -92,7 +96,8 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_getitem(dict, item, default=void)", {
+    tokay_method!("dict_get_item(dict, item, default=void)", {
+        // todo: alias dict_get
         let dict = dict.borrow();
         let item = item.to_string();
 
@@ -112,13 +117,18 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_setitem(dict, item, value)", {
+    tokay_method!("dict_set_item(dict, item, value=void)", {
         let mut dict = dict.borrow_mut();
         let item = item.to_string();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
-            dict.insert(item, value.clone());
-            Ok(value)
+            if value.is_void() {
+                dict.remove(&item);
+                Ok(value![void])
+            } else {
+                dict.insert(item, value.clone());
+                Ok(value)
+            }
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -307,7 +317,7 @@ fn test_dict_compare() {
 
 #[test]
 fn test_dict_item_handling() {
-    // getitem
+    // get_item
     assert_eq!(
         crate::run(
             r#"
@@ -319,7 +329,7 @@ fn test_dict_item_handling() {
         Ok(Some(crate::value!("John")))
     );
 
-    // setitem
+    // set_item
     assert_eq!(
         crate::run(
             r#"
@@ -342,6 +352,30 @@ fn test_dict_item_handling() {
             ""
         ),
         Ok(Some(crate::value!([1, 2, 3])))
+    );
+}
+
+#[test]
+fn test_dict_get_set_item() {
+    // Extended get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            (
+                d.get_item("lastname", "Doe")  # default value "Doe"
+                d.set_item("lastname", "Ezel")  # set item Ezel
+                d["lastname"] = "Esel"  # fixme: currently returns "Esel" as well in inline_sequence context
+                d["lastname"]  # get lastname (Esel)
+                d.set_item("name")  # unset name
+                d.get_item("name", "Horst")  # get name, default "Horst"
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([
+            "Doe", "Ezel", "Esel", "Esel", "Horst"
+        ])))
     );
 }
 
