@@ -401,7 +401,7 @@ impl ImlOp {
                     item.compile(&mut alt, linker);
 
                     // Fuse alternation branch, except at the last
-                    if iter.len() > 0 {
+                    if item.is_consuming() && iter.len() > 0 {
                         let fuse = alt.len() + if item.is_consuming() { 3 } else { 2 };
 
                         if initial_fuse.is_none() {
@@ -421,6 +421,10 @@ impl ImlOp {
                         ret.push(Op::Reset);
                     } else {
                         ret.extend(alt);
+
+                        if iter.len() > 0 {
+                            ret.push(Op::Reset);
+                        }
                     }
                 }
 
@@ -861,6 +865,10 @@ impl ImlOp {
                         consuming = true;
                         return false; // stop further examination
                     }
+                }
+                ImlOp::Op(Op::Next) => {
+                    consuming = true;
+                    return false; // stop further examination
                 }
                 _ => {}
             }
