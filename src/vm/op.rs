@@ -147,6 +147,13 @@ impl Op {
             if debug == 3 {
                 context.debug(&format!("{:03}:{}", ip, op));
             } else if debug > 3 {
+                if debug > 5 {
+                    if let Op::Offset(_) = op {
+                        ip += 1;
+                        continue;
+                    }
+                }
+
                 // Dump entire code
                 context.debug("--- Code ---");
                 dump(ops, context, ip);
