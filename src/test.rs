@@ -666,14 +666,15 @@ fn if_else() {
     // These expressions are evaluated at compile time
     assert_eq!(
         run(
-            "
+            r#"
             b = true
             nb = false
 
             if b 1 \
             if nb 2 \
             if $1 3 else 4 \
-            if !$2 5 else 6",
+            if !$2 5 else 6
+            "#,
             ""
         ),
         Ok(Some(value!([1, 3, 5])))
