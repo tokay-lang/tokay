@@ -92,6 +92,43 @@ impl Dict {
         }
     });
 
+    tokay_method!("dict_getitem(dict, item, default=void)", {
+        let dict = dict.borrow();
+        let item = item.to_string();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            if let Some(item) = dict.get(&item) {
+                Ok(item.clone())
+            } else {
+                Ok(default)
+            }
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_setitem(dict, item, value)", {
+        let mut dict = dict.borrow_mut();
+        let item = item.to_string();
+
+        if let Some(dict) = dict.object_mut::<Dict>() {
+            dict.insert(item, value.clone());
+            Ok(value)
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
     tokay_method!("dict_merge(dict, other)", {
         {
             let dict = &mut *dict.borrow_mut();
@@ -265,6 +302,46 @@ fn test_dict_compare() {
         Ok(Some(crate::value!([
             true, true, true, true, true, true, true, true, true
         ])))
+    );
+}
+
+#[test]
+fn test_dict_item_handling() {
+    // getitem
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            d["name"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!("John")))
+    );
+
+    // setitem
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            d["name"] = "Doe"
+            d["name"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!("Doe")))
+    );
+
+    // inline increment
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (x => 1)
+            d["x"]++ d["x"] ++d["x"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([1, 2, 3])))
     );
 }
 

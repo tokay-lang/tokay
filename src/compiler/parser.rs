@@ -162,7 +162,7 @@ impl Parser {
         // Statics, Variables, Loads
 
         (Subscript = {
-            ["[", _, Expression, "]", _, (call ast[(value "index")])]
+            ["[", _, Expression, "]", _, (call ast[(value "item")])]
         }),
 
         (Attribute = {
