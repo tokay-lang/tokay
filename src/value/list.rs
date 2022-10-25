@@ -81,6 +81,45 @@ impl List {
         }))
     });
 
+    tokay_method!("list_get_item(list, item)", {
+        // In case list is not a list, make it a list.
+        if !list.is("list") {
+            list = Self::list(vec![list], None)?;
+        }
+
+        let list = list.borrow();
+
+        if let Some(value) = list.object::<List>().unwrap().get(item.to_usize()?) {
+            Ok(value.clone())
+        } else {
+            Ok(crate::value![void])
+        }
+    });
+
+    tokay_method!("list_set_item(list, item, value=void)", {
+        // In case list is not a list, make it a list.
+        if !list.is("list") {
+            list = Self::list(vec![list], None)?;
+        }
+
+        let mut list = list.borrow_mut();
+        let list = list.object_mut::<List>().unwrap();
+
+        let item = item.to_usize()?;
+        let len = list.len();
+
+        if item >= len {
+            return Err(format!(
+                "{} assignment index {} beyond list of size {}",
+                __function, item, len
+            )
+            .into());
+        }
+
+        list[item] = value.clone();
+        Ok(value)
+    });
+
     tokay_method!("list_flatten(list)", {
         if let Some(list) = list.borrow().object::<List>() {
             let mut ret = List::with_capacity(list.len());
@@ -173,9 +212,10 @@ impl List {
             } else {
                 let index = index.to_usize()?;
                 let len = list.len();
+
                 if index > len {
                     return Err(format!(
-                        "{} index {} out of range in list sized {}",
+                        "{} provided index {} out of range in list of size {}",
                         __function, index, len
                     )
                     .into());
@@ -215,8 +255,16 @@ impl List {
             },
             Some(index) => {
                 let len = list.len();
+
                 if index >= len {
-                    return Err(format!("{} index {} out of range", __function, index).into());
+                    return Err(
+                        format!(
+                            "{} provided index {} out of range of list sized {}",
+                            __function, index
+                        )
+                        .into(),
+                        len,
+                    );
                 }
 
                 Ok(list.remove(len - index - 1))
