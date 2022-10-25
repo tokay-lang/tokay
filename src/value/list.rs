@@ -81,7 +81,7 @@ impl List {
         }))
     });
 
-    tokay_method!("list_get_item(list, item)", {
+    tokay_method!("list_get_item(list, item, default=void)", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -92,7 +92,7 @@ impl List {
         if let Some(value) = list.object::<List>().unwrap().get(item.to_usize()?) {
             Ok(value.clone())
         } else {
-            Ok(crate::value![void])
+            Ok(default)
         }
     });
 
@@ -110,13 +110,18 @@ impl List {
 
         if item >= len {
             return Err(format!(
-                "{} assignment index {} beyond list of size {}",
+                "{} assignment index {} beyond list sized {}",
                 __function, item, len
             )
             .into());
         }
 
-        list[item] = value.clone();
+        if value.is_void() {
+            value = list.remove(item);
+        } else {
+            list[item] = value.clone();
+        }
+
         Ok(value)
     });
 
@@ -215,7 +220,7 @@ impl List {
 
                 if index > len {
                     return Err(format!(
-                        "{} provided index {} out of range in list of size {}",
+                        "{} provided index {} out of range in list sized {}",
                         __function, index, len
                     )
                     .into());
@@ -239,7 +244,12 @@ impl List {
                 return Ok(list); // "pops" the list, which is not a list
             }
 
-            return Err(format!("{} index {} out of range", __function, index.unwrap()).into());
+            return Err(format!(
+                "{} provided index {} out of range",
+                __function,
+                index.unwrap()
+            )
+            .into());
         }
 
         let mut list = list.borrow_mut();
@@ -257,14 +267,11 @@ impl List {
                 let len = list.len();
 
                 if index >= len {
-                    return Err(
-                        format!(
-                            "{} provided index {} out of range of list sized {}",
-                            __function, index
-                        )
-                        .into(),
-                        len,
-                    );
+                    return Err(format!(
+                        "{} provided index {} out of range of list sized {}",
+                        __function, index, len
+                    )
+                    .into());
                 }
 
                 Ok(list.remove(len - index - 1))
@@ -342,6 +349,45 @@ fn test_list_new() {
 }
 
 #[test]
+fn test_list_get_set_item() {
+    // Standard get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            l = (1, 2, 3)
+            (
+                l[0]
+                l[1] = -2
+                ++l[2]
+                l[3]
+                l[2]
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([1, (-2), 4, 4])))
+    );
+
+    // Extended get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            l = (1, 2, 3)
+            (
+                l.get_item(0, 1337)  # get item 0, default 1337
+                l.get_item(3, 1337)  # get item 3, default 1337
+                l.set_item(0)        # drop index 0
+                l[1] = void          # drop index 1
+                l
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([1, 1337, 1, 3, [2]])))
+    );
+}
+
+#[test]
 fn test_list_len() {
     assert_eq!(
         crate::run(
@@ -387,7 +433,7 @@ fn test_list_push() {
 
     assert_eq!(
         crate::run("list_push((1,2,3), 99, 4)", ""),
-        Err("Line 1, column 1: list_push() index 4 out of range in list sized 3".into())
+        Err("Line 1, column 1: list_push() provided index 4 out of range in list sized 3".into())
     );
 }
 
@@ -400,14 +446,14 @@ fn test_list_pop() {
 
     assert_eq!(
         crate::run("l = (1,2,3,4); l.pop(4)", ""),
-        Err("Line 1, column 18: list_pop() index 4 out of range".into())
+        Err("Line 1, column 18: list_pop() provided index 4 out of range of list sized 4".into())
     );
 
     assert_eq!(crate::run("list_pop(1)", ""), Ok(Some(crate::value!(1))));
 
     assert_eq!(
         crate::run("list_pop(1, 1)", ""),
-        Err("Line 1, column 1: list_pop() index 1 out of range".into())
+        Err("Line 1, column 1: list_pop() provided index 1 out of range".into())
     );
 }
 
