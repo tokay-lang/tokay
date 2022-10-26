@@ -356,16 +356,16 @@ fn test_list_get_set_item() {
             r#"
             l = (1, 2, 3)
             (
-                l[0]
-                l[1] = -2
-                ++l[2]
-                l[3]
-                l[2]
+                l[0]       # 1
+                l[1] = -2  # void
+                ++l[2]     # 4
+                l[3]       # void
+                l[2]       # 4
             )
             "#,
             ""
         ),
-        Ok(Some(crate::value!([1, (-2), 4, 4])))
+        Ok(Some(crate::value!([1, 4, 4])))
     );
 
     // Extended get/set item test
@@ -374,16 +374,16 @@ fn test_list_get_set_item() {
             r#"
             l = (1, 2, 3)
             (
-                l.get_item(0, 1337)  # get item 0, default 1337
-                l.get_item(3, 1337)  # get item 3, default 1337
-                l.set_item(0)        # drop index 0
-                l[1] = void          # drop index 1
-                l
+                l.get_item(0, 1337)  # 1
+                l.get_item(3, 1337)  # 1337
+                l.set_item(0)        # 1
+                l[1] = void          # void
+                l                    # (2, )
             )
             "#,
             ""
         ),
-        Ok(Some(crate::value!([1, 1337, 1, 3, [2]])))
+        Ok(Some(crate::value!([1, 1337, 1, [2]])))
     );
 }
 

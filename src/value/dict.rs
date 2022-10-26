@@ -363,19 +363,37 @@ fn test_dict_get_set_item() {
             r#"
             d = (name => "John")
             (
-                d.get_item("lastname", "Doe")  # default value "Doe"
-                d.set_item("lastname", "Ezel")  # set item Ezel
-                d["lastname"] = "Esel"  # fixme: currently returns "Esel" as well in inline_sequence context
-                d["lastname"]  # get lastname (Esel)
-                d.set_item("name")  # unset name
-                d.get_item("name", "Horst")  # get name, default "Horst"
+                d["x"]            # void
+                d["x"] = 42       # void
+                d["x"]            # 42
+                d["x"]++          # 42
+                ++d["x"]          # 44
+                d["name"] = void  # void
+                d.len             # 1
             )
             "#,
             ""
         ),
-        Ok(Some(crate::value!([
-            "Doe", "Ezel", "Esel", "Esel", "Horst"
-        ])))
+        Ok(Some(crate::value!([42, 42, 44, 1])))
+    );
+
+    // Extended get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            (
+                d.get_item("lastname", "Doe")   # "Doe"
+                d.set_item("lastname", "Ezel")  # "Ezel"
+                d["lastname"] = "Esel"          # void
+                d["lastname"]                   # "Esel"
+                d.set_item("name")              # unset name
+                d.get_item("name", "Horst")     # "Horst"
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!(["Doe", "Ezel", "Esel", "Horst"])))
     );
 }
 
