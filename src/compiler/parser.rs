@@ -400,15 +400,28 @@ impl Parser {
             LogicalAnd
         }),
 
-        (Expression = {
+        (HoldExpression = {
 
             // assignment
+            [Lvalue, _, "+=", _, (expect HoldExpression), (call ast[(value "assign_add_hold")])],
+            [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub_hold")])],
+            [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul_hold")])],
+            [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div_hold")])],
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
-                _, (expect Expression), (call ast[(value "assign_hold")])],
-            [Lvalue, _, "+=", _, (expect Expression), (call ast[(value "assign_add_hold")])],
-            [Lvalue, _, "-=", _, (expect Expression), (call ast[(value "assign_sub_hold")])],
-            [Lvalue, _, "*=", _, (expect Expression), (call ast[(value "assign_mul_hold")])],
-            [Lvalue, _, "/=", _, (expect Expression), (call ast[(value "assign_div_hold")])],
+                _, (expect HoldExpression), (call ast[(value "assign_hold")])],
+
+            // normal expression starting with LogicalOr
+            LogicalOr
+        }),
+
+        (Expression = {
+
+            [Lvalue, _, "+=", _, (expect HoldExpression), (call ast[(value "assign_add")])],
+            [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub")])],
+            [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul")])],
+            [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div")])],
+            [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
+                _, (expect HoldExpression), (call ast[(value "assign")])],
 
             // normal expression starting with LogicalOr
             LogicalOr
@@ -432,13 +445,6 @@ impl Parser {
             ["repeat", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_repeat")])],
             ["return", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_accept")])],
             // todo: escape?
-
-            [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
-                _, (expect Expression), (call ast[(value "assign")])],
-            [Lvalue, _, "+=", _, (expect Expression), (call ast[(value "assign_add")])],
-            [Lvalue, _, "-=", _, (expect Expression), (call ast[(value "assign_sub")])],
-            [Lvalue, _, "*=", _, (expect Expression), (call ast[(value "assign_mul")])],
-            [Lvalue, _, "/=", _, (expect Expression), (call ast[(value "assign_div")])],
 
             Expression
         }),

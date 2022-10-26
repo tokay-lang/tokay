@@ -334,12 +334,21 @@ LogicalOr : @{
     LogicalAnd
 }
 
+HoldExpression : @{
+    Lvalue _ '+=' _ expect HoldExpression  ast("assign_add_hold")
+    Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub_hold")
+    Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul_hold")
+    Lvalue _ '/=' _ expect HoldExpression  ast("assign_div_hold")
+    Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign_hold")
+    LogicalOr
+}
+
 Expression : @{
-    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign_hold")
-    Lvalue _ '+=' _ expect Expression  ast("assign_add_hold")
-    Lvalue _ '-=' _ expect Expression  ast("assign_sub_hold")
-    Lvalue _ '*=' _ expect Expression  ast("assign_mul_hold")
-    Lvalue _ '/=' _ expect Expression  ast("assign_div_hold")
+    Lvalue _ '+=' _ expect HoldExpression  ast("assign_add")
+    Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub")
+    Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul")
+    Lvalue _ '/=' _ expect HoldExpression  ast("assign_div")
+    Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign")
     LogicalOr
 }
 
@@ -360,11 +369,6 @@ Statement : @{
     'reject' _SeparatedIdentifier  ast("op_reject")
     'repeat' _SeparatedIdentifier Expression?  ast("op_repeat")
     'return' _SeparatedIdentifier Expression?  ast("op_accept")
-    Lvalue _ '=' not ('>' | '=') _ expect Expression  ast("assign")
-    Lvalue _ '+=' _ expect Expression  ast("assign_add")
-    Lvalue _ '-=' _ expect Expression  ast("assign_sub")
-    Lvalue _ '*=' _ expect Expression  ast("assign_mul")
-    Lvalue _ '/=' _ expect Expression  ast("assign_div")
     Expression
 }
 
