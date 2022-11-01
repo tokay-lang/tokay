@@ -1,0 +1,11 @@
+d = (name => "John")
+(
+    d.get_item("lastname", "Doe")   # "Doe"
+    d.set_item("lastname", "Ezel")  # "Ezel"
+    d["lastname"] = "Esel"          # void
+    d["lastname"]                   # "Esel"
+    d.set_item("name")              # unset name
+    d.get_item("name", "Horst")     # "Horst"
+)
+#---
+#("Doe", "Ezel", "Esel", "Horst")

@@ -321,19 +321,6 @@ impl From<&RefValue> for List {
     }
 }
 
-/*
-// fixme: This could be a replacement for value.list() but its usage is ugly.
-impl<'list> From<&'list Value> for Option<&'list List> {
-    fn from(value: &'list Value) -> Self {
-        if let Value::List(list) = value {
-            Some(&list)
-        } else {
-            None
-        }
-    }
-}
-*/
-
 impl From<List> for RefValue {
     fn from(value: List) -> Self {
         RefValue::from(Box::new(value) as BoxedObject)
