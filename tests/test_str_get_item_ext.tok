@@ -1,0 +1,14 @@
+s = "abc"
+l = ()
+for i = -1; i < 4; i++ {
+    print(i, s[i], s.get_item(i, "x"))
+    l.push(s[i] + s.get_item(i, "x") + i)
+}
+l
+#---
+#-1 c c
+#0 a a
+#1 b b
+#2 c c
+#3  x
+#("cc-1", "aa0", "bb1", "cc2", "x3")
