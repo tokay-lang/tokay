@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 46] = [
+pub static BUILTINS: [Builtin; 47] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -153,6 +153,10 @@ pub static BUILTINS: [Builtin; 46] = [
     Builtin {
         name: "str_endswith",
         func: crate::value::str::Str::tokay_method_str_endswith,
+    },
+    Builtin {
+        name: "str_get_item",
+        func: crate::value::str::Str::tokay_method_str_get_item,
     },
     Builtin {
         name: "str_join",
