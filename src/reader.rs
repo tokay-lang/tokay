@@ -1,6 +1,7 @@
 //! Universal low-level interface to let Tokay read input from different sources.
 use num_parse::PeekableIterator;
 use std::io::prelude::*;
+use std::io::BufReader;
 
 /// Position inside a reader, with row and column counting.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -24,9 +25,9 @@ pub struct Reader {
 
 impl Reader {
     /// Creates a new reader on buffer read.
-    pub fn new(reader: Box<dyn BufRead>) -> Self {
+    pub fn new(read: Box<dyn Read>) -> Self {
         Self {
-            reader,
+            reader: Box::new(BufReader::new(read)),
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             peeked: ' ',
             offset: Offset {

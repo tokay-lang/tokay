@@ -8,7 +8,6 @@ use crate::value::{RefValue, Token};
 use crate::vm::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::BufReader;
 use std::rc::Rc;
 
 /** Compiler symbolic scope.
@@ -146,9 +145,7 @@ impl Compiler {
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
     pub fn compile_from_str(&mut self, src: &str) -> Result<Option<Program>, Vec<Error>> {
-        self.compile(Reader::new(Box::new(BufReader::new(std::io::Cursor::new(
-            src.to_owned(),
-        )))))
+        self.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))))
     }
 
     /// Tries to resolves open usages from the current scope
