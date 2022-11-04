@@ -12,9 +12,9 @@ Holds additional runtime information, like the stack or memoization table.
 */
 pub struct Runtime {
     pub reader: Reader, // reader to read from
+    //pub start: usize, // absolute start offset in relation to reader
     pub output: Box<dyn std::io::Write>,
     pub error: Box<dyn std::io::Write>,
-    pub start: usize, // absolute start offset in relation to reader
 
     pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // memoization table
     pub stack: Vec<Capture>,                                             // value stack
@@ -28,7 +28,6 @@ impl Runtime {
             reader,
             output: Box::new(std::io::stdout()),
             error: Box::new(std::io::stderr()),
-            start: 0,
             memo: HashMap::new(),
             stack: Vec::new(),
             debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {

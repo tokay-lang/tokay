@@ -1548,28 +1548,35 @@ tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
         }
     }
 
-    let reader_start = context.frame.reader_start;
+    let start = context.frame.reader_start;
+    let reader_start = context.runtime.reader.start();
 
     // Store positions of reader start
     ret.insert(
         "offset".to_string(),
-        value!(reader_start.offset + context.runtime.start),
+        value!(start.offset + reader_start.offset),
     );
-    ret.insert("row".to_string(), value!(reader_start.row as usize));
-    ret.insert("col".to_string(), value!(reader_start.col as usize));
+    ret.insert("row".to_string(), value!(start.row as usize));
+    ret.insert("col".to_string(), value!(start.col as usize));
 
     // Store positions of reader stop
     let current = context.runtime.reader.tell();
 
     ret.insert(
         "stop_offset".to_string(),
-        value!(current.offset + context.runtime.start),
+        value!(current.offset + reader_start.offset),
     );
     ret.insert("stop_row".to_string(), value!(current.row as usize));
     ret.insert("stop_col".to_string(), value!(current.col as usize));
 
     RefValue::from(ret).into()
 });
+
+#[test]
+fn test_ast() {
+    // Issue #3
+    crate::test::testcase("tests/test_ast_offset.tok");
+}
 
 tokay_function!("ast_print(ast)", {
     print(&ast);

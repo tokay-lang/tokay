@@ -494,7 +494,7 @@ fn sequences() {
         ])))
     );
 
-    // Issue 63
+    // Issue #63
     testcase("tests/test_sequence_issue_63.tok");
 }
 

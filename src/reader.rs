@@ -20,6 +20,7 @@ pub struct Reader {
     buffer: String,           // Internal buffer
     peeked: char,             // Currently peeked char
     offset: Offset,           // Current offset
+    start: Offset,            // Offset of last commit
     eof: bool,                // EOF marker
 }
 
@@ -31,6 +32,11 @@ impl Reader {
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             peeked: ' ',
             offset: Offset {
+                offset: 0,
+                row: 1,
+                col: 1,
+            },
+            start: Offset {
                 offset: 0,
                 row: 1,
                 col: 1,
@@ -56,6 +62,10 @@ impl Reader {
 
     pub fn tell(&self) -> Offset {
         self.offset
+    }
+
+    pub fn start(&self) -> Offset {
+        self.start
     }
 
     pub fn eof(&mut self) -> bool {
@@ -106,7 +116,8 @@ impl Reader {
     /// Commits current input buffer and removes cached content
     pub fn commit(&mut self) {
         self.buffer.drain(0..self.offset.offset);
-        self.offset.offset = 0;
+        self.start = self.offset;
+        self.offset.offset = 0; // reset offset to 0
     }
 
     /// Take one character accepted by callback

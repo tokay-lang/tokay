@@ -544,9 +544,6 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                             self.runtime.reader.next();
                         }
 
-                        // Update absolute start offset
-                        self.runtime.start = self.runtime.reader.tell().offset;
-
                         // Clear input buffer
                         self.runtime.reader.commit();
 
