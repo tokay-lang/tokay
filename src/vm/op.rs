@@ -436,12 +436,10 @@ impl Op {
                     }
                 }
 
-                Op::CallStatic(addr) => {
-                    context.runtime.program.statics[*addr].call(context, 0, None)
-                }
+                Op::CallStatic(addr) => context.program.statics[*addr].call(context, 0, None),
 
                 Op::CallStaticArg(addr_args) => {
-                    context.runtime.program.statics[addr_args.0].call(context, addr_args.1, None)
+                    context.program.statics[addr_args.0].call(context, addr_args.1, None)
                     //println!("CallStaticArg returns {:?}", ret);
                 }
 
@@ -449,11 +447,7 @@ impl Op {
                     let nargs = Value::from(context.pop());
 
                     if let Some(nargs) = nargs.into_object::<Dict>() {
-                        context.runtime.program.statics[addr_args.0].call(
-                            context,
-                            addr_args.1,
-                            Some(nargs),
-                        )
+                        context.program.statics[addr_args.0].call(context, addr_args.1, Some(nargs))
                     } else {
                         panic!("nargs operand required to be dict")
                     }
@@ -461,7 +455,7 @@ impl Op {
 
                 // Variables and values
                 Op::LoadStatic(addr) => {
-                    let value = &context.runtime.program.statics[*addr];
+                    let value = &context.program.statics[*addr];
                     context.push(value.borrow().clone().into())
                 }
                 Op::Push0 => context.push(value!(0i64)),

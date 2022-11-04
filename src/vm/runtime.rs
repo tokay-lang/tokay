@@ -10,9 +10,8 @@ use crate::value::RefValue;
 
 Holds additional runtime information, like the stack or memoization table.
 */
-pub struct Runtime<'program, 'reader> {
-    pub program: &'program Program,  // program to execute
-    pub reader: &'reader mut Reader, // reader to read from
+pub struct Runtime {
+    pub reader: Reader, // reader to read from
     pub output: Box<dyn std::io::Write>,
     pub error: Box<dyn std::io::Write>,
     pub start: usize, // absolute start offset in relation to reader
@@ -23,10 +22,9 @@ pub struct Runtime<'program, 'reader> {
     pub debug: u8, // Debug level
 }
 
-impl<'program, 'reader> Runtime<'program, 'reader> {
-    pub fn new(program: &'program Program, reader: &'reader mut Reader) -> Self {
+impl Runtime {
+    pub fn new(reader: Reader) -> Self {
         Self {
-            program,
             reader,
             output: Box::new(std::io::stdout()),
             error: Box::new(std::io::stderr()),
@@ -50,4 +48,6 @@ impl<'program, 'reader> Runtime<'program, 'reader> {
     pub fn save_stack(mut self) -> Vec<RefValue> {
         self.stack.drain(..).map(|item| item.get_value()).collect()
     }
+
+    // todo: Implement a delete function that releases the reader (and maybe also output and error)
 }

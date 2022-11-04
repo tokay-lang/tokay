@@ -530,9 +530,9 @@ impl Parser {
         }))
     }
 
-    pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
+    pub fn parse(&self, reader: Reader) -> Result<RefValue, Error> {
         //self.0.dump();
-        let mut runtime = Runtime::new(&self.0, &mut reader);
+        let mut runtime = Runtime::new(reader);
 
         if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
             runtime.debug = level.parse::<u8>().unwrap_or_default();

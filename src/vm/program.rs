@@ -44,7 +44,7 @@ impl Program {
             .main()
             .0
             .borrow()
-            .run(runtime, runtime.stack.len(), None, true, 0)
+            .run(self, runtime, runtime.stack.len(), None, true, 0)
         {
             Ok(Accept::Push(Capture::Value(value, ..))) => {
                 if value.is_void() {
@@ -59,8 +59,8 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
-        let mut runtime = Runtime::new(&self, &mut reader);
+    pub fn run_from_reader(&self, reader: Reader) -> Result<Option<RefValue>, Error> {
+        let mut runtime = Runtime::new(reader);
         self.run(&mut runtime)
     }
 
