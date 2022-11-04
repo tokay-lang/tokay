@@ -186,20 +186,20 @@ tokay_function!("print(*args)", {
         Some(context) => {
             if args.len() == 0 {
                 if let Some(capture) = context.get_capture(0) {
-                    write!(context.runtime.writer, "{}", capture.to_string()).unwrap();
+                    write!(context.runtime.output, "{}", capture.to_string()).unwrap();
                 }
             } else {
                 for i in 0..args.len() {
                     if i > 0 {
-                        write!(context.runtime.writer, " ").unwrap();
+                        write!(context.runtime.output, " ").unwrap();
                     }
 
-                    write!(context.runtime.writer, "{}", args[i].to_string()).unwrap();
+                    write!(context.runtime.output, "{}", args[i].to_string()).unwrap();
                 }
             }
 
-            write!(context.runtime.writer, "\n").unwrap();
-            context.runtime.writer.flush().unwrap();
+            write!(context.runtime.output, "\n").unwrap();
+            context.runtime.output.flush().unwrap();
         }
     }
 
