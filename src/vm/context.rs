@@ -17,11 +17,13 @@ pub struct Frame {
 /** Contexts represent stack frames for parselet calls.
 
 Via the context, most operations regarding capture storing and loading is performed. */
-pub struct Context<'runtime, 'program, 'reader, 'parselet> {
+pub struct Context<'program, 'parselet, 'runtime> {
     // References
-    pub runtime: &'runtime mut Runtime<'program, 'reader>, // Overall runtime
-    pub parselet: &'parselet Parselet,                     // Current parselet that is executed
-    pub depth: usize,                                      // Recursion depth
+    pub program: &'program Program,     // Program
+    pub parselet: &'parselet Parselet,  // Current parselet that is executed
+    pub runtime: &'runtime mut Runtime, // Overall runtime
+
+    pub depth: usize, // Recursion depth
 
     // Positions
     pub stack_start: usize, // Stack start (including locals and parameters)
@@ -35,10 +37,11 @@ pub struct Context<'runtime, 'program, 'reader, 'parselet> {
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
 }
 
-impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader, 'parselet> {
+impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     pub fn new(
-        runtime: &'runtime mut Runtime<'program, 'reader>,
+        program: &'program Program,
         parselet: &'parselet Parselet,
+        runtime: &'runtime mut Runtime,
         locals: usize,
         take: usize,
         hold: usize,
@@ -68,8 +71,9 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         // Create Context
         Self {
-            runtime,
+            program,
             parselet,
+            runtime,
             depth,
             stack_start,
             hold,
@@ -109,7 +113,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let mut capture = self.runtime.stack.pop().unwrap();
-        capture.extract(self.runtime.reader)
+        capture.extract(&mut self.runtime.reader)
     }
 
     /// Peek top value of stack.
@@ -117,14 +121,14 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
         let capture = self.runtime.stack.last_mut().unwrap();
-        capture.extract(self.runtime.reader)
+        capture.extract(&mut self.runtime.reader)
     }
 
     // Push a value onto the stack
     #[inline]
     pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
         let capture = &mut self.runtime.stack[index];
-        let value = capture.extract(self.runtime.reader);
+        let value = capture.extract(&self.runtime.reader);
         self.push(value)
     }
 
@@ -189,7 +193,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                 Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
                     if alias.as_ref().unwrap() == name {
                         capture.degrade();
-                        return Some(capture.extract(self.runtime.reader));
+                        return Some(capture.extract(&self.runtime.reader));
                     }
                 }
                 _ => {}
@@ -398,7 +402,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
 
         captures
             .into_iter()
-            .map(|mut capture| capture.extract(self.runtime.reader))
+            .map(|mut capture| capture.extract(&self.runtime.reader))
             .collect()
     }
 
@@ -540,9 +544,6 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
                             self.runtime.reader.next();
                         }
 
-                        // Update absolute start offset
-                        self.runtime.start = self.runtime.reader.tell().offset;
-
                         // Clear input buffer
                         self.runtime.reader.commit();
 
@@ -624,9 +625,7 @@ impl<'runtime, 'program, 'reader, 'parselet> Context<'runtime, 'program, 'reader
     }
 }
 
-impl<'runtime, 'program, 'reader, 'parselet> Drop
-    for Context<'runtime, 'program, 'reader, 'parselet>
-{
+impl<'program, 'parselet, 'runtime> Drop for Context<'program, 'parselet, 'runtime> {
     fn drop(&mut self) {
         self.runtime.stack.truncate(self.stack_start + self.hold);
     }

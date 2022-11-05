@@ -74,6 +74,7 @@ impl Parselet {
     like subsequent parselet. */
     pub fn run(
         &self,
+        program: &Program,
         runtime: &mut Runtime,
         args: usize,
         mut nargs: Option<Dict>,
@@ -96,8 +97,9 @@ impl Parselet {
 
         // If not, start a new context.
         let mut context = Context::new(
+            program,
+            self,
             runtime,
-            &self,
             self.locals,
             args,
             if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
@@ -146,8 +148,7 @@ impl Parselet {
                     // Otherwise, use default value if available.
                     if let Some(addr) = arg.1 {
                         // fixme: This might leak the immutable static value to something mutable...
-                        *var =
-                            Capture::Value(context.runtime.program.statics[addr].clone(), None, 0);
+                        *var = Capture::Value(context.program.statics[addr].clone(), None, 0);
                         //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }
@@ -333,9 +334,14 @@ impl Object for ParseletRef {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        self.0
-            .borrow()
-            .run(context.runtime, args, nargs, false, context.depth + 1)
+        self.0.borrow().run(
+            context.program,
+            context.runtime,
+            args,
+            nargs,
+            false,
+            context.depth + 1,
+        )
     }
 }
 

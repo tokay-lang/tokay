@@ -85,8 +85,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                 Ok(None) => {}
                 Ok(Some(program)) => {
                     for (name, stream) in &streams {
-                        let mut reader = stream.borrow_mut().get_reader();
-                        let mut runtime = Runtime::new(&program, &mut reader);
+                        let mut runtime = Runtime::new(stream.borrow_mut().get_reader());
                         runtime.debug = compiler.debug;
                         runtime.load_stack(globals);
 

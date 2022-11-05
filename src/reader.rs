@@ -1,6 +1,7 @@
 //! Universal low-level interface to let Tokay read input from different sources.
 use num_parse::PeekableIterator;
 use std::io::prelude::*;
+use std::io::BufReader;
 
 /// Position inside a reader, with row and column counting.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -19,17 +20,23 @@ pub struct Reader {
     buffer: String,           // Internal buffer
     peeked: char,             // Currently peeked char
     offset: Offset,           // Current offset
+    start: Offset,            // Offset of last commit
     eof: bool,                // EOF marker
 }
 
 impl Reader {
     /// Creates a new reader on buffer read.
-    pub fn new(reader: Box<dyn BufRead>) -> Self {
+    pub fn new(read: Box<dyn Read>) -> Self {
         Self {
-            reader,
+            reader: Box::new(BufReader::new(read)),
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             peeked: ' ',
             offset: Offset {
+                offset: 0,
+                row: 1,
+                col: 1,
+            },
+            start: Offset {
                 offset: 0,
                 row: 1,
                 col: 1,
@@ -55,6 +62,10 @@ impl Reader {
 
     pub fn tell(&self) -> Offset {
         self.offset
+    }
+
+    pub fn start(&self) -> Offset {
+        self.start
     }
 
     pub fn eof(&mut self) -> bool {
@@ -105,7 +116,8 @@ impl Reader {
     /// Commits current input buffer and removes cached content
     pub fn commit(&mut self) {
         self.buffer.drain(0..self.offset.offset);
-        self.offset.offset = 0;
+        self.start = self.offset;
+        self.offset.offset = 0; // reset offset to 0
     }
 
     /// Take one character accepted by callback
