@@ -12,7 +12,6 @@ Holds additional runtime information, like the stack or memoization table.
 */
 pub struct Runtime {
     pub reader: Reader, // reader to read from
-    //pub start: usize, // absolute start offset in relation to reader
     pub output: Box<dyn std::io::Write>,
     pub error: Box<dyn std::io::Write>,
 
@@ -44,9 +43,17 @@ impl Runtime {
         }
     }
 
-    pub fn save_stack(mut self) -> Vec<RefValue> {
+    pub fn save_stack(&mut self) -> Vec<RefValue> {
         self.stack.drain(..).map(|item| item.get_value()).collect()
     }
 
-    // todo: Implement a delete function that releases the reader (and maybe also output and error)
+    pub fn reset(&mut self) {
+        self.memo.clear();
+        self.stack.clear();
+    }
+
+    /*
+        TODO: Implement a drop function that releases the reader
+        (and maybe also output and error) for further use.
+    */
 }
