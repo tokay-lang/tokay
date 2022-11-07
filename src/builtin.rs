@@ -3,6 +3,7 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::{Accept, Context, Reject};
+use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
 
@@ -172,36 +173,22 @@ fn test_ord() {
 }
 
 tokay_function!("print(*args)", {
-    match context {
-        None => {
-            for i in 0..args.len() {
-                if i > 0 {
-                    print!(" ");
-                }
-
-                print!("{}", args[i].to_string());
-            }
-            print!("\n");
+    if args.len() == 0 && context.is_some() {
+        if let Some(capture) = context.unwrap().get_capture(0) {
+            print!("{}", capture.to_string());
         }
-        Some(context) => {
-            if args.len() == 0 {
-                if let Some(capture) = context.get_capture(0) {
-                    write!(context.runtime.output, "{}", capture.to_string()).unwrap();
-                }
-            } else {
-                for i in 0..args.len() {
-                    if i > 0 {
-                        write!(context.runtime.output, " ").unwrap();
-                    }
-
-                    write!(context.runtime.output, "{}", args[i].to_string()).unwrap();
-                }
+    } else {
+        for i in 0..args.len() {
+            if i > 0 {
+                print!(" ");
             }
 
-            write!(context.runtime.output, "\n").unwrap();
-            context.runtime.output.flush().unwrap();
+            print!("{}", args[i].to_string());
         }
     }
+
+    print!("\n");
+    io::stdout().flush().unwrap();
 
     value!(void).into()
 });

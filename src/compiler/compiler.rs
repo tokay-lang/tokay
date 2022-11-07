@@ -45,7 +45,7 @@ won't be removed and can be accessed on later calls.
 pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
-    //values: HashSet<ImlValue>,           // Set of static intermediate values collected during compile
+
     pub(in crate::compiler) scopes: Vec<Scope>, // Current compilation scopes
     pub(in crate::compiler) usages: Vec<ImlOp>, // Unresolved calls or loads
     pub(in crate::compiler) errors: Vec<Error>, // Collected errors during compilation
