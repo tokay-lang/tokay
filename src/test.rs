@@ -13,27 +13,27 @@ use std::process::Command;
 
 This function currently requires that a tokay debug executable is compiled before test cases are run.
 */
-pub(crate) fn testcase(filename: &'static str) {
-    let mut code = String::new();
-
-    match File::open(filename) {
+pub(crate) fn testcase(code: &str) {
+    // Try to open code as file
+    let (filename, code) = match File::open(code) {
         // The file is open (no error).
         Ok(mut file) => {
-            // Read all the file content into a variable (ignoring the result of the operation).
-            file.read_to_string(&mut code).unwrap();
+            let mut content = String::new();
 
-            // The file is automatically closed when is goes out of scope.
+            // Read all the file content into a variable (ignoring the result of the operation).
+            file.read_to_string(&mut content).unwrap();
+
+            // The file is automatically closed when it goes out of scope.
+            (code, content)
         }
         // Error handling.
-        Err(error) => {
-            panic!("Error opening file {}: {}", filename, error);
-        }
-    }
+        Err(_) => ("--", code.to_owned()),
+    };
 
     //println!("code = {:?}", code);
 
-    if let Some((_, data)) = code.split_once("#---\n") {
-        let mut params = vec![filename];
+    if let Some((code, data)) = code.split_once("#---\n") {
+        let mut params = vec![code];
         let mut result = data;
         let tmp;
 
@@ -55,11 +55,10 @@ pub(crate) fn testcase(filename: &'static str) {
 
         let output = Command::new(program)
             .args(&params)
-            //.env("LS_COLORS", "rs=0:di=38;5;27:mh=44;38;5;15")
             .output()
             .expect(&format!(
-                "Failed to run '{} {}'; You have to `cargo run` first!",
-                program, filename
+                "Failed to run testcase using {}; You need to run `cargo build` first!",
+                program
             ));
 
         let mut out: Vec<String> = String::from_utf8(output.stdout)
@@ -73,8 +72,8 @@ pub(crate) fn testcase(filename: &'static str) {
             .map(|line| line.to_string())
             .collect();
 
-        println!("out = {:?}", out);
-        println!("err = {:?}", err);
+        //println!("out = {:?}", out);
+        //println!("err = {:?}", err);
 
         for line in result.trim().split("\n").into_iter() {
             assert!(
@@ -83,14 +82,36 @@ pub(crate) fn testcase(filename: &'static str) {
             );
 
             if line.starts_with("#ERR:") {
-                assert_eq!(err.remove(0), line[5..].to_string());
+                let err = err.remove(0);
+                let exp = &line[5..];
+                assert_eq!(
+                    err, exp,
+                    "{} stderr expects {:?} but got {:?}",
+                    filename, exp, err
+                );
             } else {
-                assert_eq!(out.remove(0), line[1..].to_string());
+                let out = out.remove(0);
+                let exp = &line[1..];
+                assert_eq!(
+                    out, exp,
+                    "{} stdout expects {:?} but got {:?}",
+                    filename, exp, out
+                );
             }
         }
 
-        assert!(out.len() == 1, "Some output not consumed: {:?}", out);
-        assert!(err.len() == 1, "Some errors not consumed: {:?}", err);
+        assert!(
+            out.len() >= 1,
+            "Some output {:?} not consumed in {}",
+            out,
+            filename
+        );
+        assert!(
+            err.len() >= 1,
+            "Some errors {:?} not consumed in {}",
+            err,
+            filename
+        );
     } else {
         panic!("Testcase invalid, require for a '#---' delimiter.")
     }
