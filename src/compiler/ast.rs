@@ -479,18 +479,18 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 }
             }
 
-            // index ----------------------------------------------------------
-            "index" => {
+            // item -----------------------------------------------------------
+            "item" => {
                 ops.push(traverse(compiler, &item["children"]));
 
                 if store {
                     if hold {
-                        ops.push(Op::StoreIndexHold.into()); // todo: in case value is an integer, use LoadFastIndexHold
+                        ops.push(Op::StoreItemHold.into());
                     } else {
-                        ops.push(Op::StoreIndex.into()); // todo: in case value is an integer, use LoadFastIndex
+                        ops.push(Op::StoreItem.into());
                     }
                 } else {
-                    ops.push(Op::LoadIndex.into())
+                    ops.push(Op::LoadItem.into())
                 }
             }
 
@@ -564,14 +564,12 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
             };
         }
 
-        // index ----------------------------------------------------------
-        "index" => {
-            ImlOp::from(vec![
-                traverse(compiler, &node["children"]),
-                traverse_offset(node),
-                ImlOp::from(Op::LoadIndex), // todo: in case value is an integer, use LoadFastIndex
-            ])
-        }
+        // item -----------------------------------------------------------
+        "item" => ImlOp::from(vec![
+            traverse(compiler, &node["children"]),
+            traverse_offset(node),
+            ImlOp::from(Op::LoadItem),
+        ]),
 
         // rvalue ---------------------------------------------------------
         "rvalue" => {

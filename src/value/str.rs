@@ -1,8 +1,8 @@
 //! String object
 use super::{BoxedObject, List, Object, RefValue};
 use crate::value;
-use num::Zero;
-use num_bigint::BigInt;
+use num::{ToPrimitive, Zero};
+use num_bigint::{BigInt, Sign};
 use num_parse::*;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -78,22 +78,42 @@ impl Str {
     tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
 
     tokay_method!("str_len(s)", {
-        let string = s.borrow();
-
-        if let Some(string) = string.object::<Str>() {
-            Ok(RefValue::from(string.chars().count()))
-        } else {
-            Ok(RefValue::from(string.to_string().chars().count()))
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
         }
+
+        let string = s.borrow();
+        Ok(RefValue::from(
+            string.object::<Str>().unwrap().chars().count(),
+        ))
     });
 
     tokay_method!("str_byteslen(s)", {
-        let string = s.borrow();
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
 
-        if let Some(string) = string.object::<Str>() {
-            Ok(RefValue::from(string.len()))
+        let string = s.borrow();
+        Ok(RefValue::from(string.object::<Str>().unwrap().len()))
+    });
+
+    tokay_method!("str_get_item(s, item, default=void)", {
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
+
+        let string = s.borrow();
+        let string = string.object::<Str>().unwrap();
+        let mut item = item.to_bigint()?;
+
+        while item.sign() == Sign::Minus {
+            item = string.len() + item;
+        }
+
+        if let Some(ch) = string.chars().nth(item.to_usize().unwrap_or(0)) {
+            Ok(RefValue::from(ch))
         } else {
-            Ok(RefValue::from(string.to_string().len()))
+            Ok(default)
         }
     });
 
@@ -110,19 +130,19 @@ impl Str {
     });
 
     tokay_method!("str_endswith(s, postfix)", {
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
+
         let string = s.borrow();
         let postfix = postfix.borrow();
 
-        Ok(if let Some(string) = string.object::<Str>() {
-            let string = string.as_str();
+        let string = string.object::<Str>().unwrap().as_str();
 
-            if let Some(postfix) = postfix.object::<Str>() {
-                value!(string.ends_with(postfix.as_str()))
-            } else {
-                value!(string.ends_with(&postfix.to_string()))
-            }
+        Ok(if let Some(postfix) = postfix.object::<Str>() {
+            value!(string.ends_with(postfix.as_str()))
         } else {
-            value!(string.to_string().ends_with(&postfix.to_string()))
+            value!(string.ends_with(&postfix.to_string()))
         })
     });
 
@@ -158,7 +178,12 @@ impl Str {
     });
 
     tokay_method!("str_replace(s, from, to=void, n=void)", {
-        let string = s.to_string();
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
+
+        let string = s.borrow();
+        let string = string.object::<Str>().unwrap().as_str();
         let from = from.to_string();
         let to = to.to_string();
 
@@ -170,19 +195,19 @@ impl Str {
     });
 
     tokay_method!("str_startswith(s, prefix)", {
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
+
         let string = s.borrow();
         let prefix = prefix.borrow();
 
-        Ok(if let Some(string) = string.object::<Str>() {
-            let string = string.as_str();
+        let string = string.object::<Str>().unwrap().as_str();
 
-            if let Some(prefix) = prefix.object::<Str>() {
-                value!(string.starts_with(prefix.as_str()))
-            } else {
-                value!(string.starts_with(&prefix.to_string()))
-            }
+        Ok(if let Some(prefix) = prefix.object::<Str>() {
+            value!(string.starts_with(prefix.as_str()))
         } else {
-            value!(string.to_string().starts_with(&prefix.to_string()))
+            value!(string.starts_with(&prefix.to_string()))
         })
     });
 
@@ -268,26 +293,13 @@ impl From<Str> for RefValue {
     }
 }
 
-/*
-fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-    let index = index.to_usize();
-    if let Some(ch) = self.chars().nth(index) {
-        Ok(Value::Str(format!("{}", ch)).into())
-    } else {
-        Err(format!("Index {} beyond end of string", index))
+impl From<char> for RefValue {
+    fn from(ch: char) -> Self {
+        RefValue::from(Str {
+            string: format!("{}", ch),
+        })
     }
 }
-
-fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-    let index = index.to_usize();
-    if index < self.len() {
-        todo!();
-        Ok(())
-    } else {
-        Err(format!("Index {} beyond end of string", index))
-    }
-}
-*/
 
 #[test]
 fn test_str_len() {
@@ -303,6 +315,41 @@ fn test_str_byteslen() {
         crate::run("\"Hällo Wörld\".byteslen()", ""),
         Ok(Some(crate::value!(13 as usize)))
     )
+}
+
+#[test]
+fn test_str_get_item() {
+    // Standard get item test
+    assert_eq!(
+        crate::run(
+            r#"
+            s = "Hello"
+            l = ()
+            for i = 0; i < s.len; i++ {
+                l.push(s[i] + i)
+            }
+            l
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!(["H0", "e1", "l2", "l3", "o4"])))
+    );
+
+    // Extended get item test
+    assert_eq!(
+        crate::run(
+            r#"
+            s = "abc"
+            l = ()
+            for i = -1; i < 4; i++ {
+                l.push(s[i] + s.get_item(i, "x") + i)
+            }
+            l
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!(["cc-1", "aa0", "bb1", "cc2", "x3"])))
+    );
 }
 
 #[test]

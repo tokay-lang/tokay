@@ -1,0 +1,14 @@
+s = "Hello"
+l = ()
+for i = 0; i < s.len; i++ {
+    print(i, s[i])
+    l.push(s[i] + i)
+}
+l
+#---
+#0 H
+#1 e
+#2 l
+#3 l
+#4 o
+#("H0", "e1", "l2", "l3", "o4")

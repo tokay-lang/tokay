@@ -79,24 +79,23 @@ pub(crate) enum Op {
     PushTrue,          // Push True
     PushFalse,         // Push False
 
-    // Variables & Values
-    LoadGlobal(usize),
-    LoadFast(usize),
-    LoadFastCapture(usize),
-    LoadCapture,
-    LoadAttr,
-    LoadIndex,
-    //LoadFastAttr(usize),
-    StoreGlobal(usize),
-    StoreGlobalHold(usize),
-    StoreFast(usize),
-    StoreFastHold(usize),
-    StoreFastCapture(usize),
-    StoreFastCaptureHold(usize),
-    StoreCapture,
-    StoreCaptureHold,
-    StoreIndex,
-    StoreIndexHold,
+    // Variables, Values and Captures
+    LoadGlobal(usize),           // Load global variable
+    LoadFast(usize),             // Load local variable by current context
+    LoadFastCapture(usize),      // Load capture by known index
+    LoadCapture,                 // Load capture by evaluated index
+    LoadItem,                    // Load item
+    LoadAttr,                    // Load attr
+    StoreGlobal(usize),          // Store global variable
+    StoreGlobalHold(usize),      // Store global variable and keep tos
+    StoreFast(usize),            // Store local variable
+    StoreFastHold(usize),        // Store local variable and keep tos
+    StoreFastCapture(usize),     // Store capture with known index
+    StoreFastCaptureHold(usize), // Store capture with known index and keep tos
+    StoreCapture,                // Store capture with evaluated index
+    StoreCaptureHold,            // Store capture with evaluated index and keep tos
+    StoreItem,                   // Store item
+    StoreItemHold,               // Store item and push item reference to tos
 
     MakeAlias,       // Make key-value-Capture from last two stack items
     MakeList(usize), // Make a List from specified amount of items on stack
@@ -490,6 +489,17 @@ impl Op {
                     context.push(value)
                 }
 
+                Op::LoadItem => {
+                    let item = context.pop();
+                    let object = context.pop();
+
+                    match object.call_method("get_item", vec![item]) {
+                        Ok(Some(value)) => context.push(value),
+                        Ok(None) => Ok(Accept::Next),
+                        Err(msg) => Err(Reject::from(msg)),
+                    }
+                }
+
                 Op::LoadAttr => {
                     let attr = context.pop();
                     let attr = attr.borrow();
@@ -499,22 +509,6 @@ impl Op {
                         Ok(value) => context.push(value),
                         Err(err) => err.into(),
                     }
-                }
-
-                Op::LoadIndex => {
-                    //fixme
-                    /*
-                    let index = context.pop();
-                    let index = index.borrow();
-                    let value = context.pop();
-                    let value = value.borrow();
-
-                    match value.get_index(&index) {
-                        Ok(value) => context.push(value),
-                        Err(msg) => Error::new(None, msg).into(),
-                    }
-                    */
-                    todo!();
                 }
 
                 Op::StoreGlobal(addr) => {
@@ -588,27 +582,23 @@ impl Op {
                     }
                 }
 
-                Op::StoreIndex | Op::StoreIndexHold => {
-                    //fixme
-                    /*
-                    let index = context.pop();
-                    let index = index.borrow();
-                    let target = context.pop();
+                Op::StoreItem | Op::StoreItemHold => {
+                    let item = context.pop();
+                    let object = context.pop();
                     let value = context.pop();
 
-                    let mut obj = target.borrow_mut();
+                    match object.call_method("set_item", vec![item, value]) {
+                        Ok(value) => {
+                            let value = value.unwrap(); // setitem must always return a value!
 
-                    if let Err(msg) = obj.set_index(&index, value) {
-                        Error::new(None, msg).args[0].as_ref().unwrap().()
-                    } else {
-                        if matches!(op, Op::StoreIndexHold) {
-                            context.push(target.clone())
-                        } else {
-                            Ok(Accept::Next)
+                            if matches!(op, Op::StoreItemHold) {
+                                context.push(value)
+                            } else {
+                                Ok(Accept::Next)
+                            }
                         }
+                        Err(msg) => Err(Reject::from(msg)),
                     }
-                    */
-                    todo!();
                 }
 
                 Op::MakeAlias => {
