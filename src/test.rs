@@ -113,7 +113,10 @@ pub(crate) fn testcase(code: &str) {
             filename
         );
     } else {
-        panic!("Testcase invalid, require for a '#---' delimiter.")
+        panic!(
+            "Testcase invalid, require for a '#---' delimiter in {}",
+            filename
+        )
     }
 }
 
@@ -727,4 +730,14 @@ fn loops() {
     testcase("tests/test_loop.tok");
     testcase("tests/test_for.tok");
     testcase("tests/err_break_continue.tok");
+}
+
+#[test]
+// Run all tests in the tests/-folder
+fn tests() {
+    let cases = std::fs::read_dir("tests").unwrap();
+
+    for case in cases {
+        testcase(case.unwrap().path().to_str().unwrap());
+    }
 }
