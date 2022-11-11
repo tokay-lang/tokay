@@ -1497,7 +1497,7 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
+tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let context = context.unwrap();
 
     let mut ret = Dict::new();
@@ -1576,7 +1576,7 @@ fn test_ast() {
     crate::test::testcase("tests/test_ast_offset.tok");
 }
 
-tokay_function!("ast_print(ast)", {
+tokay_function!("ast_print : @ast", {
     print(&ast);
     value!(void).into()
 });

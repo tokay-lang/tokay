@@ -79,9 +79,9 @@ impl Dict {
         }
     }
 
-    tokay_method!("dict()", Ok(RefValue::from(Dict::new())));
+    tokay_method!("dict : @", Ok(RefValue::from(Dict::new())));
 
-    tokay_method!("dict_len(dict)", {
+    tokay_method!("dict_len : @dict", {
         let dict = dict.borrow();
 
         if let Some(dict) = dict.object::<Dict>() {
@@ -96,7 +96,7 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_get_item(dict, item, default=void)", {
+    tokay_method!("dict_get_item : @dict, item, default=void", {
         // todo: alias dict_get
         let dict = dict.borrow();
         let item = item.to_string();
@@ -117,7 +117,7 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_set_item(dict, item, value=void)", {
+    tokay_method!("dict_set_item : @dict, item, value=void", {
         let mut dict = dict.borrow_mut();
         let item = item.to_string();
 
@@ -139,7 +139,7 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_merge(dict, other)", {
+    tokay_method!("dict_merge : @dict, other", {
         {
             let dict = &mut *dict.borrow_mut();
 
@@ -171,7 +171,7 @@ impl Dict {
         Ok(dict)
     });
 
-    tokay_method!("dict_push(dict, key, value)", {
+    tokay_method!("dict_push : @dict, key, value", {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
@@ -192,7 +192,7 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_pop(dict, key, default=void)", {
+    tokay_method!("dict_pop : @dict, key, default=void", {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
