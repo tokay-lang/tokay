@@ -19,8 +19,6 @@ Argument : {
 }
 
 _ Identifier {
-    #'(' _ ')' _ void
-    #'(' _ { { Argument | not peek ')' error("Invalid input") } _ {',' _}? }* ')' _
     _ ':' _ '@' {
         { Argument _ {',' _}? }+
         void
