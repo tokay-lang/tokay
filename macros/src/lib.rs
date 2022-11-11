@@ -72,7 +72,7 @@ impl syn::parse::Parse for BuiltinDef {
             let args = res[1].borrow().to_list();
 
             // fixme: This is a little bit ugly but is needed to use Tokay v0.4 here.
-            //        Is has to be improved when using a higher Tokay version for building later.
+            //        It has to be improved when using a higher Tokay version for building later.
             for item in args.iter() {
                 let arg = &*item.borrow();
                 if let Some(arg) = arg.get_list() {

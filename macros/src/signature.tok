@@ -12,11 +12,14 @@ Argument : {
         } _
         ""  # required to produce a consistent AST in Tokay v0.4
     } accept ($1 $3)  # omg this is ugly, but it works... Tokay v0.4 hassle.
-    ''*args'' ""   accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
-    ''**nargs'' "" accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
+
+    # todo: Tokay v0.4 isn't capable of this:
+    ''*args'' ""   accept ($1 $2)  # todo: this should only be allowed as last argument, later
+    ''**nargs'' "" accept ($1 $2)  # todo: this should only be allowed as last, argument later
 }
 
 _ Identifier {
     '(' _ ')' _ void
     '(' _ { { Argument | not peek ')' error("Invalid input") } _ {',' _}? }* ')' _
+    _ ':' _ '@' { Argument _ {',' _}? }*
 }? EOF
