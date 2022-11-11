@@ -250,7 +250,7 @@ tokay_token!("Ident", {
 });
 
 // Matching 64-bit integers directly
-tokay_token!("Int(base=void, with_signs=true)", {
+tokay_token!("Int : @base=void, with_signs=true", {
     // Digits
     let base = if base.is_void() {
         None
@@ -280,7 +280,7 @@ tokay_token!("Int(base=void, with_signs=true)", {
 });
 
 // Matching 64-bit floats directly
-tokay_token!("Float(with_signs=true)", {
+tokay_token!("Float : @with_signs=true", {
     let reader = &mut context.runtime.reader;
     let start = reader.tell();
 
@@ -323,7 +323,7 @@ tokay_token!("Float(with_signs=true)", {
 });
 
 // Words, optionally with limited length
-tokay_token!("Word(min=1 max=void)", {
+tokay_token!("Word : @min=1 max=void", {
     let reader = &mut context.runtime.reader;
     let start = reader.tell();
 

@@ -50,7 +50,7 @@ impl From<&str> for Error {
     }
 }
 
-tokay_function!("error(msg, collect=false)", {
+tokay_function!("error : @msg, collect=false", {
     let context = context.unwrap();
     let mut msg = msg.to_string();
 

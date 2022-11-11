@@ -61,7 +61,7 @@ impl List {
         }
     }
 
-    tokay_method!("list(*args)", {
+    tokay_method!("list : @*args", {
         let list = if args.len() == 1 {
             List::from(args[0].clone())
         } else {
@@ -71,7 +71,7 @@ impl List {
         Ok(RefValue::from(list))
     });
 
-    tokay_method!("list_len(list)", {
+    tokay_method!("list_len : @list", {
         let list = list.borrow();
 
         Ok(RefValue::from(if let Some(list) = list.object::<List>() {
@@ -81,7 +81,7 @@ impl List {
         }))
     });
 
-    tokay_method!("list_get_item(list, item, default=void)", {
+    tokay_method!("list_get_item : @list, item, default=void", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -96,7 +96,7 @@ impl List {
         }
     });
 
-    tokay_method!("list_set_item(list, item, value=void)", {
+    tokay_method!("list_set_item : @list, item, value=void", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -125,7 +125,7 @@ impl List {
         Ok(value)
     });
 
-    tokay_method!("list_flatten(list)", {
+    tokay_method!("list_flatten : @list", {
         if let Some(list) = list.borrow().object::<List>() {
             let mut ret = List::with_capacity(list.len());
 
@@ -145,7 +145,7 @@ impl List {
         Ok(RefValue::from(crate::value!([list])))
     });
 
-    tokay_method!("list_iadd(list, append)", {
+    tokay_method!("list_iadd : @list, append", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             let item = RefValue::from(list.borrow().clone());
@@ -178,7 +178,7 @@ impl List {
         Ok(list)
     });
 
-    tokay_method!("list_add(list, append)", {
+    tokay_method!("list_add : @list, append", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -201,7 +201,7 @@ impl List {
         Ok(RefValue::from(list))
     });
 
-    tokay_method!("list_push(list, item, index=void)", {
+    tokay_method!("list_push : @list, item, index=void", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -233,7 +233,7 @@ impl List {
         Ok(list)
     });
 
-    tokay_method!("list_pop(list, index=void)", {
+    tokay_method!("list_pop : @list, index=void", {
         let index = match index.to_usize()? {
             0 => None,
             i => Some(i),

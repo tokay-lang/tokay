@@ -122,7 +122,7 @@ impl From<&'static Builtin> for RefValue {
 
 // Global built-ins
 
-tokay_function!("chr(i)", {
+tokay_function!("chr : @i", {
     RefValue::from(format!(
         "{}",
         std::char::from_u32(i.to_usize()? as u32).unwrap()
@@ -138,7 +138,7 @@ fn test_chr() {
     );
 }
 
-tokay_function!("ord(c)", {
+tokay_function!("ord : @c", {
     let c = c.to_string();
     if c.chars().count() != 1 {
         Err(format!(
@@ -171,7 +171,7 @@ fn test_ord() {
     );
 }
 
-tokay_function!("print(*args)", {
+tokay_function!("print : @*args", {
     match context {
         None => {
             for i in 0..args.len() {
@@ -206,7 +206,7 @@ tokay_function!("print(*args)", {
     value!(void).into()
 });
 
-tokay_function!("repr(value)", value!(value.repr()).into());
+tokay_function!("repr : @value", value!(value.repr()).into());
 
 #[test]
 fn test_repr() {
@@ -216,7 +216,7 @@ fn test_repr() {
     );
 }
 
-tokay_function!("type(value)", value!(value.name()).into());
+tokay_function!("type : @value", value!(value.name()).into());
 
 #[test]
 fn test_type() {

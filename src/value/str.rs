@@ -75,9 +75,9 @@ impl Str {
         &self.string
     }
 
-    tokay_method!("str(value)", Ok(RefValue::from(value.to_string())));
+    tokay_method!("str : @value", Ok(RefValue::from(value.to_string())));
 
-    tokay_method!("str_len(s)", {
+    tokay_method!("str_len : @s", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -88,7 +88,7 @@ impl Str {
         ))
     });
 
-    tokay_method!("str_byteslen(s)", {
+    tokay_method!("str_byteslen : @s", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -97,7 +97,7 @@ impl Str {
         Ok(RefValue::from(string.object::<Str>().unwrap().len()))
     });
 
-    tokay_method!("str_get_item(s, item, default=void)", {
+    tokay_method!("str_get_item : @s, item, default=void", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -117,7 +117,7 @@ impl Str {
         }
     });
 
-    tokay_method!("str_add(s, append)", {
+    tokay_method!("str_add : @s, append", {
         let mut string = s.to_string();
 
         if let Some(append) = append.borrow().object::<Str>() {
@@ -129,7 +129,7 @@ impl Str {
         Ok(RefValue::from(string))
     });
 
-    tokay_method!("str_endswith(s, postfix)", {
+    tokay_method!("str_endswith : @s, postfix", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -146,7 +146,7 @@ impl Str {
         })
     });
 
-    tokay_method!("str_mul(s, count)", {
+    tokay_method!("str_mul : @s, count", {
         if let Some(string) = s.borrow().object::<Str>() {
             // string * count
             return Ok(RefValue::from(string.repeat(count.to_usize()?)));
@@ -156,7 +156,7 @@ impl Str {
         Ok(RefValue::from(count.to_string().repeat(s.to_usize()?)))
     });
 
-    tokay_method!("str_join(s, list)", {
+    tokay_method!("str_join : @s, list", {
         let delimiter = s.to_string();
         let list = List::from(list);
 
@@ -173,11 +173,11 @@ impl Str {
         Ok(RefValue::from(ret))
     });
 
-    tokay_method!("str_lower(s)", {
+    tokay_method!("str_lower : @s", {
         Ok(RefValue::from(s.to_string().to_lowercase()))
     });
 
-    tokay_method!("str_replace(s, from, to=void, n=void)", {
+    tokay_method!("str_replace : @s, from, to=void, n=void", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -194,7 +194,7 @@ impl Str {
         }))
     });
 
-    tokay_method!("str_startswith(s, prefix)", {
+    tokay_method!("str_startswith : @s, prefix", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -211,7 +211,7 @@ impl Str {
         })
     });
 
-    tokay_method!("str_substr(s, start=0, length=void)", {
+    tokay_method!("str_substr : @s, start=0, length=void", {
         if !s.is("str") {
             s = RefValue::from(s.to_string());
         }
@@ -230,7 +230,7 @@ impl Str {
         }))
     });
 
-    tokay_method!("str_upper(s)", {
+    tokay_method!("str_upper : @s", {
         Ok(RefValue::from(s.to_string().to_uppercase()))
     });
 }
