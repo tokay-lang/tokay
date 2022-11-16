@@ -731,14 +731,20 @@ impl Op {
             }
         }
 
-        if context.runtime.debug > 3 {
-            context.debug(&format!("exit state = {:?}", state));
-        }
-
         // Clear all frames except the base frame
         if !context.frames.is_empty() {
             context.frames.truncate(1);
             context.frame = context.frames.pop().unwrap();
+        }
+
+        // When state is Accept::Hold here, this is when jumping behind the code.
+        // Accept::Hold will be corrected into Accept::Next in this case.
+        if matches!(state, Ok(Accept::Hold)) {
+            state = Ok(Accept::Next)
+        }
+
+        if context.runtime.debug > 3 {
+            context.debug(&format!("exit state = {:?}", state));
         }
 
         state
