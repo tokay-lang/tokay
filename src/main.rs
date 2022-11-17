@@ -46,6 +46,10 @@ struct Opts {
     #[clap(short, long, action)]
     files: bool,
 
+    /// Run Tokay without verbose outputs
+    #[clap(short, long, action)]
+    quiet: bool,
+
     /// Start the given PROGRAM in its own REPL.
     #[clap(short, long, action)]
     repl: bool,
@@ -210,11 +214,13 @@ fn main() {
         }
     } else {
         if opts.repl {
-            eprintln!("No PROGRAM was specified, therefore can't turn into a REPL for PROGRAM");
+            eprintln!("No PROGRAM was specified, can't turn into a REPL for PROGRAM");
             std::process::exit(1);
         }
 
-        print_version();
+        if !opts.quiet {
+            print_version();
+        }
 
         // In case no stream was specified and REPL fires up, use empty string as input stream.
         if streams.len() == 0 {

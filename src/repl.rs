@@ -101,7 +101,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                                     print!("\n")
                                 }
                             }
-                            Ok(Some(value)) => println!("{}", value.to_string()),
+                            Ok(Some(value)) => println!("{}", value.repr()),
                             Err(error) => println!("{}", error),
                         }
 

@@ -12,8 +12,6 @@ use std::process::{Command, Stdio};
 This function currently requires that a tokay debug executable is compiled before test cases are run.
 */
 pub(crate) fn testcase(code: &str) {
-    let mut repl_mode = false;
-
     // Try to open code as file
     let (filename, code) = match File::open(code) {
         // The file is open (no error).
@@ -31,7 +29,7 @@ pub(crate) fn testcase(code: &str) {
     };
 
     //println!("code = {:?}", code);
-    let mut repl_mode = code.starts_with("#testmode:repl\n");
+    let repl_mode = code.starts_with("#testmode:repl\n");
 
     if let Some((code, data)) = code.split_once("#---\n") {
         //let program = env::args().next().unwrap(); // Doens't work with cargo test
@@ -39,6 +37,7 @@ pub(crate) fn testcase(code: &str) {
         let mut cmd = Command::new(program);
 
         if repl_mode {
+            cmd.arg("-q");
             cmd.stdin(Stdio::piped());
         } else {
             cmd.arg(code);
@@ -97,9 +96,15 @@ pub(crate) fn testcase(code: &str) {
         //println!("err = {:?}", err);
 
         for line in result.trim().split("\n").into_iter() {
+            if line.is_empty() {
+                continue;
+            }
+
             assert!(
                 line.starts_with("#"),
-                "Lines in result must start with a #-comment"
+                "{}: Lines in result must start with a #-comment, got {:?}",
+                filename,
+                line
             );
 
             if line.starts_with("#ERR:") {
