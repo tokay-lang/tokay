@@ -1,19 +1,19 @@
 //! Unit tests
-
 use crate::utils::*;
 use crate::value;
 use crate::value::*;
-
-//use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 /** Test case utility function to run test-cases from files with expected output.
 
 This function currently requires that a tokay debug executable is compiled before test cases are run.
 */
 pub(crate) fn testcase(code: &str) {
+    let mut repl_mode = false;
+
     // Try to open code as file
     let (filename, code) = match File::open(code) {
         // The file is open (no error).
@@ -31,35 +31,56 @@ pub(crate) fn testcase(code: &str) {
     };
 
     //println!("code = {:?}", code);
+    let mut repl_mode = code.starts_with("#testmode:repl\n");
 
     if let Some((code, data)) = code.split_once("#---\n") {
-        let mut params = vec![code];
+        //let program = env::args().next().unwrap(); // Doens't work with cargo test
+        let program = "target/debug/tokay";
+        let mut cmd = Command::new(program);
+
+        if repl_mode {
+            cmd.stdin(Stdio::piped());
+        } else {
+            cmd.arg(code);
+        }
+
         let mut result = data;
         let tmp;
 
         // In case there is another separator, split into input and output
-        if let Some((i, o)) = data.split_once("#---\n") {
-            let input: Vec<&str> = i
+        if let Some((input, output)) = data.split_once("#---\n") {
+            let input: Vec<&str> = input
                 .split("\n")
                 .filter(|line| line.starts_with("#"))
                 .map(|line| &line[1..])
                 .collect();
 
             tmp = input.join("\n");
-            params.extend(vec!["--", &tmp]);
-            result = o;
+
+            cmd.arg("--").arg(&tmp);
+            result = output;
         }
 
-        //let program = env::args().next().unwrap(); // Doens't work with cargo test
-        let program = "target/debug/tokay";
-
-        let output = Command::new(program)
-            .args(&params)
-            .output()
+        // Spawn tokay interpreter process
+        let mut process = cmd
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
             .expect(&format!(
                 "Failed to run testcase using {}; You need to run `cargo build` first!",
                 program
             ));
+
+        if repl_mode {
+            process
+                .stdin
+                .as_mut()
+                .unwrap()
+                .write(code.as_bytes())
+                .unwrap();
+        }
+
+        let output = process.wait_with_output().unwrap();
 
         let mut out: Vec<String> = String::from_utf8(output.stdout)
             .expect("Not UTF-8")
