@@ -55,21 +55,21 @@ impl Value {
     }
 
     // Constructors
-    tokay_method!("bool(value)", Ok(RefValue::from(value.is_true())));
-    tokay_method!("int(value)", Ok(RefValue::from(value.to_bigint()?)));
-    tokay_method!("float(value)", Ok(RefValue::from(value.to_f64()?)));
+    tokay_method!("bool : @value", Ok(RefValue::from(value.is_true())));
+    tokay_method!("int : @value", Ok(RefValue::from(value.to_bigint()?)));
+    tokay_method!("float : @value", Ok(RefValue::from(value.to_f64()?)));
 
     // float methods
     tokay_method!(
-        "float_ceil(float)",
+        "float_ceil : @float",
         Ok(RefValue::from(float.to_f64()?.ceil()))
     );
     tokay_method!(
-        "float_trunc(float)",
+        "float_trunc : @float",
         Ok(RefValue::from(float.to_f64()?.trunc()))
     );
     tokay_method!(
-        "float_fract(float)",
+        "float_fract : @float",
         Ok(RefValue::from(float.to_f64()?.fract()))
     );
 }

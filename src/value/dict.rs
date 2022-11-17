@@ -26,6 +26,10 @@ impl Object for Dict {
     }
 
     fn repr(&self) -> String {
+        if self.is_empty() {
+            return "dict()".to_string();
+        }
+
         let mut ret = "(".to_string();
 
         for (key, value) in self.iter() {
@@ -75,9 +79,9 @@ impl Dict {
         }
     }
 
-    tokay_method!("dict()", Ok(RefValue::from(Dict::new())));
+    tokay_method!("dict : @", Ok(RefValue::from(Dict::new())));
 
-    tokay_method!("dict_len(dict)", {
+    tokay_method!("dict_len : @dict", {
         let dict = dict.borrow();
 
         if let Some(dict) = dict.object::<Dict>() {
@@ -92,7 +96,50 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_merge(dict, other)", {
+    tokay_method!("dict_get_item : @dict, item, default=void", {
+        // todo: alias dict_get
+        let dict = dict.borrow();
+        let item = item.to_string();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            if let Some(item) = dict.get(&item) {
+                Ok(item.clone())
+            } else {
+                Ok(default)
+            }
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_set_item : @dict, item, value=void", {
+        let mut dict = dict.borrow_mut();
+        let item = item.to_string();
+
+        if let Some(dict) = dict.object_mut::<Dict>() {
+            if value.is_void() {
+                dict.remove(&item);
+                Ok(value![void])
+            } else {
+                dict.insert(item, value.clone());
+                Ok(value)
+            }
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_merge : @dict, other", {
         {
             let dict = &mut *dict.borrow_mut();
 
@@ -124,7 +171,7 @@ impl Dict {
         Ok(dict)
     });
 
-    tokay_method!("dict_push(dict, key, value)", {
+    tokay_method!("dict_push : @dict, key, value", {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
@@ -145,7 +192,7 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_pop(dict, key, default=void)", {
+    tokay_method!("dict_pop : @dict, key, default=void", {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
@@ -265,6 +312,88 @@ fn test_dict_compare() {
         Ok(Some(crate::value!([
             true, true, true, true, true, true, true, true, true
         ])))
+    );
+}
+
+#[test]
+fn test_dict_item_handling() {
+    // get_item
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            d["name"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!("John")))
+    );
+
+    // set_item
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            d["name"] = "Doe"
+            d["name"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!("Doe")))
+    );
+
+    // inline increment
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (x => 1)
+            d["x"]++ d["x"] ++d["x"]
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([1, 2, 3])))
+    );
+}
+
+#[test]
+fn test_dict_get_set_item() {
+    // Extended get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            (
+                d["x"]            # void
+                d["x"] = 42       # void
+                d["x"]            # 42
+                d["x"]++          # 42
+                ++d["x"]          # 44
+                d["name"] = void  # void
+                d.len             # 1
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!([42, 42, 44, 1])))
+    );
+
+    // Extended get/set item test
+    assert_eq!(
+        crate::run(
+            r#"
+            d = (name => "John")
+            (
+                d.get_item("lastname", "Doe")   # "Doe"
+                d.set_item("lastname", "Ezel")  # "Ezel"
+                d["lastname"] = "Esel"          # void
+                d["lastname"]                   # "Esel"
+                d.set_item("name")              # unset name
+                d.get_item("name", "Horst")     # "Horst"
+            )
+            "#,
+            ""
+        ),
+        Ok(Some(crate::value!(["Doe", "Ezel", "Esel", "Horst"])))
     );
 }
 

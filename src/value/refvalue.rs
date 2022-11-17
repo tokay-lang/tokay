@@ -168,7 +168,7 @@ impl RefValue {
                 let this = &*self.borrow();
                 let that = &*operand.borrow();
 
-                // Try to match comparison operation
+                // Try to match operation
                 match op {
                     "eq" => return Ok(value!(this == that)),
                     "neq" => return Ok(value!(this != that)),

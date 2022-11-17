@@ -155,27 +155,27 @@ pub trait Object:
 
     /// Object as void
     fn is_void(&self) -> bool {
-        false
+        false // by default, every object is never void
     }
 
     /// Object as bool
     fn is_true(&self) -> bool {
-        true
+        true // by default, every object is boolean true
     }
 
     /// Object as i64
     fn to_i64(&self) -> Result<i64, String> {
-        Err(format!("{} cannot be converted to int", self.name()))
+        Err(format!("`{}` cannot be converted to i64", self.name()))
     }
 
     /// Object as f64
     fn to_f64(&self) -> Result<f64, String> {
-        Err(format!("{} cannot be converted to float", self.name()))
+        Err(format!("`{}` cannot be converted to f64", self.name()))
     }
 
     /// Object as usize
     fn to_usize(&self) -> Result<usize, String> {
-        Err(format!("{} cannot be converted to usize", self.name()))
+        Err(format!("`{}` cannot be converted to usize", self.name()))
     }
 
     /// Object as String
@@ -185,7 +185,7 @@ pub trait Object:
 
     /// Object as BigInt
     fn to_bigint(&self) -> Result<BigInt, String> {
-        Err(format!("{} cannot be converted to int", self.name()))
+        Err(format!("`{}` cannot be converted to BigInt", self.name()))
     }
 
     /// Check whether the object is callable.

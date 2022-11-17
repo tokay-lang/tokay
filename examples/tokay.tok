@@ -126,7 +126,7 @@ Ccl : @{
 # Statics, Variables, Loads
 
 Subscript : @{
-    '[' _ Expression ']' _  ast("index")
+    '[' _ Expression ']' _  ast("item")
 }
 
 Attribute : @{

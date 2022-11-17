@@ -479,18 +479,18 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 }
             }
 
-            // index ----------------------------------------------------------
-            "index" => {
+            // item -----------------------------------------------------------
+            "item" => {
                 ops.push(traverse(compiler, &item["children"]));
 
                 if store {
                     if hold {
-                        ops.push(Op::StoreIndexHold.into()); // todo: in case value is an integer, use LoadFastIndexHold
+                        ops.push(Op::StoreItemHold.into());
                     } else {
-                        ops.push(Op::StoreIndex.into()); // todo: in case value is an integer, use LoadFastIndex
+                        ops.push(Op::StoreItem.into());
                     }
                 } else {
-                    ops.push(Op::LoadIndex.into())
+                    ops.push(Op::LoadItem.into())
                 }
             }
 
@@ -564,14 +564,12 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
             };
         }
 
-        // index ----------------------------------------------------------
-        "index" => {
-            ImlOp::from(vec![
-                traverse(compiler, &node["children"]),
-                traverse_offset(node),
-                ImlOp::from(Op::LoadIndex), // todo: in case value is an integer, use LoadFastIndex
-            ])
-        }
+        // item -----------------------------------------------------------
+        "item" => ImlOp::from(vec![
+            traverse(compiler, &node["children"]),
+            traverse_offset(node),
+            ImlOp::from(Op::LoadItem),
+        ]),
 
         // rvalue ---------------------------------------------------------
         "rvalue" => {
@@ -1017,55 +1015,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     Op::Continue.into()
                 }
+
                 "next" => Op::Next.into(),
+
                 "nop" => ImlOp::Nop,
+
                 "reject" => Op::Reject.into(),
-
-                "binary" => {
-                    let children = node["children"].borrow();
-                    let children = children.object::<List>().unwrap();
-                    assert_eq!(children.len(), 2);
-
-                    let (left, right) = (children[0].borrow(), children[1].borrow());
-
-                    let left = traverse_node_rvalue(
-                        compiler,
-                        &left.object::<Dict>().unwrap(),
-                        Rvalue::CallOrLoad,
-                    );
-                    let right = traverse_node_rvalue(
-                        compiler,
-                        &right.object::<Dict>().unwrap(),
-                        Rvalue::CallOrLoad,
-                    );
-
-                    // When both results are values, calculate in-place
-                    if let (Ok(left), Ok(right)) =
-                        (left.get_evaluable_value(), right.get_evaluable_value())
-                    {
-                        return ImlOp::load(
-                            traverse_node_offset(node),
-                            ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
-                        );
-                    }
-
-                    // Otherwise, generate operational code
-                    ops.push(left);
-                    ops.push(right);
-
-                    // Push operation position here
-                    ops.push(traverse_offset(node));
-
-                    ImlOp::from(match parts[2] {
-                        "add" => Op::BinaryOp("add"),
-                        "sub" => Op::BinaryOp("sub"),
-                        "mul" => Op::BinaryOp("mul"),
-                        "div" => Op::BinaryOp("div"),
-                        _ => {
-                            unimplemented!("op_binary_{}", parts[2]);
-                        }
-                    })
-                }
 
                 "unary" => {
                     let children = node["children"].borrow();
@@ -1094,7 +1049,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     })
                 }
 
-                "compare" | "logical" => {
+                "binary" | "compare" | "logical" => {
                     let children = node["children"].borrow();
                     let children = children.object::<List>().unwrap();
                     assert_eq!(children.len(), 2);
@@ -1111,39 +1066,52 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         Rvalue::CallOrLoad,
                     );
 
-                    // When both results are values, compare in-place
-                    if let (Ok(left), Ok(right)) =
-                        (left.get_evaluable_value(), right.get_evaluable_value())
-                    {
-                        return ImlOp::load(
-                            traverse_node_offset(node),
-                            ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
-                        );
-                    }
-
-                    // Otherwise, generate operational code
-                    ops.push(left);
-
                     match parts[2] {
-                        "and" => ImlOp::If {
-                            peek: true,
-                            test: true,
-                            then: Box::new(right),
-                            else_: Box::new(ImlOp::from(Op::PushVoid)),
-                        },
-                        "or" => ImlOp::If {
-                            peek: true,
-                            test: false,
-                            then: Box::new(right),
-                            else_: Box::new(ImlOp::from(Op::PushVoid)),
-                        },
+                        "and" => {
+                            ops.push(left);
+                            ops.push(traverse_offset(node));
+
+                            ImlOp::If {
+                                peek: true,
+                                test: true,
+                                then: Box::new(right),
+                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                            }
+                        }
+                        "or" => {
+                            ops.push(left);
+                            ops.push(traverse_offset(node));
+
+                            ImlOp::If {
+                                peek: true,
+                                test: false,
+                                then: Box::new(right),
+                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                            }
+                        }
                         _ => {
+                            // When both operands are direct values, try run operation at compile-time
+                            if let (Ok(left), Ok(right)) =
+                                (left.get_evaluable_value(), right.get_evaluable_value())
+                            {
+                                return ImlOp::load(
+                                    traverse_node_offset(node),
+                                    ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
+                                );
+                            }
+
+                            // Otherwise, generate code for operation
+                            ops.push(left);
                             ops.push(right);
 
                             // Push operation position here
                             ops.push(traverse_offset(node));
 
                             ImlOp::from(match parts[2] {
+                                "add" => Op::BinaryOp("add"),
+                                "sub" => Op::BinaryOp("sub"),
+                                "mul" => Op::BinaryOp("mul"),
+                                "div" => Op::BinaryOp("div"),
                                 "eq" => Op::BinaryOp("eq"),
                                 "neq" => Op::BinaryOp("neq"),
                                 "lteq" => Op::BinaryOp("lteq"),
@@ -1151,7 +1119,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 "lt" => Op::BinaryOp("lt"),
                                 "gt" => Op::BinaryOp("gt"),
                                 _ => {
-                                    unimplemented!("op_compare_{}", parts[2]);
+                                    unimplemented!("{}", emit);
                                 }
                             })
                         }
@@ -1499,7 +1467,7 @@ pub fn print(ast: &RefValue) {
     print(ast, 0);
 }
 
-tokay_function!("ast(emit, value=void, flatten=true, debug=false)", {
+tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let context = context.unwrap();
 
     let mut ret = Dict::new();
@@ -1578,7 +1546,7 @@ fn test_ast() {
     crate::test::testcase("tests/test_ast_offset.tok");
 }
 
-tokay_function!("ast_print(ast)", {
+tokay_function!("ast_print : @ast", {
     print(&ast);
     value!(void).into()
 });

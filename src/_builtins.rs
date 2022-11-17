@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 42] = [
+pub static BUILTINS: [Builtin; 47] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -43,6 +43,10 @@ pub static BUILTINS: [Builtin; 42] = [
         func: crate::value::dict::Dict::tokay_method_dict,
     },
     Builtin {
+        name: "dict_get_item",
+        func: crate::value::dict::Dict::tokay_method_dict_get_item,
+    },
+    Builtin {
         name: "dict_len",
         func: crate::value::dict::Dict::tokay_method_dict_len,
     },
@@ -57,6 +61,10 @@ pub static BUILTINS: [Builtin; 42] = [
     Builtin {
         name: "dict_push",
         func: crate::value::dict::Dict::tokay_method_dict_push,
+    },
+    Builtin {
+        name: "dict_set_item",
+        func: crate::value::dict::Dict::tokay_method_dict_set_item,
     },
     Builtin {
         name: "error",
@@ -95,6 +103,10 @@ pub static BUILTINS: [Builtin; 42] = [
         func: crate::value::list::List::tokay_method_list_flatten,
     },
     Builtin {
+        name: "list_get_item",
+        func: crate::value::list::List::tokay_method_list_get_item,
+    },
+    Builtin {
         name: "list_iadd",
         func: crate::value::list::List::tokay_method_list_iadd,
     },
@@ -109,6 +121,10 @@ pub static BUILTINS: [Builtin; 42] = [
     Builtin {
         name: "list_push",
         func: crate::value::list::List::tokay_method_list_push,
+    },
+    Builtin {
+        name: "list_set_item",
+        func: crate::value::list::List::tokay_method_list_set_item,
     },
     Builtin {
         name: "ord",
@@ -137,6 +153,10 @@ pub static BUILTINS: [Builtin; 42] = [
     Builtin {
         name: "str_endswith",
         func: crate::value::str::Str::tokay_method_str_endswith,
+    },
+    Builtin {
+        name: "str_get_item",
+        func: crate::value::str::Str::tokay_method_str_get_item,
     },
     Builtin {
         name: "str_join",

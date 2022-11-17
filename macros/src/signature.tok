@@ -1,4 +1,4 @@
-# This grammar should be tested and refactored with Tokay > v0.4 to work without hassle.
+# This grammar is implemented in Tokay v0.4 and therefore needs to handle bugs appropriately.
 
 Argument : {
     Identifier _ {
@@ -8,15 +8,19 @@ Argument : {
             ''true''
             ''false''
             Integer
-            Word error($5 + " not allowed here")  # fixme: add more with Tokay v0.5 as base.
+            Word error($5 + " not allowed here")
         } _
-        ""  # required to produce a consistent AST in Tokay v0.4
-    } accept ($1 $3)  # omg this is ugly, but it works... Tokay v0.4 hassle.
-    ''*args'' ""   accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
-    ''**nargs'' "" accept ($1 $2)  # this should only be allowed last, later (Tokay v0.4 isn't capable of this)
+        ""  # bug: required to produce a consistent AST in Tokay v0.4
+    } accept ($1 $3)
+
+    # todo: Tokay v0.4 isn't capable of this:
+    ''*args'' ""   accept ($1 $2)  # bug: this should only be allowed as last argument, later
+    ''**nargs'' "" accept ($1 $2)  # bug: this should only be allowed as last, argument later
 }
 
 _ Identifier {
-    '(' _ ')' _ void
-    '(' _ { { Argument | not peek ')' error("Invalid input") } _ {',' _}? }* ')' _
+    _ ':' _ '@' {
+        { Argument _ {',' _}? }+
+        void
+    }
 }? EOF
