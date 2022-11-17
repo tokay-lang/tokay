@@ -7,9 +7,28 @@ use std::io::Read;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-/** Test case utility function to run test-cases from files with expected output.
+/** Test-case evaluator.
+
+A testcase is made of the following sections:
+```tokay
+print("Hello " + Int)   # code
+#---
+#23                     # input (optional)
+#---
+#Hello 23               # expected output
+```
+
+This is an entire testcase to describe a program, the input fed to it (which is optional)
+and the expected output.
 
 This function currently requires that a tokay debug executable is compiled before test cases are run.
+
+The provided code can either be a testcase or a path to a filename that contains the testcase.
+
+There's also a special REPL test mode: If the first line in the testcase contains `#testmode:repl`,
+the code is fed to the Tokay REPL, and expected output is tested againt each line specified. In this
+mode, it is important to specify multi-line definitions with the alternative `;` delimiter, otherwise
+a syntax error will occur (likewise in the normal REPL).
 */
 pub(crate) fn testcase(code: &str) {
     // Try to open code as file
@@ -144,6 +163,18 @@ pub(crate) fn testcase(code: &str) {
             filename
         )
     }
+}
+
+#[test]
+// Simple testcase for testcase
+fn test_case() {
+    testcase(
+        r#"print("Hello " + Int)
+#---
+#23
+#---
+#Hello 23"#,
+    )
 }
 
 // Tests expression basics ------------------------------------------------------------------------
