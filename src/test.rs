@@ -51,6 +51,8 @@ pub(crate) fn testcase(code: &str) {
     let repl_mode = code.starts_with("#testmode:repl\n");
 
     if let Some((code, data)) = code.split_once("#---\n") {
+        let mut lines = code.matches("\n").count() + 1;
+
         //let program = env::args().next().unwrap(); // Doens't work with cargo test
         let program = "target/debug/tokay";
         let mut cmd = Command::new(program);
@@ -74,6 +76,7 @@ pub(crate) fn testcase(code: &str) {
                 .collect();
 
             tmp = input.join("\n");
+            lines += tmp.matches("\n").count() + 1 + 1;
 
             cmd.arg("--").arg(&tmp);
             result = output;
@@ -85,8 +88,8 @@ pub(crate) fn testcase(code: &str) {
             .stderr(Stdio::piped())
             .spawn()
             .expect(&format!(
-                "Failed to run testcase using {}; You need to run `cargo build` first!",
-                program
+                "{} failed to run using {}; You need to run `cargo build` first!",
+                filename, program
             ));
 
         if repl_mode {
@@ -112,17 +115,20 @@ pub(crate) fn testcase(code: &str) {
             .collect();
 
         //println!("out = {:?}", out);
-        //println!("err = {:?}", err);
+        //Trim println!("err = {:?}", err);
 
-        for line in result.trim().split("\n").into_iter() {
+        for (row, line) in result.split("\n").into_iter().enumerate() {
+            let line = line.trim_start();
+
             if line.is_empty() {
                 continue;
             }
 
             assert!(
                 line.starts_with("#"),
-                "{}: Lines in result must start with a #-comment, got {:?}",
+                "{}:{} Result must start with a #-comment, got {:?}",
                 filename,
+                lines + row + 1,
                 line
             );
 
@@ -130,36 +136,44 @@ pub(crate) fn testcase(code: &str) {
                 let err = err.remove(0);
                 let exp = &line[5..];
                 assert_eq!(
-                    err, exp,
-                    "{} stderr expects {:?} but got {:?}",
-                    filename, exp, err
+                    err,
+                    exp,
+                    "{}:{} stderr expects {:?} but got {:?}",
+                    filename,
+                    lines + row + 1,
+                    exp,
+                    err
                 );
             } else {
                 let out = out.remove(0);
                 let exp = &line[1..];
                 assert_eq!(
-                    out, exp,
-                    "{} stdout expects {:?} but got {:?}",
-                    filename, exp, out
+                    out,
+                    exp,
+                    "{}:{} stdout expects {:?} but got {:?}",
+                    filename,
+                    lines + row + 1,
+                    exp,
+                    out
                 );
             }
         }
 
         assert!(
             out.len() >= 1,
-            "Some output {:?} not consumed in {}",
-            out,
-            filename
+            "{} some output not consumed: {:?}",
+            filename,
+            out
         );
         assert!(
             err.len() >= 1,
-            "Some errors {:?} not consumed in {}",
-            err,
-            filename
+            "{} Some errors not consumed: {:?}",
+            filename,
+            err
         );
     } else {
         panic!(
-            "Testcase invalid, require for a '#---' delimiter in {}",
+            "{} invalid testcase, at least one '#---' delimiter required",
             filename
         )
     }
