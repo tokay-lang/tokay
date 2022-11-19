@@ -3,8 +3,7 @@ use crate::utils::*;
 use crate::value;
 use crate::value::*;
 use std::fs::File;
-use std::io::Read;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Command, Stdio};
 
 /** Test-case evaluator.
@@ -19,7 +18,9 @@ print("Hello " + Int)   # code
 ```
 
 This is an entire testcase to describe a program, the input fed to it (which is optional)
-and the expected output.
+and the expected output. The advantage of this specification is, that the testcase can directly
+be executed with Tokay to reproduce its expected result, as the input and output sections are
+specified as comments.
 
 This function currently requires that a tokay debug executable is compiled before test cases are run.
 
@@ -31,6 +32,8 @@ mode, it is important to specify multi-line definitions with the alternative `;`
 a syntax error will occur (likewise in the normal REPL).
 */
 pub(crate) fn testcase(code: &str) {
+    println!("---");
+
     // Try to open code as file
     let (filename, code) = match File::open(code) {
         // The file is open (no error).
@@ -57,8 +60,11 @@ pub(crate) fn testcase(code: &str) {
         let program = "target/debug/tokay";
         let mut cmd = Command::new(program);
 
+        println!("code = {:?}", code);
+
         if repl_mode {
             cmd.arg("-q");
+            cmd.env("TOKAY_HISTORY_SAVE", "0");
             cmd.stdin(Stdio::piped());
         } else {
             cmd.arg(code);
@@ -69,8 +75,12 @@ pub(crate) fn testcase(code: &str) {
 
         // In case there is another separator, split into input and output
         if let Some((input, output)) = data.split_once("#---\n") {
+            //println!("input = {:?}", input);
+            //println!("output = {:?}", output);
+
             let input: Vec<&str> = input
                 .split("\n")
+                .map(|line| line.trim_start())
                 .filter(|line| line.starts_with("#"))
                 .map(|line| &line[1..])
                 .collect();
@@ -103,19 +113,20 @@ pub(crate) fn testcase(code: &str) {
 
         let output = process.wait_with_output().unwrap();
 
-        let mut out: Vec<String> = String::from_utf8(output.stdout)
-            .expect("Not UTF-8")
-            .split("\n")
-            .map(|line| line.to_string())
-            .collect();
-        let mut err: Vec<String> = String::from_utf8(output.stderr)
-            .expect("Not UTF-8")
-            .split("\n")
-            .map(|line| line.to_string())
-            .collect();
+        let out = String::from_utf8(output.stdout).expect("stdout is not UTF-8");
+        let err = String::from_utf8(output.stderr).expect("stderr is not UTF-8");
+
+        println!("out = {:?}", out);
+        println!("err = {:?}", err);
+
+        let mut out: Vec<String> = out.split("\n").map(|line| line.to_string()).collect();
+        let mut err: Vec<String> = err.split("\n").map(|line| line.to_string()).collect();
 
         //println!("out = {:?}", out);
-        //Trim println!("err = {:?}", err);
+        //println!("err = {:?}", err);
+
+        //let mut stdout = BufReader::new(process.stdout.as_mut().unwrap());
+        //let mut stderr = BufReader::new(process.stderr.as_mut().unwrap());
 
         for (row, line) in result.split("\n").into_iter().enumerate() {
             let line = line.trim_start();
@@ -133,6 +144,13 @@ pub(crate) fn testcase(code: &str) {
             );
 
             if line.starts_with("#ERR:") {
+                /*
+                let mut err = String::new();
+                stderr.read_line(&mut err).unwrap();
+                if err.ends_with('\n') {
+                    err.pop();
+                }
+                */
                 let err = err.remove(0);
                 let exp = &line[5..];
                 assert_eq!(
@@ -145,6 +163,13 @@ pub(crate) fn testcase(code: &str) {
                     err
                 );
             } else {
+                /*
+                let mut out = String::new();
+                stdout.read_line(&mut out).unwrap();
+                if out.ends_with('\n') {
+                    out.pop();
+                }
+                */
                 let out = out.remove(0);
                 let exp = &line[1..];
                 assert_eq!(
@@ -171,6 +196,8 @@ pub(crate) fn testcase(code: &str) {
             filename,
             err
         );
+
+        //process.wait().unwrap();
     } else {
         panic!(
             "{} invalid testcase, at least one '#---' delimiter required",
@@ -183,11 +210,13 @@ pub(crate) fn testcase(code: &str) {
 // Simple testcase for testcase
 fn test_case() {
     testcase(
-        r#"print("Hello " + Int)
-#---
-#23
-#---
-#Hello 23"#,
+        r#"
+        print("Hello " + Int)
+        #---
+        #23
+        #---
+        #Hello 23
+    "#,
     )
 }
 

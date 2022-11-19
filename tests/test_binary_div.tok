@@ -1,0 +1,23 @@
+#testmode:repl
+
+true / false
+true / true
+10 / 20
+10.5 / 20
+10 / "20"
+a = 100
+b = 1000
+a / b
+b / a
+"a" / "b"
+
+#---
+
+#ERR:Line 1, column 1: Division by zero
+#1
+#0.5
+#0.525
+#ERR:Line 1, column 1: Method 'str_div' not found
+#0.1
+#10
+#ERR:Line 1, column 1: Method 'str_div' not found
