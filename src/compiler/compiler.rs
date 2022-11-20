@@ -561,12 +561,6 @@ fn test_error_reporting() {
 }
 
 #[test]
-// Tests for correct identifier names for various value types
-fn test_identifier_naming() {
-    crate::test::testcase("tests/err_compiler_identifier_names.tok");
-}
-
-#[test]
 // Tests for compiler string, match and ccl escaping
 fn test_unescaping() {
     assert_eq!(

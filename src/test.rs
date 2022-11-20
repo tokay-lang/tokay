@@ -309,15 +309,6 @@ fn variables() {
     );
 }
 
-#[test]
-// Test-case for scoping
-fn scoping() {
-    assert_eq!(
-        run(include_str!("../tests/test_scopes.tok"), ""),
-        Ok(Some(value![[10, 2000, 1072]]))
-    );
-}
-
 // Tests for dicts and lists ----------------------------------------------------------------------
 
 #[test]
@@ -395,9 +386,6 @@ fn sequences() {
             ["a" => 42, "20" => "Hello", "c" => 23.5]
         ])))
     );
-
-    // Issue #63
-    testcase("tests/test_sequence_issue_63.tok");
 }
 
 // Tests for tokens -------------------------------------------------------------------------------
@@ -541,10 +529,6 @@ fn examples() {
         run(include_str!("../examples/factorial.tok"), ""),
         Ok(Some(value!(24)))
     );
-
-    // todo: Move stuff below to a separate function
-    testcase("tests/test_piped_grammar.tok");
-    testcase("tests/test_inline_parseable_sequence.tok");
 }
 
 // Tests for control flow -------------------------------------------------------------------------
@@ -581,8 +565,6 @@ fn if_else() {
         ),
         Ok(Some(value!([1, 3, 5])))
     );
-
-    testcase("tests/test_if.tok");
 }
 
 #[test]
@@ -600,14 +582,6 @@ fn push_next() {
     );
 
     // todo: This test is a stub. Add more tests regarding next and push.
-}
-
-#[test]
-// tests for push and next
-fn loops() {
-    testcase("tests/test_loop.tok");
-    testcase("tests/test_for.tok");
-    testcase("tests/err_break_continue.tok");
 }
 
 #[test]

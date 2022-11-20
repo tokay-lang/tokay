@@ -1543,12 +1543,6 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     RefValue::from(ret).into()
 });
 
-#[test]
-fn test_ast() {
-    // Issue #3
-    crate::test::testcase("tests/test_ast_offset.tok");
-}
-
 tokay_function!("ast_print : @ast", {
     print(&ast);
     value!(void).into()
