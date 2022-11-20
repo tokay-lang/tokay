@@ -1,4 +1,5 @@
 #testmode:repl
+# Tests for the add function in various situations
 
 true + false
 void + null

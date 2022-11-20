@@ -225,38 +225,6 @@ fn test_case() {
 #[test]
 // Test for operations
 fn operations() {
-    // Tests for pre- and post-increment and -decrements
-    // These require spaces in some situations to find correct path throug meaning
-    assert_eq!(
-        run(
-            "
-            a = 1 \
-            a \
-            a++ \
-            ++a \
-            a++ a++ \
-            a++ + ++a \
-            a-- - --a \
-            a-- - - --a \
-            a",
-            ""
-        ),
-        Ok(Some(value![[1, 1, 3, 3, 4, 12, 2, 8, 3]]))
-    );
-
-    // Inline add int to itself
-    assert_eq!(
-        run(
-            "
-            i = 2 \
-            i *= i \
-            i
-            ",
-            ""
-        ),
-        Ok(Some(value!(4)))
-    );
-
     // Inline add list to itself
     // fixme: Should be put into the specific modules, e.g. value/list.rs
     assert_eq!(

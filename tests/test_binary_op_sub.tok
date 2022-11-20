@@ -1,4 +1,5 @@
 #testmode:repl
+# Tests for the sub function in various situations
 
 true - false
 false - true
