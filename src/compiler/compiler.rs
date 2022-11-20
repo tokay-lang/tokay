@@ -603,39 +603,3 @@ fn test_unescaping() {
         Ok(Some(crate::value!(["12345€", "€12345"])))
     );
 }
-
-#[test]
-// Tests for compiler string, match and ccl escaping
-fn test_prelude() {
-    assert_eq!(
-        crate::run("Number", "123 45.67 -8 -9.10"),
-        Ok(Some(crate::value!([123, 45.67, (-8), (-9.1)])))
-    );
-
-    assert_eq!(
-        crate::run(
-            "Token",
-            "The tokay gecko reaches a total length (including tail) of 25-30 cm on average."
-        ),
-        Ok(Some(crate::value!([
-            "The",
-            "tokay",
-            "gecko",
-            "reaches",
-            "a",
-            "total",
-            "length",
-            "(",
-            "including",
-            "tail",
-            ")",
-            "of",
-            25,
-            (-30),
-            "cm",
-            "on",
-            "average",
-            "."
-        ])))
-    );
-}
