@@ -326,7 +326,7 @@ impl Parser {
         // Expression & Flow
 
         (Atomic = {
-            ["(", _, ___, Expression, ___, ")"], // no expect ")" here!
+            ["(", _, ___, HoldExpression, ___, ")"], // no expect ")" here!
             Literal,
             Token,
 

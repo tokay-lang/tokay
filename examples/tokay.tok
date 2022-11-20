@@ -277,7 +277,7 @@ Literal : @{
 ## Atomic elements, including if and loops as they are atomic part of expressions
 
 Atomic : @{
-    '(' _ ___ Expression ___ ')'
+    '(' _ ___ HoldExpression ___ ')'
     Literal
     Token1
     'if' _SeparatedIdentifier Expression ___ expect Statement (___ 'else' _SeparatedIdentifier ___ expect Statement)?  ast("op_if")
