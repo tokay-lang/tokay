@@ -32,7 +32,7 @@ mode, it is important to specify multi-line definitions with the alternative `;`
 a syntax error will occur (likewise in the normal REPL).
 */
 pub(crate) fn testcase(code: &str) {
-    println!("---");
+    //println!("---");
 
     // Try to open code as file
     let (filename, code) = match File::open(code) {
@@ -60,7 +60,7 @@ pub(crate) fn testcase(code: &str) {
         let program = "target/debug/tokay";
         let mut cmd = Command::new(program);
 
-        println!("code = {:?}", code);
+        //println!("code = {:?}", code);
 
         if repl_mode {
             cmd.arg("-q");
@@ -116,8 +116,8 @@ pub(crate) fn testcase(code: &str) {
         let out = String::from_utf8(output.stdout).expect("stdout is not UTF-8");
         let err = String::from_utf8(output.stderr).expect("stderr is not UTF-8");
 
-        println!("out = {:?}", out);
-        println!("err = {:?}", err);
+        //println!("out = {:?}", out);
+        //println!("err = {:?}", err);
 
         let mut out: Vec<String> = out.split("\n").map(|line| line.to_string()).collect();
         let mut err: Vec<String> = err.split("\n").map(|line| line.to_string()).collect();
@@ -225,24 +225,6 @@ fn test_case() {
 #[test]
 // Test for operations
 fn operations() {
-    // Test assignment-operations
-    assert_eq!(
-        run(
-            "
-            a = true a \
-            a + 2 == 3 \
-            a += 30 a \
-            a -= 9 a \
-            a *= 3 a \
-            a /= 6 a \
-            a /= 2 a \
-            a *= 10 a
-            ",
-            ""
-        ),
-        Ok(Some(value![[true, true, 31, 22, 66, 11, 5.5, 55.0]]))
-    );
-
     // Tests for pre- and post-increment and -decrements
     // These require spaces in some situations to find correct path throug meaning
     assert_eq!(
