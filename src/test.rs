@@ -2,8 +2,9 @@
 use crate::utils::*;
 use crate::value;
 use crate::value::*;
+use glob::glob;
 use std::fs::File;
-use std::io::{Read, Write};  // BufRead, BufReader,
+use std::io::{Read, Write}; // BufRead, BufReader,
 use std::process::{Command, Stdio};
 
 /** Test-case evaluator.
@@ -314,31 +315,8 @@ fn variables() {
 #[test]
 // Test for parsing sequences, which may result in lists or dicts.
 fn sequences() {
-    // Sequences
-    assert_eq!(run("1 2 3", ""), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("1 (2) 3", ""), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("1 (2,) 3", ""), Ok(Some(value!([1, [2], 3]))));
-    assert_eq!(run("1 (2 3) 4", ""), Ok(Some(value!([1, [2, 3], 4]))));
-
-    assert_eq!(run("(1 2 3)", ""), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("(1 (2) 3)", ""), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("(1 (2,) 3)", ""), Ok(Some(value!([1, [2], 3]))));
-    assert_eq!(run("(1 (2 3) 4)", ""), Ok(Some(value!([1, [2, 3], 4]))));
-
-    assert_eq!(run("1 'a' 2 3", "a"), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("1 ('a' 2) 3", "a"), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("1 (2 'a' 3) 4", "a"), Ok(Some(value!([1, [2, 3], 4]))));
-    assert_eq!(run("1 (2 'a' 3) 4", "b"), Ok(None));
-
-    assert_eq!(run("(1 'a' 2 3)", "a"), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(run("(1 ('a' 2) 3)", "a"), Ok(Some(value!([1, 2, 3]))));
-    assert_eq!(
-        run("(1 (2 'a' 3) 4)", "a"),
-        Ok(Some(value!([1, [2, 3], 4])))
-    );
-    assert_eq!(run("(1 (2 'a' 3) 4)", "b"), Ok(None));
-
     // Inline operations
+    // fixme: IMHO this is wrong!
     assert_eq!(
         run(
             r#"
@@ -347,44 +325,6 @@ fn sequences() {
             ""
         ),
         Ok(Some(value!(["x", "y", 3, "z", "z", 3, "y", "x"])))
-    );
-
-    // Inline alternation
-    assert_eq!(run("('a' | 'b' | 'c')", "b"), Ok(Some(value!("b"))));
-
-    // Lists
-    assert_eq!(
-        run(
-            "
-            (1 2 3) \
-            (1, 2, 3) \
-            (42, \"Hello\", 23.5, true, false)
-            ",
-            ""
-        ),
-        Ok(Some(value!([
-            [1, 2, 3],
-            [1, 2, 3],
-            [42, "Hello", 23.5, true, false]
-        ])))
-    );
-
-    // Dicts
-    assert_eq!(
-        run(
-            "
-            x = 10
-            (a => 1 b => 2 c => 3) \
-            (a => 1, b => 2, c => 3) \
-            (a => 42, x * 2 => \"Hello\", c => 23.5)
-            ",
-            ""
-        ),
-        Ok(Some(value!([
-            ["a" => 1, "b" => 2, "c" => 3],
-            ["a" => 1, "b" => 2, "c" => 3],
-            ["a" => 42, "20" => "Hello", "c" => 23.5]
-        ])))
     );
 }
 
@@ -587,9 +527,10 @@ fn push_next() {
 #[test]
 // Run all tests in the tests/-folder
 fn tests() {
-    let cases = std::fs::read_dir("tests").unwrap();
-
-    for case in cases {
-        testcase(case.unwrap().path().to_str().unwrap());
+    for case in glob("tests/*.tok").expect("Failed to read tests/") {
+        let case = case.unwrap();
+        let filename = case.as_path().to_str().unwrap();
+        println!("::: {} :::", filename);
+        testcase(filename);
     }
 }
