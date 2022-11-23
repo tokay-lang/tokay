@@ -1,5 +1,5 @@
 #testmode:repl
 a = 1 "x" a += 2 "y" a "z" $6 $5 $4 $3 $2 $1
-a = 1 "x" a += 2 "y" a "z" for i = 1; i <= 6; i++ { print(i + ": " + $(i)) }
+#a = 1 "x" a += 2 "y" a "z" for i = 1; i <= 6; i++ { print(i + ": " + $(i)) }
 #---
 #("x", "y", 3, "z", "z", 3, "y", "x")

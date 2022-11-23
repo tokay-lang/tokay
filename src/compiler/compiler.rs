@@ -466,45 +466,6 @@ impl Compiler {
 }
 
 #[test]
-fn test_whitespace() {
-    // Builtin whitespace handling
-    let abc = "abc   \tdef  abcabc= ghi abcdef";
-
-    assert_eq!(
-        crate::run("Word _; ", abc),
-        Ok(Some(crate::value![[
-            "abc", "def", "abcabc", "ghi", "abcdef"
-        ]]))
-    );
-
-    assert_eq!(
-        crate::run("Word __; ", abc),
-        Ok(Some(crate::value![["abc", "def", "ghi"]]))
-    );
-
-    let prog = "Int ',' _ Int (1=>$1, 2=>$2, 3=>$3, 4=>$4)";
-
-    assert_eq!(
-        crate::run(prog, "23, 42"),
-        Ok(Some(
-            crate::value!(["1" => 23, "2" => ",", "3" => " ", "4" => 42])
-        ))
-    );
-
-    assert_eq!(
-        crate::run(prog, "23,42"),
-        Ok(Some(
-            crate::value!(["1" => 23, "2" => ",", "3" => void, "4" => 42])
-        ))
-    );
-
-    assert_eq!(
-        crate::run("Int ',' _ Int", "23, 42"),
-        Ok(Some(crate::value!([23, 42])))
-    );
-}
-
-#[test]
 // Testing several special parsing constructs and error reporting
 fn test_error_reporting() {
     // Test for programs which consist just of one comment

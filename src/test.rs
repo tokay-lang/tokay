@@ -120,8 +120,24 @@ pub(crate) fn testcase(code: &str) {
         //println!("out = {:?}", out);
         //println!("err = {:?}", err);
 
-        let mut out: Vec<String> = out.split("\n").map(|line| line.to_string()).collect();
-        let mut err: Vec<String> = err.split("\n").map(|line| line.to_string()).collect();
+        // Convert ouput and err to Vec<String>, without the last (empty) line if available
+        let mut out: Vec<String> = if out.is_empty() {
+            Vec::new()
+        } else {
+            out.trim_end()
+                .split("\n")
+                .map(|line| line.to_string())
+                .collect()
+        };
+
+        let mut err: Vec<String> = if err.is_empty() {
+            Vec::new()
+        } else {
+            err.trim_end()
+                .split("\n")
+                .map(|line| line.to_string())
+                .collect()
+        };
 
         //println!("out = {:?}", out);
         //println!("err = {:?}", err);
@@ -186,14 +202,14 @@ pub(crate) fn testcase(code: &str) {
         }
 
         assert!(
-            out.len() >= 1,
-            "{} some output not consumed: {:?}",
+            out.is_empty(),
+            "{} some output not consumed: {:#?}",
             filename,
             out
         );
         assert!(
-            err.len() >= 1,
-            "{} Some errors not consumed: {:?}",
+            err.is_empty(),
+            "{} Some errors not consumed: {:#?}",
             filename,
             err
         );
