@@ -1,0 +1,5 @@
+'a'+ error("Error!")
+#---
+#aaa
+#---
+#ERR:Line 1, column 4: Error!
