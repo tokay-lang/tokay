@@ -326,24 +326,6 @@ fn variables() {
     );
 }
 
-// Tests for dicts and lists ----------------------------------------------------------------------
-
-#[test]
-// Test for parsing sequences, which may result in lists or dicts.
-fn sequences() {
-    // Inline operations
-    // fixme: IMHO this is wrong!
-    assert_eq!(
-        run(
-            r#"
-        a = 1 "x" a += 2 "y" a "z" $6 $5 $4 $3 $2 $1
-        #for i = 1; i <= 6; i++ print(i + ": " + $(i))"#,
-            ""
-        ),
-        Ok(Some(value!(["x", "y", 3, "z", "z", 3, "y", "x"])))
-    );
-}
-
 // Tests for tokens -------------------------------------------------------------------------------
 
 #[test]
@@ -485,59 +467,6 @@ fn examples() {
         run(include_str!("../examples/factorial.tok"), ""),
         Ok(Some(value!(24)))
     );
-}
-
-// Tests for control flow -------------------------------------------------------------------------
-
-#[test]
-// Testing if...else construct
-fn if_else() {
-    // These expressions are optimized by the compiler
-    assert_eq!(
-        run(
-            "
-            if true 1 \
-            if false 2 \
-            if $1 3 else 4 \
-            if !$2 5 else 6",
-            ""
-        ),
-        Ok(Some(value!([1, 3, 5])))
-    );
-
-    // These expressions are evaluated at compile time
-    assert_eq!(
-        run(
-            r#"
-            b = true
-            nb = false
-
-            if b 1 \
-            if nb 2 \
-            if $1 3 else 4 \
-            if !$2 5 else 6
-            "#,
-            ""
-        ),
-        Ok(Some(value!([1, 3, 5])))
-    );
-}
-
-#[test]
-// tests for push and next
-fn push_next() {
-    assert_eq!(
-        run(
-            "
-            1 2 3 next
-            4 5 6 push 7
-            ",
-            ""
-        ),
-        Ok(Some(value!(7)))
-    );
-
-    // todo: This test is a stub. Add more tests regarding next and push.
 }
 
 #[test]
