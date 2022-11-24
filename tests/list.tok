@@ -1,8 +1,28 @@
 #testmode:repl
+
+# Simple lists made from sequences
 (1 2 3)
 (1, 2, 3)
 (42, "Hello", 23.5, true, false)
+
+# Inline add list to itself
+a = (1,2)
+b = (3,4)
+a + b
+a
+b
+a += b
+a
+b
+
 #---
+
 #(1, 2, 3)
 #(1, 2, 3)
 #(42, "Hello", 23.5, true, false)
+
+#(1, 2, 3, 4)
+#(1, 2)
+#(3, 4)
+#(1, 2, 3, 4)
+#(3, 4)
