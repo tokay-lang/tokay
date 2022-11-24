@@ -1,9 +1,113 @@
 #testmode:repl
+# Dict tests
+
+## Construction
+
 x = 10
 (a => 1 b => 2 c => 3)
 (a => 1, b => 2, c => 3)
 (a => 42, x * 2 => "Hello", c => 23.5)
+
+d = (b => 3, c => 1, a => 2)
+d
+
+## Comparison
+
+a = (a => 1, b => 2)
+b = (b => 2, a => 1)
+c = (a => 1, b => 2, c => 3)
+d = (c => 3, b => 2, a => 1)
+a < c   a < b   c < d   c <= a   a == a   a != b   c >= a   b > a   c > a   c > b
+
+## Items
+
+d = (name => "John")
+d["name"]
+d["name"] = "Doe"
+d["name"]
+
+d = (x => 1)
+d["x"]++ d["x"] ++d["x"]
+
+d = (name => "John")
+#(
+#    d["x"]            # void
+#    d["x"] = 42       # void
+#    d["x"]            # 42
+#    d["x"]++          # 42
+#    ++d["x"]          # 44
+#    d["name"] = void  # void
+#    d.len             # 1
+#)
+(d["x"]  d["x"] = 42  d["x"]  d["x"]++  ++d["x"]  d["name"] = void  d.len)
+
+d = (name => "John")
+(d.get_item("lastname", "Doe")  d.set_item("lastname", "Ezel")  d["lastname"] = "Esel"  d["lastname"]  d.set_item("name")  d.get_item("name", "Horst"))
+#(
+#    d.get_item("lastname", "Doe")   # "Doe"
+#    d.set_item("lastname", "Ezel")  # "Ezel"
+#    d["lastname"] = "Esel"          # void
+#    d["lastname"]                   # "Esel"
+#    d.set_item("name")              # unset name
+#    d.get_item("name", "Horst")     # "Horst"
+#)
+
+## len
+
+dict().len()
+(a => 1, b => 2).len()
+dict_len("Donkey")  # invalid
+
+# merge
+
+d = (a => 1, b => 2)
+d.merge((c => 3))
+d
+d.merge(d)
+(a => 23, b => 42) $1.merge($1)
+
+## push
+
+d = dict()
+d.push(1, 2)
+d.push(2, 3)
+d
+
+d = dict()
+d.push(1, 2)
+d.push(2, 3)
+d.push(1, 4)
+
+d = ("esel" => 1, "bert" => 2) d.pop("franz") d.pop("franz", "eugen") d.pop("bert") d
+
 #---
 #(a => 1, b => 2, c => 3)
 #(a => 1, b => 2, c => 3)
 #(a => 42, "20" => "Hello", c => 23.5)
+
+#(b => 3, c => 1, a => 2)
+
+#(true, true, true, false, true, true, true, true, true, true)
+
+#"John"
+#"Doe"
+
+#(1, 2, 3)
+
+#(42, 42, 44, 1)
+
+#("Doe", "Ezel", "Esel", "Horst")
+
+#0
+#2
+#ERR:Line 1, column 1: dict_len() only accepts 'dict' as parameter, not 'str'
+
+#(a => 1, b => 2, c => 3)
+#(a => 1, b => 2, c => 3)
+#(a => 1, b => 2, c => 3)
+#((a => 23, b => 42), (a => 23, b => 42))
+
+#("1" => 2, "2" => 3)
+#2
+
+#("eugen", 2, (esel => 1))
