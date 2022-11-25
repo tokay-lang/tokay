@@ -28,7 +28,7 @@ This function currently requires that a tokay debug executable is compiled befor
 The provided code can either be a testcase or a path to a filename that contains the testcase.
 
 There's also a special REPL test mode: If the first line in the testcase contains `#testmode:repl`,
-the code is fed to the Tokay REPL, and expected output is tested againt each line specified. In this
+the code is fed to the Tokay REPL, and expected output is tested against each line specified. In this
 mode, it is important to specify multi-line definitions with the alternative `;` delimiter, otherwise
 a syntax error will occur (likewise in the normal REPL).
 */
@@ -300,6 +300,7 @@ fn examples() {
 #[test]
 // Run all tests in the tests/-folder
 fn tests() {
+    // todo: Move this into tokay-macros to generate test-functions from test-cases
     for case in glob("tests/*.tok").expect("Failed to read tests/") {
         let case = case.unwrap();
         let filename = case.as_path().to_str().unwrap();
