@@ -47,10 +47,10 @@ impl Token {
 
                 // Any identifier attached with an "s" will be checked for Token+
                 ident if ident.len() > 1 && ident.ends_with("s") => {
-                    if let Some(Token::BuiltinChar(f)) = builtin_ccl(&ident[..ident.len() - 1]) {
-                        Token::BuiltinChars(f)
-                    } else {
-                        return None;
+                    match builtin_ccl(&ident[..ident.len() - 1]) {
+                        Some(Token::BuiltinChar(f)) => Token::BuiltinChars(f),
+                        Some(Token::Char(c)) => Token::Chars(c),
+                        _ => return None,
                     }
                 }
                 _ => return None,
@@ -345,83 +345,3 @@ tokay_token!("Word : @min=1 max=void", {
         Err(Reject::Next)
     }
 });
-
-#[test]
-#[allow(non_snake_case)]
-// Test for built-in tokens
-fn builtin_tokens_Integer_Word_Whitespaces() {
-    let gliders = "Libelle 201b\tG102 Astir  \nVentus-2cT";
-
-    assert_eq!(
-        crate::run("Ident", gliders),
-        Ok(Some(crate::value!([
-            "Libelle", "b", "G102", "Astir", "Ventus", "cT"
-        ])))
-    );
-
-    // Integers
-    assert_eq!(
-        crate::run("Int", gliders),
-        Ok(Some(crate::value!([201, 102, (-2)])))
-    );
-
-    // Integers, ignore signs, all values are positive
-    assert_eq!(
-        crate::run("Int(with_signs=false)", gliders),
-        Ok(Some(crate::value!([201, 102, 2])))
-    );
-
-    // Integers, accept for hexadecimal values
-    assert_eq!(
-        crate::run("Int(16)", gliders),
-        Ok(Some(crate::value!([190, 14, 8219, 258, 10, 14, (-44)])))
-    );
-
-    // Whitespaces
-    assert_eq!(
-        crate::run("Whitespaces", gliders),
-        Ok(Some(crate::value!([" ", "\t", " ", "  \n"])))
-    );
-
-    // Word
-    assert_eq!(
-        crate::run("Word", gliders),
-        Ok(Some(crate::value!([
-            "Libelle", "b", "G", "Astir", "Ventus", "cT"
-        ])))
-    );
-
-    // Word with min parameters
-    assert_eq!(
-        crate::run("Word(3)", gliders),
-        Ok(Some(crate::value!(["Libelle", "Astir", "Ventus"])))
-    );
-
-    // Word with min and max parameters
-    assert_eq!(
-        crate::run("Word(3, 6)", gliders),
-        Ok(Some(crate::value!(["Astir", "Ventus"])))
-    );
-}
-
-#[test]
-#[allow(non_snake_case)]
-// Test for built-in token Float
-fn builtin_tokens_Float() {
-    assert_eq!(
-        crate::run("Float", ". 13. .37 13.37 13.37e 13.37e+2 13.37E+2"),
-        Ok(Some(crate::value!([13., 0.37, 13.37, 13.37, 1337., 1337.])))
-    );
-
-    assert_eq!(
-        crate::run("Float", "-. -13. -.37 -13.37 -13.37e -13.37e+2 -13.37E+2"),
-        Ok(Some(crate::value!([
-            (-13.),
-            (-0.37),
-            (-13.37),
-            (-13.37),
-            (-1337.),
-            (-1337.)
-        ])))
-    );
-}
