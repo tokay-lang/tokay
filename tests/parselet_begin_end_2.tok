@@ -1,0 +1,6 @@
+begin x = 1
+'lol' $1 * x x x = x + 1
+#---
+#lolAlolBlol
+#---
+#(("lol", 1), ("lollol", 2), ("lollollol", 3))

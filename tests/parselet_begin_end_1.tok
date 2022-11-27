@@ -1,0 +1,9 @@
+begin { x = 0 1337 }
+end 1338
+
+P: @{ 'lol' x = x + 1 x }
+P
+#---
+#lolalolaalolol
+#---
+#(1337, 1, 2, 3, 1338)
