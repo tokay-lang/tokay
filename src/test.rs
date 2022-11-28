@@ -2,10 +2,10 @@
 use crate::utils::*;
 use crate::value;
 use crate::value::*;
-use glob::glob;
 use std::fs::File;
 use std::io::{Read, Write}; // BufRead, BufReader,
 use std::process::{Command, Stdio};
+use tokay_macros;
 
 /** Test-case evaluator.
 
@@ -297,14 +297,4 @@ fn examples() {
     );
 }
 
-#[test]
-// Run all tests in the tests/-folder
-fn tests() {
-    // todo: Move this into tokay-macros to generate test-functions from test-cases
-    for case in glob("tests/*.tok").expect("Failed to read tests/") {
-        let case = case.unwrap();
-        let filename = case.as_path().to_str().unwrap();
-        println!("::: {} :::", filename);
-        testcase(filename);
-    }
-}
+tokay_macros::tokay_tests!("tests/*.tok");

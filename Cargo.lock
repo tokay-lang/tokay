@@ -701,8 +701,9 @@ dependencies = [
 
 [[package]]
 name = "tokay-macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
+ "glob",
  "proc-macro2",
  "quote",
  "syn",

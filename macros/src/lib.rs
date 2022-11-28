@@ -17,6 +17,7 @@ All macros require for two parameters:
 - *expression* is the Rust expression to be executed. This is the body of the function.
 */
 
+use glob::glob;
 use proc_macro::TokenStream;
 use proc_macro2;
 use quote::{quote, quote_spanned};
@@ -370,4 +371,30 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(gen)
+}
+
+#[proc_macro]
+pub fn tokay_tests(input: TokenStream) -> TokenStream {
+    let pattern = syn::parse_macro_input!(input as syn::LitStr);
+    let pattern = pattern.value();
+
+    let mut tests = Vec::new();
+
+    for test in glob(&pattern).expect(&format!("Failed to read {:?}", pattern)) {
+        let test = test.unwrap();
+        let name = format!("test_{}", test.file_stem().unwrap().to_str().unwrap());
+        let name = syn::Ident::new(&name, proc_macro2::Span::call_site());
+        let path = test.to_str().unwrap();
+
+        tests.push(TokenStream::from(quote!(
+            #[test]
+            fn #name() {
+                testcase(#path);
+            }
+        )));
+    }
+
+    //println!("tests = {:#?}", tests);
+
+    return TokenStream::from_iter(tests.into_iter());
 }

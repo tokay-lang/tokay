@@ -35,12 +35,11 @@ glob = "0.3"
 charclass = "0.2"  # use crates.io-version
 #charclass = { version = "0.2", path = "../charclass" }  # use local version
 clap = { version = "4", features = ["derive"] }
-glob = "0.3"
 indexmap = "1.9"
 num = "0.4"
 num-bigint = "0.4"
 rustyline = "9"
-#tokay-macros = "0.2"  # use crates.io-version
-tokay-macros = { version = "0.2", path = "macros" }  # use local version
+#tokay-macros = "0.3"  # use crates.io-version
+tokay-macros = { version = "0.3", path = "macros" }  # use local version
 num-parse = "0.1"  # use crates.io-version
 #num-parse = { version = "0.1", path = "../num-parse" }  # use local version
