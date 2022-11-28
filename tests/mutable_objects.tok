@@ -1,0 +1,20 @@
+#testmode:repl
+
+# Non-mutable boolean is copied (issue #70)
+a = true
+b = a
+a += true
+a b
+
+# Mutable list is used by reference
+l = (1, 2)
+l + 3
+l
+l += 3
+l
+
+#---
+#(2, true)
+#(1, 2, 3)
+#(1, 2)
+#(1, 2, 3)

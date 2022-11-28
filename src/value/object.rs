@@ -226,21 +226,3 @@ pub trait Object:
         Err(format!("'{}' object is not callable", self.name()).into())
     }
 }
-
-#[test]
-fn mutable_objects() {
-    assert_eq!(
-        crate::run("a = true b = a a += true a b", ""), // issue #70
-        Ok(Some(crate::value!([2, true])))
-    );
-
-    assert_eq!(
-        crate::run("(1, 2) $1 + 3", ""),
-        Ok(Some(crate::value!([[1, 2], [1, 2, 3]])))
-    );
-
-    assert_eq!(
-        crate::run("(1, 2) $1 += 3", ""),
-        Ok(Some(crate::value!([1, 2, 3])))
-    );
-}

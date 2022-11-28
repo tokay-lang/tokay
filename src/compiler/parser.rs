@@ -569,18 +569,6 @@ fn code_to_char(context: &mut Context, skip: u8, base: u32) -> Result<Accept, Re
     Ok(Accept::Return(Some(RefValue::from(format!("{}", code)))))
 }
 
-#[test]
-// EOL
-fn parser_eol() {
-    for eol in ["\n", "\r", "\r\n", ";"] {
-        let tok = format!("a = 1{}a + 2", eol);
-        println!("EOL test {:?}", tok);
-        assert_eq!(crate::run(&tok, ""), Ok(Some(crate::value!(3))));
-    }
-}
-
-// Tests for parsing and packrat features ---------------------------------------------------------
-
 /*
     Below are some tests that provide indirect left-recursion.
 
@@ -667,4 +655,14 @@ fn parser_leftrec() {
     */
 
     println!("{:#?}", program.run_from_str("abb"));
+}
+
+#[test]
+// EOL
+fn parser_eol() {
+    for eol in ["\n", "\r", "\r\n", ";"] {
+        let tok = format!("a = 1{}a + 2", eol);
+        println!("EOL test {:?}", tok);
+        assert_eq!(crate::run(&tok, ""), Ok(Some(crate::value!(3))));
+    }
 }
