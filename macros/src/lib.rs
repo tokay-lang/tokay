@@ -389,7 +389,7 @@ pub fn tokay_tests(input: TokenStream) -> TokenStream {
         tests.push(TokenStream::from(quote!(
             #[test]
             fn #name() {
-                testcase(#path);
+                crate::utils::testcase(#path);
             }
         )));
     }
