@@ -147,7 +147,8 @@ impl Op {
                 context.debug(&format!("{:03}:{}", ip, op));
             } else if debug > 3 {
                 if debug > 5 {
-                    if let Op::Offset(_) = op {
+                    // Skip any Nop-Operations
+                    if matches!(op, Op::Nop | Op::Offset(_)) {
                         ip += 1;
                         continue;
                     }
@@ -166,10 +167,10 @@ impl Op {
 
                     context.debug("--- Frames ---");
                     for i in 0..context.frames.len() {
-                        context.debug(&format!(" {:03} {:?}", i, context.frames[i]));
+                        context.debug(&format!(" {:03} {}", i, context.frames[i]));
                     }
 
-                    context.debug(&format!(" {:03} {:?}", context.frames.len(), context.frame));
+                    context.debug(&format!(" {:03} {}", context.frames.len(), context.frame));
                 }
 
                 // Step-by-step
@@ -515,7 +516,7 @@ impl Op {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_clone();
                     context.runtime.stack[*addr] = Capture::Value(value, None, 0);
-                    Ok(Accept::Next)
+                    Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreGlobalHold(addr) => {
