@@ -1,10 +1,8 @@
 //! Contexts and stack frames for parselet calls.
-
-use std::iter::FromIterator;
-
 use super::*;
 use crate::reader::Offset;
 use crate::value::{Dict, List, Object, Parselet, RefValue};
+use std::iter::FromIterator;
 
 /** Representation of a stack-frame based on current context. */
 #[derive(Debug, Clone, Copy)]
@@ -12,6 +10,16 @@ pub struct Frame {
     pub fuse: Option<usize>,  // optional fuse
     pub capture_start: usize, // capture start
     pub reader_start: Offset, // reader start
+}
+
+impl std::fmt::Display for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "capture: {}, reader: {}, fuse: {:?}",
+            self.capture_start, self.reader_start.offset, self.fuse
+        )
+    }
 }
 
 /** Contexts represent stack frames for parselet calls.
