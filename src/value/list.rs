@@ -32,7 +32,7 @@ impl Object for List {
         }
 
         if self.len() == 1 {
-            ret.push(',');
+            ret.push_str(", ");
         }
 
         ret.push(')');
