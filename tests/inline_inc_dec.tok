@@ -1,0 +1,47 @@
+#testmode:repl
+# Tests for pre- and post-increment and -decrements
+# These require spaces in some situations to find correct path throug meaning
+
+# int
+
+i = 1
+i
+i++
+++i
+i++ i++
+i++ + ++i
+i-- - --i
+i-- - - --i
+i
+
+# float
+
+f = 13.37
+f
+++f
+--f
+f++
+f
+
+# str
+
+s = "a"
+s++
+++s
+
+#---
+#1
+#1
+#3
+#(3, 4)
+#12
+#2
+#8
+#3
+#13.37
+#14.37
+#13.37
+#13.37
+#14.37
+#ERR:Line 1, column 1: Method 'str_iinc' not found
+#ERR:Line 1, column 1: Method 'str_iinc' not found

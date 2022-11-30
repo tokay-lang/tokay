@@ -1,0 +1,6 @@
+#testmode:repl
+#todo: This test is a stub. Add more tests regarding next and push.
+1 2 3 next
+4 5 6 push 7
+#---
+#7

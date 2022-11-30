@@ -1,0 +1,29 @@
+#testmode:repl
+# Tests for bool, including bool constructor
+
+b = bool(1)
+b == true
+b == 1
+
+b + b
+b += b
+b
+
+b = bool(0)
+b == false
+b == 0
+
+b + b
+b += b
+b
+
+#---
+#true
+#false
+#2
+#2
+
+#true
+#false
+#0
+#0

@@ -1,0 +1,52 @@
+#testmode:repl
+# Tests for assignment-operations
+
+# bool / int
+
+i = true i
+i += (i += 15) i
+i -= 9 i
+i *= 3 i
+i /= 6 i
+i /= 2 i
+i *= 10 i
+
+# float
+
+f = 23. f
+f += .5 f
+f -= 9 f
+f *= 3 f
+f /= 6 f
+f /= 2 f
+f *= 10 f
+
+# str
+
+s = "a" s
+s += "b" s
+s *= 3 s
+s -= "x" s
+s /= 5 s
+
+#---
+
+#true
+#32
+#23
+#69
+#11.5
+#5.75
+#57.5
+#23
+#23.5
+#14.5
+#43.5
+#7.25
+#3.625
+#36.25
+#"a"
+#"ab"
+#"ababab"
+#ERR:Line 1, column 6: Method 'str_sub' not found
+#ERR:Line 1, column 6: Method 'str_div' not found

@@ -1,0 +1,25 @@
+#testmode:repl
+'A' "test\\yes\n\xCA\xFE\t\100\x5F\u20ac\U0001F98E"
+'B' print("test\\yes\n\xCA\xFE\t\100\x5F\u20ac\U0001F98E")
+'C' ''hello\nworld''
+'D' ''hello\\nworld''
+'E' ''hello\u20acworld''
+'F' [0-9\u20ac]+
+#---
+#A
+#B
+#Chello
+#world
+#Dhello\nworld
+#Ehello€world
+#F12345€
+#Fa1€
+#F€12345
+#---
+#"test\\yes\nÊþ\t@_€🦎"
+#test\yes
+#Êþ	@_€🦎
+#"hello\nworld"
+#"hello\\nworld"
+#"hello€world"
+#("12345€", "€12345")

@@ -45,7 +45,8 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
     let mut readline = Editor::<()>::new();
 
     // todo: Implement a history in $HOME for production?
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) && std::env::var("TOKAY_HISTORY_LOAD").map_or(true, |var| var == "1")
+    {
         readline.load_history(".tokayhist").ok();
     }
 
@@ -101,8 +102,8 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                                     print!("\n")
                                 }
                             }
-                            Ok(Some(value)) => println!("{}", value.to_string()),
-                            Err(error) => println!("{}", error),
+                            Ok(Some(value)) => println!("{}", value.repr()),
+                            Err(error) => eprintln!("{}", error),
                         }
 
                         globals = runtime.save_stack();
@@ -117,7 +118,10 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
         }
     }
 
-    if cfg!(debug_assertions) {
-        readline.save_history(".tokayhist").unwrap();
+    if cfg!(debug_assertions) && std::env::var("TOKAY_HISTORY_SAVE").map_or(true, |var| var == "1")
+    {
+        readline
+            .save_history(".tokayhist")
+            .expect("Cannot save REPL history");
     }
 }

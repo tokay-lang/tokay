@@ -1,0 +1,54 @@
+#testmode:repl
+# Tests for the mul function in various situations
+
+true * false
+void * null
+true * true
+
+23 * 42
+.5 * 23
+23.5 * -3
+23.5 * 3.1415
+
+a = 23
+b = 42
+
+a * b
+
+il = .5 * a
+il
+il * -3
+pi = 3.1415
+il * pi
+
+s = "yes!"
+"a" * "b"
+a * "b"
+a * 1.337
+"a" * 1.337
+a * il * pi
+a * (il * pi)
+il * pi * "a"
+pi * s
+
+#---
+
+#0
+#0
+#1
+#966
+#11.5
+#-70.5
+#73.82525000000001
+#966
+#11.5
+#-34.5
+#36.127250000000004
+#""
+#"bbbbbbbbbbbbbbbbbbbbbbb"
+#30.750999999999998
+#"a"
+#830.9267500000001
+#830.9267500000001
+#"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+#"yes!yes!yes!"

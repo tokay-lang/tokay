@@ -12,3 +12,6 @@ f(42)
 
 # back in global scope, x is still 10, y is 2000 again, z is 1072 now.
 x y z
+
+#---
+#(10, 2000, 1072)

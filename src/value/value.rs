@@ -1,6 +1,6 @@
 //! Tokay value
 use super::{BoxedObject, Dict, Object, RefValue};
-use crate::{Accept, Context, Reject};
+use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
@@ -56,8 +56,26 @@ impl Value {
 
     // Constructors
     tokay_method!("bool : @value", Ok(RefValue::from(value.is_true())));
-    tokay_method!("int : @value", Ok(RefValue::from(value.to_bigint()?)));
-    tokay_method!("float : @value", Ok(RefValue::from(value.to_f64()?)));
+    tokay_method!("int : @value", {
+        if let Ok(value) = value.to_bigint() {
+            Ok(RefValue::from(value))
+        } else {
+            Err(Error::from(format!(
+                "`{}` cannot be converted to int",
+                value.name()
+            )))
+        }
+    });
+    tokay_method!("float : @value", {
+        if let Ok(value) = value.to_f64() {
+            Ok(RefValue::from(value))
+        } else {
+            Err(Error::from(format!(
+                "`{}` cannot be converted to float",
+                value.name()
+            )))
+        }
+    });
 
     // float methods
     tokay_method!(
@@ -272,31 +290,4 @@ impl From<f32> for RefValue {
     fn from(float: f32) -> Self {
         RefValue::from(float as f64)
     }
-}
-
-#[test]
-fn builtin_value_constructors() {
-    assert_eq!(crate::run("bool(0)", ""), Ok(Some(crate::value!(false))));
-    assert_eq!(crate::run("bool(1)", ""), Ok(Some(crate::value!(true))));
-
-    assert_eq!(crate::run("int(13.37)", ""), Ok(Some(crate::value!(13))));
-    assert_eq!(crate::run("int(\"42\")", ""), Ok(Some(crate::value!(42))));
-    assert_eq!(crate::run("int(true)", ""), Ok(Some(crate::value!(1))));
-
-    assert_eq!(crate::run("float(1)", ""), Ok(Some(crate::value!(1.0))));
-    assert_eq!(
-        crate::run("float(\"42.5\")", ""),
-        Ok(Some(crate::value!(42.5)))
-    );
-    assert_eq!(crate::run("float(true)", ""), Ok(Some(crate::value!(1.0))));
-}
-
-#[test]
-fn builtin_float_methods() {
-    assert_eq!(crate::run("12.5.ceil()", ""), Ok(Some(crate::value!(13.0))));
-    assert_eq!(
-        crate::run("12.5.trunc()", ""),
-        Ok(Some(crate::value!(12.0)))
-    );
-    assert_eq!(crate::run("12.5.fract()", ""), Ok(Some(crate::value!(0.5))));
 }

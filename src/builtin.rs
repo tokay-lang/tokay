@@ -3,6 +3,7 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::{Accept, Context, Reject};
+use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
 
@@ -130,14 +131,6 @@ tokay_function!("chr : @i", {
     .into()
 });
 
-#[test]
-fn test_chr() {
-    assert_eq!(
-        crate::run("i = ord(\"€\"); i chr(i)", ""),
-        Ok(Some(value![[(8364 as usize), "€"]]))
-    );
-}
-
 tokay_function!("ord : @c", {
     let c = c.to_string();
     if c.chars().count() != 1 {
@@ -152,106 +145,26 @@ tokay_function!("ord : @c", {
     }
 });
 
-#[test]
-fn test_ord() {
-    assert_eq!(
-        crate::run("ord(\"12\")", ""),
-        Err(
-            "Line 1, column 1: ord() expects a single character, but received string of length 2"
-                .to_string()
-        )
-    );
-
-    assert_eq!(
-        crate::run("ord(\"\")", ""),
-        Err(
-            "Line 1, column 1: ord() expects a single character, but received string of length 0"
-                .to_string()
-        )
-    );
-}
-
 tokay_function!("print : @*args", {
-    match context {
-        None => {
-            for i in 0..args.len() {
-                if i > 0 {
-                    print!(" ");
-                }
-
-                print!("{}", args[i].to_string());
-            }
-            print!("\n");
+    if args.len() == 0 && context.is_some() {
+        if let Some(capture) = context.unwrap().get_capture(0) {
+            print!("{}", capture.to_string());
         }
-        Some(context) => {
-            if args.len() == 0 {
-                if let Some(capture) = context.get_capture(0) {
-                    write!(context.runtime.output, "{}", capture.to_string()).unwrap();
-                }
-            } else {
-                for i in 0..args.len() {
-                    if i > 0 {
-                        write!(context.runtime.output, " ").unwrap();
-                    }
-
-                    write!(context.runtime.output, "{}", args[i].to_string()).unwrap();
-                }
+    } else {
+        for i in 0..args.len() {
+            if i > 0 {
+                print!(" ");
             }
 
-            write!(context.runtime.output, "\n").unwrap();
-            context.runtime.output.flush().unwrap();
+            print!("{}", args[i].to_string());
         }
     }
+
+    print!("\n");
+    io::stdout().flush().unwrap();
 
     value!(void).into()
 });
 
 tokay_function!("repr : @value", value!(value.repr()).into());
-
-#[test]
-fn test_repr() {
-    assert_eq!(
-        crate::run("repr(\"Hello World\")", ""),
-        Ok(Some(value!("\"Hello World\"")))
-    );
-}
-
 tokay_function!("type : @value", value!(value.name()).into());
-
-#[test]
-fn test_type() {
-    assert_eq!(
-        crate::run(
-            "type(void) type(true) type(1) type(23.5) type(\"hello\") type((1,2))",
-            ""
-        ),
-        Ok(Some(value!([
-            "void", "bool", "int", "float", "str", "list"
-        ])))
-    );
-}
-
-#[test]
-fn test_buildin_call_error_reporting() {
-    // Tests for calling functions with wrong parameter counts
-    for (call, msg) in [
-        (
-            "str_replace()",
-            "Line 1, column 1: str_replace() expected argument 's'",
-        ),
-        (
-            "str_replace(1, 2, 3, 4, 5)",
-            "Line 1, column 1: str_replace() expected at most 4 arguments (5 given)",
-        ),
-        (
-            "str_replace(1, 2, x=3)",
-            "Line 1, column 1: str_replace() doesn't accept named argument 'x'",
-        ),
-        (
-            "str_replace(1, 2, x=3, y=4)",
-            "Line 1, column 1: str_replace() doesn't accept named arguments (2 given)",
-        ),
-    ] {
-        assert_eq!(crate::run(&call, ""), Err(msg.to_owned()));
-    }
-}

@@ -1028,11 +1028,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let res = traverse_node_rvalue(compiler, children, Rvalue::CallOrLoad);
 
+                    // Evaluate operation at compile-time if possible
                     if let Ok(value) = res.get_evaluable_value() {
-                        return ImlOp::load(
-                            traverse_node_offset(node),
-                            ImlValue::from(value.unary_op(parts[2]).unwrap()),
-                        );
+                        if let Ok(value) = value.unary_op(parts[2]) {
+                            return ImlOp::load(traverse_node_offset(node), ImlValue::from(value));
+                        }
                     }
 
                     ops.push(res);
@@ -1090,14 +1090,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             }
                         }
                         _ => {
-                            // When both operands are direct values, try run operation at compile-time
+                            // When both operands are direct values, evaluate operation at compile-time
                             if let (Ok(left), Ok(right)) =
                                 (left.get_evaluable_value(), right.get_evaluable_value())
                             {
-                                return ImlOp::load(
-                                    traverse_node_offset(node),
-                                    ImlValue::from(left.binary_op(right, parts[2]).unwrap()),
-                                );
+                                if let Ok(value) = left.binary_op(right, parts[2]) {
+                                    return ImlOp::load(
+                                        traverse_node_offset(node),
+                                        ImlValue::from(value),
+                                    );
+                                }
                             }
 
                             // Otherwise, generate code for operation
@@ -1260,8 +1262,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         ImlOp::from(Op::PushVoid)
                     };
 
-                    // Compile time evaluation; When the if fails, it doesn't need
-                    // to be compiled into the program.
+                    // Compile time evaluation;
+                    // In case the condition of the if already fails here, it doesn't need to be
+                    // compiled into the program.
                     if let Ok(value) = condition.get_evaluable_value() {
                         if value.is_true() {
                             return then_part;
@@ -1539,12 +1542,6 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
 
     RefValue::from(ret).into()
 });
-
-#[test]
-fn test_ast() {
-    // Issue #3
-    crate::test::testcase("tests/test_ast_offset.tok");
-}
 
 tokay_function!("ast_print : @ast", {
     print(&ast);

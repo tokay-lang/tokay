@@ -1,0 +1,52 @@
+#testmode:repl
+# Tests for the add function in various situations
+
+true + false
+void + null
+true + true
+
+23 + 42
+.5 + 23
+23.5 + -3
+23.5 + 3.1415
+
+a = 23
+b = 42
+a + b
+
+il = .5 + a
+il
+il + -3
+
+pi = 3.1415
+il + pi
+
+s = "yes!"
+"a" + "b"
+a + "b"
+"a" + 1.337
+"a" + il + pi
+"a" + (il + pi)
+il + pi + "a"
+pi + s
+
+#---
+
+#1
+#0
+#2
+#65
+#23.5
+#20.5
+#26.6415
+#65
+#23.5
+#20.5
+#26.6415
+#"ab"
+#"23b"
+#"a1.337"
+#"a23.53.1415"
+#"a26.6415"
+#"26.6415a"
+#"3.1415yes!"

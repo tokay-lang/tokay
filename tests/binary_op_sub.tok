@@ -1,0 +1,31 @@
+#testmode:repl
+# Tests for the sub function in various situations
+
+true - false
+false - true
+false - void
+void - false
+42 - 23
+42 - -23
+42 - 0.5
+13.37 - 10.37
+"a" - "b"
+a = 42
+b = 23
+a - b
+a - -b
+a - 0.5
+
+#---
+#1
+#-1
+#0
+#0
+#19
+#65
+#41.5
+#3
+#ERR:Line 1, column 1: Method 'str_sub' not found
+#19
+#65
+#41.5

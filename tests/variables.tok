@@ -1,0 +1,23 @@
+#testmode:repl
+
+# Test store-hold-global
+a = b = 10
+a++
+a b
+
+# Test store-hold-local
+f : @{ a = b = 10; a++; a b }
+f
+
+# Test store-hold-capture
+10 20 $1 = $2 = 30 ++$1 $2
+
+# Test store-hold-aliased-capture
+a => 10 b => 20 $a = $b = 30 c => ++$a d => $b
+
+#---
+#10
+#(11, 10)
+#(11, 10)
+#(31, 30, 31, 30)
+#(a => 31, b => 30, c => 31, d => 30)

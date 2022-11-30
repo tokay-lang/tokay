@@ -1,0 +1,35 @@
+#testmode:repl
+
+-1
+- 1
+- - 1
+- - - 1
+a = 42
+- a
+- - a
+- - - a
+-(-a)
+!a
+!true
+!!true
+b = true
+!b
+!!b
+!!!b
+
+#---
+
+#-1
+#-1
+#1
+#-1
+#-42
+#42
+#-42
+#42
+#false
+#false
+#true
+#false
+#true
+#false

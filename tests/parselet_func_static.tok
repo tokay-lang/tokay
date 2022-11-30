@@ -1,0 +1,9 @@
+factorial : @x {
+    if !x return 1
+    x * factorial(x - 1)
+}
+
+factorial(4)
+
+#---
+#24
