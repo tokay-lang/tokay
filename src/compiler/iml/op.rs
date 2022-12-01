@@ -400,14 +400,14 @@ impl ImlOp {
                     let mut alt = Vec::new();
                     item.compile(&mut alt, linker);
 
-                    // Fuse alternation branch, except at the last
-                    if item.is_consuming() && iter.len() > 0 {
+                    // When branch has more than one item, Frame it.
+                    if iter.len() > 0 {
                         let fuse = alt.len() + if item.is_consuming() { 3 } else { 2 };
 
                         if initial_fuse.is_none() {
-                            initial_fuse = Some(fuse)
+                            initial_fuse = Some(fuse) // this is used for the initial frame
                         } else {
-                            ret.push(Op::Fuse(fuse));
+                            ret.push(Op::Fuse(fuse)); // this updates the fuse of the frame
                         }
 
                         ret.extend(alt);
@@ -421,10 +421,6 @@ impl ImlOp {
                         ret.push(Op::Reset);
                     } else {
                         ret.extend(alt);
-
-                        if iter.len() > 0 {
-                            ret.push(Op::Reset);
-                        }
                     }
                 }
 
@@ -433,7 +429,7 @@ impl ImlOp {
                     ret[addr] = Op::ForwardIfConsumed(ret.len() - addr);
                 }
 
-                // Wrap in its own frame when alts.len() > 1
+                // Wrap the entire body in its own frame when more than 1 alternative exists
                 if let Some(fuse) = initial_fuse {
                     ret.insert(0, Op::Frame(fuse));
                     ret.push(Op::Close);
