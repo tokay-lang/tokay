@@ -78,7 +78,16 @@ d.push(1, 2)
 d.push(2, 3)
 d.push(1, 4)
 
-d = ("esel" => 1, "bert" => 2) d.pop("franz") d.pop("franz", "eugen") d.pop("bert") d
+## pop
+
+d = ("esel" => 1, "bert" => 2, "edgar" => 42, "klaus" => 23)
+d
+d.pop("franz")
+d.pop("franz", "eugen")
+d.pop("bert")
+d
+d.pop()
+d
 
 #---
 #(a => 1, b => 2, c => 3)
@@ -110,4 +119,9 @@ d = ("esel" => 1, "bert" => 2) d.pop("franz") d.pop("franz", "eugen") d.pop("ber
 #("1" => 2, "2" => 3)
 #2
 
-#("eugen", 2, (esel => 1))
+#(esel => 1, bert => 2, edgar => 42, klaus => 23)
+#"eugen"
+#2
+#(esel => 1, klaus => 23, edgar => 42)
+#42
+#(esel => 1, klaus => 23)

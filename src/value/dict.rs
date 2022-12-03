@@ -192,10 +192,19 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_pop : @dict, key, default=void", {
+    tokay_method!("dict_pop : @dict, key=void, default=void", {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
+            if key.is_void() {
+                return Ok(if let Some(last) = dict.pop() {
+                    last.1
+                }
+                else {
+                    default
+                })
+            }
+
             let key = key.to_string();
 
             Ok(if let Some(value) = dict.remove(&key) {
