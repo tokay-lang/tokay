@@ -1,5 +1,5 @@
 //! Dictionary object
-use super::{BoxedObject, Object, RefValue};
+use super::{BoxedObject, List, Object, RefValue};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
@@ -86,6 +86,77 @@ impl Dict {
 
         if let Some(dict) = dict.object::<Dict>() {
             Ok(RefValue::from(dict.len()))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_keys : @dict", {
+        let dict = dict.borrow();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            let mut list = List::with_capacity(dict.len());
+
+            for key in dict.keys() {
+                list.push(RefValue::from(key.to_owned()));
+            }
+
+            Ok(RefValue::from(list))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_values : @dict", {
+        let dict = dict.borrow();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            let mut list = List::with_capacity(dict.len());
+
+            for value in dict.values() {
+                list.push(value.clone());
+            }
+
+            Ok(RefValue::from(list))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    tokay_method!("dict_items : @dict", {
+        let dict = dict.borrow();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            let mut list = List::with_capacity(dict.len());
+
+            for (key, value) in dict.iter() {
+                // fixme: wanted to shortcut this all with
+                //  list.push(value!([key.to_string(), value.clone()]));
+                // but doesn't compile.
+                let mut item = List::with_capacity(2);
+
+                item.push(RefValue::from(key.to_string()));
+                item.push(value.clone());
+
+                list.push(RefValue::from(item));
+            }
+
+            Ok(RefValue::from(list))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -199,10 +270,9 @@ impl Dict {
             if key.is_void() {
                 return Ok(if let Some(last) = dict.pop() {
                     last.1
-                }
-                else {
+                } else {
                     default
-                })
+                });
             }
 
             let key = key.to_string();

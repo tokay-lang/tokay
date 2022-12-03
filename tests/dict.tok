@@ -55,8 +55,14 @@ d = (name => "John")
 ## len
 
 dict().len()
-(a => 1, b => 2).len()
+d = (a => 1, b => 2)
+
+d.len()
 dict_len("Donkey")  # invalid
+
+d.keys
+d.values
+d.items
 
 # merge
 
@@ -110,6 +116,10 @@ d
 #0
 #2
 #ERR:Line 1, column 1: dict_len() only accepts 'dict' as parameter, not 'str'
+
+#("a", "b")
+#(1, 2)
+#(("a", 1), ("b", 2))
 
 #(a => 1, b => 2, c => 3)
 #(a => 1, b => 2, c => 3)
