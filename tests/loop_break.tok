@@ -1,0 +1,12 @@
+# A loop breaks, partially with values
+
+a = loop { break }
+print(repr(a))
+a = loop false {}
+print(repr(a))
+a = loop { break 7 }
+print(repr(a))
+#---
+#void
+#void
+#7

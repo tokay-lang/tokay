@@ -1,0 +1,12 @@
+# Tests and loop inside another loop (issue #89)
+
+for i = 0; i < 1; i++ {
+    loop false {
+        void
+    }
+}
+
+print("Done")
+
+#---
+#Done

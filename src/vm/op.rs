@@ -262,13 +262,14 @@ impl Op {
                         context.runtime.stack.truncate(context.frame.capture_start);
                     }
 
-                    // Jump behind loop
-                    ip = current.2;
+                    ip = current.2;  // Jump behind loop
 
+                    // Break will always leave a value, either defined or empty capture
                     Ok(if let Some(value) = value {
                         Accept::Push(Capture::Value(value, None, 10))
                     } else {
-                        Accept::Next
+                        context.runtime.stack.push(Capture::Empty);
+                        Accept::Hold
                     })
                 }
 
@@ -282,9 +283,9 @@ impl Op {
 
                     context.runtime.stack.truncate(context.frame.capture_start);
 
-                    // Jump to loop start.
-                    ip = current.1;
-                    Ok(Accept::Next)
+                    ip = current.1; // Jump to loop start.
+
+                    Ok(Accept::Hold)
                 }
 
                 // Conditional jumps
