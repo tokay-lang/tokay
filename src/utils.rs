@@ -100,6 +100,7 @@ pub(crate) fn testcase(code: &str) {
             cmd.env("TOKAY_HISTORY_SAVE", "0");
             cmd.stdin(Stdio::piped());
         } else {
+            cmd.arg("-e");
             cmd.arg(code);
         }
 
@@ -200,17 +201,20 @@ pub(crate) fn testcase(code: &str) {
                     err.pop();
                 }
                 */
-                let err = err.remove(0);
                 let exp = &line[5..];
+                let line = err
+                    .get(0)
+                    .expect("Expecting stderr but nothing was emitted");
                 assert_eq!(
-                    err,
+                    line,
                     exp,
                     "{}:{} stderr expects {:?} but got {:?}",
                     filename,
                     lines + row + 1,
                     exp,
-                    err
+                    line
                 );
+                err.remove(0);
             } else {
                 /*
                 let mut out = String::new();
@@ -219,17 +223,20 @@ pub(crate) fn testcase(code: &str) {
                     out.pop();
                 }
                 */
-                let out = out.remove(0);
                 let exp = &line[1..];
+                let line = out
+                    .get(0)
+                    .expect("Expecting stdout but nothing was emitted");
                 assert_eq!(
-                    out,
+                    line,
                     exp,
                     "{}:{} stdout expects {:?} but got {:?}",
                     filename,
                     lines + row + 1,
                     exp,
-                    out
+                    line
                 );
+                out.remove(0);
             }
         }
 

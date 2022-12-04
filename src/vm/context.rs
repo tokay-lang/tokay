@@ -480,9 +480,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 //println!("main result(1) = {:#?}", result);
                 result = match result {
                     Ok(Accept::Next) => Ok(Accept::Repeat(None)),
-
                     Ok(Accept::Return(value)) => Ok(Accept::Repeat(value)),
-
                     Ok(Accept::Push(capture)) => Ok(Accept::Repeat(match capture {
                         Capture::Range(range, ..) => {
                             Some(RefValue::from(self.runtime.reader.get(&range)))

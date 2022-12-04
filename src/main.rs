@@ -21,6 +21,7 @@ fn print_version() {
     help_template = r#"{bin} {version}
 © 2022 by {author}
 {about}
+{bin} is free software released under the MIT license.
 
 {all-args}
 
@@ -30,8 +31,7 @@ as input file.
 
 When PROGRAM was not specified, {bin} turns into an interactive REPL.
 
-Visit https://tokay.dev/ for help and further information.
-{bin} is free software released under the MIT license."#
+Visit https://tokay.dev/ for help and further information."#
 )]
 struct Opts {
     /// Program to compile and run.
@@ -41,6 +41,14 @@ struct Opts {
     /// Input for program to operate on.
     #[clap(value_parser, last = true)]
     input: Vec<String>,
+
+    /// Sets the debug level.
+    #[clap(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+
+    /// Echo result of executed main parselet
+    #[clap(short, long, action)]
+    echo: bool,
 
     /// Accept only files as parameters, no string fallbacks.
     #[clap(short, long, action)]
@@ -53,10 +61,6 @@ struct Opts {
     /// Start the given PROGRAM in its own REPL.
     #[clap(short, long, action)]
     repl: bool,
-
-    /// Sets the debug level.
-    #[clap(short, long, action = clap::ArgAction::Count)]
-    debug: u8,
 
     /// Show license agreement and exit.
     #[clap(short, long, action)]
@@ -191,17 +195,21 @@ fn main() {
                 for (name, stream) in &streams {
                     let ret = program.run_from_reader(stream.borrow_mut().get_reader());
 
-                    if streams.len() > 1 {
+                    if opts.echo && streams.len() > 1 {
                         print!("{}: ", name);
                     }
 
                     match ret {
                         Ok(None) => {
-                            if streams.len() > 1 {
+                            if opts.echo && streams.len() > 1 {
                                 print!("\n")
                             }
                         }
-                        Ok(Some(value)) => println!("{}", value.to_string()),
+                        Ok(Some(value)) => {
+                            if opts.echo {
+                                println!("{}", value.to_string())
+                            }
+                        }
                         Err(error) => eprintln!("{}", error),
                     }
                 }

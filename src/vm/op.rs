@@ -262,7 +262,7 @@ impl Op {
                         context.runtime.stack.truncate(context.frame.capture_start);
                     }
 
-                    ip = current.2;  // Jump behind loop
+                    ip = current.2; // Jump behind loop
 
                     // Break will always leave a value, either defined or empty capture
                     Ok(if let Some(value) = value {
