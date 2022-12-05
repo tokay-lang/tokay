@@ -234,9 +234,10 @@ impl List {
     });
 
     tokay_method!("list_pop : @list, index=void", {
-        let index = match index.to_usize()? {
-            0 => None,
-            i => Some(i),
+        let index = if index.is_void() {
+            None
+        } else {
+            Some(index.to_usize()?)
         };
 
         if !list.is("list") {
@@ -274,7 +275,7 @@ impl List {
                     .into());
                 }
 
-                Ok(list.remove(len - index - 1))
+                Ok(list.remove(index))
             }
         }
     });

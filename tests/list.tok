@@ -72,7 +72,12 @@ list_push((1,2,3), 99, 4)
 
 # pop
 l = (1,2,3,4); l.pop() l.pop(1)
-l = (1,2,3,4); l.pop(4)
+l = (1,2,3,4)
+l.pop(0)
+l.pop()
+l.pop(2)
+l
+
 list_pop(1)
 list_pop(1, 1)
 
@@ -127,7 +132,10 @@ repr((1, 2, 3, 4))
 #ERR:Line 1, column 1: list_push() provided index 4 out of range in list sized 3
 
 #(4, 2)
-#ERR:Line 1, column 18: list_pop() provided index 4 out of range of list sized 4
+#1
+#4
+#ERR:Line 1, column 3: list_pop() provided index 2 out of range of list sized 2
+#(2, 3)
 #1
 #ERR:Line 1, column 1: list_pop() provided index 1 out of range
 
