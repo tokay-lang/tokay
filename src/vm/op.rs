@@ -236,13 +236,7 @@ impl Op {
 
                 // Loops
                 Op::Loop(size) => {
-                    context.frames.push(context.frame);
-                    context.frame = Frame {
-                        fuse: None,
-                        capture_start: context.runtime.stack.len(),
-                        reader_start: context.runtime.reader.tell(),
-                    };
-                    loops.push((context.frames.len(), ip, ip + *size));
+                    loops.push((context.frames.len(), ip + 1, ip + *size));
                     Ok(Accept::Next)
                 }
 
@@ -257,7 +251,7 @@ impl Op {
                     };
 
                     // Discard all open frames inside current loop.
-                    while context.frames.len() >= current.0 {
+                    while context.frames.len() > current.0 {
                         context.frame = context.frames.pop().unwrap();
                         context.runtime.stack.truncate(context.frame.capture_start);
                     }
