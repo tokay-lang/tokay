@@ -190,7 +190,7 @@ impl RefValue {
                         }
                     }
 
-                    (Value::Float(_), _) | (_, Value::Float(_)) => match op {
+                    (Value::Float(_), _) | (_, Value::Float(_)) if op != "divi" => match op {
                         "add" => return Ok(value!(this.to_f64()? + that.to_f64()?)),
                         "mul" => return Ok(value!(this.to_f64()? * that.to_f64()?)),
                         "sub" => return Ok(value!(this.to_f64()? - that.to_f64()?)),
@@ -201,8 +201,7 @@ impl RefValue {
                             if divisor == 0.0 {
                                 if op == "mod" {
                                     return Err(String::from("Modulo by zero"));
-                                }
-                                else {
+                                } else {
                                     return Err(String::from("Division by zero"));
                                 }
                             }
@@ -220,17 +219,20 @@ impl RefValue {
                         "add" => return Ok(value!(this.to_bigint()? + that.to_bigint()?)),
                         "mul" => return Ok(value!(this.to_bigint()? * that.to_bigint()?)),
                         "sub" => return Ok(value!(this.to_bigint()? - that.to_bigint()?)),
-                        "div" | "mod" => {
+                        "div" | "divi" | "mod" => {
                             let dividend = this.to_bigint()?;
                             let divisor = that.to_bigint()?;
 
                             if divisor.is_zero() {
                                 if op == "mod" {
                                     return Err(String::from("Modulo by zero"));
-                                }
-                                else {
+                                } else {
                                     return Err(String::from("Division by zero"));
                                 }
+                            }
+
+                            if op == "divi" {
+                                return Ok(value!(dividend / divisor));
                             }
 
                             let modres = &dividend % &divisor;
@@ -242,8 +244,7 @@ impl RefValue {
                                 } else {
                                     return Ok(value!(dividend / divisor));
                                 }
-                            }
-                            else if op == "mod" {
+                            } else if op == "mod" {
                                 return Ok(value!(modres));
                             }
                             // Otherwise do a floating point division

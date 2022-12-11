@@ -304,6 +304,7 @@ Unary : @{
 
 MulDiv : @{
     MulDiv '*' _ expect Unary  ast("op_binary_mul")
+    MulDiv '//' _ expect Unary  ast("op_binary_divi")
     MulDiv '/' _ expect Unary  ast("op_binary_div")
     MulDiv '%' _ expect Unary  ast("op_binary_mul")
     Unary
@@ -340,6 +341,7 @@ HoldExpression : @{
     Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub_hold")
     Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul_hold")
     Lvalue _ '/=' _ expect HoldExpression  ast("assign_div_hold")
+    Lvalue _ '//=' _ expect HoldExpression  ast("assign_divi_hold")
     Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod_hold")
     Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign_hold")
     LogicalOr
@@ -350,6 +352,7 @@ Expression : @{
     Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub")
     Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul")
     Lvalue _ '/=' _ expect HoldExpression  ast("assign_div")
+    Lvalue _ '//=' _ expect HoldExpression  ast("assign_divi")
     Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod")
     Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign")
     LogicalOr

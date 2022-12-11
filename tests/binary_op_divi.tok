@@ -1,0 +1,60 @@
+#testmode:repl
+# Tests for the integer div function in various situations
+
+true // false
+true // true
+10 // 20
+10.5 // 20
+23 // 5
+25 // 5
+29.5 // 5
+10 // "20"
+a = 100
+b = 1000
+a // b
+b // a
+"a" // "b"
+
+x = 7 for i = 1; i <= 7; i++ { print(i, x // i, type(x // i)) }
+
+x = 7. for i = 1; i <= 7; i++ { print(i, x // i, type(x // i)) }
+
+x = 7 for i = 1.; i <= 7.; i++ { print(i, x // i, type(x // i)) }
+
+#---
+
+#ERR:Line 1, column 1: Division by zero
+#1
+#0
+#0
+#4
+#5
+#5
+#ERR:Line 1, column 1: Method 'str_divi' not found
+#0
+#10
+#ERR:Line 1, column 1: Method 'str_divi' not found
+
+#1 7 int
+#2 3 int
+#3 2 int
+#4 1 int
+#5 1 int
+#6 1 int
+#7 1 int
+
+#1 7 int
+#2 3 int
+#3 2 int
+#4 1 int
+#5 1 int
+#6 1 int
+#7 1 int
+
+#1 7 int
+#2 3 int
+#3 2 int
+#4 1 int
+#5 1 int
+#6 1 int
+#7 1 int
