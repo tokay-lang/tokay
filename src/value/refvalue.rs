@@ -199,7 +199,12 @@ impl RefValue {
                             let divisor = that.to_f64()?;
 
                             if divisor == 0.0 {
-                                return Err(String::from("Division or modulo by zero"));
+                                if op == "mod" {
+                                    return Err(String::from("Modulo by zero"));
+                                }
+                                else {
+                                    return Err(String::from("Division by zero"));
+                                }
                             }
 
                             if op == "mod" {
@@ -220,7 +225,12 @@ impl RefValue {
                             let divisor = that.to_bigint()?;
 
                             if divisor.is_zero() {
-                                return Err(String::from("Division or modulo by zero"));
+                                if op == "mod" {
+                                    return Err(String::from("Modulo by zero"));
+                                }
+                                else {
+                                    return Err(String::from("Division by zero"));
+                                }
                             }
 
                             let modres = &dividend % &divisor;
@@ -228,10 +238,13 @@ impl RefValue {
                             // If there's no remainder, perform an integer division
                             if modres.is_zero() {
                                 if op == "mod" {
-                                    return Ok(value!(dividend % divisor));
+                                    return Ok(value!(0));
                                 } else {
                                     return Ok(value!(dividend / divisor));
                                 }
+                            }
+                            else if op == "mod" {
+                                return Ok(value!(modres));
                             }
                             // Otherwise do a floating point division
                             else {
@@ -247,14 +260,10 @@ impl RefValue {
                                 let f_divisor = f_divisor.unwrap();
 
                                 if f_divisor == 0.0 {
-                                    return Err(String::from("Division or modulo by zero"));
+                                    return Err(String::from("Division by zero"));
                                 }
 
-                                if op == "mod" {
-                                    return Ok(value!(f_dividend % f_divisor));
-                                } else {
-                                    return Ok(value!(f_dividend / f_divisor));
-                                }
+                                return Ok(value!(f_dividend / f_divisor));
                             }
                         }
                         _ => None,

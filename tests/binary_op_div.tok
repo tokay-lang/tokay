@@ -12,9 +12,15 @@ a / b
 b / a
 "a" / "b"
 
+x = 7 for i = 1; i <= 7; i++ { print(i, x / i, type(x / i)) }
+
+x = 7. for i = 1; i <= 7; i++ { print(i, x / i, type(x / i)) }
+
+x = 7 for i = 1.; i <= 7.; i++ { print(i, x / i, type(x / i)) }
+
 #---
 
-#ERR:Line 1, column 1: Division or modulo by zero
+#ERR:Line 1, column 1: Division by zero
 #1
 #0.5
 #0.525
@@ -22,3 +28,27 @@ b / a
 #0.1
 #10
 #ERR:Line 1, column 1: Method 'str_div' not found
+
+#1 7 int
+#2 3.5 float
+#3 2.3333333333333335 float
+#4 1.75 float
+#5 1.4 float
+#6 1.1666666666666667 float
+#7 1 int
+
+#1 7 float
+#2 3.5 float
+#3 2.3333333333333335 float
+#4 1.75 float
+#5 1.4 float
+#6 1.1666666666666667 float
+#7 1 float
+
+#1 7 float
+#2 3.5 float
+#3 2.3333333333333335 float
+#4 1.75 float
+#5 1.4 float
+#6 1.1666666666666667 float
+#7 1 float

@@ -12,9 +12,15 @@ a % b
 b % a
 "a" % "b"
 
+x = 7 for i = 1; i <= 7; i++ { print(i, x % i, type(x % i)) }
+
+x = 7. for i = 1; i <= 7; i++ { print(i, x % i, type(x % i)) }
+
+x = 7 for i = 1.; i <= 7.; i++ { print(i, x % i, type(x % i)) }
+
 #---
 
-#ERR:Line 1, column 1: Division or modulo by zero
+#ERR:Line 1, column 1: Modulo by zero
 #0
 #10
 #10.5
@@ -22,3 +28,27 @@ b % a
 #100
 #0
 #ERR:Line 1, column 1: Method 'str_mod' not found
+
+#1 0 int
+#2 1 int
+#3 1 int
+#4 3 int
+#5 2 int
+#6 1 int
+#7 0 int
+
+#1 0 float
+#2 1 float
+#3 1 float
+#4 3 float
+#5 2 float
+#6 1 float
+#7 0 float
+
+#1 0 float
+#2 1 float
+#3 1 float
+#4 3 float
+#5 2 float
+#6 1 float
+#7 0 float
