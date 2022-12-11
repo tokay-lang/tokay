@@ -408,6 +408,7 @@ impl Parser {
             [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub_hold")])],
             [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul_hold")])],
             [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div_hold")])],
+            [Lvalue, _, "%=", _, (expect HoldExpression), (call ast[(value "assign_mod_hold")])],
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
                 _, (expect HoldExpression), (call ast[(value "assign_hold")])],
 
@@ -421,6 +422,7 @@ impl Parser {
             [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub")])],
             [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul")])],
             [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div")])],
+            [Lvalue, _, "%=", _, (expect HoldExpression), (call ast[(value "assign_mod")])],
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect HoldExpression), (call ast[(value "assign")])],
 

@@ -340,6 +340,7 @@ HoldExpression : @{
     Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub_hold")
     Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul_hold")
     Lvalue _ '/=' _ expect HoldExpression  ast("assign_div_hold")
+    Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod_hold")
     Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign_hold")
     LogicalOr
 }
@@ -349,6 +350,7 @@ Expression : @{
     Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub")
     Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul")
     Lvalue _ '/=' _ expect HoldExpression  ast("assign_div")
+    Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod")
     Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign")
     LogicalOr
 }
