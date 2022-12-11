@@ -670,6 +670,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     "sub" => ImlOp::from(Op::BinaryOp("isub")),
                     "mul" => ImlOp::from(Op::BinaryOp("imul")),
                     "div" => ImlOp::from(Op::BinaryOp("idiv")),
+                    "mod" => ImlOp::from(Op::BinaryOp("imod")),
                     _ => unreachable!(),
                 });
 
@@ -1114,6 +1115,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 "sub" => Op::BinaryOp("sub"),
                                 "mul" => Op::BinaryOp("mul"),
                                 "div" => Op::BinaryOp("div"),
+                                "mod" => Op::BinaryOp("mod"),
                                 "eq" => Op::BinaryOp("eq"),
                                 "neq" => Op::BinaryOp("neq"),
                                 "lteq" => Op::BinaryOp("lteq"),

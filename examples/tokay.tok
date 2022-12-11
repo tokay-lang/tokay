@@ -305,6 +305,7 @@ Unary : @{
 MulDiv : @{
     MulDiv '*' _ expect Unary  ast("op_binary_mul")
     MulDiv '/' _ expect Unary  ast("op_binary_div")
+    MulDiv '%' _ expect Unary  ast("op_binary_mul")
     Unary
 }
 

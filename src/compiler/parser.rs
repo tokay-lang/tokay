@@ -369,6 +369,7 @@ impl Parser {
         (MulDiv = {
             [MulDiv, "*", _, (expect Unary), (call ast[(value "op_binary_mul")])],
             [MulDiv, "/", _, (expect Unary), (call ast[(value "op_binary_div")])],
+            [MulDiv, "%", _, (expect Unary), (call ast[(value "op_binary_mod")])],
             Unary
         }),
 

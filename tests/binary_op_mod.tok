@@ -1,0 +1,24 @@
+#testmode:repl
+# Tests for the mod function in various situations
+
+true % false
+true % true
+10 % 20
+10.5 % 20
+10 % "20"
+a = 100
+b = 1000
+a % b
+b % a
+"a" % "b"
+
+#---
+
+#ERR:Line 1, column 1: Division or modulo by zero
+#0
+#10
+#10.5
+#ERR:Line 1, column 1: Method 'str_mod' not found
+#100
+#0
+#ERR:Line 1, column 1: Method 'str_mod' not found

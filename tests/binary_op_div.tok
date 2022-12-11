@@ -14,7 +14,7 @@ b / a
 
 #---
 
-#ERR:Line 1, column 1: Division by zero
+#ERR:Line 1, column 1: Division or modulo by zero
 #1
 #0.5
 #0.525
