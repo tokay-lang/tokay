@@ -16,7 +16,7 @@ pub struct RefValue {
 impl RefValue {
     /** Either creates a copy of a value or a reference, which is configured by the
     is_mutable() function of the underlying object. */
-    pub fn ref_or_clone(self) -> Self {
+    pub fn ref_or_copy(self) -> Self {
         if self.is_mutable() {
             self
         } else {
@@ -201,8 +201,7 @@ impl RefValue {
                             if divisor == 0.0 {
                                 if op == "mod" {
                                     return Err(String::from("Modulo by zero"));
-                                }
-                                else {
+                                } else {
                                     return Err(String::from("Division by zero"));
                                 }
                             }
@@ -227,8 +226,7 @@ impl RefValue {
                             if divisor.is_zero() {
                                 if op == "mod" {
                                     return Err(String::from("Modulo by zero"));
-                                }
-                                else {
+                                } else {
                                     return Err(String::from("Division by zero"));
                                 }
                             }
@@ -242,8 +240,7 @@ impl RefValue {
                                 } else {
                                     return Ok(value!(dividend / divisor));
                                 }
-                            }
-                            else if op == "mod" {
+                            } else if op == "mod" {
                                 return Ok(value!(modres));
                             }
                             // Otherwise do a floating point division
