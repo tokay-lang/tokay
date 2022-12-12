@@ -647,7 +647,13 @@ impl ImlOp {
                                 leftrec: true,
                                 nullable: false,
                             }),
+                            // Otherwise dive into this parselet...
                             Ok(parselet) => {
+                                // ... only if it's generally flagged to be consuming.
+                                if !parselet.consuming {
+                                    return None;
+                                }
+
                                 let id = parselet.id();
 
                                 if visited.contains(&id) {

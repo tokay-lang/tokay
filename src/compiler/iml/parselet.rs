@@ -7,9 +7,9 @@ use std::collections::{HashMap, HashSet};
 /// Intermediate parselet
 pub(in crate::compiler) struct ImlParselet {
     pub offset: Option<Offset>,                     // Offset of definition
-    pub consuming: bool, // Flag if parselet is consuming (detected by compiler scopes)
-    pub severity: u8,    // Capture push severity
-    pub name: Option<String>, // Parselet's name from source (for debugging)
+    pub consuming: bool,                            // Flag if parselet is consuming
+    pub severity: u8,                               // Capture push severity
+    pub name: Option<String>,                       // Parselet's name from source (for debugging)
     pub constants: Vec<(String, Option<ImlValue>)>, // Constant signature with default constants; generic parselet when set.
     pub signature: Vec<(String, Option<ImlValue>)>, // Argument signature with default arguments
     pub locals: usize, // Total number of local variables present (including arguments)

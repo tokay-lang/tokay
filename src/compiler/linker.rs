@@ -168,10 +168,11 @@ impl Linker {
             .map(|(iml, parselet)| {
                 if let Some(mut parselet) = parselet {
                     if let ImlValue::Parselet(imlparselet) = iml {
-                        //println!("{:?}", imlparselet.borrow().name);
                         parselet.consuming = configs
                             .get(&imlparselet.borrow().id())
                             .map_or(None, |config| Some(config.leftrec));
+
+                        //println!("{:?} => {:?}", imlparselet.borrow().name, parselet.consuming);
                     }
 
                     RefValue::from(parselet)
