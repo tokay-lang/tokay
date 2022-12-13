@@ -6,36 +6,31 @@ Current main branch.
 
 - General
   - Use of numeric parsing features from [num-parse](https://crates.io/crates/num-parse) for `Int` and internal string-to-int conversion ("parseInt()"-like behavior)
-  - The way how sequence values are being collected has been entirely revised:
-    - Any items with a severity of at least 1 are being collected, but higher severities always win
-    - Results of a collection (either list or dict) inherit the highest collected severity
-    - Token severity was re-arranged:
-      - 0: Whitespace
-      - 1: Touch
-      - 5: Match, character-class, parselet
-    - Refactoring of the essential `Context::collect()`-function
 - Syntax
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
     - `()` the empty list
     - `(1,)` list with one item (explicit comma required)
+  - Implemented `[`...`]` item access syntax for rvalue and lvalue
 - Compiler
-  - Entire revision of the compiler component
-    - Removal of `Usage`, `ImlResult` and integrating all `Compileable`s into ImlOp intermediate operation
-    - Code construction happens in ImlOp as well
+  - Entire revision of the compiler module
+    - Removed structs `Usage` and `ImlResult`
+    - Integrating all `impl Compileable`s into `ImlOp`
+    - Code construction happens in `ImlOp` as well now
     - Added required changes to
       - determine whether a part of code consumes input
-      - preliminaries to generic parselets
+      - preliminaries to generic parselets (yet unfinished)
   - Include `prelude.tok` with default parselets
     - `Number` matches either `Float` or `Int`
     - `Token` matches arbitrary tokens
-- VM
-  - Frame is now managed by Context
+- Virtual Machine
+  - Internal refactoring of the essential `Context::collect()`-function
+  - `Frame` is now managed by `Context`
 - Values
   - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
   - Definition of mutable objects; Imutable objects push a clone of, mutable objects push a ref on the object.
 - Builtins
-  - Added `dict_push()`, `dict.pop()`
+  - Added `dict.clone()`, `dict_push()`, `dict.pop()`, `dict.get_item()`, `dict.set_item()`, `list.get_item()`, `list.set_item()`, `str.get_item()`
   - Renamed `dict_update()` into `dict_merge()`
 - Examples
   - The self-hosted Tokay parser in `examples/tokay.tok` was syncronized with the builtin parser, so both construct equally the same abstract syntax tree

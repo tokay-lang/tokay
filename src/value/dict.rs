@@ -96,6 +96,21 @@ impl Dict {
         }
     });
 
+    tokay_method!("dict_clone : @dict", {
+        let dict = dict.borrow();
+
+        if let Some(dict) = dict.object::<Dict>() {
+            Ok(RefValue::from(dict.clone()))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
     tokay_method!("dict_keys : @dict", {
         let dict = dict.borrow();
 

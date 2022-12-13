@@ -264,11 +264,18 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         }
     }
 
-    /** Helper function to collect captures from a capture_start and turn
-    them either into a dict or list object capture or take them as is.
+    /** Collect captures from a capture_start and turn them either into a dict or list object capture.
 
-    This function is internally used for automatic AST construction and value
-    inheriting.
+    Any items with a severity of at least 1 are being collected, but higher severities always win.
+
+    - Results of a collection (either list or dict) inherit the highest collected severity
+    - Token severity:
+      - 0: Whitespace
+      - 1: Touch
+      - 5: Match, character-class, parselet
+      - 10: Defined value
+
+    This function is internally used for automatic AST construction and value inheriting.
     */
     pub fn collect(
         &mut self,
