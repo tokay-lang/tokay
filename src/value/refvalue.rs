@@ -190,7 +190,7 @@ impl RefValue {
                         }
                     }
 
-                    (Value::Float(_), _) | (_, Value::Float(_)) => match op {
+                    (Value::Float(_), _) | (_, Value::Float(_)) if op != "divi" => match op {
                         "add" => return Ok(value!(this.to_f64()? + that.to_f64()?)),
                         "mul" => return Ok(value!(this.to_f64()? * that.to_f64()?)),
                         "sub" => return Ok(value!(this.to_f64()? - that.to_f64()?)),
@@ -219,7 +219,7 @@ impl RefValue {
                         "add" => return Ok(value!(this.to_bigint()? + that.to_bigint()?)),
                         "mul" => return Ok(value!(this.to_bigint()? * that.to_bigint()?)),
                         "sub" => return Ok(value!(this.to_bigint()? - that.to_bigint()?)),
-                        "div" | "mod" => {
+                        "div" | "divi" | "mod" => {
                             let dividend = this.to_bigint()?;
                             let divisor = that.to_bigint()?;
 
@@ -229,6 +229,10 @@ impl RefValue {
                                 } else {
                                     return Err(String::from("Division by zero"));
                                 }
+                            }
+
+                            if op == "divi" {
+                                return Ok(value!(dividend / divisor));
                             }
 
                             let modres = &dividend % &divisor;

@@ -368,6 +368,7 @@ impl Parser {
 
         (MulDiv = {
             [MulDiv, "*", _, (expect Unary), (call ast[(value "op_binary_mul")])],
+            [MulDiv, "//", _, (expect Unary), (call ast[(value "op_binary_divi")])],
             [MulDiv, "/", _, (expect Unary), (call ast[(value "op_binary_div")])],
             [MulDiv, "%", _, (expect Unary), (call ast[(value "op_binary_mod")])],
             Unary
@@ -408,6 +409,7 @@ impl Parser {
             [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub_hold")])],
             [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul_hold")])],
             [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div_hold")])],
+            [Lvalue, _, "//=", _, (expect HoldExpression), (call ast[(value "assign_divi_hold")])],
             [Lvalue, _, "%=", _, (expect HoldExpression), (call ast[(value "assign_mod_hold")])],
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "=="
                 _, (expect HoldExpression), (call ast[(value "assign_hold")])],
@@ -422,6 +424,7 @@ impl Parser {
             [Lvalue, _, "-=", _, (expect HoldExpression), (call ast[(value "assign_sub")])],
             [Lvalue, _, "*=", _, (expect HoldExpression), (call ast[(value "assign_mul")])],
             [Lvalue, _, "/=", _, (expect HoldExpression), (call ast[(value "assign_div")])],
+            [Lvalue, _, "//=", _, (expect HoldExpression), (call ast[(value "assign_divi")])],
             [Lvalue, _, "%=", _, (expect HoldExpression), (call ast[(value "assign_mod")])],
             [Lvalue, _, "=", (not {">", "="}), //avoid wrongly matching "=>" or "==" here
                 _, (expect HoldExpression), (call ast[(value "assign")])],
