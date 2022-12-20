@@ -338,9 +338,11 @@ impl Parser {
             // for
             //["for", _SeparatedIdentifier, T_Identifier, _, "in", _SeparatedIdentifier, Expression, Statement,
             //    (call ast[(value "op_for_in")])],
-            ["for", _SeparatedIdentifier, StatementOrEmpty, ";", _, StatementOrEmpty, ";", _, StatementOrEmpty,
-                StatementOrEmpty, (call ast[(value "op_for")])],
-            ["for", _SeparatedIdentifier, (call error[(value "'for': Expecting start; condition; iter; statement")])],
+            ["for", _SeparatedIdentifier, {Sequence, Nop}, ";", _, {Sequence, Nop}, ";", _, Statement, _,
+                Block, (call ast[(value "op_for")])],
+            ["for", _SeparatedIdentifier, {Sequence, Nop}, ";", _, {Sequence, Nop}, ";", _, Nop, _,
+                Block, (call ast[(value "op_for")])],
+            ["for", _SeparatedIdentifier, (call error[(value "'for': Expecting initial; condition; increment { body }")])],
 
             // loop
             ["loop", _SeparatedIdentifier, Expression, _, Statement, (call ast[(value "op_loop")])],
@@ -435,11 +437,6 @@ impl Parser {
 
         // Statement and Assignment
 
-        (StatementOrEmpty = {
-            Statement,
-            (call ast[(value "op_nop")])
-        }),
-
         (Statement = {
             ["accept", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_accept")])],
             ["break", _SeparatedIdentifier, (opt Expression), (call ast[(value "op_break")])],
@@ -488,6 +485,10 @@ impl Parser {
             [Statement, T_EOL],
             [Sequences, (expect T_EOL)],
             T_EOL
+        }),
+
+        (Nop = {
+            (call ast[(value "op_nop")])
         }),
 
         (Tokay = {

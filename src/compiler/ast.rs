@@ -1291,7 +1291,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<List>().unwrap();
 
-                    let (initial, condition, each, body) = (
+                    let (initial, condition, increment, body) = (
                         &children[0].borrow(),
                         &children[1].borrow(),
                         &children[2].borrow(),
@@ -1300,26 +1300,23 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let initial = initial.object::<Dict>().unwrap();
                     let condition = condition.object::<Dict>().unwrap();
-                    let each = each.object::<Dict>().unwrap();
+                    let increment = increment.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
                     // Initial
                     let initial = traverse_node_rvalue(compiler, initial, Rvalue::CallOrLoad);
+                    let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
+                    let increment = traverse_node_rvalue(compiler, increment, Rvalue::CallOrLoad);
 
                     compiler.loop_push();
-
-                    let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
-                    let body = ImlOp::from(vec![
-                        traverse_node_rvalue(compiler, body, Rvalue::Load),
-                        traverse_node_rvalue(compiler, each, Rvalue::CallOrLoad),
-                    ]);
-
+                    let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
                     compiler.loop_pop();
 
                     ImlOp::Loop {
                         consuming: None,
-                        init: Box::new(initial),
+                        initial: Box::new(initial),
                         condition: Box::new(condition),
+                        increment: Box::new(increment),
                         body: Box::new(body),
                     }
                 }
@@ -1335,8 +1332,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                             ImlOp::Loop {
                                 consuming: None,
-                                init: Box::new(ImlOp::Nop),
+                                initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(ImlOp::Nop),
+                                increment: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),
@@ -1349,12 +1347,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                             ImlOp::Loop {
                                 consuming: None,
-                                init: Box::new(ImlOp::Nop),
+                                initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(traverse_node_rvalue(
                                     compiler,
                                     condition.object::<Dict>().unwrap(),
                                     Rvalue::CallOrLoad,
                                 )),
+                                increment: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),

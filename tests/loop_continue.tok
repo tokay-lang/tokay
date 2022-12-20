@@ -1,0 +1,11 @@
+for i = 0; i <= 3; i++ {
+    if i == 1
+        continue
+
+    print(i)
+}
+
+#---
+#0
+#2
+#3

@@ -30,10 +30,11 @@ pub(crate) enum Op {
     Fuse(usize),  // Set frame fuse to relative forward address
 
     // Loop frames
-    Loop(usize), // Loop frame
-    Break,       // Ok(Accept::Break)
-    LoadBreak,   // Ok(Accept::Break) with value
-    Continue,    // Ok(Accept::Continue)
+    Loop(usize),    // Loop frame
+    IncLoop(usize), // Incremental loop frame (for-loop with incremental part skipped on first iteration)
+    Break,          // Ok(Accept::Break)
+    LoadBreak,      // Ok(Accept::Break) with value
+    Continue,       // Ok(Accept::Continue)
 
     // Conditional jumps
     ForwardIfTrue(usize),      // Jump forward when TOS is true
@@ -137,8 +138,6 @@ impl Op {
         let mut ip = 0; // Instruction pointer
         let mut state = Ok(Accept::Next);
 
-        let mut loops: Vec<(usize, usize, usize)> = Vec::new(); // Loop stack
-
         while ip < ops.len() {
             let op = &ops[ip];
 
@@ -235,13 +234,17 @@ impl Op {
                 }
 
                 // Loops
-                Op::Loop(size) => {
-                    loops.push((context.frames.len(), ip + 1, ip + *size));
+                Op::Loop(size) | Op::IncLoop(size) => {
+                    context.loops.push(Loop {
+                        frames: context.frames.len(),
+                        start: ip + if matches!(op, Op::Loop(_)) { 1 } else { 2 },
+                        end: ip + if matches!(op, Op::Loop(_)) { 0 } else { 1 } + *size,
+                    });
                     Ok(Accept::Next)
                 }
 
                 Op::Break | Op::LoadBreak => {
-                    let current = loops.pop().unwrap();
+                    let current = context.loops.pop().unwrap();
 
                     // Save value?
                     let value = if matches!(op, Op::LoadBreak) {
@@ -251,12 +254,14 @@ impl Op {
                     };
 
                     // Discard all open frames inside current loop.
-                    while context.frames.len() > current.0 {
+                    while context.frames.len() > current.frames {
                         context.frame = context.frames.pop().unwrap();
-                        context.runtime.stack.truncate(context.frame.capture_start);
                     }
 
-                    ip = current.2; // Jump behind loop
+                    context.runtime.stack.truncate(context.frame.capture_start);
+
+                    // Jump behind loop
+                    ip = current.end;
 
                     // Break will always leave a value, either defined or empty capture
                     Ok(if let Some(value) = value {
@@ -268,16 +273,20 @@ impl Op {
                 }
 
                 Op::Continue => {
-                    let current = loops.last().unwrap();
+                    let current = context
+                        .loops
+                        .last()
+                        .expect("Op::Continue used outside of a loop frame");
 
                     // Discard all open frames inside current loop.
-                    while context.frames.len() > current.0 {
+                    while context.frames.len() > current.frames {
                         context.frame = context.frames.pop().unwrap();
                     }
 
                     context.runtime.stack.truncate(context.frame.capture_start);
 
-                    ip = current.1; // Jump to loop start.
+                    // Jump to loop start.
+                    ip = current.start;
 
                     Ok(Accept::Hold)
                 }
@@ -352,7 +361,7 @@ impl Op {
                 }
 
                 // Interrupts
-                Op::Skip => Err(Reject::Skip),
+                Op::Skip => Err(Reject::Skip),  // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),

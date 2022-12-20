@@ -92,8 +92,9 @@ pub(in crate::compiler) enum ImlOp {
     // Loop construct
     Loop {
         consuming: Option<Consumable>, // Consumable state: FIXME: Remove and replace asap.
-        init: Box<ImlOp>,              // Initial operation
+        initial: Box<ImlOp>,           // Initial operation
         condition: Box<ImlOp>,         // Abort condition
+        increment: Box<ImlOp>,         // Incrementor part (for-loops only)
         body: Box<ImlOp>,              // Iterating body
     },
 
@@ -498,13 +499,16 @@ impl ImlOp {
             }
             ImlOp::Loop {
                 consuming, // todo: currently always false, which is wrong!
-                init,
+                initial,
                 condition,
+                increment,
                 body,
             } => {
-                init.compile(ops, linker);
-
                 let mut repeat = Vec::new();
+
+                initial.compile(ops, linker);
+
+                let increment = increment.compile(&mut repeat, linker);
 
                 if condition.compile(&mut repeat, linker) > 0 {
                     repeat.push(Op::ForwardIfTrue(2));
@@ -512,10 +516,14 @@ impl ImlOp {
                 }
 
                 body.compile(&mut repeat, linker);
+                let len = repeat.len() + if consuming.is_some() { 3 } else { 2 };
 
-                ops.push(Op::Loop(
-                    repeat.len() + if consuming.is_some() { 3 } else { 2 },
-                ));
+                if increment > 0 {
+                    ops.push(Op::IncLoop(len));
+                    ops.push(Op::Forward(increment + 1));
+                } else {
+                    ops.push(Op::Loop(len));
+                }
 
                 // fixme: consuming flag must be handled differently.
                 if consuming.is_some() {
@@ -757,14 +765,15 @@ impl ImlOp {
                 }
             }
             ImlOp::Loop {
-                init,
+                initial,
                 condition,
+                increment,
                 body,
                 ..
             } => {
                 let mut ret: Option<Consumable> = None;
 
-                for part in [init, condition, body] {
+                for part in [initial, condition, increment, body] {
                     let part = part.finalize(visited, configs);
 
                     if let Some(part) = part {
@@ -834,12 +843,13 @@ impl ImlOp {
                 true
             }
             ImlOp::Loop {
-                init,
+                initial,
                 condition,
+                increment,
                 body,
                 ..
             } => {
-                for i in [&init, &condition, &body] {
+                for i in [&initial, &condition, &increment, &body] {
                     if !i.walk(func) {
                         return false;
                     }

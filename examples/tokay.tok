@@ -281,8 +281,9 @@ Atomic : @{
     Literal
     Token1
     'if' _SeparatedIdentifier Expression ___ expect Statement (___ 'else' _SeparatedIdentifier ___ expect Statement)?  ast("op_if")
-    'for' _SeparatedIdentifier StatementOrEmpty ';' _ StatementOrEmpty ';' _ StatementOrEmpty StatementOrEmpty  ast("op_for")
-    'for' _SeparatedIdentifier  error("'for': Expecting start; condition; iter; statement")
+    'for' _SeparatedIdentifier (Sequence | Nop) ';' _ (Sequence | Nop) ';' _ Statement _ Block  ast("op_for")
+    'for' _SeparatedIdentifier (Sequence | Nop) ';' _ (Sequence | Nop) ';' _ Nop _ Block  ast("op_for")
+    'for' _SeparatedIdentifier  error("'for': Expecting initial; condition; increment { body }")
     'loop' _SeparatedIdentifier Expression _ Statement  ast("op_loop")
     'loop' _SeparatedIdentifier expect Statement  ast("op_loop")
     Load
@@ -360,11 +361,6 @@ Expression : @{
 
 # Statement and Assignment
 
-StatementOrEmpty : @{
-    Statement
-    Void ast("op_nop")
-}
-
 Statement : @{
     'accept' _SeparatedIdentifier Expression?  ast("op_accept")
     'break' _SeparatedIdentifier Expression?  ast("op_break")
@@ -412,6 +408,8 @@ Instruction : @{
     Sequences expect T_EOL
     T_EOL
 }
+
+Nop : Void ast("op_nop")
 
 # Main
 

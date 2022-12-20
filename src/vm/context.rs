@@ -22,6 +22,14 @@ impl std::fmt::Display for Frame {
     }
 }
 
+/** Representatin of a loop-frame */
+#[derive(Debug, Clone, Copy)]
+pub struct Loop {
+    pub frames: usize, // Number of frames at loop start
+    pub start: usize,  // Start address of loop iteration
+    pub end: usize,    // End address of loop
+}
+
 /** Contexts represent stack frames for parselet calls.
 
 Via the context, most operations regarding capture storing and loading is performed. */
@@ -40,6 +48,8 @@ pub struct Context<'program, 'parselet, 'runtime> {
     // Virtual machine
     pub frames: Vec<Frame>, // Frame stack
     pub frame: Frame,       // Current frame
+
+    pub loops: Vec<Loop>, // Loop stack
 
     // Variables
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
@@ -87,6 +97,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             hold,
             frames: Vec::new(),
             frame,
+            loops: Vec::new(),
             source_offset: None,
         }
     }
