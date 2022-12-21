@@ -1550,3 +1550,65 @@ tokay_function!("ast_print : @ast", {
     print(&ast);
     value!(void).into()
 });
+
+tokay_function!("ast2rust : @ast", {
+    fn print(value: &RefValue, indent: usize) {
+        let value = value.borrow();
+
+        if let Some(d) = value.object::<Dict>() {
+            let emit = d["emit"].to_string();
+
+            let row = d
+                .get("row")
+                .and_then(|row| Some(row.borrow().to_usize().unwrap()))
+                .unwrap();
+            let col = d
+                .get("col")
+                .and_then(|col| Some(col.borrow().to_usize().unwrap()))
+                .unwrap();
+
+            let value = d.get("value");
+            let children = d.get("children");
+
+            print!(
+                r#"{space:indent$}value!(
+{space:indent$}    emit => {emit:?},
+{space:indent$}    row => {row:?},
+{space:indent$}    col => {col:?}"#,
+                space = "",
+                indent = indent * 4,
+                emit = emit,
+                row = row,
+                col = col
+            );
+
+            if let Some(children) = children {
+                print!(
+                    ",\n{space:indent$}    children =>\n",
+                    space = "",
+                    indent = indent * 4
+                );
+
+                print(children, indent + 2);
+            }
+
+            print!("\n{space:indent$})", space = "", indent = indent * 4);
+        } else if let Some(l) = value.object::<List>() {
+            print!("{space:indent$}value!([\n", space = "", indent = indent * 4);
+
+            let mut iter = l.iter().peekable();
+
+            while let Some(item) = iter.next() {
+                print(item, indent + 1);
+                if iter.peek().is_some() {
+                    print!(",\n");
+                }
+            }
+
+            print!("\n{space:indent$}])", space = "", indent = indent * 4);
+        }
+    }
+
+    print(&ast, 0);
+    value!(void).into()
+});
