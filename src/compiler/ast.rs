@@ -1571,10 +1571,10 @@ tokay_function!("ast2rust : @ast", {
             let children = d.get("children");
 
             print!(
-                r#"{space:indent$}value!(
-{space:indent$}    emit => {emit:?},
-{space:indent$}    row => {row:?},
-{space:indent$}    col => {col:?}"#,
+                r#"{space:indent$}(value!([
+{space:indent$}    "emit" => {emit:?},
+{space:indent$}    "row" => {row:?},
+{space:indent$}    "col" => {col:?}"#,
                 space = "",
                 indent = indent * 4,
                 emit = emit,
@@ -1584,15 +1584,29 @@ tokay_function!("ast2rust : @ast", {
 
             if let Some(children) = children {
                 print!(
-                    ",\n{space:indent$}    children =>\n",
+                    ",\n{space:indent$}    \"children\" => (\n",
                     space = "",
                     indent = indent * 4
                 );
 
                 print(children, indent + 2);
+
+                print!(
+                    "\n{space:indent$}    )",
+                    space = "",
+                    indent = indent * 4
+                );
+            }
+            else if let Some(value) = value {
+                print!(
+                    ",\n{space:indent$}    \"value\" => {value:?}",
+                    space = "",
+                    indent = indent * 4,
+                    value = value.to_string()
+                );
             }
 
-            print!("\n{space:indent$})", space = "", indent = indent * 4);
+            print!("\n{space:indent$}]))", space = "", indent = indent * 4);
         } else if let Some(l) = value.object::<List>() {
             print!("{space:indent$}value!([\n", space = "", indent = indent * 4);
 
@@ -1609,6 +1623,6 @@ tokay_function!("ast2rust : @ast", {
         }
     }
 
-    print(&ast, 0);
+    print(&ast, 1);
     value!(void).into()
 });
