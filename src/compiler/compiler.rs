@@ -88,25 +88,8 @@ impl Compiler {
         compiler
     }
 
-    /** Compile a Tokay program from a Reader source into the compiler. */
-    pub fn compile(&mut self, reader: Reader) -> Result<Option<Program>, Vec<Error>> {
-        // Create the Tokay parser when not already done
-        if self.parser.is_none() {
-            self.parser = Some(Parser::new());
-        }
-
-        let parser = self.parser.as_ref().unwrap();
-        let ast = match parser.parse(reader) {
-            Ok(ast) => ast,
-            Err(error) => {
-                return Err(vec![error]);
-            }
-        };
-
-        if self.debug > 0 {
-            ast::print(&ast);
-        }
-
+    /** Compile a Tokay program from an existing AST into the compiler. */
+    pub fn compile_from_ast(&mut self, ast: &RefValue) -> Result<Option<Program>, Vec<Error>> {
         let ret = ast::traverse(self, &ast);
 
         if !self.errors.is_empty() {
@@ -141,6 +124,28 @@ impl Compiler {
         } else {
             Ok(None)
         }
+    }
+
+    /** Compile a Tokay program from a Reader source into the compiler. */
+    pub fn compile(&mut self, reader: Reader) -> Result<Option<Program>, Vec<Error>> {
+        // Create the Tokay parser when not already done
+        if self.parser.is_none() {
+            self.parser = Some(Parser::new());
+        }
+
+        let parser = self.parser.as_ref().unwrap();
+        let ast = match parser.parse(reader) {
+            Ok(ast) => ast,
+            Err(error) => {
+                return Err(vec![error]);
+            }
+        };
+
+        if self.debug > 0 {
+            ast::print(&ast);
+        }
+
+        self.compile_from_ast(&ast)
     }
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.

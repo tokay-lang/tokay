@@ -1624,5 +1624,6 @@ tokay_function!("ast2rust : @ast", {
     }
 
     print(&ast, 1);
+    print!("\n");
     value!(void).into()
 });

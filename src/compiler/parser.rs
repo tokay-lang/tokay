@@ -18,6 +18,15 @@ pub struct Parser(Program);
 
 impl Parser {
     pub fn new() -> Self {
+        // Use grammar AST extracted from tokay.tok when TOKAY_PARSER_USE_TOKAY_TOK is set!
+        if std::env::var("TOKAY_PARSER_USE_TOKAY_TOK").is_ok() {
+            let mut compiler = Compiler::new(false);
+            compiler.debug = 0;  // unset debug always
+
+            let ast = grammar::tokay();
+            return Self(compiler.compile_from_ast(&ast).expect("Tokay grammar cannot be compiled!").expect("???"))
+        }
+
         Self(tokay!({
 
         // ----------------------------------------------------------------------------

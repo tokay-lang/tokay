@@ -418,6 +418,4 @@ Tokay : @{
     .  error("Parse error, unexpected token", true)
 }
 
-#_ Tokay? expect EOF  ast_print(ast("main"))
-#_ Tokay? expect EOF  ast2rust(ast("main"))
 _ Tokay? expect EOF  ast("main")
