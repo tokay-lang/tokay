@@ -361,7 +361,7 @@ impl Op {
                 }
 
                 // Interrupts
-                Op::Skip => Err(Reject::Skip),  // currently not used.
+                Op::Skip => Err(Reject::Skip), // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),

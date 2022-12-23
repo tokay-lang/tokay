@@ -1591,13 +1591,10 @@ tokay_function!("ast2rust : @ast", {
 
                 print(children, indent + 2);
 
-                print!(
-                    "\n{space:indent$}    )",
-                    space = "",
-                    indent = indent * 4
-                );
+                print!("\n{space:indent$}    )", space = "", indent = indent * 4);
             }
-            else if let Some(value) = value {
+
+            if let Some(value) = value {
                 print!(
                     ",\n{space:indent$}    \"value\" => {value:?}",
                     space = "",

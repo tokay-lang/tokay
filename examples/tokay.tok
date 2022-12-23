@@ -31,6 +31,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 
 _SeparatedIdentifier : @{  # helper parselet to ensure that identifiers are separated
     peek not [A-Z_a-z] _
+    _
 }
 
 T_EOL : @{
@@ -307,7 +308,7 @@ MulDiv : @{
     MulDiv '*' _ expect Unary  ast("op_binary_mul")
     MulDiv '//' _ expect Unary  ast("op_binary_divi")
     MulDiv '/' _ expect Unary  ast("op_binary_div")
-    MulDiv '%' _ expect Unary  ast("op_binary_mul")
+    MulDiv '%' _ expect Unary  ast("op_binary_mod")
     Unary
 }
 
