@@ -1557,29 +1557,14 @@ tokay_function!("ast2rust : @ast", {
 
         if let Some(d) = value.object::<Dict>() {
             let emit = d["emit"].to_string();
-
-            let row = d
-                .get("row")
-                .and_then(|row| Some(row.borrow().to_usize().unwrap()))
-                .unwrap();
-            let col = d
-                .get("col")
-                .and_then(|col| Some(col.borrow().to_usize().unwrap()))
-                .unwrap();
-
             let value = d.get("value");
             let children = d.get("children");
 
             print!(
-                r#"{space:indent$}(value!([
-{space:indent$}    "emit" => {emit:?},
-{space:indent$}    "row" => {row:?},
-{space:indent$}    "col" => {col:?}"#,
+                "{space:indent$}(value!([\n{space:indent$}    \"emit\" => {emit:?}",
                 space = "",
                 indent = indent * 4,
-                emit = emit,
-                row = row,
-                col = col
+                emit = emit
             );
 
             if let Some(children) = children {

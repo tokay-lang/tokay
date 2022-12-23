@@ -9,59 +9,39 @@ pub(super) fn tokay() -> RefValue {
     /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"))/g' ../examples/tokay.tok`" -- ../examples/tokay.tok */
     (value!([
         "emit" => "main",
-        "row" => 1,
-        "col" => 1,
         "children" => (
             value!([
                 (value!([
                     "emit" => "constant",
-                    "row" => 24,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 24,
-                                "col" => 1,
                                 "value" => "_"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 24,
-                                "col" => 5,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 24,
-                                        "col" => 6,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "op_mod_pos",
-                                                    "row" => 25,
-                                                    "col" => 5,
                                                     "children" => (
                                                         (value!([
                                                             "emit" => "value_token_ccl",
-                                                            "row" => 25,
-                                                            "col" => 5,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "ccl",
-                                                                    "row" => 25,
-                                                                    "col" => 6,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "char",
-                                                                                "row" => 25,
-                                                                                "col" => 6,
                                                                                 "value" => "\t"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "char",
-                                                                                "row" => 25,
-                                                                                "col" => 8,
                                                                                 "value" => " "
                                                                             ]))
                                                                         ])
@@ -73,35 +53,23 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 26,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 26,
-                                                                "col" => 5,
                                                                 "value" => "#"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_kle",
-                                                                "row" => 26,
-                                                                "col" => 9,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_ccl",
-                                                                        "row" => 26,
-                                                                        "col" => 9,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "ccl_neg",
-                                                                                "row" => 26,
-                                                                                "col" => 10,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "char",
-                                                                                        "row" => 26,
-                                                                                        "col" => 11,
                                                                                         "value" => "\n"
                                                                                     ]))
                                                                                 )
@@ -115,33 +83,23 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 27,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 27,
-                                                                "col" => 5,
                                                                 "value" => "\\"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 27,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 27,
-                                                                        "col" => 10,
                                                                         "value" => "\r"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 27,
-                                                                "col" => 16,
                                                                 "value" => "\n"
                                                             ]))
                                                         ])
@@ -157,37 +115,25 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 30,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 30,
-                                "col" => 1,
                                 "value" => "___"
                             ])),
                             (value!([
                                 "emit" => "op_mod_kle",
-                                "row" => 30,
-                                "col" => 7,
                                 "children" => (
                                     (value!([
                                         "emit" => "inline_sequence",
-                                        "row" => 30,
-                                        "col" => 8,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 30,
-                                                    "col" => 8,
                                                     "value" => "T_EOL"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 30,
-                                                    "col" => 14,
                                                     "value" => "_"
                                                 ]))
                                             ])
@@ -200,70 +146,46 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 32,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 32,
-                                "col" => 1,
                                 "value" => "_SeparatedIdentifier"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 32,
-                                "col" => 24,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 32,
-                                        "col" => 25,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 33,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "op_mod_peek",
-                                                                "row" => 33,
-                                                                "col" => 5,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "op_mod_not",
-                                                                        "row" => 33,
-                                                                        "col" => 10,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_token_ccl",
-                                                                                "row" => 33,
-                                                                                "col" => 14,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "ccl",
-                                                                                        "row" => 33,
-                                                                                        "col" => 15,
                                                                                         "children" => (
                                                                                             value!([
                                                                                                 (value!([
                                                                                                     "emit" => "range",
-                                                                                                    "row" => 33,
-                                                                                                    "col" => 15,
                                                                                                     "value" => "AZ"
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "char",
-                                                                                                    "row" => 33,
-                                                                                                    "col" => 18,
                                                                                                     "value" => "_"
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "range",
-                                                                                                    "row" => 33,
-                                                                                                    "col" => 19,
                                                                                                     "value" => "az"
                                                                                                 ]))
                                                                                             ])
@@ -277,8 +199,6 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 33,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ]))
                                                         ])
@@ -286,8 +206,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 34,
-                                                    "col" => 5,
                                                     "value" => "_"
                                                 ]))
                                             ])
@@ -300,43 +218,29 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 37,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 37,
-                                "col" => 1,
                                 "value" => "T_EOL"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 37,
-                                "col" => 9,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 37,
-                                        "col" => 10,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 38,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 38,
-                                                                "col" => 5,
                                                                 "value" => "\n"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 38,
-                                                                "col" => 10,
                                                                 "value" => "_"
                                                             ]))
                                                         ])
@@ -344,33 +248,23 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 39,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 39,
-                                                                "col" => 5,
                                                                 "value" => "\r"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 39,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 39,
-                                                                        "col" => 10,
                                                                         "value" => "\n"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 39,
-                                                                "col" => 16,
                                                                 "value" => "_"
                                                             ]))
                                                         ])
@@ -378,20 +272,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 40,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 40,
-                                                                "col" => 5,
                                                                 "value" => ";"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 40,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ]))
                                                         ])
@@ -399,27 +287,19 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 41,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "op_mod_peek",
-                                                                "row" => 41,
-                                                                "col" => 5,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 41,
-                                                                        "col" => 10,
                                                                         "value" => "EOF"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_accept",
-                                                                "row" => 41,
-                                                                "col" => 15,
                                                                 "value" => "accept"
                                                             ]))
                                                         ])
@@ -427,13 +307,9 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "op_mod_peek",
-                                                    "row" => 42,
-                                                    "col" => 5,
                                                     "children" => (
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 42,
-                                                            "col" => 10,
                                                             "value" => "}"
                                                         ]))
                                                     )
@@ -448,30 +324,20 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 47,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 47,
-                                "col" => 1,
                                 "value" => "T_OctDigit"
                             ])),
                             (value!([
                                 "emit" => "value_token_ccl",
-                                "row" => 47,
-                                "col" => 14,
                                 "children" => (
                                     (value!([
                                         "emit" => "ccl",
-                                        "row" => 47,
-                                        "col" => 15,
                                         "children" => (
                                             (value!([
                                                 "emit" => "range",
-                                                "row" => 47,
-                                                "col" => 15,
                                                 "value" => "07"
                                             ]))
                                         )
@@ -483,43 +349,29 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 49,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 49,
-                                "col" => 1,
                                 "value" => "T_HexDigit"
                             ])),
                             (value!([
                                 "emit" => "value_token_ccl",
-                                "row" => 49,
-                                "col" => 14,
                                 "children" => (
                                     (value!([
                                         "emit" => "ccl",
-                                        "row" => 49,
-                                        "col" => 15,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "range",
-                                                    "row" => 49,
-                                                    "col" => 15,
                                                     "value" => "09"
                                                 ])),
                                                 (value!([
                                                     "emit" => "range",
-                                                    "row" => 49,
-                                                    "col" => 18,
                                                     "value" => "AF"
                                                 ])),
                                                 (value!([
                                                     "emit" => "range",
-                                                    "row" => 49,
-                                                    "col" => 21,
                                                     "value" => "af"
                                                 ]))
                                             ])
@@ -532,43 +384,29 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 51,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 51,
-                                "col" => 1,
                                 "value" => "T_EscapeSequence"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 51,
-                                "col" => 20,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 51,
-                                        "col" => 21,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 52,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 52,
-                                                                "col" => 5,
                                                                 "value" => "a"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 52,
-                                                                "col" => 10,
                                                                 "value" => "\u{7}"
                                                             ]))
                                                         ])
@@ -576,20 +414,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 53,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 53,
-                                                                "col" => 5,
                                                                 "value" => "b"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 53,
-                                                                "col" => 10,
                                                                 "value" => "\u{8}"
                                                             ]))
                                                         ])
@@ -597,20 +429,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 54,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 54,
-                                                                "col" => 5,
                                                                 "value" => "f"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 54,
-                                                                "col" => 10,
                                                                 "value" => "\u{c}"
                                                             ]))
                                                         ])
@@ -618,20 +444,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 55,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 55,
-                                                                "col" => 5,
                                                                 "value" => "n"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 55,
-                                                                "col" => 10,
                                                                 "value" => "\n"
                                                             ]))
                                                         ])
@@ -639,20 +459,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 56,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 56,
-                                                                "col" => 5,
                                                                 "value" => "r"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 56,
-                                                                "col" => 10,
                                                                 "value" => "\r"
                                                             ]))
                                                         ])
@@ -660,20 +474,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 57,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 57,
-                                                                "col" => 5,
                                                                 "value" => "t"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 57,
-                                                                "col" => 10,
                                                                 "value" => "\t"
                                                             ]))
                                                         ])
@@ -681,20 +489,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 58,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 58,
-                                                                "col" => 5,
                                                                 "value" => "v"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 58,
-                                                                "col" => 10,
                                                                 "value" => "\u{b}"
                                                             ]))
                                                         ])
@@ -702,95 +504,63 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 63,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 63,
-                                                                "col" => 5,
                                                                 "value" => "T_OctDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 63,
-                                                                "col" => 16,
                                                                 "value" => "T_OctDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 63,
-                                                                "col" => 27,
                                                                 "value" => "T_OctDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 63,
-                                                                "col" => 39,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 63,
-                                                                            "col" => 39,
                                                                             "value" => "chr"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 63,
-                                                                            "col" => 43,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "op_binary_add",
-                                                                                    "row" => 63,
-                                                                                    "col" => 43,
                                                                                     "children" => (
                                                                                         value!([
                                                                                             (value!([
                                                                                                 "emit" => "op_binary_add",
-                                                                                                "row" => 63,
-                                                                                                "col" => 43,
                                                                                                 "children" => (
                                                                                                     value!([
                                                                                                         (value!([
                                                                                                             "emit" => "op_binary_mul",
-                                                                                                            "row" => 63,
-                                                                                                            "col" => 43,
                                                                                                             "children" => (
                                                                                                                 value!([
                                                                                                                     (value!([
                                                                                                                         "emit" => "op_binary_mul",
-                                                                                                                        "row" => 63,
-                                                                                                                        "col" => 43,
                                                                                                                         "children" => (
                                                                                                                             value!([
                                                                                                                                 (value!([
                                                                                                                                     "emit" => "call",
-                                                                                                                                    "row" => 63,
-                                                                                                                                    "col" => 43,
                                                                                                                                     "children" => (
                                                                                                                                         value!([
                                                                                                                                             (value!([
                                                                                                                                                 "emit" => "identifier",
-                                                                                                                                                "row" => 63,
-                                                                                                                                                "col" => 43,
                                                                                                                                                 "value" => "int"
                                                                                                                                             ])),
                                                                                                                                             (value!([
                                                                                                                                                 "emit" => "callarg",
-                                                                                                                                                "row" => 63,
-                                                                                                                                                "col" => 47,
                                                                                                                                                 "children" => (
                                                                                                                                                     (value!([
                                                                                                                                                         "emit" => "capture_index",
-                                                                                                                                                        "row" => 63,
-                                                                                                                                                        "col" => 47,
                                                                                                                                                         "children" => (
                                                                                                                                                             (value!([
                                                                                                                                                                 "emit" => "value_integer",
-                                                                                                                                                                "row" => 63,
-                                                                                                                                                                "col" => 48,
                                                                                                                                                                 "value" => "1"
                                                                                                                                                             ]))
                                                                                                                                                         )
@@ -802,8 +572,6 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                 ])),
                                                                                                                                 (value!([
                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                    "row" => 63,
-                                                                                                                                    "col" => 53,
                                                                                                                                     "value" => "8"
                                                                                                                                 ]))
                                                                                                                             ])
@@ -811,8 +579,6 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                     ])),
                                                                                                                     (value!([
                                                                                                                         "emit" => "value_integer",
-                                                                                                                        "row" => 63,
-                                                                                                                        "col" => 57,
                                                                                                                         "value" => "8"
                                                                                                                     ]))
                                                                                                                 ])
@@ -820,36 +586,24 @@ pub(super) fn tokay() -> RefValue {
                                                                                                         ])),
                                                                                                         (value!([
                                                                                                             "emit" => "op_binary_mul",
-                                                                                                            "row" => 63,
-                                                                                                            "col" => 61,
                                                                                                             "children" => (
                                                                                                                 value!([
                                                                                                                     (value!([
                                                                                                                         "emit" => "call",
-                                                                                                                        "row" => 63,
-                                                                                                                        "col" => 61,
                                                                                                                         "children" => (
                                                                                                                             value!([
                                                                                                                                 (value!([
                                                                                                                                     "emit" => "identifier",
-                                                                                                                                    "row" => 63,
-                                                                                                                                    "col" => 61,
                                                                                                                                     "value" => "int"
                                                                                                                                 ])),
                                                                                                                                 (value!([
                                                                                                                                     "emit" => "callarg",
-                                                                                                                                    "row" => 63,
-                                                                                                                                    "col" => 65,
                                                                                                                                     "children" => (
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "capture_index",
-                                                                                                                                            "row" => 63,
-                                                                                                                                            "col" => 65,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "row" => 63,
-                                                                                                                                                    "col" => 66,
                                                                                                                                                     "value" => "2"
                                                                                                                                                 ]))
                                                                                                                                             )
@@ -861,8 +615,6 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                     ])),
                                                                                                                     (value!([
                                                                                                                         "emit" => "value_integer",
-                                                                                                                        "row" => 63,
-                                                                                                                        "col" => 71,
                                                                                                                         "value" => "8"
                                                                                                                     ]))
                                                                                                                 ])
@@ -873,30 +625,20 @@ pub(super) fn tokay() -> RefValue {
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "call",
-                                                                                                "row" => 63,
-                                                                                                "col" => 75,
                                                                                                 "children" => (
                                                                                                     value!([
                                                                                                         (value!([
                                                                                                             "emit" => "identifier",
-                                                                                                            "row" => 63,
-                                                                                                            "col" => 75,
                                                                                                             "value" => "int"
                                                                                                         ])),
                                                                                                         (value!([
                                                                                                             "emit" => "callarg",
-                                                                                                            "row" => 63,
-                                                                                                            "col" => 79,
                                                                                                             "children" => (
                                                                                                                 (value!([
                                                                                                                     "emit" => "capture_index",
-                                                                                                                    "row" => 63,
-                                                                                                                    "col" => 79,
                                                                                                                     "children" => (
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_integer",
-                                                                                                                            "row" => 63,
-                                                                                                                            "col" => 80,
                                                                                                                             "value" => "3"
                                                                                                                         ]))
                                                                                                                     )
@@ -919,108 +661,72 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 64,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 64,
-                                                                "col" => 5,
                                                                 "value" => "x"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 64,
-                                                                "col" => 9,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 64,
-                                                                "col" => 20,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 64,
-                                                                "col" => 31,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 64,
-                                                                            "col" => 31,
                                                                             "value" => "chr"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 64,
-                                                                            "col" => 35,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "call",
-                                                                                    "row" => 64,
-                                                                                    "col" => 35,
                                                                                     "children" => (
                                                                                         value!([
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 64,
-                                                                                                "col" => 35,
                                                                                                 "value" => "int"
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "callarg",
-                                                                                                "row" => 64,
-                                                                                                "col" => 39,
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "op_binary_add",
-                                                                                                        "row" => 64,
-                                                                                                        "col" => 39,
                                                                                                         "children" => (
                                                                                                             value!([
                                                                                                                 (value!([
                                                                                                                     "emit" => "value_string",
-                                                                                                                    "row" => 64,
-                                                                                                                    "col" => 39,
                                                                                                                     "value" => "0x"
                                                                                                                 ])),
                                                                                                                 (value!([
                                                                                                                     "emit" => "call",
-                                                                                                                    "row" => 64,
-                                                                                                                    "col" => 46,
                                                                                                                     "children" => (
                                                                                                                         value!([
                                                                                                                             (value!([
                                                                                                                                 "emit" => "rvalue",
-                                                                                                                                "row" => 64,
-                                                                                                                                "col" => 46,
                                                                                                                                 "children" => (
                                                                                                                                     value!([
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "capture_index",
-                                                                                                                                            "row" => 64,
-                                                                                                                                            "col" => 46,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "row" => 64,
-                                                                                                                                                    "col" => 47,
                                                                                                                                                     "value" => "0"
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "attribute",
-                                                                                                                                            "row" => 64,
-                                                                                                                                            "col" => 48,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_string",
-                                                                                                                                                    "row" => 64,
-                                                                                                                                                    "col" => 49,
                                                                                                                                                     "value" => "substr"
                                                                                                                                                 ]))
                                                                                                                                             )
@@ -1030,13 +736,9 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                             ])),
                                                                                                                             (value!([
                                                                                                                                 "emit" => "callarg",
-                                                                                                                                "row" => 64,
-                                                                                                                                "col" => 56,
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "row" => 64,
-                                                                                                                                        "col" => 56,
                                                                                                                                         "value" => "1"
                                                                                                                                     ]))
                                                                                                                                 )
@@ -1062,120 +764,80 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 65,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 65,
-                                                                "col" => 5,
                                                                 "value" => "u"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 65,
-                                                                "col" => 9,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 65,
-                                                                "col" => 20,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 65,
-                                                                "col" => 31,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 65,
-                                                                "col" => 42,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 65,
-                                                                "col" => 54,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 65,
-                                                                            "col" => 54,
                                                                             "value" => "chr"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 65,
-                                                                            "col" => 58,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "call",
-                                                                                    "row" => 65,
-                                                                                    "col" => 58,
                                                                                     "children" => (
                                                                                         value!([
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 65,
-                                                                                                "col" => 58,
                                                                                                 "value" => "int"
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "callarg",
-                                                                                                "row" => 65,
-                                                                                                "col" => 62,
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "op_binary_add",
-                                                                                                        "row" => 65,
-                                                                                                        "col" => 62,
                                                                                                         "children" => (
                                                                                                             value!([
                                                                                                                 (value!([
                                                                                                                     "emit" => "value_string",
-                                                                                                                    "row" => 65,
-                                                                                                                    "col" => 62,
                                                                                                                     "value" => "0x"
                                                                                                                 ])),
                                                                                                                 (value!([
                                                                                                                     "emit" => "call",
-                                                                                                                    "row" => 65,
-                                                                                                                    "col" => 69,
                                                                                                                     "children" => (
                                                                                                                         value!([
                                                                                                                             (value!([
                                                                                                                                 "emit" => "rvalue",
-                                                                                                                                "row" => 65,
-                                                                                                                                "col" => 69,
                                                                                                                                 "children" => (
                                                                                                                                     value!([
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "capture_index",
-                                                                                                                                            "row" => 65,
-                                                                                                                                            "col" => 69,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "row" => 65,
-                                                                                                                                                    "col" => 70,
                                                                                                                                                     "value" => "0"
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "attribute",
-                                                                                                                                            "row" => 65,
-                                                                                                                                            "col" => 71,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_string",
-                                                                                                                                                    "row" => 65,
-                                                                                                                                                    "col" => 72,
                                                                                                                                                     "value" => "substr"
                                                                                                                                                 ]))
                                                                                                                                             )
@@ -1185,13 +847,9 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                             ])),
                                                                                                                             (value!([
                                                                                                                                 "emit" => "callarg",
-                                                                                                                                "row" => 65,
-                                                                                                                                "col" => 79,
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "row" => 65,
-                                                                                                                                        "col" => 79,
                                                                                                                                         "value" => "1"
                                                                                                                                     ]))
                                                                                                                                 )
@@ -1217,144 +875,96 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 66,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 66,
-                                                                "col" => 5,
                                                                 "value" => "U"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 66,
-                                                                "col" => 9,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 66,
-                                                                "col" => 20,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 66,
-                                                                "col" => 31,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 66,
-                                                                "col" => 42,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 67,
-                                                                "col" => 9,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 67,
-                                                                "col" => 20,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 67,
-                                                                "col" => 31,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 67,
-                                                                "col" => 42,
                                                                 "value" => "T_HexDigit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 68,
-                                                                "col" => 9,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 68,
-                                                                            "col" => 9,
                                                                             "value" => "chr"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 68,
-                                                                            "col" => 13,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "call",
-                                                                                    "row" => 68,
-                                                                                    "col" => 13,
                                                                                     "children" => (
                                                                                         value!([
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 68,
-                                                                                                "col" => 13,
                                                                                                 "value" => "int"
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "callarg",
-                                                                                                "row" => 68,
-                                                                                                "col" => 17,
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "op_binary_add",
-                                                                                                        "row" => 68,
-                                                                                                        "col" => 17,
                                                                                                         "children" => (
                                                                                                             value!([
                                                                                                                 (value!([
                                                                                                                     "emit" => "value_string",
-                                                                                                                    "row" => 68,
-                                                                                                                    "col" => 17,
                                                                                                                     "value" => "0x"
                                                                                                                 ])),
                                                                                                                 (value!([
                                                                                                                     "emit" => "call",
-                                                                                                                    "row" => 68,
-                                                                                                                    "col" => 24,
                                                                                                                     "children" => (
                                                                                                                         value!([
                                                                                                                             (value!([
                                                                                                                                 "emit" => "rvalue",
-                                                                                                                                "row" => 68,
-                                                                                                                                "col" => 24,
                                                                                                                                 "children" => (
                                                                                                                                     value!([
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "capture_index",
-                                                                                                                                            "row" => 68,
-                                                                                                                                            "col" => 24,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "row" => 68,
-                                                                                                                                                    "col" => 25,
                                                                                                                                                     "value" => "0"
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
                                                                                                                                         (value!([
                                                                                                                                             "emit" => "attribute",
-                                                                                                                                            "row" => 68,
-                                                                                                                                            "col" => 26,
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_string",
-                                                                                                                                                    "row" => 68,
-                                                                                                                                                    "col" => 27,
                                                                                                                                                     "value" => "substr"
                                                                                                                                                 ]))
                                                                                                                                             )
@@ -1364,13 +974,9 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                             ])),
                                                                                                                             (value!([
                                                                                                                                 "emit" => "callarg",
-                                                                                                                                "row" => 68,
-                                                                                                                                "col" => 34,
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "row" => 68,
-                                                                                                                                        "col" => 34,
                                                                                                                                         "value" => "1"
                                                                                                                                     ]))
                                                                                                                                 )
@@ -1396,8 +1002,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 70,
-                                                    "col" => 5,
                                                     "value" => "Any"
                                                 ]))
                                             ])
@@ -1410,60 +1014,40 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 73,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 73,
-                                "col" => 1,
                                 "value" => "T_Identifier"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 73,
-                                "col" => 16,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 73,
-                                        "col" => 17,
                                         "children" => (
                                             (value!([
                                                 "emit" => "call",
-                                                "row" => 74,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 74,
-                                                            "col" => 5,
                                                             "value" => "ast"
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 74,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_string",
-                                                                    "row" => 74,
-                                                                    "col" => 9,
                                                                     "value" => "identifier"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 74,
-                                                            "col" => 23,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 74,
-                                                                    "col" => 23,
                                                                     "value" => "Ident"
                                                                 ]))
                                                             )
@@ -1480,53 +1064,35 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 77,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 77,
-                                "col" => 1,
                                 "value" => "T_Consumable"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 77,
-                                "col" => 16,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 77,
-                                        "col" => 17,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 78,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_ccl",
-                                                            "row" => 78,
-                                                            "col" => 5,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "ccl",
-                                                                    "row" => 78,
-                                                                    "col" => 6,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "range",
-                                                                                "row" => 78,
-                                                                                "col" => 6,
                                                                                 "value" => "AZ"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "char",
-                                                                                "row" => 78,
-                                                                                "col" => 9,
                                                                                 "value" => "_"
                                                                             ]))
                                                                         ])
@@ -1536,42 +1102,28 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 78,
-                                                            "col" => 12,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_token_ccl",
-                                                                    "row" => 78,
-                                                                    "col" => 12,
                                                                     "children" => (
                                                                         (value!([
                                                                             "emit" => "ccl",
-                                                                            "row" => 78,
-                                                                            "col" => 13,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 78,
-                                                                                        "col" => 13,
                                                                                         "value" => "09"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 78,
-                                                                                        "col" => 16,
                                                                                         "value" => "AZ"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "char",
-                                                                                        "row" => 78,
-                                                                                        "col" => 19,
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 78,
-                                                                                        "col" => 20,
                                                                                         "value" => "az"
                                                                                     ]))
                                                                                 ])
@@ -1583,43 +1135,29 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 78,
-                                                            "col" => 27,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 78,
-                                                                        "col" => 27,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 78,
-                                                                        "col" => 31,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 78,
-                                                                                "col" => 31,
                                                                                 "value" => "identifier"
                                                                             ]))
                                                                         )
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 78,
-                                                                        "col" => 45,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "capture_index",
-                                                                                "row" => 78,
-                                                                                "col" => 45,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "row" => 78,
-                                                                                        "col" => 46,
                                                                                         "value" => "0"
                                                                                     ]))
                                                                                 )
@@ -1641,59 +1179,39 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 81,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 81,
-                                "col" => 1,
                                 "value" => "T_Alias"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 81,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 81,
-                                        "col" => 12,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 82,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_ccl",
-                                                            "row" => 82,
-                                                            "col" => 5,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "ccl",
-                                                                    "row" => 82,
-                                                                    "col" => 6,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "range",
-                                                                                "row" => 82,
-                                                                                "col" => 6,
                                                                                 "value" => "AZ"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "char",
-                                                                                "row" => 82,
-                                                                                "col" => 9,
                                                                                 "value" => "_"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "range",
-                                                                                "row" => 82,
-                                                                                "col" => 10,
                                                                                 "value" => "az"
                                                                             ]))
                                                                         ])
@@ -1703,42 +1221,28 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 82,
-                                                            "col" => 15,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_token_ccl",
-                                                                    "row" => 82,
-                                                                    "col" => 15,
                                                                     "children" => (
                                                                         (value!([
                                                                             "emit" => "ccl",
-                                                                            "row" => 82,
-                                                                            "col" => 16,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 82,
-                                                                                        "col" => 16,
                                                                                         "value" => "09"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 82,
-                                                                                        "col" => 19,
                                                                                         "value" => "AZ"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "char",
-                                                                                        "row" => 82,
-                                                                                        "col" => 22,
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "range",
-                                                                                        "row" => 82,
-                                                                                        "col" => 23,
                                                                                         "value" => "az"
                                                                                     ]))
                                                                                 ])
@@ -1750,43 +1254,29 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 82,
-                                                            "col" => 30,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 82,
-                                                                        "col" => 30,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 82,
-                                                                        "col" => 34,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 82,
-                                                                                "col" => 34,
                                                                                 "value" => "value_string"
                                                                             ]))
                                                                         )
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 82,
-                                                                        "col" => 50,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "capture_index",
-                                                                                "row" => 82,
-                                                                                "col" => 50,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "row" => 82,
-                                                                                        "col" => 51,
                                                                                         "value" => "0"
                                                                                     ]))
                                                                                 )
@@ -1808,65 +1298,43 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 85,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 85,
-                                "col" => 1,
                                 "value" => "T_String"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 85,
-                                "col" => 12,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 85,
-                                        "col" => 13,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 86,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 86,
-                                                            "col" => 5,
                                                             "value" => "\""
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 86,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "block",
-                                                                    "row" => 86,
-                                                                    "col" => 9,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 87,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 87,
-                                                                                            "col" => 9,
                                                                                             "value" => "\\"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 87,
-                                                                                            "col" => 14,
                                                                                             "value" => "T_EscapeSequence"
                                                                                         ]))
                                                                                     ])
@@ -1874,25 +1342,17 @@ pub(super) fn tokay() -> RefValue {
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "value_token_ccl",
-                                                                                "row" => 88,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "ccl_neg",
-                                                                                        "row" => 88,
-                                                                                        "col" => 10,
                                                                                         "children" => (
                                                                                             value!([
                                                                                                 (value!([
                                                                                                     "emit" => "char",
-                                                                                                    "row" => 88,
-                                                                                                    "col" => 11,
                                                                                                     "value" => "\\"
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "char",
-                                                                                                    "row" => 88,
-                                                                                                    "col" => 13,
                                                                                                     "value" => "\""
                                                                                                 ]))
                                                                                             ])
@@ -1902,37 +1362,25 @@ pub(super) fn tokay() -> RefValue {
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 89,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 89,
-                                                                                            "col" => 9,
                                                                                             "value" => "EOF"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "call",
-                                                                                            "row" => 89,
-                                                                                            "col" => 14,
                                                                                             "children" => (
                                                                                                 value!([
                                                                                                     (value!([
                                                                                                         "emit" => "identifier",
-                                                                                                        "row" => 89,
-                                                                                                        "col" => 14,
                                                                                                         "value" => "error"
                                                                                                     ])),
                                                                                                     (value!([
                                                                                                         "emit" => "callarg",
-                                                                                                        "row" => 89,
-                                                                                                        "col" => 20,
                                                                                                         "children" => (
                                                                                                             (value!([
                                                                                                                 "emit" => "value_string",
-                                                                                                                "row" => 89,
-                                                                                                                "col" => 20,
                                                                                                                 "value" => "Unclosed string, expecting '\"'"
                                                                                                             ]))
                                                                                                         )
@@ -1950,43 +1398,29 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 90,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 90,
-                                                                        "col" => 9,
                                                                         "value" => "str_join"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 90,
-                                                                        "col" => 18,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 90,
-                                                                                "col" => 18,
                                                                                 "value" => ""
                                                                             ]))
                                                                         )
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 90,
-                                                                        "col" => 22,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "capture_index",
-                                                                                "row" => 90,
-                                                                                "col" => 22,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "row" => 90,
-                                                                                        "col" => 23,
                                                                                         "value" => "2"
                                                                                     ]))
                                                                                 )
@@ -1998,13 +1432,9 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_expect",
-                                                            "row" => 90,
-                                                            "col" => 26,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_token_touch",
-                                                                    "row" => 90,
-                                                                    "col" => 33,
                                                                     "value" => "\""
                                                                 ]))
                                                             )
@@ -2021,65 +1451,43 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 93,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 93,
-                                "col" => 1,
                                 "value" => "T_Touch"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 93,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 93,
-                                        "col" => 12,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 94,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 94,
-                                                            "col" => 5,
                                                             "value" => "'"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 94,
-                                                            "col" => 10,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "block",
-                                                                    "row" => 94,
-                                                                    "col" => 10,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 95,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 95,
-                                                                                            "col" => 9,
                                                                                             "value" => "\\"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 95,
-                                                                                            "col" => 14,
                                                                                             "value" => "T_EscapeSequence"
                                                                                         ]))
                                                                                     ])
@@ -2087,25 +1495,17 @@ pub(super) fn tokay() -> RefValue {
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "value_token_ccl",
-                                                                                "row" => 96,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "ccl_neg",
-                                                                                        "row" => 96,
-                                                                                        "col" => 10,
                                                                                         "children" => (
                                                                                             value!([
                                                                                                 (value!([
                                                                                                     "emit" => "char",
-                                                                                                    "row" => 96,
-                                                                                                    "col" => 11,
                                                                                                     "value" => "\\"
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "char",
-                                                                                                    "row" => 96,
-                                                                                                    "col" => 13,
                                                                                                     "value" => "'"
                                                                                                 ]))
                                                                                             ])
@@ -2115,37 +1515,25 @@ pub(super) fn tokay() -> RefValue {
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 97,
-                                                                                "col" => 9,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 97,
-                                                                                            "col" => 9,
                                                                                             "value" => "EOF"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "call",
-                                                                                            "row" => 97,
-                                                                                            "col" => 14,
                                                                                             "children" => (
                                                                                                 value!([
                                                                                                     (value!([
                                                                                                         "emit" => "identifier",
-                                                                                                        "row" => 97,
-                                                                                                        "col" => 14,
                                                                                                         "value" => "error"
                                                                                                     ])),
                                                                                                     (value!([
                                                                                                         "emit" => "callarg",
-                                                                                                        "row" => 97,
-                                                                                                        "col" => 20,
                                                                                                         "children" => (
                                                                                                             (value!([
                                                                                                                 "emit" => "value_string",
-                                                                                                                "row" => 97,
-                                                                                                                "col" => 20,
                                                                                                                 "value" => "Unclosed match, expecting '''"
                                                                                                             ]))
                                                                                                         )
@@ -2163,43 +1551,29 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 98,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 98,
-                                                                        "col" => 9,
                                                                         "value" => "str_join"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 98,
-                                                                        "col" => 18,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 98,
-                                                                                "col" => 18,
                                                                                 "value" => ""
                                                                             ]))
                                                                         )
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 98,
-                                                                        "col" => 22,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "capture_index",
-                                                                                "row" => 98,
-                                                                                "col" => 22,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "row" => 98,
-                                                                                        "col" => 23,
                                                                                         "value" => "2"
                                                                                     ]))
                                                                                 )
@@ -2211,13 +1585,9 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_expect",
-                                                            "row" => 98,
-                                                            "col" => 26,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_token_touch",
-                                                                    "row" => 98,
-                                                                    "col" => 33,
                                                                     "value" => "'"
                                                                 ]))
                                                             )
@@ -2234,60 +1604,40 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 101,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 101,
-                                "col" => 1,
                                 "value" => "T_Integer"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 101,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 101,
-                                        "col" => 14,
                                         "children" => (
                                             (value!([
                                                 "emit" => "call",
-                                                "row" => 102,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 102,
-                                                            "col" => 5,
                                                             "value" => "ast"
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 102,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_string",
-                                                                    "row" => 102,
-                                                                    "col" => 9,
                                                                     "value" => "value_integer"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 102,
-                                                            "col" => 26,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 102,
-                                                                    "col" => 26,
                                                                     "value" => "Int"
                                                                 ]))
                                                             )
@@ -2304,60 +1654,40 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 105,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 105,
-                                "col" => 1,
                                 "value" => "T_Float"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 105,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 105,
-                                        "col" => 12,
                                         "children" => (
                                             (value!([
                                                 "emit" => "call",
-                                                "row" => 106,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 106,
-                                                            "col" => 5,
                                                             "value" => "ast"
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 106,
-                                                            "col" => 9,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_string",
-                                                                    "row" => 106,
-                                                                    "col" => 9,
                                                                     "value" => "value_float"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "callarg",
-                                                            "row" => 106,
-                                                            "col" => 24,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 106,
-                                                                    "col" => 24,
                                                                     "value" => "Float"
                                                                 ]))
                                                             )
@@ -2374,43 +1704,29 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 111,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 111,
-                                "col" => 1,
                                 "value" => "CclChar"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 111,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 111,
-                                        "col" => 12,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 112,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 112,
-                                                                "col" => 5,
                                                                 "value" => "\\"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 112,
-                                                                "col" => 10,
                                                                 "value" => "T_EscapeSequence"
                                                             ]))
                                                         ])
@@ -2418,18 +1734,12 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "value_token_ccl",
-                                                    "row" => 113,
-                                                    "col" => 5,
                                                     "children" => (
                                                         (value!([
                                                             "emit" => "ccl_neg",
-                                                            "row" => 113,
-                                                            "col" => 6,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "char",
-                                                                    "row" => 113,
-                                                                    "col" => 7,
                                                                     "value" => "]"
                                                                 ]))
                                                             )
@@ -2438,37 +1748,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 114,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 114,
-                                                                "col" => 5,
                                                                 "value" => "EOF"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 114,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 114,
-                                                                            "col" => 10,
                                                                             "value" => "error"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 114,
-                                                                            "col" => 16,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 114,
-                                                                                    "col" => 16,
                                                                                     "value" => "Unclosed character-class, expecting ']'"
                                                                                 ]))
                                                                             )
@@ -2489,109 +1787,73 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 117,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 117,
-                                "col" => 1,
                                 "value" => "CclRange"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 117,
-                                "col" => 12,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 117,
-                                        "col" => 13,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 118,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 118,
-                                                                "col" => 5,
                                                                 "value" => "CclChar"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 118,
-                                                                "col" => 13,
                                                                 "value" => "-"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 118,
-                                                                "col" => 17,
                                                                 "value" => "CclChar"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 118,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 118,
-                                                                            "col" => 26,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 118,
-                                                                            "col" => 30,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 118,
-                                                                                    "col" => 30,
                                                                                     "value" => "range"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 118,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "op_binary_add",
-                                                                                    "row" => 118,
-                                                                                    "col" => 39,
                                                                                     "children" => (
                                                                                         value!([
                                                                                             (value!([
                                                                                                 "emit" => "capture_index",
-                                                                                                "row" => 118,
-                                                                                                "col" => 39,
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "value_integer",
-                                                                                                        "row" => 118,
-                                                                                                        "col" => 40,
                                                                                                         "value" => "1"
                                                                                                     ]))
                                                                                                 )
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "capture_index",
-                                                                                                "row" => 118,
-                                                                                                "col" => 44,
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "value_integer",
-                                                                                                        "row" => 118,
-                                                                                                        "col" => 45,
                                                                                                         "value" => "3"
                                                                                                     ]))
                                                                                                 )
@@ -2609,37 +1871,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 119,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 119,
-                                                                "col" => 5,
                                                                 "value" => "CclChar"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 119,
-                                                                "col" => 14,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 119,
-                                                                            "col" => 14,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 119,
-                                                                            "col" => 18,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 119,
-                                                                                    "col" => 18,
                                                                                     "value" => "char"
                                                                                 ]))
                                                                             )
@@ -2660,73 +1910,49 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 122,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 122,
-                                "col" => 1,
                                 "value" => "Ccl"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 122,
-                                "col" => 7,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 122,
-                                        "col" => 8,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 123,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 123,
-                                                                "col" => 5,
                                                                 "value" => "^"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_kle",
-                                                                "row" => 123,
-                                                                "col" => 9,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 123,
-                                                                        "col" => 9,
                                                                         "value" => "CclRange"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 123,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 123,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 123,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 123,
-                                                                                    "col" => 24,
                                                                                     "value" => "ccl_neg"
                                                                                 ]))
                                                                             )
@@ -2739,44 +1965,30 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 124,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "op_mod_kle",
-                                                                "row" => 124,
-                                                                "col" => 5,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 124,
-                                                                        "col" => 5,
                                                                         "value" => "CclRange"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 124,
-                                                                "col" => 16,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 124,
-                                                                            "col" => 16,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 124,
-                                                                            "col" => 20,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 124,
-                                                                                    "col" => 20,
                                                                                     "value" => "ccl"
                                                                                 ]))
                                                                             )
@@ -2797,83 +2009,55 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 129,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 129,
-                                "col" => 1,
                                 "value" => "Subscript"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 129,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 129,
-                                        "col" => 14,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 130,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 130,
-                                                            "col" => 5,
                                                             "value" => "["
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 130,
-                                                            "col" => 9,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 130,
-                                                            "col" => 11,
                                                             "value" => "Expression"
                                                         ])),
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 130,
-                                                            "col" => 22,
                                                             "value" => "]"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 130,
-                                                            "col" => 26,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 130,
-                                                            "col" => 29,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 130,
-                                                                        "col" => 29,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 130,
-                                                                        "col" => 33,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 130,
-                                                                                "col" => 33,
                                                                                 "value" => "item"
                                                                             ]))
                                                                         )
@@ -2893,71 +2077,47 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 133,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 133,
-                                "col" => 1,
                                 "value" => "Attribute"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 133,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 133,
-                                        "col" => 14,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 134,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 134,
-                                                            "col" => 5,
                                                             "value" => "."
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 134,
-                                                            "col" => 9,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 134,
-                                                            "col" => 11,
                                                             "value" => "T_Alias"
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 134,
-                                                            "col" => 20,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 134,
-                                                                        "col" => 20,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 134,
-                                                                        "col" => 24,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 134,
-                                                                                "col" => 24,
                                                                                 "value" => "attribute"
                                                                             ]))
                                                                         )
@@ -2977,72 +2137,48 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 137,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 137,
-                                "col" => 1,
                                 "value" => "Capture"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 137,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 137,
-                                        "col" => 12,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 138,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 138,
-                                                                "col" => 5,
                                                                 "value" => "$"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 138,
-                                                                "col" => 9,
                                                                 "value" => "T_Alias"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 138,
-                                                                "col" => 17,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 138,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 138,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 138,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 138,
-                                                                                    "col" => 24,
                                                                                     "value" => "capture_alias"
                                                                                 ]))
                                                                             )
@@ -3055,49 +2191,33 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 139,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 139,
-                                                                "col" => 5,
                                                                 "value" => "$"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 139,
-                                                                "col" => 9,
                                                                 "value" => "T_Integer"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 139,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 139,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 139,
-                                                                            "col" => 22,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 139,
-                                                                            "col" => 26,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 139,
-                                                                                    "col" => 26,
                                                                                     "value" => "capture_index"
                                                                                 ]))
                                                                             )
@@ -3110,73 +2230,49 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 140,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 140,
-                                                                "col" => 5,
                                                                 "value" => "$"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 140,
-                                                                "col" => 9,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 140,
-                                                                "col" => 13,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 140,
-                                                                "col" => 15,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 140,
-                                                                "col" => 19,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 140,
-                                                                "col" => 30,
                                                                 "value" => ")"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 140,
-                                                                "col" => 34,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 140,
-                                                                "col" => 37,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 140,
-                                                                            "col" => 37,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 140,
-                                                                            "col" => 41,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 140,
-                                                                                    "col" => 41,
                                                                                     "value" => "capture_expr"
                                                                                 ]))
                                                                             )
@@ -3189,37 +2285,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 141,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 141,
-                                                                "col" => 5,
                                                                 "value" => "$"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 141,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 141,
-                                                                            "col" => 10,
                                                                             "value" => "error"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 141,
-                                                                            "col" => 16,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 141,
-                                                                                    "col" => 16,
                                                                                     "value" => "'$...': Expecting identifier, integer or (expression)"
                                                                                 ]))
                                                                             )
@@ -3240,37 +2324,25 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 144,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 144,
-                                "col" => 1,
                                 "value" => "Variable"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 144,
-                                "col" => 12,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 144,
-                                        "col" => 13,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 145,
-                                                    "col" => 5,
                                                     "value" => "T_Identifier"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 146,
-                                                    "col" => 5,
                                                     "value" => "Capture"
                                                 ]))
                                             ])
@@ -3283,78 +2355,52 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 149,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 149,
-                                "col" => 1,
                                 "value" => "Lvalue"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 149,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 149,
-                                        "col" => 11,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 150,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 150,
-                                                            "col" => 5,
                                                             "value" => "Variable"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 150,
-                                                            "col" => 14,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 150,
-                                                            "col" => 16,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 150,
-                                                                    "col" => 16,
                                                                     "value" => "Subscript"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 150,
-                                                            "col" => 27,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 150,
-                                                                        "col" => 27,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 150,
-                                                                        "col" => 31,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 150,
-                                                                                "col" => 31,
                                                                                 "value" => "lvalue"
                                                                             ]))
                                                                         )
@@ -3374,66 +2420,44 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 153,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 153,
-                                "col" => 1,
                                 "value" => "Load"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 153,
-                                "col" => 8,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 153,
-                                        "col" => 9,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 154,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 154,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 154,
-                                                                "col" => 12,
                                                                 "value" => "++"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 154,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 154,
-                                                                            "col" => 18,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 154,
-                                                                            "col" => 22,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 154,
-                                                                                    "col" => 22,
                                                                                     "value" => "inplace_post_inc"
                                                                                 ]))
                                                                             )
@@ -3446,43 +2470,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 155,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 155,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 155,
-                                                                "col" => 12,
                                                                 "value" => "--"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 155,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 155,
-                                                                            "col" => 18,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 155,
-                                                                            "col" => 22,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 155,
-                                                                                    "col" => 22,
                                                                                     "value" => "inplace_post_dec"
                                                                                 ]))
                                                                             )
@@ -3495,50 +2505,34 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 156,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 156,
-                                                                "col" => 5,
                                                                 "value" => "++"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 156,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 156,
-                                                                        "col" => 17,
                                                                         "value" => "Lvalue"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 156,
-                                                                "col" => 25,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 156,
-                                                                            "col" => 25,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 156,
-                                                                            "col" => 29,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 156,
-                                                                                    "col" => 29,
                                                                                     "value" => "inplace_pre_inc"
                                                                                 ]))
                                                                             )
@@ -3551,50 +2545,34 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 157,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 157,
-                                                                "col" => 5,
                                                                 "value" => "--"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 157,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 157,
-                                                                        "col" => 17,
                                                                         "value" => "Lvalue"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 157,
-                                                                "col" => 25,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 157,
-                                                                            "col" => 25,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 157,
-                                                                            "col" => 29,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 157,
-                                                                                    "col" => 29,
                                                                                     "value" => "inplace_pre_dec"
                                                                                 ]))
                                                                             )
@@ -3607,8 +2585,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 158,
-                                                    "col" => 5,
                                                     "value" => "Variable"
                                                 ]))
                                             ])
@@ -3621,110 +2597,74 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 163,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 163,
-                                "col" => 1,
                                 "value" => "Parselet"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 163,
-                                "col" => 12,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 163,
-                                        "col" => 13,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 164,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 164,
-                                                            "col" => 5,
                                                             "value" => "@"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 164,
-                                                            "col" => 9,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_opt",
-                                                            "row" => 164,
-                                                            "col" => 11,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 164,
-                                                                    "col" => 11,
                                                                     "value" => "ParseletGenerics"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 164,
-                                                            "col" => 29,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_opt",
-                                                            "row" => 164,
-                                                            "col" => 31,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 164,
-                                                                    "col" => 31,
                                                                     "value" => "ParseletArguments"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_expect",
-                                                            "row" => 164,
-                                                            "col" => 50,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 164,
-                                                                    "col" => 57,
                                                                     "value" => "Block"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 164,
-                                                            "col" => 64,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 164,
-                                                                        "col" => 64,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 164,
-                                                                        "col" => 68,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 164,
-                                                                                "col" => 68,
                                                                                 "value" => "value_parselet"
                                                                             ]))
                                                                         )
@@ -3744,76 +2684,50 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 169,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 169,
-                                "col" => 1,
                                 "value" => "ParseletGeneric"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 169,
-                                "col" => 19,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 169,
-                                        "col" => 20,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 170,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 170,
-                                                            "col" => 5,
                                                             "value" => "T_Identifier"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 170,
-                                                            "col" => 18,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_opt",
-                                                            "row" => 170,
-                                                            "col" => 20,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "inline_sequence",
-                                                                    "row" => 170,
-                                                                    "col" => 21,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "value_token_touch",
-                                                                                "row" => 170,
-                                                                                "col" => 21,
                                                                                 "value" => ":"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "identifier",
-                                                                                "row" => 170,
-                                                                                "col" => 25,
                                                                                 "value" => "_"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "op_mod_expect",
-                                                                                "row" => 170,
-                                                                                "col" => 27,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 170,
-                                                                                        "col" => 34,
                                                                                         "value" => "Atomic"
                                                                                     ]))
                                                                                 )
@@ -3825,25 +2739,17 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 170,
-                                                            "col" => 44,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 170,
-                                                                        "col" => 44,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 170,
-                                                                        "col" => 48,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 170,
-                                                                                "col" => 48,
                                                                                 "value" => "gen"
                                                                             ]))
                                                                         )
@@ -3863,82 +2769,54 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 173,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 173,
-                                "col" => 1,
                                 "value" => "ParseletGenerics"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 173,
-                                "col" => 20,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 173,
-                                        "col" => 21,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 174,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "value_token_touch",
-                                                            "row" => 174,
-                                                            "col" => 5,
                                                             "value" => "<"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 174,
-                                                            "col" => 9,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_kle",
-                                                            "row" => 174,
-                                                            "col" => 11,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "inline_sequence",
-                                                                    "row" => 174,
-                                                                    "col" => 12,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "identifier",
-                                                                                "row" => 174,
-                                                                                "col" => 12,
                                                                                 "value" => "ParseletGeneric"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "op_mod_opt",
-                                                                                "row" => 174,
-                                                                                "col" => 28,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "inline_sequence",
-                                                                                        "row" => 174,
-                                                                                        "col" => 29,
                                                                                         "children" => (
                                                                                             value!([
                                                                                                 (value!([
                                                                                                     "emit" => "value_token_touch",
-                                                                                                    "row" => 174,
-                                                                                                    "col" => 29,
                                                                                                     "value" => ","
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "identifier",
-                                                                                                    "row" => 174,
-                                                                                                    "col" => 33,
                                                                                                     "value" => "_"
                                                                                                 ]))
                                                                                             ])
@@ -3953,27 +2831,19 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 174,
-                                                            "col" => 39,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_expect",
-                                                            "row" => 174,
-                                                            "col" => 41,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "value_token_touch",
-                                                                    "row" => 174,
-                                                                    "col" => 48,
                                                                     "value" => ">"
                                                                 ]))
                                                             )
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 174,
-                                                            "col" => 52,
                                                             "value" => "_"
                                                         ]))
                                                     ])
@@ -3988,81 +2858,53 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 179,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 179,
-                                "col" => 1,
                                 "value" => "ParseletArgument"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 179,
-                                "col" => 20,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 179,
-                                        "col" => 21,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 180,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 180,
-                                                            "col" => 5,
                                                             "value" => "T_Identifier"
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 180,
-                                                            "col" => 18,
                                                             "value" => "_"
                                                         ])),
                                                         (value!([
                                                             "emit" => "op_mod_opt",
-                                                            "row" => 180,
-                                                            "col" => 20,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "inline_sequence",
-                                                                    "row" => 180,
-                                                                    "col" => 21,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "value_token_touch",
-                                                                                "row" => 180,
-                                                                                "col" => 21,
                                                                                 "value" => "="
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "identifier",
-                                                                                "row" => 180,
-                                                                                "col" => 25,
                                                                                 "value" => "_"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "op_mod_expect",
-                                                                                "row" => 180,
-                                                                                "col" => 27,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "op_mod_opt",
-                                                                                        "row" => 180,
-                                                                                        "col" => 34,
                                                                                         "children" => (
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 180,
-                                                                                                "col" => 34,
                                                                                                 "value" => "Expression"
                                                                                             ]))
                                                                                         )
@@ -4076,25 +2918,17 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 180,
-                                                            "col" => 49,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 180,
-                                                                        "col" => 49,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 180,
-                                                                        "col" => 53,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 180,
-                                                                                "col" => 53,
                                                                                 "value" => "arg"
                                                                             ]))
                                                                         )
@@ -4114,64 +2948,42 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 183,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 183,
-                                "col" => 1,
                                 "value" => "ParseletArguments"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 183,
-                                "col" => 21,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 183,
-                                        "col" => 22,
                                         "children" => (
                                             (value!([
                                                 "emit" => "op_mod_pos",
-                                                "row" => 184,
-                                                "col" => 5,
                                                 "children" => (
                                                     (value!([
                                                         "emit" => "inline_sequence",
-                                                        "row" => 184,
-                                                        "col" => 6,
                                                         "children" => (
                                                             value!([
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 184,
-                                                                    "col" => 6,
                                                                     "value" => "ParseletArgument"
                                                                 ])),
                                                                 (value!([
                                                                     "emit" => "op_mod_opt",
-                                                                    "row" => 184,
-                                                                    "col" => 23,
                                                                     "children" => (
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 184,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
-                                                                                        "row" => 184,
-                                                                                        "col" => 24,
                                                                                         "value" => ","
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 184,
-                                                                                        "col" => 28,
                                                                                         "value" => "_"
                                                                                     ]))
                                                                                 ])
@@ -4193,44 +3005,30 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 189,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 189,
-                                "col" => 1,
                                 "value" => "StaticParseletInstance"
                             ])),
                             (value!([
                                 "emit" => "block",
-                                "row" => 189,
-                                "col" => 26,
                                 "children" => (
                                     value!([
                                         (value!([
                                             "emit" => "sequence",
-                                            "row" => 189,
-                                            "col" => 26,
                                             "children" => (
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 189,
-                                                    "col" => 26,
                                                     "value" => "T_Consumable"
                                                 ]))
                                             )
                                         ])),
                                         (value!([
                                             "emit" => "sequence",
-                                            "row" => 189,
-                                            "col" => 41,
                                             "children" => (
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 189,
-                                                    "col" => 41,
                                                     "value" => "Parselet"
                                                 ]))
                                             )
@@ -4243,97 +3041,65 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 191,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 191,
-                                "col" => 1,
                                 "value" => "ParseletInstanceArgument"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 191,
-                                "col" => 28,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 191,
-                                        "col" => 29,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 192,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 192,
-                                                                "col" => 5,
                                                                 "value" => "T_Identifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 192,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 192,
-                                                                "col" => 20,
                                                                 "value" => ":"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 192,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 192,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 192,
-                                                                        "col" => 33,
                                                                         "value" => "Atomic"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 192,
-                                                                "col" => 40,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 192,
-                                                                "col" => 43,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 192,
-                                                                            "col" => 43,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 192,
-                                                                            "col" => 47,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 192,
-                                                                                    "col" => 47,
                                                                                     "value" => "genarg_named"
                                                                                 ]))
                                                                             )
@@ -4346,43 +3112,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 193,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 193,
-                                                                "col" => 5,
                                                                 "value" => "Atomic"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 193,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 193,
-                                                                "col" => 15,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 193,
-                                                                            "col" => 15,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 193,
-                                                                            "col" => 19,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 193,
-                                                                                    "col" => 19,
                                                                                     "value" => "genarg"
                                                                                 ]))
                                                                             )
@@ -4403,89 +3155,59 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 196,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 196,
-                                "col" => 1,
                                 "value" => "ParseletInstance"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 196,
-                                "col" => 20,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 196,
-                                        "col" => 21,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 197,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 197,
-                                                                "col" => 5,
                                                                 "value" => "StaticParseletInstance"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 197,
-                                                                "col" => 28,
                                                                 "value" => "<"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 197,
-                                                                "col" => 32,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_pos",
-                                                                "row" => 197,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "inline_sequence",
-                                                                        "row" => 197,
-                                                                        "col" => 35,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 197,
-                                                                                    "col" => 35,
                                                                                     "value" => "ParseletInstanceArgument"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "op_mod_opt",
-                                                                                    "row" => 197,
-                                                                                    "col" => 60,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "inline_sequence",
-                                                                                            "row" => 197,
-                                                                                            "col" => 61,
                                                                                             "children" => (
                                                                                                 value!([
                                                                                                     (value!([
                                                                                                         "emit" => "value_token_touch",
-                                                                                                        "row" => 197,
-                                                                                                        "col" => 61,
                                                                                                         "value" => ","
                                                                                                     ])),
                                                                                                     (value!([
                                                                                                         "emit" => "identifier",
-                                                                                                        "row" => 197,
-                                                                                                        "col" => 65,
                                                                                                         "value" => "_"
                                                                                                     ]))
                                                                                                 ])
@@ -4500,50 +3222,34 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 197,
-                                                                "col" => 71,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 197,
-                                                                "col" => 73,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 197,
-                                                                        "col" => 80,
                                                                         "value" => ">"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 197,
-                                                                "col" => 84,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 197,
-                                                                "col" => 87,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 197,
-                                                                            "col" => 87,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 197,
-                                                                            "col" => 91,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 197,
-                                                                                    "col" => 91,
                                                                                     "value" => "value_generic"
                                                                                 ]))
                                                                             )
@@ -4556,8 +3262,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 198,
-                                                    "col" => 5,
                                                     "value" => "StaticParseletInstance"
                                                 ]))
                                             ])
@@ -4570,91 +3274,61 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 203,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 203,
-                                "col" => 1,
                                 "value" => "InlineSequenceItem"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 203,
-                                "col" => 22,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 203,
-                                        "col" => 23,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 204,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 204,
-                                                                "col" => 5,
                                                                 "value" => "T_Alias"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 204,
-                                                                "col" => 13,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 204,
-                                                                "col" => 15,
                                                                 "value" => "=>"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 204,
-                                                                "col" => 20,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 204,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 204,
-                                                                        "col" => 29,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 204,
-                                                                "col" => 41,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 204,
-                                                                            "col" => 41,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 204,
-                                                                            "col" => 45,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 204,
-                                                                                    "col" => 45,
                                                                                     "value" => "alias"
                                                                                 ]))
                                                                             )
@@ -4667,62 +3341,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 205,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 205,
-                                                                "col" => 5,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 205,
-                                                                "col" => 16,
                                                                 "value" => "=>"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 205,
-                                                                "col" => 21,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 205,
-                                                                "col" => 23,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 205,
-                                                                        "col" => 30,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 205,
-                                                                "col" => 42,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 205,
-                                                                            "col" => 42,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 205,
-                                                                            "col" => 46,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 205,
-                                                                                    "col" => 46,
                                                                                     "value" => "alias"
                                                                                 ]))
                                                                             )
@@ -4735,8 +3389,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 206,
-                                                    "col" => 5,
                                                     "value" => "Expression"
                                                 ]))
                                             ])
@@ -4749,97 +3401,65 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 209,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 209,
-                                "col" => 1,
                                 "value" => "InlineSequence"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 209,
-                                "col" => 18,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 209,
-                                        "col" => 19,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 211,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 211,
-                                                                "col" => 5,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 211,
-                                                                "col" => 16,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 211,
-                                                                "col" => 20,
                                                                 "value" => ","
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 211,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 211,
-                                                                "col" => 26,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_peek",
-                                                                "row" => 211,
-                                                                "col" => 30,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 211,
-                                                                        "col" => 35,
                                                                         "value" => ")"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 211,
-                                                                "col" => 40,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 211,
-                                                                            "col" => 40,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 211,
-                                                                            "col" => 44,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 211,
-                                                                                    "col" => 44,
                                                                                     "value" => "list"
                                                                                 ]))
                                                                             )
@@ -4852,54 +3472,36 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 214,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "op_mod_pos",
-                                                                "row" => 214,
-                                                                "col" => 5,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "inline_sequence",
-                                                                        "row" => 214,
-                                                                        "col" => 6,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 214,
-                                                                                    "col" => 6,
                                                                                     "value" => "InlineSequenceItem"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 214,
-                                                                                    "col" => 25,
                                                                                     "value" => "___"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "op_mod_opt",
-                                                                                    "row" => 214,
-                                                                                    "col" => 29,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "inline_sequence",
-                                                                                            "row" => 214,
-                                                                                            "col" => 30,
                                                                                             "children" => (
                                                                                                 value!([
                                                                                                     (value!([
                                                                                                         "emit" => "value_token_touch",
-                                                                                                        "row" => 214,
-                                                                                                        "col" => 30,
                                                                                                         "value" => ","
                                                                                                     ])),
                                                                                                     (value!([
                                                                                                         "emit" => "identifier",
-                                                                                                        "row" => 214,
-                                                                                                        "col" => 34,
                                                                                                         "value" => "_"
                                                                                                     ]))
                                                                                                 ])
@@ -4909,8 +3511,6 @@ pub(super) fn tokay() -> RefValue {
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 214,
-                                                                                    "col" => 38,
                                                                                     "value" => "___"
                                                                                 ]))
                                                                             ])
@@ -4920,25 +3520,17 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 214,
-                                                                "col" => 45,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 214,
-                                                                            "col" => 45,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 214,
-                                                                            "col" => 49,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 214,
-                                                                                    "col" => 49,
                                                                                     "value" => "inline_sequence"
                                                                                 ]))
                                                                             )
@@ -4951,37 +3543,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 217,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 217,
-                                                                "col" => 5,
                                                                 "value" => "Void"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 217,
-                                                                "col" => 11,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 217,
-                                                                            "col" => 11,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 217,
-                                                                            "col" => 15,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 217,
-                                                                                    "col" => 15,
                                                                                     "value" => "list"
                                                                                 ]))
                                                                             )
@@ -5002,101 +3582,67 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 220,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 220,
-                                "col" => 1,
                                 "value" => "InlineBlock"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 220,
-                                "col" => 15,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 220,
-                                        "col" => 16,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 221,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 221,
-                                                                "col" => 5,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 221,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 221,
-                                                                "col" => 11,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 221,
-                                                                "col" => 15,
                                                                 "value" => "InlineSequence"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_pos",
-                                                                "row" => 221,
-                                                                "col" => 30,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "block",
-                                                                        "row" => 221,
-                                                                        "col" => 30,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 221,
-                                                                                "col" => 31,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 221,
-                                                                                            "col" => 31,
                                                                                             "value" => "___"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 221,
-                                                                                            "col" => 35,
                                                                                             "value" => "|"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 221,
-                                                                                            "col" => 39,
                                                                                             "value" => "_"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 221,
-                                                                                            "col" => 41,
                                                                                             "value" => "___"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 221,
-                                                                                            "col" => 45,
                                                                                             "value" => "InlineSequence"
                                                                                         ]))
                                                                                     ])
@@ -5108,44 +3654,30 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 221,
-                                                                "col" => 62,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 221,
-                                                                "col" => 66,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 221,
-                                                                        "col" => 73,
                                                                         "value" => ")"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 221,
-                                                                "col" => 78,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 221,
-                                                                            "col" => 78,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 221,
-                                                                            "col" => 82,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 221,
-                                                                                    "col" => 82,
                                                                                     "value" => "block"
                                                                                 ]))
                                                                             )
@@ -5158,49 +3690,33 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 222,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 222,
-                                                                "col" => 5,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 222,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 222,
-                                                                "col" => 11,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 222,
-                                                                "col" => 15,
                                                                 "value" => "InlineSequence"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 222,
-                                                                "col" => 30,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 222,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 222,
-                                                                        "col" => 41,
                                                                         "value" => ")"
                                                                     ]))
                                                                 )
@@ -5218,91 +3734,61 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 227,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 227,
-                                "col" => 1,
                                 "value" => "CallArgument"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 227,
-                                "col" => 16,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 227,
-                                        "col" => 17,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 228,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 228,
-                                                                "col" => 5,
                                                                 "value" => "T_Identifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 228,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 228,
-                                                                "col" => 20,
                                                                 "value" => "="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 228,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 228,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 228,
-                                                                        "col" => 33,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 228,
-                                                                "col" => 45,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 228,
-                                                                            "col" => 45,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 228,
-                                                                            "col" => 49,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 228,
-                                                                                    "col" => 49,
                                                                                     "value" => "callarg_named"
                                                                                 ]))
                                                                             )
@@ -5315,37 +3801,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 229,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 229,
-                                                                "col" => 5,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 229,
-                                                                "col" => 17,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 229,
-                                                                            "col" => 17,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 229,
-                                                                            "col" => 21,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 229,
-                                                                                    "col" => 21,
                                                                                     "value" => "callarg"
                                                                                 ]))
                                                                             )
@@ -5366,64 +3840,42 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 232,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 232,
-                                "col" => 1,
                                 "value" => "CallArguments"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 232,
-                                "col" => 17,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 232,
-                                        "col" => 18,
                                         "children" => (
                                             (value!([
                                                 "emit" => "op_mod_pos",
-                                                "row" => 233,
-                                                "col" => 5,
                                                 "children" => (
                                                     (value!([
                                                         "emit" => "inline_sequence",
-                                                        "row" => 233,
-                                                        "col" => 6,
                                                         "children" => (
                                                             value!([
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 233,
-                                                                    "col" => 6,
                                                                     "value" => "CallArgument"
                                                                 ])),
                                                                 (value!([
                                                                     "emit" => "op_mod_opt",
-                                                                    "row" => 233,
-                                                                    "col" => 19,
                                                                     "children" => (
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 233,
-                                                                            "col" => 20,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
-                                                                                        "row" => 233,
-                                                                                        "col" => 20,
                                                                                         "value" => ","
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 233,
-                                                                                        "col" => 24,
                                                                                         "value" => "_"
                                                                                     ]))
                                                                                 ])
@@ -5433,8 +3885,6 @@ pub(super) fn tokay() -> RefValue {
                                                                 ])),
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "row" => 233,
-                                                                    "col" => 28,
                                                                     "value" => "___"
                                                                 ]))
                                                             ])
@@ -5451,72 +3901,48 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 238,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 238,
-                                "col" => 1,
                                 "value" => "TokenLiteral"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 238,
-                                "col" => 16,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 238,
-                                        "col" => 17,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 239,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 239,
-                                                                "col" => 5,
                                                                 "value" => "'"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 239,
-                                                                "col" => 10,
                                                                 "value" => "T_Touch"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 239,
-                                                                "col" => 18,
                                                                 "value" => "'"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 239,
-                                                                "col" => 24,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 239,
-                                                                            "col" => 24,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 239,
-                                                                            "col" => 28,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 239,
-                                                                                    "col" => 28,
                                                                                     "value" => "value_token_match"
                                                                                 ]))
                                                                             )
@@ -5529,37 +3955,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 240,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 240,
-                                                                "col" => 5,
                                                                 "value" => "T_Touch"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 240,
-                                                                "col" => 14,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 240,
-                                                                            "col" => 14,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 240,
-                                                                            "col" => 18,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 240,
-                                                                                    "col" => 18,
                                                                                     "value" => "value_token_touch"
                                                                                 ]))
                                                                             )
@@ -5572,37 +3986,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 241,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 241,
-                                                                "col" => 5,
                                                                 "value" => "."
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 241,
-                                                                "col" => 10,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 241,
-                                                                            "col" => 10,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 241,
-                                                                            "col" => 14,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 241,
-                                                                                    "col" => 14,
                                                                                     "value" => "value_token_any"
                                                                                 ]))
                                                                             )
@@ -5615,49 +4017,33 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 242,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 242,
-                                                                "col" => 5,
                                                                 "value" => "["
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 242,
-                                                                "col" => 9,
                                                                 "value" => "Ccl"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 242,
-                                                                "col" => 13,
                                                                 "value" => "]"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 242,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 242,
-                                                                            "col" => 18,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 242,
-                                                                            "col" => 22,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 242,
-                                                                                    "col" => 22,
                                                                                     "value" => "value_token_ccl"
                                                                                 ]))
                                                                             )
@@ -5678,84 +4064,56 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 245,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 245,
-                                "col" => 1,
                                 "value" => "TokenAtom"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 245,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 245,
-                                        "col" => 14,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 246,
-                                                    "col" => 5,
                                                     "value" => "TokenLiteral"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 247,
-                                                    "col" => 5,
                                                     "value" => "InlineBlock"
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 248,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 248,
-                                                                "col" => 5,
                                                                 "value" => "@"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 248,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 248,
-                                                                "col" => 11,
                                                                 "value" => "InlineBlock"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 248,
-                                                                "col" => 24,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 248,
-                                                                            "col" => 24,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 248,
-                                                                            "col" => 28,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 248,
-                                                                                    "col" => 28,
                                                                                     "value" => "area"
                                                                                 ]))
                                                                             )
@@ -5768,93 +4126,63 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 249,
-                                                    "col" => 5,
                                                     "value" => "Block"
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 250,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 250,
-                                                                "col" => 5,
                                                                 "value" => "ParseletInstance"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 250,
-                                                                "col" => 22,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 250,
-                                                                "col" => 26,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 250,
-                                                                "col" => 28,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 250,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 250,
-                                                                        "col" => 32,
                                                                         "value" => "CallArguments"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 250,
-                                                                "col" => 47,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 250,
-                                                                "col" => 51,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 250,
-                                                                        "col" => 58,
                                                                         "value" => ")"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 250,
-                                                                "col" => 63,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 250,
-                                                                            "col" => 63,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 250,
-                                                                            "col" => 67,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 250,
-                                                                                    "col" => 67,
                                                                                     "value" => "call"
                                                                                 ]))
                                                                             )
@@ -5867,8 +4195,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 251,
-                                                    "col" => 5,
                                                     "value" => "ParseletInstance"
                                                 ]))
                                             ])
@@ -5881,66 +4207,44 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 254,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 254,
-                                "col" => 1,
                                 "value" => "Token1"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 254,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 254,
-                                        "col" => 11,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 255,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 255,
-                                                                "col" => 5,
                                                                 "value" => "TokenAtom"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 255,
-                                                                "col" => 15,
                                                                 "value" => "+"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 255,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 255,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 255,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 255,
-                                                                                    "col" => 24,
                                                                                     "value" => "op_mod_pos"
                                                                                 ]))
                                                                             )
@@ -5953,43 +4257,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 256,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 256,
-                                                                "col" => 5,
                                                                 "value" => "TokenAtom"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 256,
-                                                                "col" => 15,
                                                                 "value" => "*"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 256,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 256,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 256,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 256,
-                                                                                    "col" => 24,
                                                                                     "value" => "op_mod_kle"
                                                                                 ]))
                                                                             )
@@ -6002,43 +4292,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 257,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 257,
-                                                                "col" => 5,
                                                                 "value" => "TokenAtom"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 257,
-                                                                "col" => 15,
                                                                 "value" => "?"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 257,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 257,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 257,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 257,
-                                                                                    "col" => 24,
                                                                                     "value" => "op_mod_opt"
                                                                                 ]))
                                                                             )
@@ -6051,62 +4327,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 258,
-                                                    "col" => 5,
                                                     "value" => "TokenAtom"
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 259,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 259,
-                                                                "col" => 5,
                                                                 "value" => "peek"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 259,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 259,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 259,
-                                                                        "col" => 40,
                                                                         "value" => "Token1"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 259,
-                                                                "col" => 48,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 259,
-                                                                            "col" => 48,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 259,
-                                                                            "col" => 52,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 259,
-                                                                                    "col" => 52,
                                                                                     "value" => "op_mod_peek"
                                                                                 ]))
                                                                             )
@@ -6119,56 +4375,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 260,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 260,
-                                                                "col" => 5,
                                                                 "value" => "not"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 260,
-                                                                "col" => 11,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 260,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 260,
-                                                                        "col" => 39,
                                                                         "value" => "Token1"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 260,
-                                                                "col" => 47,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 260,
-                                                                            "col" => 47,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 260,
-                                                                            "col" => 51,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 260,
-                                                                                    "col" => 51,
                                                                                     "value" => "op_mod_not"
                                                                                 ]))
                                                                             )
@@ -6181,56 +4419,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 261,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 261,
-                                                                "col" => 5,
                                                                 "value" => "expect"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 261,
-                                                                "col" => 14,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 261,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 261,
-                                                                        "col" => 42,
                                                                         "value" => "Token1"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 261,
-                                                                "col" => 50,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 261,
-                                                                            "col" => 50,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 261,
-                                                                            "col" => 54,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 261,
-                                                                                    "col" => 54,
                                                                                     "value" => "op_mod_expect"
                                                                                 ]))
                                                                             )
@@ -6251,66 +4471,44 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 268,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 268,
-                                "col" => 1,
                                 "value" => "Literal"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 268,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 268,
-                                        "col" => 12,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 269,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 269,
-                                                                "col" => 5,
                                                                 "value" => "true"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 269,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 269,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 269,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 269,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 269,
-                                                                                    "col" => 38,
                                                                                     "value" => "value_true"
                                                                                 ]))
                                                                             )
@@ -6323,43 +4521,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 270,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 270,
-                                                                "col" => 5,
                                                                 "value" => "false"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 270,
-                                                                "col" => 13,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 270,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 270,
-                                                                            "col" => 35,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 270,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 270,
-                                                                                    "col" => 39,
                                                                                     "value" => "value_false"
                                                                                 ]))
                                                                             )
@@ -6372,43 +4556,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 271,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 271,
-                                                                "col" => 5,
                                                                 "value" => "void"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 271,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 271,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 271,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 271,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 271,
-                                                                                    "col" => 38,
                                                                                     "value" => "value_void"
                                                                                 ]))
                                                                             )
@@ -6421,43 +4591,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 272,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 272,
-                                                                "col" => 5,
                                                                 "value" => "null"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 272,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 272,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 272,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 272,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 272,
-                                                                                    "col" => 38,
                                                                                     "value" => "value_null"
                                                                                 ]))
                                                                             )
@@ -6470,37 +4626,25 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 273,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 273,
-                                                                "col" => 5,
                                                                 "value" => "T_String"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 273,
-                                                                "col" => 15,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 273,
-                                                                            "col" => 15,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 273,
-                                                                            "col" => 19,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 273,
-                                                                                    "col" => 19,
                                                                                     "value" => "value_string"
                                                                                 ]))
                                                                             )
@@ -6513,14 +4657,10 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 274,
-                                                    "col" => 5,
                                                     "value" => "T_Float"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 275,
-                                                    "col" => 5,
                                                     "value" => "T_Integer"
                                                 ]))
                                             ])
@@ -6533,67 +4673,45 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 280,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 280,
-                                "col" => 1,
                                 "value" => "Atomic"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 280,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 280,
-                                        "col" => 11,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 281,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 281,
-                                                                "col" => 5,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 281,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 281,
-                                                                "col" => 11,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 281,
-                                                                "col" => 15,
                                                                 "value" => "HoldExpression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 281,
-                                                                "col" => 30,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 281,
-                                                                "col" => 34,
                                                                 "value" => ")"
                                                             ]))
                                                         ])
@@ -6601,103 +4719,69 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 282,
-                                                    "col" => 5,
                                                     "value" => "Literal"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 283,
-                                                    "col" => 5,
                                                     "value" => "Token1"
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 284,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 284,
-                                                                "col" => 5,
                                                                 "value" => "if"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 284,
-                                                                "col" => 10,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 284,
-                                                                "col" => 31,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 284,
-                                                                "col" => 42,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 284,
-                                                                "col" => 46,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 284,
-                                                                        "col" => 53,
                                                                         "value" => "Statement"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 284,
-                                                                "col" => 63,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "inline_sequence",
-                                                                        "row" => 284,
-                                                                        "col" => 64,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 284,
-                                                                                    "col" => 64,
                                                                                     "value" => "___"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "value_token_touch",
-                                                                                    "row" => 284,
-                                                                                    "col" => 68,
                                                                                     "value" => "else"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 284,
-                                                                                    "col" => 75,
                                                                                     "value" => "_SeparatedIdentifier"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 284,
-                                                                                    "col" => 96,
                                                                                     "value" => "___"
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "op_mod_expect",
-                                                                                    "row" => 284,
-                                                                                    "col" => 100,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 284,
-                                                                                            "col" => 107,
                                                                                             "value" => "Statement"
                                                                                         ]))
                                                                                     )
@@ -6709,25 +4793,17 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 284,
-                                                                "col" => 120,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 284,
-                                                                            "col" => 120,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 284,
-                                                                            "col" => 124,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 284,
-                                                                                    "col" => 124,
                                                                                     "value" => "op_if"
                                                                                 ]))
                                                                             )
@@ -6740,50 +4816,34 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 285,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 285,
-                                                                "col" => 5,
                                                                 "value" => "for"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 11,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "block",
-                                                                "row" => 285,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 285,
-                                                                            "col" => 33,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 285,
-                                                                                    "col" => 33,
                                                                                     "value" => "Sequence"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 285,
-                                                                            "col" => 44,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 285,
-                                                                                    "col" => 44,
                                                                                     "value" => "Nop"
                                                                                 ]))
                                                                             )
@@ -6793,44 +4853,30 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 285,
-                                                                "col" => 49,
                                                                 "value" => ";"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 53,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "block",
-                                                                "row" => 285,
-                                                                "col" => 55,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 285,
-                                                                            "col" => 56,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 285,
-                                                                                    "col" => 56,
                                                                                     "value" => "Sequence"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 285,
-                                                                            "col" => 67,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 285,
-                                                                                    "col" => 67,
                                                                                     "value" => "Nop"
                                                                                 ]))
                                                                             )
@@ -6840,55 +4886,37 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 285,
-                                                                "col" => 72,
                                                                 "value" => ";"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 76,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 78,
                                                                 "value" => "Statement"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 88,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 285,
-                                                                "col" => 90,
                                                                 "value" => "Block"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 285,
-                                                                "col" => 97,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 285,
-                                                                            "col" => 97,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 285,
-                                                                            "col" => 101,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 285,
-                                                                                    "col" => 101,
                                                                                     "value" => "op_for"
                                                                                 ]))
                                                                             )
@@ -6901,50 +4929,34 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 286,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 286,
-                                                                "col" => 5,
                                                                 "value" => "for"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 11,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "block",
-                                                                "row" => 286,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 286,
-                                                                            "col" => 33,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 286,
-                                                                                    "col" => 33,
                                                                                     "value" => "Sequence"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 286,
-                                                                            "col" => 44,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 286,
-                                                                                    "col" => 44,
                                                                                     "value" => "Nop"
                                                                                 ]))
                                                                             )
@@ -6954,44 +4966,30 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 286,
-                                                                "col" => 49,
                                                                 "value" => ";"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 53,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "block",
-                                                                "row" => 286,
-                                                                "col" => 55,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 286,
-                                                                            "col" => 56,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 286,
-                                                                                    "col" => 56,
                                                                                     "value" => "Sequence"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "inline_sequence",
-                                                                            "row" => 286,
-                                                                            "col" => 67,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "row" => 286,
-                                                                                    "col" => 67,
                                                                                     "value" => "Nop"
                                                                                 ]))
                                                                             )
@@ -7001,55 +4999,37 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 286,
-                                                                "col" => 72,
                                                                 "value" => ";"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 76,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 78,
                                                                 "value" => "Nop"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 82,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 286,
-                                                                "col" => 84,
                                                                 "value" => "Block"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 286,
-                                                                "col" => 91,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 286,
-                                                                            "col" => 91,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 286,
-                                                                            "col" => 95,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 286,
-                                                                                    "col" => 95,
                                                                                     "value" => "op_for"
                                                                                 ]))
                                                                             )
@@ -7062,43 +5042,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 287,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 287,
-                                                                "col" => 5,
                                                                 "value" => "for"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 287,
-                                                                "col" => 11,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 287,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 287,
-                                                                            "col" => 33,
                                                                             "value" => "error"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 287,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 287,
-                                                                                    "col" => 39,
                                                                                     "value" => "'for': Expecting initial; condition; increment { body }"
                                                                                 ]))
                                                                             )
@@ -7111,61 +5077,41 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 288,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 288,
-                                                                "col" => 5,
                                                                 "value" => "loop"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 288,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 288,
-                                                                "col" => 33,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 288,
-                                                                "col" => 44,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 288,
-                                                                "col" => 46,
                                                                 "value" => "Statement"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 288,
-                                                                "col" => 57,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 288,
-                                                                            "col" => 57,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 288,
-                                                                            "col" => 61,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 288,
-                                                                                    "col" => 61,
                                                                                     "value" => "op_loop"
                                                                                 ]))
                                                                             )
@@ -7178,56 +5124,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 289,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 289,
-                                                                "col" => 5,
                                                                 "value" => "loop"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 289,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 289,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 289,
-                                                                        "col" => 40,
                                                                         "value" => "Statement"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 289,
-                                                                "col" => 51,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 289,
-                                                                            "col" => 51,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 289,
-                                                                            "col" => 55,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 289,
-                                                                                    "col" => 55,
                                                                                     "value" => "op_loop"
                                                                                 ]))
                                                                             )
@@ -7240,8 +5168,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 290,
-                                                    "col" => 5,
                                                     "value" => "Load"
                                                 ]))
                                             ])
@@ -7254,104 +5180,70 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 295,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 295,
-                                "col" => 1,
                                 "value" => "Rvalue"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 295,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 295,
-                                        "col" => 11,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 296,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 296,
-                                                                "col" => 5,
                                                                 "value" => "Rvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 296,
-                                                                "col" => 12,
                                                                 "value" => "("
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 296,
-                                                                "col" => 16,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 296,
-                                                                "col" => 18,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 296,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 296,
-                                                                        "col" => 22,
                                                                         "value" => "CallArguments"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 296,
-                                                                "col" => 37,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 296,
-                                                                        "col" => 44,
                                                                         "value" => ")"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 296,
-                                                                "col" => 49,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 296,
-                                                                            "col" => 49,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 296,
-                                                                            "col" => 53,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 296,
-                                                                                    "col" => 53,
                                                                                     "value" => "call"
                                                                                 ]))
                                                                             )
@@ -7364,49 +5256,33 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 297,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 297,
-                                                                "col" => 5,
                                                                 "value" => "Rvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_kle",
-                                                                "row" => 297,
-                                                                "col" => 12,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "block",
-                                                                        "row" => 297,
-                                                                        "col" => 12,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 297,
-                                                                                    "col" => 13,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 297,
-                                                                                            "col" => 13,
                                                                                             "value" => "Attribute"
                                                                                         ]))
                                                                                     )
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 297,
-                                                                                    "col" => 25,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 297,
-                                                                                            "col" => 25,
                                                                                             "value" => "Subscript"
                                                                                         ]))
                                                                                     )
@@ -7418,25 +5294,17 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 297,
-                                                                "col" => 38,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 297,
-                                                                            "col" => 38,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 297,
-                                                                            "col" => 42,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 297,
-                                                                                    "col" => 42,
                                                                                     "value" => "rvalue"
                                                                                 ]))
                                                                             )
@@ -7449,8 +5317,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 298,
-                                                    "col" => 5,
                                                     "value" => "Atomic"
                                                 ]))
                                             ])
@@ -7463,85 +5329,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 301,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 301,
-                                "col" => 1,
                                 "value" => "Unary"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 301,
-                                "col" => 9,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 301,
-                                        "col" => 10,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 302,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 302,
-                                                                "col" => 5,
                                                                 "value" => "-"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_not",
-                                                                "row" => 302,
-                                                                "col" => 9,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 302,
-                                                                        "col" => 13,
                                                                         "value" => "-"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 302,
-                                                                "col" => 17,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 302,
-                                                                "col" => 19,
                                                                 "value" => "Unary"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 302,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 302,
-                                                                            "col" => 26,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 302,
-                                                                            "col" => 30,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 302,
-                                                                                    "col" => 30,
                                                                                     "value" => "op_unary_neg"
                                                                                 ]))
                                                                             )
@@ -7554,49 +5392,33 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 303,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 303,
-                                                                "col" => 5,
                                                                 "value" => "!"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 303,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 303,
-                                                                "col" => 11,
                                                                 "value" => "Unary"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 303,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 303,
-                                                                            "col" => 18,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 303,
-                                                                            "col" => 22,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 303,
-                                                                                    "col" => 22,
                                                                                     "value" => "op_unary_not"
                                                                                 ]))
                                                                             )
@@ -7609,20 +5431,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 304,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 304,
-                                                                "col" => 5,
                                                                 "value" => "Rvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 304,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ]))
                                                         ])
@@ -7638,85 +5454,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 307,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 307,
-                                "col" => 1,
                                 "value" => "MulDiv"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 307,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 307,
-                                        "col" => 11,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 308,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 308,
-                                                                "col" => 5,
                                                                 "value" => "MulDiv"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 308,
-                                                                "col" => 12,
                                                                 "value" => "*"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 308,
-                                                                "col" => 16,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 308,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 308,
-                                                                        "col" => 25,
                                                                         "value" => "Unary"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 308,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 308,
-                                                                            "col" => 32,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 308,
-                                                                            "col" => 36,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 308,
-                                                                                    "col" => 36,
                                                                                     "value" => "op_binary_mul"
                                                                                 ]))
                                                                             )
@@ -7729,62 +5517,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 309,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 309,
-                                                                "col" => 5,
                                                                 "value" => "MulDiv"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 309,
-                                                                "col" => 12,
                                                                 "value" => "//"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 309,
-                                                                "col" => 17,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 309,
-                                                                "col" => 19,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 309,
-                                                                        "col" => 26,
                                                                         "value" => "Unary"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 309,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 309,
-                                                                            "col" => 33,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 309,
-                                                                            "col" => 37,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 309,
-                                                                                    "col" => 37,
                                                                                     "value" => "op_binary_divi"
                                                                                 ]))
                                                                             )
@@ -7797,62 +5565,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 310,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 310,
-                                                                "col" => 5,
                                                                 "value" => "MulDiv"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 310,
-                                                                "col" => 12,
                                                                 "value" => "/"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 310,
-                                                                "col" => 16,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 310,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 310,
-                                                                        "col" => 25,
                                                                         "value" => "Unary"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 310,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 310,
-                                                                            "col" => 32,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 310,
-                                                                            "col" => 36,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 310,
-                                                                                    "col" => 36,
                                                                                     "value" => "op_binary_div"
                                                                                 ]))
                                                                             )
@@ -7865,62 +5613,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 311,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 311,
-                                                                "col" => 5,
                                                                 "value" => "MulDiv"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 311,
-                                                                "col" => 12,
                                                                 "value" => "%"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 311,
-                                                                "col" => 16,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 311,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 311,
-                                                                        "col" => 25,
                                                                         "value" => "Unary"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 311,
-                                                                "col" => 32,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 311,
-                                                                            "col" => 32,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 311,
-                                                                            "col" => 36,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 311,
-                                                                                    "col" => 36,
                                                                                     "value" => "op_binary_mod"
                                                                                 ]))
                                                                             )
@@ -7933,8 +5661,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 312,
-                                                    "col" => 5,
                                                     "value" => "Unary"
                                                 ]))
                                             ])
@@ -7947,98 +5673,66 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 315,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 315,
-                                "col" => 1,
                                 "value" => "AddSub"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 315,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 315,
-                                        "col" => 11,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 316,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 316,
-                                                                "col" => 5,
                                                                 "value" => "AddSub"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 316,
-                                                                "col" => 12,
                                                                 "value" => "+"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_not",
-                                                                "row" => 316,
-                                                                "col" => 16,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 316,
-                                                                        "col" => 20,
                                                                         "value" => "+"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 316,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 316,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 316,
-                                                                        "col" => 33,
                                                                         "value" => "MulDiv"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 316,
-                                                                "col" => 41,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 316,
-                                                                            "col" => 41,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 316,
-                                                                            "col" => 45,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 316,
-                                                                                    "col" => 45,
                                                                                     "value" => "op_binary_add"
                                                                                 ]))
                                                                             )
@@ -8051,75 +5745,51 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 317,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 317,
-                                                                "col" => 5,
                                                                 "value" => "AddSub"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 317,
-                                                                "col" => 12,
                                                                 "value" => "-"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_not",
-                                                                "row" => 317,
-                                                                "col" => 16,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 317,
-                                                                        "col" => 20,
                                                                         "value" => "-"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 317,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 317,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 317,
-                                                                        "col" => 33,
                                                                         "value" => "MulDiv"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 317,
-                                                                "col" => 41,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 317,
-                                                                            "col" => 41,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 317,
-                                                                            "col" => 45,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 317,
-                                                                                    "col" => 45,
                                                                                     "value" => "op_binary_sub"
                                                                                 ]))
                                                                             )
@@ -8132,8 +5802,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 318,
-                                                    "col" => 5,
                                                     "value" => "MulDiv"
                                                 ]))
                                             ])
@@ -8146,85 +5814,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 321,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 321,
-                                "col" => 1,
                                 "value" => "Compare"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 321,
-                                "col" => 11,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 321,
-                                        "col" => 12,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 322,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 322,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 322,
-                                                                "col" => 13,
                                                                 "value" => "=="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 322,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 322,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 322,
-                                                                        "col" => 27,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 322,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 322,
-                                                                            "col" => 35,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 322,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 322,
-                                                                                    "col" => 39,
                                                                                     "value" => "op_compare_eq"
                                                                                 ]))
                                                                             )
@@ -8237,62 +5877,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 323,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 323,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 323,
-                                                                "col" => 13,
                                                                 "value" => "!="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 323,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 323,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 323,
-                                                                        "col" => 27,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 323,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 323,
-                                                                            "col" => 35,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 323,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 323,
-                                                                                    "col" => 39,
                                                                                     "value" => "op_compare_neq"
                                                                                 ]))
                                                                             )
@@ -8305,62 +5925,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 324,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 324,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 324,
-                                                                "col" => 13,
                                                                 "value" => "<="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 324,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 324,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 324,
-                                                                        "col" => 27,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 324,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 324,
-                                                                            "col" => 35,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 324,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 324,
-                                                                                    "col" => 39,
                                                                                     "value" => "op_compare_lteq"
                                                                                 ]))
                                                                             )
@@ -8373,62 +5973,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 325,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 325,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 325,
-                                                                "col" => 13,
                                                                 "value" => ">="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 325,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 325,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 325,
-                                                                        "col" => 27,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 325,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 325,
-                                                                            "col" => 35,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 325,
-                                                                            "col" => 39,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 325,
-                                                                                    "col" => 39,
                                                                                     "value" => "op_compare_gteq"
                                                                                 ]))
                                                                             )
@@ -8441,62 +6021,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 326,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 326,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 326,
-                                                                "col" => 13,
                                                                 "value" => "<"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 326,
-                                                                "col" => 17,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 326,
-                                                                "col" => 19,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 326,
-                                                                        "col" => 26,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 326,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 326,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 326,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 326,
-                                                                                    "col" => 38,
                                                                                     "value" => "op_compare_lt"
                                                                                 ]))
                                                                             )
@@ -8509,62 +6069,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 327,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 327,
-                                                                "col" => 5,
                                                                 "value" => "Compare"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 327,
-                                                                "col" => 13,
                                                                 "value" => ">"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 327,
-                                                                "col" => 17,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 327,
-                                                                "col" => 19,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 327,
-                                                                        "col" => 26,
                                                                         "value" => "AddSub"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 327,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 327,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 327,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 327,
-                                                                                    "col" => 38,
                                                                                     "value" => "op_compare_gt"
                                                                                 ]))
                                                                             )
@@ -8577,8 +6117,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 328,
-                                                    "col" => 5,
                                                     "value" => "AddSub"
                                                 ]))
                                             ])
@@ -8591,85 +6129,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 331,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 331,
-                                "col" => 1,
                                 "value" => "LogicalAnd"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 331,
-                                "col" => 14,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 331,
-                                        "col" => 15,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 332,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 332,
-                                                                "col" => 5,
                                                                 "value" => "LogicalAnd"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 332,
-                                                                "col" => 16,
                                                                 "value" => "&&"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 332,
-                                                                "col" => 21,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 332,
-                                                                "col" => 23,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 332,
-                                                                        "col" => 30,
                                                                         "value" => "Compare"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 332,
-                                                                "col" => 39,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 332,
-                                                                            "col" => 39,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 332,
-                                                                            "col" => 43,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 332,
-                                                                                    "col" => 43,
                                                                                     "value" => "op_logical_and"
                                                                                 ]))
                                                                             )
@@ -8682,8 +6192,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 333,
-                                                    "col" => 5,
                                                     "value" => "Compare"
                                                 ]))
                                             ])
@@ -8696,85 +6204,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 336,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 336,
-                                "col" => 1,
                                 "value" => "LogicalOr"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 336,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 336,
-                                        "col" => 14,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 337,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 337,
-                                                                "col" => 5,
                                                                 "value" => "LogicalOr"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 337,
-                                                                "col" => 15,
                                                                 "value" => "||"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 337,
-                                                                "col" => 20,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 337,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 337,
-                                                                        "col" => 29,
                                                                         "value" => "LogicalAnd"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 337,
-                                                                "col" => 41,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 337,
-                                                                            "col" => 41,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 337,
-                                                                            "col" => 45,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 337,
-                                                                                    "col" => 45,
                                                                                     "value" => "op_logical_or"
                                                                                 ]))
                                                                             )
@@ -8787,8 +6267,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 338,
-                                                    "col" => 5,
                                                     "value" => "LogicalAnd"
                                                 ]))
                                             ])
@@ -8801,91 +6279,61 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 341,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 341,
-                                "col" => 1,
                                 "value" => "HoldExpression"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 341,
-                                "col" => 18,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 341,
-                                        "col" => 19,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 342,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 342,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 342,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 342,
-                                                                "col" => 14,
                                                                 "value" => "+="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 342,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 342,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 342,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 342,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 342,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 342,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 342,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_add_hold"
                                                                                 ]))
                                                                             )
@@ -8898,68 +6346,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 343,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 343,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 343,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 343,
-                                                                "col" => 14,
                                                                 "value" => "-="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 343,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 343,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 343,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 343,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 343,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 343,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 343,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_sub_hold"
                                                                                 ]))
                                                                             )
@@ -8972,68 +6398,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 344,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 344,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 344,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 344,
-                                                                "col" => 14,
                                                                 "value" => "*="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 344,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 344,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 344,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 344,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 344,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 344,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 344,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_mul_hold"
                                                                                 ]))
                                                                             )
@@ -9046,68 +6450,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 345,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 345,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 345,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 345,
-                                                                "col" => 14,
                                                                 "value" => "/="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 345,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 345,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 345,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 345,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 345,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 345,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 345,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_div_hold"
                                                                                 ]))
                                                                             )
@@ -9120,68 +6502,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 346,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 346,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 346,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 346,
-                                                                "col" => 14,
                                                                 "value" => "//="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 346,
-                                                                "col" => 20,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 346,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 346,
-                                                                        "col" => 29,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 346,
-                                                                "col" => 45,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 346,
-                                                                            "col" => 45,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 346,
-                                                                            "col" => 49,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 346,
-                                                                                    "col" => 49,
                                                                                     "value" => "assign_divi_hold"
                                                                                 ]))
                                                                             )
@@ -9194,68 +6554,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 347,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 347,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 347,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 347,
-                                                                "col" => 14,
                                                                 "value" => "%="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 347,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 347,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 347,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 347,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 347,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 347,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 347,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_mod_hold"
                                                                                 ]))
                                                                             )
@@ -9268,61 +6606,41 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 348,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 348,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 348,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 348,
-                                                                "col" => 14,
                                                                 "value" => "="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_not",
-                                                                "row" => 348,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "block",
-                                                                        "row" => 348,
-                                                                        "col" => 22,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 348,
-                                                                                    "col" => 23,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 348,
-                                                                                            "col" => 23,
                                                                                             "value" => ">"
                                                                                         ]))
                                                                                     )
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 348,
-                                                                                    "col" => 29,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 348,
-                                                                                            "col" => 29,
                                                                                             "value" => "="
                                                                                         ]))
                                                                                     )
@@ -9334,44 +6652,30 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 348,
-                                                                "col" => 34,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 348,
-                                                                "col" => 36,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 348,
-                                                                        "col" => 43,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 348,
-                                                                "col" => 59,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 348,
-                                                                            "col" => 59,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 348,
-                                                                            "col" => 63,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 348,
-                                                                                    "col" => 63,
                                                                                     "value" => "assign_hold"
                                                                                 ]))
                                                                             )
@@ -9384,8 +6688,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 349,
-                                                    "col" => 5,
                                                     "value" => "LogicalOr"
                                                 ]))
                                             ])
@@ -9398,91 +6700,61 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 352,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 352,
-                                "col" => 1,
                                 "value" => "Expression"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 352,
-                                "col" => 14,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 352,
-                                        "col" => 15,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 353,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 353,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 353,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 353,
-                                                                "col" => 14,
                                                                 "value" => "+="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 353,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 353,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 353,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 353,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 353,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 353,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 353,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_add"
                                                                                 ]))
                                                                             )
@@ -9495,68 +6767,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 354,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 354,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 354,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 354,
-                                                                "col" => 14,
                                                                 "value" => "-="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 354,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 354,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 354,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 354,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 354,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 354,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 354,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_sub"
                                                                                 ]))
                                                                             )
@@ -9569,68 +6819,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 355,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 355,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 355,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 355,
-                                                                "col" => 14,
                                                                 "value" => "*="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 355,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 355,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 355,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 355,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 355,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 355,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 355,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_mul"
                                                                                 ]))
                                                                             )
@@ -9643,68 +6871,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 356,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 356,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 356,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 356,
-                                                                "col" => 14,
                                                                 "value" => "/="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 356,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 356,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 356,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 356,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 356,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 356,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 356,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_div"
                                                                                 ]))
                                                                             )
@@ -9717,68 +6923,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 357,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 357,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 357,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 357,
-                                                                "col" => 14,
                                                                 "value" => "//="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 357,
-                                                                "col" => 20,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 357,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 357,
-                                                                        "col" => 29,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 357,
-                                                                "col" => 45,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 357,
-                                                                            "col" => 45,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 357,
-                                                                            "col" => 49,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 357,
-                                                                                    "col" => 49,
                                                                                     "value" => "assign_divi"
                                                                                 ]))
                                                                             )
@@ -9791,68 +6975,46 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 358,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 358,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 358,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 358,
-                                                                "col" => 14,
                                                                 "value" => "%="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 358,
-                                                                "col" => 19,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 358,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 358,
-                                                                        "col" => 28,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 358,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 358,
-                                                                            "col" => 44,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 358,
-                                                                            "col" => 48,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 358,
-                                                                                    "col" => 48,
                                                                                     "value" => "assign_mod"
                                                                                 ]))
                                                                             )
@@ -9865,61 +7027,41 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 359,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 359,
-                                                                "col" => 5,
                                                                 "value" => "Lvalue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 359,
-                                                                "col" => 12,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 359,
-                                                                "col" => 14,
                                                                 "value" => "="
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_not",
-                                                                "row" => 359,
-                                                                "col" => 18,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "block",
-                                                                        "row" => 359,
-                                                                        "col" => 22,
                                                                         "children" => (
                                                                             value!([
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 359,
-                                                                                    "col" => 23,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 359,
-                                                                                            "col" => 23,
                                                                                             "value" => ">"
                                                                                         ]))
                                                                                     )
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "inline_sequence",
-                                                                                    "row" => 359,
-                                                                                    "col" => 29,
                                                                                     "children" => (
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 359,
-                                                                                            "col" => 29,
                                                                                             "value" => "="
                                                                                         ]))
                                                                                     )
@@ -9931,44 +7073,30 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 359,
-                                                                "col" => 34,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 359,
-                                                                "col" => 36,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 359,
-                                                                        "col" => 43,
                                                                         "value" => "HoldExpression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 359,
-                                                                "col" => 59,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 359,
-                                                                            "col" => 59,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 359,
-                                                                            "col" => 63,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 359,
-                                                                                    "col" => 63,
                                                                                     "value" => "assign"
                                                                                 ]))
                                                                             )
@@ -9981,8 +7109,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 360,
-                                                    "col" => 5,
                                                     "value" => "LogicalOr"
                                                 ]))
                                             ])
@@ -9995,79 +7121,53 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 365,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 365,
-                                "col" => 1,
                                 "value" => "Statement"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 365,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 365,
-                                        "col" => 14,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 366,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 366,
-                                                                "col" => 5,
                                                                 "value" => "accept"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 366,
-                                                                "col" => 14,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 366,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 366,
-                                                                        "col" => 35,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 366,
-                                                                "col" => 48,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 366,
-                                                                            "col" => 48,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 366,
-                                                                            "col" => 52,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 366,
-                                                                                    "col" => 52,
                                                                                     "value" => "op_accept"
                                                                                 ]))
                                                                             )
@@ -10080,56 +7180,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 367,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 367,
-                                                                "col" => 5,
                                                                 "value" => "break"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 367,
-                                                                "col" => 13,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 367,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 367,
-                                                                        "col" => 34,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 367,
-                                                                "col" => 47,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 367,
-                                                                            "col" => 47,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 367,
-                                                                            "col" => 51,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 367,
-                                                                                    "col" => 51,
                                                                                     "value" => "op_break"
                                                                                 ]))
                                                                             )
@@ -10142,56 +7224,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 368,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 368,
-                                                                "col" => 5,
                                                                 "value" => "continue"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 368,
-                                                                "col" => 16,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 368,
-                                                                "col" => 37,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 368,
-                                                                        "col" => 37,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 368,
-                                                                "col" => 50,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 368,
-                                                                            "col" => 50,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 368,
-                                                                            "col" => 54,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 368,
-                                                                                    "col" => 54,
                                                                                     "value" => "op_continue"
                                                                                 ]))
                                                                             )
@@ -10204,56 +7268,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 369,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 369,
-                                                                "col" => 5,
                                                                 "value" => "exit"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 369,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 369,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 369,
-                                                                        "col" => 33,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 369,
-                                                                "col" => 46,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 369,
-                                                                            "col" => 46,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 369,
-                                                                            "col" => 50,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 369,
-                                                                                    "col" => 50,
                                                                                     "value" => "op_exit"
                                                                                 ]))
                                                                             )
@@ -10266,43 +7312,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 370,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 370,
-                                                                "col" => 5,
                                                                 "value" => "next"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 370,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 370,
-                                                                "col" => 34,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 370,
-                                                                            "col" => 34,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 370,
-                                                                            "col" => 38,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 370,
-                                                                                    "col" => 38,
                                                                                     "value" => "op_next"
                                                                                 ]))
                                                                             )
@@ -10315,56 +7347,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 371,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 371,
-                                                                "col" => 5,
                                                                 "value" => "push"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 371,
-                                                                "col" => 12,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 371,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 371,
-                                                                        "col" => 33,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 371,
-                                                                "col" => 46,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 371,
-                                                                            "col" => 46,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 371,
-                                                                            "col" => 50,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 371,
-                                                                                    "col" => 50,
                                                                                     "value" => "op_push"
                                                                                 ]))
                                                                             )
@@ -10377,43 +7391,29 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 372,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 372,
-                                                                "col" => 5,
                                                                 "value" => "reject"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 372,
-                                                                "col" => 14,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 372,
-                                                                "col" => 36,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 372,
-                                                                            "col" => 36,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 372,
-                                                                            "col" => 40,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 372,
-                                                                                    "col" => 40,
                                                                                     "value" => "op_reject"
                                                                                 ]))
                                                                             )
@@ -10426,56 +7426,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 373,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 373,
-                                                                "col" => 5,
                                                                 "value" => "repeat"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 373,
-                                                                "col" => 14,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 373,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 373,
-                                                                        "col" => 35,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 373,
-                                                                "col" => 48,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 373,
-                                                                            "col" => 48,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 373,
-                                                                            "col" => 52,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 373,
-                                                                                    "col" => 52,
                                                                                     "value" => "op_repeat"
                                                                                 ]))
                                                                             )
@@ -10488,56 +7470,38 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 374,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 374,
-                                                                "col" => 5,
                                                                 "value" => "return"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 374,
-                                                                "col" => 14,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_opt",
-                                                                "row" => 374,
-                                                                "col" => 35,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 374,
-                                                                        "col" => 35,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 374,
-                                                                "col" => 48,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 374,
-                                                                            "col" => 48,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 374,
-                                                                            "col" => 52,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 374,
-                                                                                    "col" => 52,
                                                                                     "value" => "op_accept"
                                                                                 ]))
                                                                             )
@@ -10550,8 +7514,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 375,
-                                                    "col" => 5,
                                                     "value" => "Expression"
                                                 ]))
                                             ])
@@ -10564,78 +7526,52 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 380,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 380,
-                                "col" => 1,
                                 "value" => "Block"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 380,
-                                "col" => 9,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 380,
-                                        "col" => 10,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 381,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 381,
-                                                                "col" => 5,
                                                                 "value" => "{"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 381,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 381,
-                                                                "col" => 11,
                                                                 "value" => "___"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 381,
-                                                                "col" => 15,
                                                                 "value" => "}"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 381,
-                                                                "col" => 20,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 381,
-                                                                            "col" => 20,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 381,
-                                                                            "col" => 24,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 381,
-                                                                                    "col" => 24,
                                                                                     "value" => "value_void"
                                                                                 ]))
                                                                             )
@@ -10648,75 +7584,51 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 382,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 382,
-                                                                "col" => 5,
                                                                 "value" => "{"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 382,
-                                                                "col" => 9,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_kle",
-                                                                "row" => 382,
-                                                                "col" => 11,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 382,
-                                                                        "col" => 11,
                                                                         "value" => "Instruction"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 382,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 382,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "row" => 382,
-                                                                        "col" => 33,
                                                                         "value" => "}"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 382,
-                                                                "col" => 38,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 382,
-                                                                            "col" => 38,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 382,
-                                                                            "col" => 42,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 382,
-                                                                                    "col" => 42,
                                                                                     "value" => "block"
                                                                                 ]))
                                                                             )
@@ -10737,91 +7649,61 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 385,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 385,
-                                "col" => 1,
                                 "value" => "SequenceItem"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 385,
-                                "col" => 16,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 385,
-                                        "col" => 17,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 386,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 386,
-                                                                "col" => 5,
                                                                 "value" => "T_Alias"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 386,
-                                                                "col" => 13,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 386,
-                                                                "col" => 15,
                                                                 "value" => "=>"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 386,
-                                                                "col" => 20,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 386,
-                                                                "col" => 22,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 386,
-                                                                        "col" => 29,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 386,
-                                                                "col" => 41,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 386,
-                                                                            "col" => 41,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 386,
-                                                                            "col" => 45,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 386,
-                                                                                    "col" => 45,
                                                                                     "value" => "alias"
                                                                                 ]))
                                                                             )
@@ -10834,62 +7716,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 387,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 387,
-                                                                "col" => 5,
                                                                 "value" => "Expression"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 387,
-                                                                "col" => 16,
                                                                 "value" => "=>"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 387,
-                                                                "col" => 21,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 387,
-                                                                "col" => 23,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 387,
-                                                                        "col" => 30,
                                                                         "value" => "Expression"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 387,
-                                                                "col" => 42,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 387,
-                                                                            "col" => 42,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 387,
-                                                                            "col" => 46,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 387,
-                                                                                    "col" => 46,
                                                                                     "value" => "alias"
                                                                                 ]))
                                                                             )
@@ -10902,8 +7764,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 388,
-                                                    "col" => 5,
                                                     "value" => "Statement"
                                                 ]))
                                             ])
@@ -10916,70 +7776,46 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 391,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 391,
-                                "col" => 1,
                                 "value" => "Sequence"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 391,
-                                "col" => 12,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 391,
-                                        "col" => 13,
                                         "children" => (
                                             (value!([
                                                 "emit" => "sequence",
-                                                "row" => 392,
-                                                "col" => 5,
                                                 "children" => (
                                                     value!([
                                                         (value!([
                                                             "emit" => "op_mod_pos",
-                                                            "row" => 392,
-                                                            "col" => 5,
                                                             "children" => (
                                                                 (value!([
                                                                     "emit" => "inline_sequence",
-                                                                    "row" => 392,
-                                                                    "col" => 6,
                                                                     "children" => (
                                                                         value!([
                                                                             (value!([
                                                                                 "emit" => "identifier",
-                                                                                "row" => 392,
-                                                                                "col" => 6,
                                                                                 "value" => "SequenceItem"
                                                                             ])),
                                                                             (value!([
                                                                                 "emit" => "op_mod_opt",
-                                                                                "row" => 392,
-                                                                                "col" => 19,
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "inline_sequence",
-                                                                                        "row" => 392,
-                                                                                        "col" => 20,
                                                                                         "children" => (
                                                                                             value!([
                                                                                                 (value!([
                                                                                                     "emit" => "value_token_touch",
-                                                                                                    "row" => 392,
-                                                                                                    "col" => 20,
                                                                                                     "value" => ","
                                                                                                 ])),
                                                                                                 (value!([
                                                                                                     "emit" => "identifier",
-                                                                                                    "row" => 392,
-                                                                                                    "col" => 24,
                                                                                                     "value" => "_"
                                                                                                 ]))
                                                                                             ])
@@ -10994,25 +7830,17 @@ pub(super) fn tokay() -> RefValue {
                                                         ])),
                                                         (value!([
                                                             "emit" => "call",
-                                                            "row" => 392,
-                                                            "col" => 31,
                                                             "children" => (
                                                                 value!([
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 392,
-                                                                        "col" => 31,
                                                                         "value" => "ast"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "callarg",
-                                                                        "row" => 392,
-                                                                        "col" => 35,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "value_string",
-                                                                                "row" => 392,
-                                                                                "col" => 35,
                                                                                 "value" => "sequence"
                                                                             ]))
                                                                         )
@@ -11032,71 +7860,47 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 395,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 395,
-                                "col" => 1,
                                 "value" => "Sequences"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 395,
-                                "col" => 13,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 395,
-                                        "col" => 14,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 396,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 396,
-                                                                "col" => 5,
                                                                 "value" => "Sequence"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_pos",
-                                                                "row" => 396,
-                                                                "col" => 14,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "block",
-                                                                        "row" => 396,
-                                                                        "col" => 14,
                                                                         "children" => (
                                                                             (value!([
                                                                                 "emit" => "sequence",
-                                                                                "row" => 396,
-                                                                                "col" => 15,
                                                                                 "children" => (
                                                                                     value!([
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
-                                                                                            "row" => 396,
-                                                                                            "col" => 15,
                                                                                             "value" => "|"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 396,
-                                                                                            "col" => 19,
                                                                                             "value" => "_"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "row" => 396,
-                                                                                            "col" => 21,
                                                                                             "value" => "Sequence"
                                                                                         ]))
                                                                                     ])
@@ -11108,25 +7912,17 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 396,
-                                                                "col" => 33,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 396,
-                                                                            "col" => 33,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 396,
-                                                                            "col" => 37,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 396,
-                                                                                    "col" => 37,
                                                                                     "value" => "block"
                                                                                 ]))
                                                                             )
@@ -11139,8 +7935,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 397,
-                                                    "col" => 5,
                                                     "value" => "Sequence"
                                                 ]))
                                             ])
@@ -11153,85 +7947,57 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 400,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 400,
-                                "col" => 1,
                                 "value" => "Instruction"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 400,
-                                "col" => 15,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 400,
-                                        "col" => 16,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 401,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 401,
-                                                                "col" => 5,
                                                                 "value" => "begin"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 401,
-                                                                "col" => 13,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 401,
-                                                                "col" => 34,
                                                                 "value" => "Sequences"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 401,
-                                                                "col" => 44,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 401,
-                                                                        "col" => 51,
                                                                         "value" => "T_EOL"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 401,
-                                                                "col" => 58,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 401,
-                                                                            "col" => 58,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 401,
-                                                                            "col" => 62,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 401,
-                                                                                    "col" => 62,
                                                                                     "value" => "begin"
                                                                                 ]))
                                                                             )
@@ -11244,62 +8010,42 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 402,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 402,
-                                                                "col" => 5,
                                                                 "value" => "end"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 402,
-                                                                "col" => 11,
                                                                 "value" => "_SeparatedIdentifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 402,
-                                                                "col" => 32,
                                                                 "value" => "Sequences"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 402,
-                                                                "col" => 42,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 402,
-                                                                        "col" => 49,
                                                                         "value" => "T_EOL"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 402,
-                                                                "col" => 56,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 402,
-                                                                            "col" => 56,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 402,
-                                                                            "col" => 60,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 402,
-                                                                                    "col" => 60,
                                                                                     "value" => "end"
                                                                                 ]))
                                                                             )
@@ -11312,67 +8058,45 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 403,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 403,
-                                                                "col" => 5,
                                                                 "value" => "T_Identifier"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 403,
-                                                                "col" => 18,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_token_touch",
-                                                                "row" => 403,
-                                                                "col" => 20,
                                                                 "value" => ":"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 403,
-                                                                "col" => 24,
                                                                 "value" => "_"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "block",
-                                                                "row" => 403,
-                                                                "col" => 26,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "sequence",
-                                                                            "row" => 404,
-                                                                            "col" => 9,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 404,
-                                                                                        "col" => 9,
                                                                                         "value" => "Literal"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 404,
-                                                                                        "col" => 17,
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "op_mod_peek",
-                                                                                        "row" => 404,
-                                                                                        "col" => 19,
                                                                                         "children" => (
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 404,
-                                                                                                "col" => 24,
                                                                                                 "value" => "T_EOL"
                                                                                             ]))
                                                                                         )
@@ -11382,31 +8106,21 @@ pub(super) fn tokay() -> RefValue {
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "sequence",
-                                                                            "row" => 405,
-                                                                            "col" => 9,
                                                                             "children" => (
                                                                                 value!([
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 405,
-                                                                                        "col" => 9,
                                                                                         "value" => "Token1"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",
-                                                                                        "row" => 405,
-                                                                                        "col" => 16,
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "op_mod_peek",
-                                                                                        "row" => 405,
-                                                                                        "col" => 18,
                                                                                         "children" => (
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "row" => 405,
-                                                                                                "col" => 23,
                                                                                                 "value" => "T_EOL"
                                                                                             ]))
                                                                                         )
@@ -11416,8 +8130,6 @@ pub(super) fn tokay() -> RefValue {
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 406,
-                                                                            "col" => 9,
                                                                             "value" => "Sequences"
                                                                         ]))
                                                                     ])
@@ -11425,38 +8137,26 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 407,
-                                                                "col" => 7,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 407,
-                                                                        "col" => 14,
                                                                         "value" => "T_EOL"
                                                                     ]))
                                                                 )
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 407,
-                                                                "col" => 21,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 407,
-                                                                            "col" => 21,
                                                                             "value" => "ast"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 407,
-                                                                            "col" => 25,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 407,
-                                                                                    "col" => 25,
                                                                                     "value" => "constant"
                                                                                 ]))
                                                                             )
@@ -11469,20 +8169,14 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 408,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 408,
-                                                                "col" => 5,
                                                                 "value" => "Statement"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 408,
-                                                                "col" => 15,
                                                                 "value" => "T_EOL"
                                                             ]))
                                                         ])
@@ -11490,25 +8184,17 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 409,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "row" => 409,
-                                                                "col" => 5,
                                                                 "value" => "Sequences"
                                                             ])),
                                                             (value!([
                                                                 "emit" => "op_mod_expect",
-                                                                "row" => 409,
-                                                                "col" => 15,
                                                                 "children" => (
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "row" => 409,
-                                                                        "col" => 22,
                                                                         "value" => "T_EOL"
                                                                     ]))
                                                                 )
@@ -11518,8 +8204,6 @@ pub(super) fn tokay() -> RefValue {
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
-                                                    "row" => 410,
-                                                    "col" => 5,
                                                     "value" => "T_EOL"
                                                 ]))
                                             ])
@@ -11532,49 +8216,33 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 413,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 413,
-                                "col" => 1,
                                 "value" => "Nop"
                             ])),
                             (value!([
                                 "emit" => "sequence",
-                                "row" => 413,
-                                "col" => 7,
                                 "children" => (
                                     value!([
                                         (value!([
                                             "emit" => "identifier",
-                                            "row" => 413,
-                                            "col" => 7,
                                             "value" => "Void"
                                         ])),
                                         (value!([
                                             "emit" => "call",
-                                            "row" => 413,
-                                            "col" => 12,
                                             "children" => (
                                                 value!([
                                                     (value!([
                                                         "emit" => "identifier",
-                                                        "row" => 413,
-                                                        "col" => 12,
                                                         "value" => "ast"
                                                     ])),
                                                     (value!([
                                                         "emit" => "callarg",
-                                                        "row" => 413,
-                                                        "col" => 16,
                                                         "children" => (
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "row" => 413,
-                                                                "col" => 16,
                                                                 "value" => "op_nop"
                                                             ]))
                                                         )
@@ -11590,86 +8258,58 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "constant",
-                    "row" => 417,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 417,
-                                "col" => 1,
                                 "value" => "Tokay"
                             ])),
                             (value!([
                                 "emit" => "value_parselet",
-                                "row" => 417,
-                                "col" => 9,
                                 "children" => (
                                     (value!([
                                         "emit" => "block",
-                                        "row" => 417,
-                                        "col" => 10,
                                         "children" => (
                                             value!([
                                                 (value!([
                                                     "emit" => "op_mod_pos",
-                                                    "row" => 418,
-                                                    "col" => 5,
                                                     "children" => (
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "row" => 418,
-                                                            "col" => 5,
                                                             "value" => "Instruction"
                                                         ]))
                                                     )
                                                 ])),
                                                 (value!([
                                                     "emit" => "sequence",
-                                                    "row" => 419,
-                                                    "col" => 5,
                                                     "children" => (
                                                         value!([
                                                             (value!([
                                                                 "emit" => "value_token_any",
-                                                                "row" => 419,
-                                                                "col" => 5,
                                                                 "value" => "."
                                                             ])),
                                                             (value!([
                                                                 "emit" => "call",
-                                                                "row" => 419,
-                                                                "col" => 8,
                                                                 "children" => (
                                                                     value!([
                                                                         (value!([
                                                                             "emit" => "identifier",
-                                                                            "row" => 419,
-                                                                            "col" => 8,
                                                                             "value" => "error"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 419,
-                                                                            "col" => 14,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_string",
-                                                                                    "row" => 419,
-                                                                                    "col" => 14,
                                                                                     "value" => "Parse error, unexpected token"
                                                                                 ]))
                                                                             )
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "callarg",
-                                                                            "row" => 419,
-                                                                            "col" => 47,
                                                                             "children" => (
                                                                                 (value!([
                                                                                     "emit" => "value_true",
-                                                                                    "row" => 419,
-                                                                                    "col" => 47,
                                                                                     "value" => "true"
                                                                                 ]))
                                                                             )
@@ -11690,63 +8330,43 @@ pub(super) fn tokay() -> RefValue {
                 ])),
                 (value!([
                     "emit" => "sequence",
-                    "row" => 422,
-                    "col" => 1,
                     "children" => (
                         value!([
                             (value!([
                                 "emit" => "identifier",
-                                "row" => 422,
-                                "col" => 1,
                                 "value" => "_"
                             ])),
                             (value!([
                                 "emit" => "op_mod_opt",
-                                "row" => 422,
-                                "col" => 3,
                                 "children" => (
                                     (value!([
                                         "emit" => "identifier",
-                                        "row" => 422,
-                                        "col" => 3,
                                         "value" => "Tokay"
                                     ]))
                                 )
                             ])),
                             (value!([
                                 "emit" => "op_mod_expect",
-                                "row" => 422,
-                                "col" => 10,
                                 "children" => (
                                     (value!([
                                         "emit" => "identifier",
-                                        "row" => 422,
-                                        "col" => 17,
                                         "value" => "EOF"
                                     ]))
                                 )
                             ])),
                             (value!([
                                 "emit" => "call",
-                                "row" => 422,
-                                "col" => 22,
                                 "children" => (
                                     value!([
                                         (value!([
                                             "emit" => "identifier",
-                                            "row" => 422,
-                                            "col" => 22,
                                             "value" => "ast"
                                         ])),
                                         (value!([
                                             "emit" => "callarg",
-                                            "row" => 422,
-                                            "col" => 26,
                                             "children" => (
                                                 (value!([
                                                     "emit" => "value_string",
-                                                    "row" => 422,
-                                                    "col" => 26,
                                                     "value" => "main"
                                                 ]))
                                             )
