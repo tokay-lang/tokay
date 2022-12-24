@@ -1,6 +1,5 @@
-../src/compiler/grammar.rs: Makefile ../examples/tokay.tok
+.PHONY: .FORCE
+
+../src/compiler/grammar.rs: .FORCE
 	awk -f etareneg.awk $@ >$@.1
 	mv $@.1 $@
-
-touch:
-	touch ../examples/tokay.tok

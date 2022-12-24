@@ -29,13 +29,9 @@ impl Object for Str {
             match ch {
                 '\\' => ret.push_str("\\\\"),
                 '\"' => ret.push_str("\\\""),
-                '\x07' => ret.push_str("\\a"),
-                '\x08' => ret.push_str("\\b"),
-                '\x0c' => ret.push_str("\\f"),
                 '\n' => ret.push_str("\\n"),
                 '\r' => ret.push_str("\\r"),
                 '\t' => ret.push_str("\\t"),
-                '\x0b' => ret.push_str("\\v"),
                 ch => ret.push(ch),
             }
         }

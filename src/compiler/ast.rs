@@ -1610,11 +1610,7 @@ tokay_function!("ast2rust : @ast", {
             );
 
             // Rust primitives are mostly equal to Tokay's repr
-            if value.name() == "str" {
-                print!("{:?}", value.to_string());
-            } else {
-                print!("{}", value.repr());
-            }
+            print!("{}", value.repr());
         }
     }
 

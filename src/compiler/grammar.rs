@@ -407,7 +407,7 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "value" => "\u{7}"
+                                                                "value" => ""
                                                             ]))
                                                         ])
                                                     )
@@ -422,7 +422,7 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "value" => "\u{8}"
+                                                                "value" => ""
                                                             ]))
                                                         ])
                                                     )
@@ -437,7 +437,7 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "value" => "\u{c}"
+                                                                "value" => ""
                                                             ]))
                                                         ])
                                                     )
@@ -497,7 +497,7 @@ pub(super) fn tokay() -> RefValue {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_string",
-                                                                "value" => "\u{b}"
+                                                                "value" => ""
                                                             ]))
                                                         ])
                                                     )
