@@ -18,11 +18,12 @@ pub struct Parser(Program);
 
 impl Parser {
     pub fn new() -> Self {
-        // Use grammar AST extracted from tokay.tok when TOKAY_PARSER_USE_TOKAY_TOK is set!
-        if std::env::var("TOKAY_PARSER_USE_TOKAY_TOK").is_ok() {
+        // Use parser defined as AST in grammar.rs
+        if std::env::var("TOKAY_PARSER_OLD").is_err() {
             let mut compiler = Compiler::new(false);
             compiler.debug = 0; // unset debug always
 
+            // fixme: Make this lazy_static, so its created only once!
             let ast = grammar::tokay();
             return Self(
                 compiler
@@ -32,6 +33,9 @@ impl Parser {
             );
         }
 
+        eprintln!("WARNING: Using OLD parser!");
+
+        // Use OLD parser!
         Self(tokay!({
 
         // ----------------------------------------------------------------------------
