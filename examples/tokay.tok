@@ -60,7 +60,7 @@ T_EscapeSequence : @{
     # fixme: This can be resolved better as soon as the Repeat generic builtin is ready
     # fixme: In case too less digits had been provided, a syntax error occur.
     #        This is like in Python: "\x2" SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 0-2: truncated \xXX escape
-    T_OctDigit T_OctDigit T_OctDigit  chr(int($1) * 8 * 8 + int($2) * 8 + int($3))
+    T_OctDigit T_OctDigit T_OctDigit  chr(int($1) * 64 + int($2) * 8 + int($3))
     'x' T_HexDigit T_HexDigit chr(int("0x" + $0.substr(1)))
     'u' T_HexDigit T_HexDigit T_HexDigit T_HexDigit  chr(int("0x" + $0.substr(1)))
     'U' T_HexDigit T_HexDigit T_HexDigit T_HexDigit \

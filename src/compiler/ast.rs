@@ -1581,11 +1581,11 @@ tokay_function!("ast2rust : @ast", {
 
             if let Some(value) = value {
                 print!(
-                    ",\n{space:indent$}    \"value\" => {value:?}",
+                    ",\n{space:indent$}    \"value\" => ",
                     space = "",
-                    indent = indent * 4,
-                    value = value.to_string()
+                    indent = indent * 4
                 );
+                print(value, indent);
             }
 
             print!("\n{space:indent$}]))", space = "", indent = indent * 4);
@@ -1602,6 +1602,19 @@ tokay_function!("ast2rust : @ast", {
             }
 
             print!("\n{space:indent$}])", space = "", indent = indent * 4);
+        } else {
+            assert!(
+                ["str", "int", "float", "bool"].contains(&value.name()),
+                "No matching Rust primitive for {} found",
+                value.name()
+            );
+
+            // Rust primitives are mostly equal to Tokay's repr
+            if value.name() == "str" {
+                print!("{:?}", value.to_string());
+            } else {
+                print!("{}", value.repr());
+            }
         }
     }
 

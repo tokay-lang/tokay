@@ -542,44 +542,33 @@ pub(super) fn tokay() -> RefValue {
                                                                                                             "children" => (
                                                                                                                 value!([
                                                                                                                     (value!([
-                                                                                                                        "emit" => "op_binary_mul",
+                                                                                                                        "emit" => "call",
                                                                                                                         "children" => (
                                                                                                                             value!([
                                                                                                                                 (value!([
-                                                                                                                                    "emit" => "call",
-                                                                                                                                    "children" => (
-                                                                                                                                        value!([
-                                                                                                                                            (value!([
-                                                                                                                                                "emit" => "identifier",
-                                                                                                                                                "value" => "int"
-                                                                                                                                            ])),
-                                                                                                                                            (value!([
-                                                                                                                                                "emit" => "callarg",
-                                                                                                                                                "children" => (
-                                                                                                                                                    (value!([
-                                                                                                                                                        "emit" => "capture_index",
-                                                                                                                                                        "children" => (
-                                                                                                                                                            (value!([
-                                                                                                                                                                "emit" => "value_integer",
-                                                                                                                                                                "value" => "1"
-                                                                                                                                                            ]))
-                                                                                                                                                        )
-                                                                                                                                                    ]))
-                                                                                                                                                )
-                                                                                                                                            ]))
-                                                                                                                                        ])
-                                                                                                                                    )
+                                                                                                                                    "emit" => "identifier",
+                                                                                                                                    "value" => "int"
                                                                                                                                 ])),
                                                                                                                                 (value!([
-                                                                                                                                    "emit" => "value_integer",
-                                                                                                                                    "value" => "8"
+                                                                                                                                    "emit" => "callarg",
+                                                                                                                                    "children" => (
+                                                                                                                                        (value!([
+                                                                                                                                            "emit" => "capture_index",
+                                                                                                                                            "children" => (
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "value_integer",
+                                                                                                                                                    "value" => 1
+                                                                                                                                                ]))
+                                                                                                                                            )
+                                                                                                                                        ]))
+                                                                                                                                    )
                                                                                                                                 ]))
                                                                                                                             ])
                                                                                                                         )
                                                                                                                     ])),
                                                                                                                     (value!([
                                                                                                                         "emit" => "value_integer",
-                                                                                                                        "value" => "8"
+                                                                                                                        "value" => 64
                                                                                                                     ]))
                                                                                                                 ])
                                                                                                             )
@@ -604,7 +593,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "value" => "2"
+                                                                                                                                                    "value" => 2
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ]))
@@ -615,7 +604,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                     ])),
                                                                                                                     (value!([
                                                                                                                         "emit" => "value_integer",
-                                                                                                                        "value" => "8"
+                                                                                                                        "value" => 8
                                                                                                                     ]))
                                                                                                                 ])
                                                                                                             )
@@ -639,7 +628,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                     "children" => (
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_integer",
-                                                                                                                            "value" => "3"
+                                                                                                                            "value" => 3
                                                                                                                         ]))
                                                                                                                     )
                                                                                                                 ]))
@@ -718,7 +707,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "value" => "0"
+                                                                                                                                                    "value" => 0
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
@@ -739,7 +728,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "value" => "1"
+                                                                                                                                        "value" => 1
                                                                                                                                     ]))
                                                                                                                                 )
                                                                                                                             ]))
@@ -829,7 +818,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "value" => "0"
+                                                                                                                                                    "value" => 0
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
@@ -850,7 +839,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "value" => "1"
+                                                                                                                                        "value" => 1
                                                                                                                                     ]))
                                                                                                                                 )
                                                                                                                             ]))
@@ -956,7 +945,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                             "children" => (
                                                                                                                                                 (value!([
                                                                                                                                                     "emit" => "value_integer",
-                                                                                                                                                    "value" => "0"
+                                                                                                                                                    "value" => 0
                                                                                                                                                 ]))
                                                                                                                                             )
                                                                                                                                         ])),
@@ -977,7 +966,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                                                 "children" => (
                                                                                                                                     (value!([
                                                                                                                                         "emit" => "value_integer",
-                                                                                                                                        "value" => "1"
+                                                                                                                                        "value" => 1
                                                                                                                                     ]))
                                                                                                                                 )
                                                                                                                             ]))
@@ -1158,7 +1147,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "value" => "0"
+                                                                                        "value" => 0
                                                                                     ]))
                                                                                 )
                                                                             ]))
@@ -1277,7 +1266,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "value" => "0"
+                                                                                        "value" => 0
                                                                                     ]))
                                                                                 )
                                                                             ]))
@@ -1421,7 +1410,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "value" => "2"
+                                                                                        "value" => 2
                                                                                     ]))
                                                                                 )
                                                                             ]))
@@ -1574,7 +1563,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                 "children" => (
                                                                                     (value!([
                                                                                         "emit" => "value_integer",
-                                                                                        "value" => "2"
+                                                                                        "value" => 2
                                                                                     ]))
                                                                                 )
                                                                             ]))
@@ -1845,7 +1834,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "value_integer",
-                                                                                                        "value" => "1"
+                                                                                                        "value" => 1
                                                                                                     ]))
                                                                                                 )
                                                                                             ])),
@@ -1854,7 +1843,7 @@ pub(super) fn tokay() -> RefValue {
                                                                                                 "children" => (
                                                                                                     (value!([
                                                                                                         "emit" => "value_integer",
-                                                                                                        "value" => "3"
+                                                                                                        "value" => 3
                                                                                                     ]))
                                                                                                 )
                                                                                             ]))

@@ -104,7 +104,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
     /// Print debug output with context depth indention
     #[inline]
-    pub fn debug(&self, msg: &str) {
+    pub fn log(&self, msg: &str) {
         println!(
             "{}{}{:5} {}",
             ".".repeat(self.depth),
@@ -319,10 +319,10 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         };
 
         if debug {
-            self.debug(&format!("collect captures = {}", captures.len(),));
+            self.log(&format!("collect captures = {}", captures.len()));
 
             for i in 0..captures.len() {
-                self.debug(&format!(" {}: {:?}", i, captures[i]));
+                self.log(&format!(" {}: {:?}", i, captures[i]));
             }
         }
 
@@ -380,8 +380,8 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         }
 
         if debug {
-            self.debug(&format!("list = {:?}", list));
-            self.debug(&format!("dict = {:?}", dict));
+            self.log(&format!("list = {:?}", list));
+            self.log(&format!("dict = {:?}", dict));
         }
 
         if dict.len() == 0 {
@@ -444,12 +444,11 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         };
 
         // Debugging
-        let mut debug = self.runtime.debug;
-        if debug < 3 {
+        if self.runtime.debug < 3 {
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
                 for name in inspect.split(" ") {
                     if name == self.parselet.name {
-                        debug = 6;
+                        self.runtime.debug = 6;
                         break;
                     }
                 }
@@ -470,7 +469,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 None => &self.parselet.body,
             };
 
-            let mut result = Op::execute(ops, self, debug);
+            let mut result = Op::execute(ops, self);
 
             // Either take $0 if it was set to a value, or
             // use any last remaining value as result,
@@ -487,7 +486,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
             // Debug
             if self.runtime.debug > 2 {
-                self.debug(&format!("returns {:?}", state));
+                self.log(&format!("returns {:?}", state));
             }
 
             /*
