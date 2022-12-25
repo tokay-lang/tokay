@@ -1551,9 +1551,9 @@ tokay_function!("ast_print : @ast", {
     value!(void).into()
 });
 
-tokay_function!("ast2rust : @ast", {
+tokay_function!("ast2rust : @ast, level=0", {
     fn print(value: &RefValue, indent: usize, first: bool) {
-        let (br_left, br_right) = if first {("", "")} else {("(", ")")};
+        let (br_left, br_right) = if first { ("", "") } else { ("(", ")") };
         let value = value.borrow();
 
         if let Some(d) = value.object::<Dict>() {
@@ -1571,7 +1571,7 @@ tokay_function!("ast2rust : @ast", {
 
             if let Some(children) = children {
                 print!(
-                    ",\n{space:indent$}    \"children\" => \n",
+                    ",\n{space:indent$}    \"children\" =>\n",
                     space = "",
                     indent = indent * 4
                 );
@@ -1588,11 +1588,19 @@ tokay_function!("ast2rust : @ast", {
                 print(value, indent, false);
             }
 
-            print!("\n{space:indent$}]){br_right}", space = "", indent = indent * 4, br_right = br_right);
+            print!(
+                "\n{space:indent$}]){br_right}",
+                space = "",
+                indent = indent * 4,
+                br_right = br_right
+            );
         } else if let Some(l) = value.object::<List>() {
-            print!("{space:indent$}{br_left}value!([\n",                 space = "",
-            indent = indent * 4,
-            br_left = br_left);
+            print!(
+                "{space:indent$}{br_left}value!([\n",
+                space = "",
+                indent = indent * 4,
+                br_left = br_left
+            );
 
             let mut iter = l.iter().peekable();
 
@@ -1603,7 +1611,12 @@ tokay_function!("ast2rust : @ast", {
                 }
             }
 
-            print!("\n{space:indent$}]){br_right}", space = "", indent = indent * 4, br_right = br_right);
+            print!(
+                "\n{space:indent$}]){br_right}",
+                space = "",
+                indent = indent * 4,
+                br_right = br_right
+            );
         } else {
             assert!(
                 ["str", "int", "float", "bool"].contains(&value.name()),
@@ -1616,7 +1629,7 @@ tokay_function!("ast2rust : @ast", {
         }
     }
 
-    print(&ast, 1, true);
+    print(&ast, level.to_usize()?, true);
     print!("\n");
     value!(void).into()
 });

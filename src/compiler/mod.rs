@@ -2,10 +2,8 @@
 
 pub(crate) mod ast;
 mod compiler;
-mod grammar;
 mod iml;
 mod linker;
-mod macros;
 mod parser;
 
 use compiler::*;
