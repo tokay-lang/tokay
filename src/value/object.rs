@@ -216,6 +216,15 @@ pub trait Object:
         false
     }
 
+    /** Check whether the object is hashable.
+
+    By default, this depends on is_mutable(), but could also be customized.
+    This defines if an object can be used as key in dicts.
+    */
+    fn is_hashable(&self) -> bool {
+        !self.is_mutable()
+    }
+
     /// Call object with a given context, argument and named argument set.
     fn call(
         &self,

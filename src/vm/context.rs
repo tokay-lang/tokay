@@ -351,7 +351,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                     let value = RefValue::from(self.runtime.reader.get(&range));
 
                     if let Some(alias) = alias {
-                        dict.insert(alias, value);
+                        dict.insert(RefValue::from(alias), value);
                     } else if inherit {
                         return Capture::Range(range, alias, severity);
                     } else if !value.is_void() {
@@ -367,7 +367,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                     }
 
                     if let Some(alias) = alias {
-                        dict.insert(alias, value);
+                        dict.insert(RefValue::from(alias), value);
                     } else if inherit {
                         return Capture::Value(value, alias, severity);
                     } else if !value.is_void() {
@@ -395,19 +395,8 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         } else {
             // Store list-items additionally when there is a dict?
             // This is currently under further consideration and not finished.
-            let mut idx = 0;
-            for item in list.into_iter() {
-                loop {
-                    let key = format!("#{}", idx);
-                    if let None = dict.get(&key) {
-                        dict.insert(key, item);
-                        break;
-                    }
-
-                    idx += 1;
-                }
-
-                idx += 1;
+            for (idx, item) in list.into_iter().enumerate() {
+                dict.insert(RefValue::from(idx), item);
             }
 
             Capture::Value(RefValue::from(dict), None, max)

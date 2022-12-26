@@ -352,6 +352,10 @@ impl Object for RefValue {
         self.borrow().is_mutable()
     }
 
+    fn is_hashable(&self) -> bool {
+        self.borrow().is_hashable()
+    }
+
     fn call(
         &self,
         context: &mut Context,

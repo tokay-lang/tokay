@@ -361,7 +361,7 @@ impl Op {
                 }
 
                 // Interrupts
-                Op::Skip => Err(Reject::Skip),  // currently not used.
+                Op::Skip => Err(Reject::Skip), // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),
@@ -637,9 +637,8 @@ impl Op {
 
                     for _ in 0..*count {
                         let key = context.pop();
-
                         let value = context.pop();
-                        dict.insert(key.to_string(), value);
+                        dict.insert(key, value);
                     }
 
                     context.push(RefValue::from(dict))

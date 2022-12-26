@@ -12,7 +12,7 @@ use crate::vm::*;
 use charclass::CharClass;
 
 /// Checks whether identifier's name is the name of a reserved word.
-fn identifier_is_valid(ident: &str) -> Result<(), Error> {
+pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit" | "expect"
         | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek" | "push"
@@ -44,13 +44,13 @@ pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> 
 // Extract offset positions into an Offset structure
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
     let offset = node
-        .get("offset")
+        .get_str("offset")
         .and_then(|offset| Some(offset.to_usize().unwrap()));
     let row = node
-        .get("row")
+        .get_str("row")
         .and_then(|row| Some(row.to_usize().unwrap() as u32));
     let col = node
-        .get("col")
+        .get_str("col")
         .and_then(|col| Some(col.to_usize().unwrap() as u32));
 
     if let (Some(offset), Some(row), Some(col)) = (offset, row, col) {
@@ -714,7 +714,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // block ----------------------------------------------------------
         "block" | "main" => {
-            if let Some(ast) = node.get("children") {
+            if let Some(ast) = node.get_str("children") {
                 if emit == "block" {
                     compiler.block_push();
                 }
@@ -979,7 +979,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         ));
                     }
 
-                    if let Some(value) = node.get("children") {
+                    if let Some(value) = node.get_str("children") {
                         let value = value.borrow();
                         ops.push(traverse_node_rvalue(
                             compiler,
@@ -1380,7 +1380,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // sequence  ------------------------------------------------------
         "sequence" | "inline_sequence" | "list" => {
-            let children = if let Some(children) = node.get("children") {
+            let children = if let Some(children) = node.get_str("children") {
                 List::from(children)
             } else {
                 List::new()
@@ -1421,20 +1421,20 @@ pub fn print(ast: &RefValue) {
             let emit = d["emit"].to_string();
 
             let row = d
-                .get("row")
+                .get_str("row")
                 .and_then(|row| Some(row.borrow().to_usize().unwrap()));
             let col = d
-                .get("col")
+                .get_str("col")
                 .and_then(|col| Some(col.borrow().to_usize().unwrap()));
             let stop_row = d
-                .get("stop_row")
+                .get_str("stop_row")
                 .and_then(|row| Some(row.borrow().to_usize().unwrap()));
             let stop_col = d
-                .get("stop_col")
+                .get_str("stop_col")
                 .and_then(|col| Some(col.borrow().to_usize().unwrap()));
 
-            let value = d.get("value");
-            let children = d.get("children");
+            let value = d.get_str("value");
+            let children = d.get_str("children");
 
             if let (Some(row), Some(col), Some(stop_row), Some(stop_col)) =
                 (row, col, stop_row, stop_col)
@@ -1477,7 +1477,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let context = context.unwrap();
 
     let mut ret = Dict::new();
-    ret.insert("emit".to_string(), emit.clone());
+    ret.insert_str("emit", emit.clone());
 
     // Need current frame position
     let capture_start = context.frame.capture_start;
@@ -1503,8 +1503,8 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     if let Some(value) = value {
         // Lists can be flattened
         if value.borrow().object::<List>().is_some() {
-            ret.insert(
-                "children".to_string(),
+            ret.insert_str(
+                "children",
                 if flatten.is_true() {
                     List::list_flatten(vec![value], None).unwrap()
                 } else {
@@ -1514,11 +1514,11 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
         }
         // Dicts can be used directly as children
         else if value.borrow().object::<Dict>().is_some() {
-            ret.insert("children".to_string(), value.clone());
+            ret.insert_str("children", value.clone());
         }
         // Otherwise this is a value
         else {
-            ret.insert("value".to_string(), value.clone());
+            ret.insert_str("value", value.clone());
         }
     }
 
@@ -1526,22 +1526,16 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let reader_start = context.runtime.reader.start();
 
     // Store positions of reader start
-    ret.insert(
-        "offset".to_string(),
-        value!(start.offset + reader_start.offset),
-    );
-    ret.insert("row".to_string(), value!(start.row as usize));
-    ret.insert("col".to_string(), value!(start.col as usize));
+    ret.insert_str("offset", value!(start.offset + reader_start.offset));
+    ret.insert_str("row", value!(start.row as usize));
+    ret.insert_str("col", value!(start.col as usize));
 
     // Store positions of reader stop
     let current = context.runtime.reader.tell();
 
-    ret.insert(
-        "stop_offset".to_string(),
-        value!(current.offset + reader_start.offset),
-    );
-    ret.insert("stop_row".to_string(), value!(current.row as usize));
-    ret.insert("stop_col".to_string(), value!(current.col as usize));
+    ret.insert_str("stop_offset", value!(current.offset + reader_start.offset));
+    ret.insert_str("stop_row", value!(current.row as usize));
+    ret.insert_str("stop_col", value!(current.col as usize));
 
     RefValue::from(ret).into()
 });
