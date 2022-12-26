@@ -369,7 +369,6 @@ impl Object for RefValue {
 impl Hash for RefValue {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &*self.borrow() {
-            Value::Void => state.write_u8('v' as u8),
             Value::Null => state.write_u8('n' as u8),
             Value::True => state.write_u8('t' as u8),
             Value::False => state.write_u8('f' as u8),
@@ -381,21 +380,30 @@ impl Hash for RefValue {
                 state.write_u8('f' as u8);
                 f.to_bits().hash(state);
             }
-            Value::Object(o) => {
+            // If object and is hashable, try to downcase to...
+            Value::Object(o) if o.is_hashable() => {
+                // ...Str
                 if let Some(s) = o.as_any().downcast_ref::<Str>() {
                     state.write_u8('s' as u8);
                     s.as_str().hash(state);
-                } else if let Some(b) = o.as_any().downcast_ref::<BuiltinRef>() {
+                }
+                // ...BuiltinRef
+                else if let Some(b) = o.as_any().downcast_ref::<BuiltinRef>() {
                     state.write_u8('b' as u8);
                     b.0.name.hash(state);
-                } else if let Some(t) = o.as_any().downcast_ref::<Token>() {
+                }
+                // ...Token
+                else if let Some(t) = o.as_any().downcast_ref::<Token>() {
                     state.write_u8('t' as u8);
                     t.hash(state);
-                } else {
+                }
+                // or otherwise use the object's id as hashable value
+                else {
                     state.write_u8('o' as u8);
                     o.id().hash(state);
                 }
             }
+            other => panic!("unhashable type '{}'", other.name()),
         }
     }
 }
