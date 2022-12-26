@@ -1,5 +1,5 @@
 use crate::reader::{Range, Reader};
-use crate::value::{Object, RefValue};
+use crate::value::{Object, RefValue, Str};
 
 /** Captures are stack items where the VM operates on.
 
@@ -8,12 +8,29 @@ In case the capture is a range, it can be turned into a string value on demand a
 */
 #[derive(Clone)]
 pub enum Capture {
-    Empty,                               // Empty capture
-    Range(Range, Option<String>, u8),    // Captured range
-    Value(RefValue, Option<String>, u8), // Captured value
+    Empty,                                 // Empty capture
+    Range(Range, Option<RefValue>, u8),    // Captured range
+    Value(RefValue, Option<RefValue>, u8), // Captured value
 }
 
 impl Capture {
+    // Checks if the capture matches a given alias string
+    pub fn alias(&self, name: &str) -> bool {
+        match self {
+            Self::Range(_, alias, _) | Self::Value(_, alias, _) => {
+                if let Some(alias) = alias.as_ref() {
+                    let alias = alias.borrow();
+                    if let Some(alias) = alias.object::<Str>() {
+                        return alias.as_str() == name;
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        false
+    }
+
     /** Extracts a value from a capture.
 
     In case the capture is a range, the range is extracted as a string from the reader. */
@@ -79,7 +96,7 @@ impl std::fmt::Debug for Capture {
             Self::Empty => write!(f, "(empty)"),
             Self::Range(range, alias, severity) => {
                 if let Some(alias) = alias {
-                    write!(f, "{:?} => ", alias)?;
+                    write!(f, "{} => ", alias.repr())?;
                 }
 
                 range.fmt(f)?;
@@ -87,7 +104,7 @@ impl std::fmt::Debug for Capture {
             }
             Self::Value(value, alias, severity) => {
                 if let Some(alias) = alias {
-                    write!(f, "{:?} => ", alias)?;
+                    write!(f, "{} => ", alias.repr())?;
                 }
 
                 write!(f, "[{:x?}] {} ({})", value.id(), value.repr(), severity)

@@ -208,14 +208,9 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         for i in (0..tos - capture_start).rev() {
             let capture = &mut self.runtime.stack[capture_start + i];
 
-            match capture {
-                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
-                    if alias.as_ref().unwrap() == name {
-                        capture.degrade();
-                        return Some(capture.extract(&self.runtime.reader));
-                    }
-                }
-                _ => {}
+            if capture.alias(name) {
+                capture.degrade();
+                return Some(capture.extract(&self.runtime.reader));
             }
         }
 
@@ -255,22 +250,17 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         for i in (0..tos - capture_start).rev() {
             let capture = &mut self.runtime.stack[capture_start + i];
 
-            match capture {
-                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
-                    if alias.as_ref().unwrap() == name {
-                        match capture {
-                            Capture::Empty => *capture = Capture::Value(value, None, 5),
-                            Capture::Range(_, alias, _) => {
-                                *capture = Capture::Value(value, alias.clone(), 5)
-                            }
-                            Capture::Value(capture_value, ..) => {
-                                *capture_value = value;
-                            }
-                        }
-                        break;
+            if capture.alias(name) {
+                match capture {
+                    Capture::Empty => *capture = Capture::Value(value, None, 5),
+                    Capture::Range(_, alias, _) => {
+                        *capture = Capture::Value(value, alias.clone(), 5)
+                    }
+                    Capture::Value(capture_value, ..) => {
+                        *capture_value = value;
                     }
                 }
-                _ => {}
+                break;
             }
         }
     }

@@ -611,11 +611,11 @@ impl Op {
 
                     match context.runtime.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
-                            *alias = Some(name.to_string());
+                            *alias = Some(name);
                         }
 
                         empty => {
-                            *empty = Capture::Value(value!(void), Some(name.to_string()), 0);
+                            *empty = Capture::Value(value!(void), Some(name), 0);
                         }
                     }
 

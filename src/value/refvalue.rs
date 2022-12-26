@@ -380,7 +380,7 @@ impl Hash for RefValue {
                 state.write_u8('f' as u8);
                 f.to_bits().hash(state);
             }
-            // If object and is hashable, try to downcase to...
+            // If object and is hashable, try to downcast to...
             Value::Object(o) if o.is_hashable() => {
                 // ...Str
                 if let Some(s) = o.as_any().downcast_ref::<Str>() {
