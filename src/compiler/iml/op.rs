@@ -38,14 +38,7 @@ impl std::fmt::Debug for ImlTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unresolved(name) | Self::Generic(name) => write!(f, "\"{}\"", name),
-            Self::Static(value) => match value {
-                ImlValue::Parselet(p) => write!(
-                    f,
-                    "Parselet({})",
-                    p.borrow().name.as_deref().unwrap_or("<unnamed>")
-                ),
-                _ => value.fmt(f),
-            },
+            Self::Static(value) => write!(f, "{}", value),
             Self::Local(addr) => write!(f, "local@{}", addr),
             Self::Global(addr) => write!(f, "global@{}", addr),
         }

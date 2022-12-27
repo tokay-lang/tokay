@@ -1228,7 +1228,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 | ImlOp::Call {
                                     target: ImlTarget::Static(expect),
                                     ..
-                                } => Some(format!("Expecting {:?}", expect)),
+                                } => Some(format!("Expecting {}", expect)),
                                 _ => None,
                             };
 
