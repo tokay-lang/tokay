@@ -115,14 +115,14 @@ pub(crate) enum Op {
 }
 
 impl Op {
-    pub fn execute(ops: &[Op], context: &mut Context, debug: u8) -> Result<Accept, Reject> {
+    pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
         }
 
         fn dump(ops: &[Op], context: &Context, ip: usize) {
             for (i, op) in ops.iter().enumerate() {
-                context.debug(&format!(
+                context.log(&format!(
                     "{}{:03} {:?}",
                     if i == ip { ">" } else { " " },
                     i,
@@ -142,10 +142,10 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if debug == 3 {
-                context.debug(&format!("{:03}:{}", ip, op));
-            } else if debug > 3 {
-                if debug > 5 {
+            if context.runtime.debug == 3 {
+                context.log(&format!("{:03}:{}", ip, op));
+            } else if context.runtime.debug > 3 {
+                if context.runtime.debug > 5 {
                     // Skip any Nop-Operations
                     if matches!(op, Op::Nop | Op::Offset(_)) {
                         ip += 1;
@@ -154,26 +154,26 @@ impl Op {
                 }
 
                 // Dump entire code
-                context.debug("--- Code ---");
+                context.log("--- Code ---");
                 dump(ops, context, ip);
 
                 // Dump stack and frames
-                if debug > 4 {
-                    context.debug("--- Stack ---");
+                if context.runtime.debug > 4 {
+                    context.log("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
-                        context.debug(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
+                        context.log(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
                     }
 
-                    context.debug("--- Frames ---");
+                    context.log("--- Frames ---");
                     for i in 0..context.frames.len() {
-                        context.debug(&format!(" {:03} {}", i, context.frames[i]));
+                        context.log(&format!(" {:03} {}", i, context.frames[i]));
                     }
 
-                    context.debug(&format!(" {:03} {}", context.frames.len(), context.frame));
+                    context.log(&format!(" {:03} {}", context.frames.len(), context.frame));
                 }
 
                 // Step-by-step
-                if debug > 5 {
+                if context.runtime.debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }
@@ -399,7 +399,7 @@ impl Op {
                 Op::CallOrCopy => {
                     let value = context.pop();
 
-                    if false && debug > 3 {
+                    if false && context.runtime.debug > 3 {
                         println!(
                             "CallOrCopy is_callable={:?} is_mutable={:?}",
                             value.is_callable(true),
@@ -703,7 +703,7 @@ impl Op {
 
             // Debug
             if context.runtime.debug > 3 {
-                context.debug(&format!("ip = {} state = {:?}", ip, state));
+                context.log(&format!("ip = {} state = {:?}", ip, state));
             }
 
             match state {
@@ -748,7 +748,7 @@ impl Op {
         }
 
         if context.runtime.debug > 3 {
-            context.debug(&format!("exit state = {:?}", state));
+            context.log(&format!("exit state = {:?}", state));
         }
 
         state

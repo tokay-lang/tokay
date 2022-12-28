@@ -74,7 +74,7 @@ impl Object for BuiltinRef {
     }
 
     fn repr(&self) -> String {
-        format!("<{} {}>", self.name(), self.0.name)
+        self.0.name.to_string()
     }
 
     fn is_callable(&self, _without_arguments: bool) -> bool {
@@ -163,8 +163,22 @@ tokay_function!("print : @*args", {
     print!("\n");
     io::stdout().flush().unwrap();
 
-    value!(void).into()
+    value!(void).into() // need to push a void with high severity
 });
 
 tokay_function!("repr : @value", value!(value.repr()).into());
 tokay_function!("type : @value", value!(value.name()).into());
+
+tokay_function!("debug : @level", {
+    if let Ok(level) = level.to_usize() {
+        if level < u8::MAX as usize {
+            context.unwrap().runtime.debug = level as u8;
+            return Ok(Accept::Next);
+        }
+    }
+
+    Err(Reject::from(format!(
+        "{}: Invalid setting level={:?}",
+        __function, level
+    )))
+});

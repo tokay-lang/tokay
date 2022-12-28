@@ -4,7 +4,6 @@ pub(crate) mod ast;
 mod compiler;
 mod iml;
 mod linker;
-mod macros;
 mod parser;
 
 use compiler::*;

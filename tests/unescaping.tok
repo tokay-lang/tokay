@@ -1,24 +1,27 @@
 #testmode:repl
 'A' "test\\yes\n\xCA\xFE\t\100\x5F\u20ac\U0001F98E"
 'B' print("test\\yes\n\xCA\xFE\t\100\x5F\u20ac\U0001F98E")
-'C' ''hello\nworld''
-'D' ''hello\\nworld''
-'E' ''hello\u20acworld''
-'F' [0-9\u20ac]+
+'C' "\a\b\f\n\r\t\v"
+'D' ''hello\nworld''
+'E' ''hello\\nworld''
+'F' ''hello\u20acworld''
+'G' [0-9\u20ac]+
 #---
 #A
 #B
-#Chello
+#C
+#Dhello
 #world
-#Dhello\nworld
-#Ehello€world
-#F12345€
-#Fa1€
-#F€12345
+#Ehello\nworld
+#Fhello€world
+#G12345€
+#Ga1€
+#G€12345
 #---
 #"test\\yes\nÊþ\t@_€🦎"
 #test\yes
 #Êþ	@_€🦎
+#"\n\r\t"
 #"hello\nworld"
 #"hello\\nworld"
 #"hello€world"

@@ -1217,23 +1217,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         "kle" => res.into_kleene(),
                         "opt" => res.into_optional(),
                         "peek" => res.into_peek(),
-                        "expect" => {
-                            // Just give some helpful information here for most cases;
-                            // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
-                            let msg = match &res {
-                                ImlOp::Load {
-                                    target: ImlTarget::Static(expect),
-                                    ..
-                                }
-                                | ImlOp::Call {
-                                    target: ImlTarget::Static(expect),
-                                    ..
-                                } => Some(format!("Expecting {:?}", expect)),
-                                _ => None,
-                            };
-
-                            res.into_expect(msg)
-                        }
+                        "expect" => res.into_expect(None),
                         "not" => res.into_not(),
                         _ => unreachable!(),
                     }
@@ -1542,5 +1526,88 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
 
 tokay_function!("ast_print : @ast", {
     print(&ast);
+    value!(void).into()
+});
+
+tokay_function!("ast2rust : @ast, level=0", {
+    fn print(value: &RefValue, indent: usize, first: bool) {
+        let (br_left, br_right) = if first { ("", "") } else { ("(", ")") };
+        let value = value.borrow();
+
+        if let Some(d) = value.object::<Dict>() {
+            let emit = d["emit"].to_string();
+            let value = d.get("value");
+            let children = d.get("children");
+
+            print!(
+                "{space:indent$}{br_left}value!([\n{space:indent$}    \"emit\" => {emit:?}",
+                space = "",
+                indent = indent * 4,
+                br_left = br_left,
+                emit = emit
+            );
+
+            if let Some(children) = children {
+                print!(
+                    ",\n{space:indent$}    \"children\" =>\n",
+                    space = "",
+                    indent = indent * 4
+                );
+
+                print(children, indent + 2, false);
+            }
+
+            if let Some(value) = value {
+                print!(
+                    ",\n{space:indent$}    \"value\" => ",
+                    space = "",
+                    indent = indent * 4
+                );
+                print(value, indent, false);
+            }
+
+            print!(
+                "\n{space:indent$}]){br_right}",
+                space = "",
+                indent = indent * 4,
+                br_right = br_right
+            );
+        } else if let Some(l) = value.object::<List>() {
+            print!(
+                "{space:indent$}{br_left}value!([\n",
+                space = "",
+                indent = indent * 4,
+                br_left = br_left
+            );
+
+            let mut iter = l.iter().peekable();
+
+            while let Some(item) = iter.next() {
+                print(item, indent + 1, false);
+                if iter.peek().is_some() {
+                    print!(",\n");
+                }
+            }
+
+            print!(
+                "\n{space:indent$}]){br_right}",
+                space = "",
+                indent = indent * 4,
+                br_right = br_right
+            );
+        } else {
+            assert!(
+                ["str", "int", "float", "bool"].contains(&value.name()),
+                "No matching Rust primitive for {} found",
+                value.name()
+            );
+
+            // Rust primitives are mostly equal to Tokay's repr
+            print!("{}", value.repr());
+        }
+    }
+
+    print(&ast, level.to_usize()?, true);
+    print!("\n");
     value!(void).into()
 });
