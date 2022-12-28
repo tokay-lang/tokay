@@ -74,7 +74,7 @@ impl Object for BuiltinRef {
     }
 
     fn repr(&self) -> String {
-        format!("<{} {}>", self.name(), self.0.name)
+        self.0.name.to_string()
     }
 
     fn is_callable(&self, _without_arguments: bool) -> bool {

@@ -37,7 +37,7 @@ impl ImlTarget {
 impl std::fmt::Debug for ImlTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unresolved(name) | Self::Generic(name) => write!(f, "\"{}\"", name),
+            Self::Unresolved(name) | Self::Generic(name) => write!(f, "{}", name),
             Self::Static(value) => write!(f, "{}", value),
             Self::Local(addr) => write!(f, "local@{}", addr),
             Self::Global(addr) => write!(f, "global@{}", addr),
@@ -281,7 +281,70 @@ impl ImlOp {
     }
 
     /// Turns ImlOp construct into an expecting parser
-    pub fn into_expect(self, msg: Option<String>) -> Self {
+    pub fn into_expect(self, mut msg: Option<String>) -> Self {
+        // When no msg is provided, generate a message from the next consumables in range!
+        // This got a bit out of hand, and should be done later via something like a FIRST() attribute on parselet.
+        // Generally, this code becomes unnecessary when the Expect<P> generic is made available (see #10 for details)
+        if msg.is_none() {
+            fn get_expect(op: &ImlOp) -> Option<String> {
+                match op {
+                    ImlOp::Call { target, .. } | ImlOp::Load { target, .. }
+                        if target.is_consuming() =>
+                    {
+                        Some(format!("{:?}", target).to_string())
+                    }
+                    ImlOp::Seq { seq, .. } => {
+                        let mut txt = None;
+
+                        for item in seq {
+                            item.walk(&mut |op| {
+                                txt = get_expect(op);
+                                !txt.is_some()
+                            });
+
+                            if txt.is_some() {
+                                break;
+                            }
+                        }
+
+                        txt
+                    }
+                    ImlOp::Alt { alts, .. } => {
+                        let mut all_txt = Vec::new();
+
+                        for item in alts {
+                            let mut txt = None;
+
+                            item.walk(&mut |op| {
+                                txt = get_expect(op);
+                                !txt.is_some()
+                            });
+
+                            if let Some(txt) = txt {
+                                all_txt.push(txt);
+                            }
+                        }
+
+                        if all_txt.is_empty() {
+                            None
+                        } else {
+                            Some(all_txt.join(" or "))
+                        }
+                    }
+                    item => None,
+                }
+            }
+
+            self.walk(&mut |op| {
+                msg = get_expect(op);
+                !msg.is_some()
+            });
+
+            if let Some(txt) = msg {
+                msg = Some(format!("Expecting {}", txt).to_string())
+            }
+        }
+
         Self::Expect {
             body: Box::new(self),
             msg,
@@ -904,18 +967,6 @@ impl ImlOp {
         Err(())
     }
 }
-
-/*
-impl std::fmt::Debug for ImlOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Nop => write!(f, "Nop"),
-            Self::Op(op) => write!(f, "{:?}", op),
-            Self::Nop => write!(f, "Nop"),
-            Self::Nop => write!(f, "Nop"),
-    }
-}
-*/
 
 impl From<Op> for ImlOp {
     fn from(op: Op) -> Self {

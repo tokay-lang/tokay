@@ -1217,23 +1217,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         "kle" => res.into_kleene(),
                         "opt" => res.into_optional(),
                         "peek" => res.into_peek(),
-                        "expect" => {
-                            // Just give some helpful information here for most cases;
-                            // `expect` will be replaced by the `Expect<P, msg>` generic parselet in future.
-                            let msg = match &res {
-                                ImlOp::Load {
-                                    target: ImlTarget::Static(expect),
-                                    ..
-                                }
-                                | ImlOp::Call {
-                                    target: ImlTarget::Static(expect),
-                                    ..
-                                } => Some(format!("Expecting {}", expect)),
-                                _ => None,
-                            };
-
-                            res.into_expect(msg)
-                        }
+                        "expect" => res.into_expect(None),
                         "not" => res.into_not(),
                         _ => unreachable!(),
                     }
