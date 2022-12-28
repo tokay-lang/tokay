@@ -1536,8 +1536,8 @@ tokay_function!("ast2rust : @ast, level=0", {
 
         if let Some(d) = value.object::<Dict>() {
             let emit = d["emit"].to_string();
-            let value = d.get("value");
-            let children = d.get("children");
+            let value = d.get_str("value");
+            let children = d.get_str("children");
 
             print!(
                 "{space:indent$}{br_left}value!([\n{space:indent$}    \"emit\" => {emit:?}",
