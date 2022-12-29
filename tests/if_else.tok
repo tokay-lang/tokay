@@ -5,6 +5,13 @@ if true 1 if false 2 if $1 3 else 4 if !$2 5 else 6
 b = true
 nb = false
 if b 1 if nb 2 if $1 3 else 4 if !$2 5 else 6
+
+if a = 1 "yes" else "no"  # issue 91
+if a == 0 "yes" else "no"
 #---
 #(1, 3, 5)
+
 #(1, 3, 5)
+
+#"yes"
+#"no"
