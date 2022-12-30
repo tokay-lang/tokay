@@ -277,12 +277,12 @@ Atomic : @{
     '(' _ ___ HoldExpression ___ ')'
     Literal
     Token1
-    'if' _standalone_ Expression ___ expect Statement (___ 'else' _standalone_ ___ expect Statement)?  ast("op_if")
+    'if' _standalone_ HoldExpression ___ expect Statement (___ 'else' _standalone_ ___ expect Statement)?  ast("op_if")
     'for' _standalone_ (Sequence | Nop) ';' _ (Sequence | Nop) ';' _ Statement _ Block  ast("op_for")
     'for' _standalone_ (Sequence | Nop) ';' _ (Sequence | Nop) ';' _ Nop _ Block  ast("op_for")
     'for' _standalone_  error("'for': Expecting initial; condition; increment { body }")
-    'loop' _standalone_ Expression _ Statement  ast("op_loop")
-    'loop' _standalone_ expect Statement  ast("op_loop")
+    'loop' _standalone_ HoldExpression ___ Block  ast("op_loop")
+    'loop' _standalone_ expect Block  ast("op_loop")
     Load
 }
 

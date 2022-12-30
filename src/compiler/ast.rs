@@ -345,7 +345,8 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
         let emit = item["emit"].borrow();
         let emit = emit.object::<Str>().unwrap().as_str();
 
-        let store = if i < children.len() - 1 { false } else { store };
+        let last = i == children.len() - 1; // Identify last child
+        let store = if !last { false } else { store }; // Identify store instruction, otherwise load
 
         match emit {
             capture if capture.starts_with("capture") => {
@@ -466,6 +467,15 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                         ops.push(Op::LoadGlobal(addr).into())
                     }
                 } else {
+                    // When chained lvalue, name must be declared!
+                    if children.len() > 1 {
+                        compiler.errors.push(Error::new(
+                            traverse_node_offset(node),
+                            format!("Undeclared variable '{}', please define it first", name),
+                        ));
+                        break;
+                    }
+
                     let addr = compiler.new_local(name);
                     if store {
                         if hold {

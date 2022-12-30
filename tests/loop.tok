@@ -28,14 +28,16 @@ loop {
 
 # Loop with condition
 count = 10
-loop count >= 0 print(
-    if --count == 3
-        "Ignition"
-    else if count < 0
-        "Liftoff"
-    else
-        count
-)
+loop count >= 0 {
+    print(
+        if --count == 3
+            "Ignition"
+        else if count < 0
+            "Liftoff"
+        else
+            count
+    )
+}
 
 #---
 #Loop0
