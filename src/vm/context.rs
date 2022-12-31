@@ -208,14 +208,9 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         for i in (0..tos - capture_start).rev() {
             let capture = &mut self.runtime.stack[capture_start + i];
 
-            match capture {
-                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
-                    if alias.as_ref().unwrap() == name {
-                        capture.degrade();
-                        return Some(capture.extract(&self.runtime.reader));
-                    }
-                }
-                _ => {}
+            if capture.alias(name) {
+                capture.degrade();
+                return Some(capture.extract(&self.runtime.reader));
             }
         }
 
@@ -255,22 +250,17 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         for i in (0..tos - capture_start).rev() {
             let capture = &mut self.runtime.stack[capture_start + i];
 
-            match capture {
-                Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) if alias.is_some() => {
-                    if alias.as_ref().unwrap() == name {
-                        match capture {
-                            Capture::Empty => *capture = Capture::Value(value, None, 5),
-                            Capture::Range(_, alias, _) => {
-                                *capture = Capture::Value(value, alias.clone(), 5)
-                            }
-                            Capture::Value(capture_value, ..) => {
-                                *capture_value = value;
-                            }
-                        }
-                        break;
+            if capture.alias(name) {
+                match capture {
+                    Capture::Empty => *capture = Capture::Value(value, None, 5),
+                    Capture::Range(_, alias, _) => {
+                        *capture = Capture::Value(value, alias.clone(), 5)
+                    }
+                    Capture::Value(capture_value, ..) => {
+                        *capture_value = value;
                     }
                 }
-                _ => {}
+                break;
             }
         }
     }
@@ -334,45 +324,81 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         // Capture inheritance is only possible when there is only one capture available
         let inherit = captures.len() == 1;
 
-        let mut list = List::new();
-        let mut dict = Dict::new();
-        let mut max = 0;
+        let mut list = List::new(); // List collector
+        let mut dict = Dict::new(); // Dict collector
+        let mut max = 0; // Maximum severity
+        let mut idx = 0; // Keep the order for dicts
 
         // Collect any significant captures and values
+        // fixme: This part contains ugly and redundant code; must be reworked later.
         for capture in captures.into_iter() {
             match capture {
                 Capture::Range(range, alias, severity) if severity >= max => {
+                    // On higher severity, drop all results collected so far
                     if severity > max {
+                        idx = 0;
                         max = severity;
                         list.clear();
                         dict.clear();
                     }
 
+                    // fixme: This line is the only difference between the Capture::Range and Capture::Value branch.
+                    //        This is totally ugly and should be reworked.
                     let value = RefValue::from(self.runtime.reader.get(&range));
 
                     if let Some(alias) = alias {
-                        dict.insert(alias, value);
+                        // Move list items into dict when this is the first entry
+                        if dict.is_empty() {
+                            for (i, item) in list.drain(..).enumerate() {
+                                dict.insert(RefValue::from(i), item);
+                            }
+                        }
+
+                        dict.insert(RefValue::from(alias), value);
                     } else if inherit {
-                        return Capture::Range(range, alias, severity);
+                        return Capture::Value(value, alias, severity);
                     } else if !value.is_void() {
-                        list.push(value);
+                        // Eiher collect into list, or insert into the dict
+                        if dict.is_empty() {
+                            list.push(value);
+                        } else {
+                            dict.insert(RefValue::from(idx), value);
+                        }
                     }
+
+                    idx += 1;
                 }
 
                 Capture::Value(value, alias, severity) if severity >= max => {
+                    // On higher severity, drop all results collected so far
                     if severity > max {
+                        idx = 0;
                         max = severity;
                         list.clear();
                         dict.clear();
                     }
 
                     if let Some(alias) = alias {
-                        dict.insert(alias, value);
+                        // Move list items into dict when this is the first entry
+                        if dict.is_empty() {
+                            for (i, item) in list.drain(..).enumerate() {
+                                dict.insert(RefValue::from(i), item);
+                            }
+                        }
+
+                        dict.insert(RefValue::from(alias), value);
                     } else if inherit {
                         return Capture::Value(value, alias, severity);
                     } else if !value.is_void() {
-                        list.push(value);
+                        // Eiher collect into list, or insert into the dict
+                        if dict.is_empty() {
+                            list.push(value);
+                        } else {
+                            dict.insert(RefValue::from(idx), value);
+                        }
                     }
+
+                    idx += 1;
                 }
 
                 _ => {}
@@ -384,7 +410,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             self.log(&format!("dict = {:?}", dict));
         }
 
-        if dict.len() == 0 {
+        if dict.is_empty() {
             if list.len() > 1 {
                 Capture::Value(RefValue::from(list), None, max)
             } else if list.len() == 1 {
@@ -393,23 +419,6 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 Capture::Empty
             }
         } else {
-            // Store list-items additionally when there is a dict?
-            // This is currently under further consideration and not finished.
-            let mut idx = 0;
-            for item in list.into_iter() {
-                loop {
-                    let key = format!("#{}", idx);
-                    if let None = dict.get(&key) {
-                        dict.insert(key, item);
-                        break;
-                    }
-
-                    idx += 1;
-                }
-
-                idx += 1;
-            }
-
             Capture::Value(RefValue::from(dict), None, max)
         }
     }

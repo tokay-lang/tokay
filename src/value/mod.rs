@@ -1,6 +1,5 @@
 //! Tokay value and object representation
 pub mod dict;
-//pub mod dict2;  // just for testing
 pub mod list;
 mod method;
 mod object;
@@ -39,7 +38,7 @@ macro_rules! value {
     ( [ $( $key:literal => $value:tt ),* ] ) => {
         {
             let mut dict = $crate::value::Dict::new();
-            $( dict.insert($key.to_string(), $crate::value!($value)); )*
+            $( dict.insert_str($key, $crate::value!($value)); )*
             $crate::RefValue::from(dict)
         }
     };

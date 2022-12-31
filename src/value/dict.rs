@@ -1,5 +1,5 @@
 //! Dictionary object
-use super::{BoxedObject, List, Object, RefValue};
+use super::{BoxedObject, List, Object, RefValue, Str};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
@@ -8,7 +8,7 @@ extern crate self as tokay;
 use std::cmp::Ordering;
 
 // Alias for the inner dict
-type InnerDict = IndexMap<String, RefValue>;
+type InnerDict = IndexMap<RefValue, RefValue>;
 
 // Dict object type
 #[derive(Debug, Clone)]
@@ -33,26 +33,34 @@ impl Object for Dict {
         let mut ret = "(".to_string();
 
         for (key, value) in self.iter() {
+            let key = key.borrow();
+
             if ret.len() > 1 {
                 ret.push_str(", ");
             }
 
-            // todo: Put this into a utility function...
-            if !key.chars().all(|ch| ch.is_alphabetic() || ch == '_') {
-                ret.push('"');
-                for ch in key.chars() {
-                    match ch {
-                        '\\' => ret.push_str("\\\\"),
-                        '\n' => ret.push_str("\\n"),
-                        '\r' => ret.push_str("\\r"),
-                        '\t' => ret.push_str("\\t"),
-                        '"' => ret.push_str("\\\""),
-                        _ => ret.push(ch),
+            if let Some(key) = key.object::<Str>() {
+                // todo: Put this into a utility function...
+                if !key.chars().all(|ch| ch.is_alphabetic() || ch == '_')
+                    || crate::compiler::identifier_is_valid(key).is_err()
+                {
+                    ret.push('"');
+                    for ch in key.chars() {
+                        match ch {
+                            '\\' => ret.push_str("\\\\"),
+                            '\n' => ret.push_str("\\n"),
+                            '\r' => ret.push_str("\\r"),
+                            '\t' => ret.push_str("\\t"),
+                            '"' => ret.push_str("\\\""),
+                            _ => ret.push(ch),
+                        }
                     }
+                    ret.push('"');
+                } else {
+                    ret.push_str(key);
                 }
-                ret.push('"');
             } else {
-                ret.push_str(key);
+                ret.push_str(&key.repr());
             }
 
             ret.push_str(" => ");
@@ -77,6 +85,18 @@ impl Dict {
         Self {
             dict: InnerDict::new(),
         }
+    }
+
+    pub fn insert_str(&mut self, key: &str, value: RefValue) -> Option<RefValue> {
+        self.insert(RefValue::from(key), value)
+    }
+
+    pub fn get_str(&self, key: &str) -> Option<&RefValue> {
+        self.get(&RefValue::from(key)) // fixme: improve lookup!
+    }
+
+    pub fn remove_str(&mut self, key: &str) -> Option<RefValue> {
+        self.remove(&RefValue::from(key)) // fixme: improve lookup!
     }
 
     tokay_method!("dict : @", Ok(RefValue::from(Dict::new())));
@@ -183,9 +203,16 @@ impl Dict {
     });
 
     tokay_method!("dict_get_item : @dict, item, default=void", {
+        if !item.is_hashable() {
+            return Err(Error::from(format!(
+                "{} unhashable type '{}'",
+                __function,
+                item.name()
+            )));
+        }
+
         // todo: alias dict_get
         let dict = dict.borrow();
-        let item = item.to_string();
 
         if let Some(dict) = dict.object::<Dict>() {
             if let Some(item) = dict.get(&item) {
@@ -204,8 +231,15 @@ impl Dict {
     });
 
     tokay_method!("dict_set_item : @dict, item, value=void", {
+        if !item.is_hashable() {
+            return Err(Error::from(format!(
+                "{} unhashable type '{}'",
+                __function,
+                item.name()
+            )));
+        }
+
         let mut dict = dict.borrow_mut();
-        let item = item.to_string();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
             if value.is_void() {
@@ -261,8 +295,6 @@ impl Dict {
         let dict = &mut *dict.borrow_mut();
 
         if let Some(dict) = dict.object_mut::<Dict>() {
-            let key = key.to_string();
-
             Ok(if let Some(old) = dict.insert(key, value) {
                 old
             } else {
@@ -289,8 +321,6 @@ impl Dict {
                     default
                 });
             }
-
-            let key = key.to_string();
 
             Ok(if let Some(value) = dict.remove(&key) {
                 value
@@ -373,6 +403,14 @@ impl std::ops::Deref for Dict {
 impl std::ops::DerefMut for Dict {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.dict
+    }
+}
+
+impl std::ops::Index<&str> for Dict {
+    type Output = RefValue;
+
+    fn index(&self, key: &str) -> &RefValue {
+        self.get_str(key).expect("Key not found")
     }
 }
 

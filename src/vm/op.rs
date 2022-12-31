@@ -611,11 +611,11 @@ impl Op {
 
                     match context.runtime.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
-                            *alias = Some(name.to_string());
+                            *alias = Some(name);
                         }
 
                         empty => {
-                            *empty = Capture::Value(value!(void), Some(name.to_string()), 0);
+                            *empty = Capture::Value(value!(void), Some(name), 0);
                         }
                     }
 
@@ -637,9 +637,8 @@ impl Op {
 
                     for _ in 0..*count {
                         let key = context.pop();
-
                         let value = context.pop();
-                        dict.insert(key.to_string(), value);
+                        dict.insert(key, value);
                     }
 
                     context.push(RefValue::from(dict))

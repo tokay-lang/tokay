@@ -155,7 +155,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
                         let mut value = None;
 
                         if let Some(nargs) = &mut nargs {
-                            value = nargs.remove(stringify!(#arg));
+                            value = nargs.remove_str(stringify!(#arg));
                         }
 
                         if value.is_none() {
@@ -197,7 +197,7 @@ fn gen_assign_arguments(arguments: Vec<(String, String)>) -> Vec<proc_macro2::To
                 if let Some((name, _)) = nargs.pop() {
                     return Err(
                         match nargs.len() {
-                            0 => format!("{} doesn't accept named argument '{}'", __function, name),
+                            0 => format!("{} doesn't accept named argument '{}'", __function, name.to_string()),
                             n => format!("{} doesn't accept named arguments ({} given)", __function, n + 1),
                         }.into()
                     ).into()

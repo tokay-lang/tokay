@@ -218,6 +218,14 @@ impl Object for Value {
         }
     }
 
+    fn is_hashable(&self) -> bool {
+        match self {
+            Self::Void => false,
+            Self::Object(object) => object.is_hashable(),
+            _ => true,
+        }
+    }
+
     fn call(
         &self,
         context: &mut Context,

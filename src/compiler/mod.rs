@@ -11,4 +11,5 @@ use iml::*;
 use linker::*;
 use parser::*;
 
+pub(crate) use ast::identifier_is_valid;
 pub use compiler::Compiler;

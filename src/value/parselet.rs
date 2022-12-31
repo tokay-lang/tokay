@@ -139,7 +139,7 @@ impl Parselet {
                 if matches!(var, Capture::Empty) {
                     // In case the parameter is empty, try to get it from nargs...
                     if let Some(ref mut nargs) = nargs {
-                        if let Some(value) = nargs.remove(&arg.0) {
+                        if let Some(value) = nargs.remove_str(&arg.0) {
                             *var = Capture::Value(value, None, 0);
                             continue;
                         }
@@ -166,7 +166,11 @@ impl Parselet {
             if let Some(mut nargs) = nargs {
                 if let Some((name, _)) = nargs.pop() {
                     return Err(match nargs.len() {
-                        0 => format!("{}() doesn't accept named argument '{}'", self.name, name),
+                        0 => format!(
+                            "{}() doesn't accept named argument '{}'",
+                            self.name,
+                            name.to_string()
+                        ),
                         n => format!(
                             "{}() doesn't accept named arguments ({} given)",
                             self.name,
