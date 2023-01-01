@@ -106,7 +106,7 @@ T_Float : @{
 
 CclChar : @{
     '\\' T_EscapeSequence
-    [^\]]
+    [^\]\>]
     EOF  error("Unclosed character-class, expecting ']'")
 }
 
@@ -234,8 +234,9 @@ CallArguments : @{
 TokenLiteral : @{
     '\'' T_Touch '\''  ast("value_token_match")
     T_Touch  ast("value_token_touch")
-    '.'  ast("value_token_any")
     '[' Ccl ']'  ast("value_token_ccl")
+    'Char' _ '<' Ccl '>'  ast("value_token_ccl")
+    '.'  ast("value_token_any")
 }
 
 TokenAtom : @{
@@ -416,3 +417,4 @@ Tokay : @{
 }
 
 _ Tokay? expect EOF  ast("main")
+#_ Tokay? expect EOF  ast_print(ast("main"))
