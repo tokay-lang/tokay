@@ -920,8 +920,8 @@ impl Parser {
                                                                 ]))
                                                         ])),
                                                         (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "Any"
+                                                            "emit" => "value_token_any",
+                                                            "value" => "Char"
                                                         ]))
                                                     ]))
                                             ]))

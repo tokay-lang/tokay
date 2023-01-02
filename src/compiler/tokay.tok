@@ -63,7 +63,7 @@ T_EscapeSequence : @{
     # fixme: In case when odd amount of digits is provided, a syntax error shall occur.
     #        This is like in Python: "\x2" SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 0-2: truncated \xXX escape
 
-    Any
+    Char
 }
 
 T_Identifier : @{
