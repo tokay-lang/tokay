@@ -1,7 +1,7 @@
 Pi : 3.1415  # Error: Cannot assign non-consumable to consumable constant.
 pi : 3.1415  # Ok
 
-Cident : [A-Za-z_] [A-Za-z0-9_]* $0
+Cident : Char<A-Za-z_> Char<A-Za-z0-9_>* $0
 cident : Cident  # Error: Cannot assign consumable to non-consumable constant.
 NewCident : Cident  # Ok
 
