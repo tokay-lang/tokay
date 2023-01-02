@@ -58,7 +58,6 @@ impl Token {
         }
 
         match ident {
-            "Any" => Some(Token::any()),
             "EOF" => Some(Token::EOF),
             "Void" => Some(Token::Void),
             ident => builtin_ccl(ident),
