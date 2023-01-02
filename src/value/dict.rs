@@ -27,7 +27,7 @@ impl Object for Dict {
 
     fn repr(&self) -> String {
         if self.is_empty() {
-            return "dict()".to_string();
+            return "()".to_string();
         }
 
         let mut ret = "(".to_string();
@@ -65,6 +65,10 @@ impl Object for Dict {
 
             ret.push_str(" => ");
             ret.push_str(&value.borrow().repr());
+        }
+
+        if self.len() == 1 {
+            ret.push_str(", ");
         }
 
         ret.push(')');

@@ -1380,6 +1380,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 List::new()
             };
 
+            //println!("{} => {:?}", emit, children);
+
             let mut ops = Vec::new();
 
             for node in children.iter() {
@@ -1395,7 +1397,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ops.push(Op::MakeList(children.len()).into());
                     ImlOp::from(ops)
                 }
-                "dict" => ImlOp::seq(ops, Some(false)),
+                "dict" => {
+                    if ops.len() == 0 {
+                        ImlOp::from(Op::MakeDict(0))
+                    }
+                    else {
+                        ImlOp::seq(ops, Some(false))
+                    }
+                },
                 _ => ImlOp::seq(ops, Some(true)),
             }
         }
@@ -1510,7 +1519,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
             ret.insert_str("children", value.clone());
         }
         // Otherwise this is a value
-        else {
+        else if !value.is_void() {
             ret.insert_str("value", value.clone());
         }
     }

@@ -196,26 +196,31 @@ ParseletInstance : @{
 
 # Inline Blocks and Sequences
 
-InlineSequenceItem : @{
+DictItem : @{
     T_Alias _ '=>' _ expect Expression  ast("alias")
     Expression '=>' _ expect Expression  ast("alias")
     Expression
 }
 
-InlineSequence : @{
-    # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
-    Expression ___ ',' _ ___ peek ')'  ast("list")
+Dict : @{
+    # Special case: single Expression followed by "," is considered as a dict with a single item
+    Expression ___ ',' _ ___ peek ')'  ast("dict")
 
     # A sequence is a list of items optionally separated by ","
-    (InlineSequenceItem ___ (',' _)? ___)+  ast("inline_sequence")
+    (DictItem ___ (',' _)? ___)+  ast("sequence")
 
-    # The empty sequences generates an empty list
-    Void  ast("list")
+    # The empty sequences constructs a new, empty dict
+    Void  ast("dict")
+}
+
+List : @{
+    (Expression ___ (',' _)? ___)*  ast("list")
 }
 
 InlineBlock : @{
-    '(' _ ___ InlineSequence {___ '|' _ ___ InlineSequence}+ ___ expect ')'  ast("block")
-    '(' _ ___ InlineSequence ___ expect ')'
+    '(' _ ___ Dict {___ '|' _ ___ Dict}+ ___ expect ')'  ast("block")
+    '(' _ ___ Dict ___ expect ')'
+    '[' _ ___ List ___ expect ']'
 }
 
 # Call parameters (used by calls and rvalues)
