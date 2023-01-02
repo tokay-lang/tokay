@@ -655,7 +655,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         // area -----------------------------------------------------------
         "area" => {
             let body = traverse(compiler, &node["children"]);
-            ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], false)
+            ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], None)
         }
 
         // assign ---------------------------------------------------------
@@ -1373,7 +1373,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         }
 
         // sequence  ------------------------------------------------------
-        "sequence" | "inline_sequence" | "list" => {
+        "sequence" | "inline_sequence" | "dict" | "list" => {
             let children = if let Some(children) = node.get_str("children") {
                 List::from(children)
             } else {
@@ -1390,14 +1390,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ));
             }
 
-            // Lists are definitive lists with a given length and only non-aliased values
-            if emit == "list" {
-                ops.push(Op::MakeList(children.len()).into());
-                ImlOp::from(ops)
-            }
-            // In most cases, lists are parsed as sequences;
-            else {
-                ImlOp::seq(ops, true)
+            match emit {
+                "list" => {
+                    ops.push(Op::MakeList(children.len()).into());
+                    ImlOp::from(ops)
+                }
+                "dict" => ImlOp::seq(ops, Some(false)),
+                _ => ImlOp::seq(ops, Some(true)),
             }
         }
 
@@ -1479,7 +1478,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let value = if value.is_void() {
         Some(
             context
-                .collect(capture_start, false, debug.is_true())
+                .collect(capture_start, false, true, debug.is_true())
                 .extract(&context.runtime.reader),
         )
     } else {

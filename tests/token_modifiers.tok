@@ -7,9 +7,9 @@
 'a' ''b''+  # Match with positive modifier
 ''a''* ''b''+  # Match with kleene and positive modifiers
 'a'* ''b''+  # Touch with kleene and positive modifiers
-[a-z]
-[a-z]+
-[^ ']+
+Char<a-z>
+Char<a-z>+
+Char<^ '>+
 Int
 
 # Parsing with sequences and modifiers

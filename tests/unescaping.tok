@@ -5,7 +5,7 @@
 'D' ''hello\nworld''
 'E' ''hello\\nworld''
 'F' ''hello\u20acworld''
-'G' [0-9\u20ac]+
+'G' Char<0-9\u20ac>+
 #---
 #A
 #B

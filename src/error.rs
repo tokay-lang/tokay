@@ -55,7 +55,7 @@ tokay_function!("error : @msg, collect=false", {
     let mut msg = msg.to_string();
 
     if collect.is_true() {
-        let mut capture = context.collect(context.frame0().capture_start, false, false);
+        let mut capture = context.collect(context.frame0().capture_start, false, true, false);
         let value = capture.extract(&context.runtime.reader);
 
         let value = value.borrow();

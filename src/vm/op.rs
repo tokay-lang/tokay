@@ -21,13 +21,13 @@ pub(crate) enum Op {
     Rust(Rust),          // Native rust callback
 
     // Capture frames
-    Frame(usize), // Start new frame with optional relative forward address fuse
-    Capture,      // Reset frame capture to current stack size, saving captures
-    Extend,       // Extend frame's reader to current position
-    Reset,        // Reset frame
-    Close,        // Close frame
-    Collect,      // Collect stack values from current frame
-    Fuse(usize),  // Set frame fuse to relative forward address
+    Frame(usize),  // Start new frame with optional relative forward address fuse
+    Capture,       // Reset frame capture to current stack size, saving captures
+    Extend,        // Extend frame's reader to current position
+    Reset,         // Reset frame
+    Close,         // Close frame
+    Collect(bool), // Collect stack values from current frame
+    Fuse(usize),   // Set frame fuse to relative forward address
 
     // Loop frames
     Loop(usize),    // Loop frame
@@ -222,9 +222,10 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Collect => Ok(Accept::Push(context.collect(
+                Op::Collect(sequence) => Ok(Accept::Push(context.collect(
                     context.frame.capture_start,
                     false,
+                    *sequence,
                     context.runtime.debug > 5,
                 ))),
 

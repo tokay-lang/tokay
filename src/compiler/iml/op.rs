@@ -69,9 +69,7 @@ pub(in crate::compiler) enum ImlOp {
     // Sequence of ops, optionally a collection
     Seq {
         seq: Vec<ImlOp>,
-        collection: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
-                          the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
-                          processed, including data changes, which is a wanted behavior. */
+        collect: Option<bool>, // Handle sequence by collect, either in dict (Some(false)) or sequence mode (Some(true)).
     },
 
     // Conditional block
@@ -119,14 +117,14 @@ pub(in crate::compiler) enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, collection: bool) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, collect: Option<bool>) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    collection: false,
+                    collect: None,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -135,8 +133,8 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if !collection => seq.pop().unwrap(),
-            _ => ImlOp::Seq { seq, collection },
+            1 if collect.is_none() => seq.pop().unwrap(),
+            _ => ImlOp::Seq { seq, collect },
         }
     }
 
@@ -494,21 +492,15 @@ impl ImlOp {
 
                 ops.extend(ret);
             }
-            ImlOp::Seq { seq, collection } => {
+            ImlOp::Seq { seq, collect } => {
                 for item in seq.iter() {
                     item.compile(ops, linker);
                 }
 
                 // Check if the sequence exists of more than one operational instruction
-                if *collection
-                    && ops[start..]
-                        .iter()
-                        .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
-                        .sum::<usize>()
-                        > 1
-                {
+                if let Some(sequence) = collect {
                     ops.insert(start, Op::Frame(0));
-                    ops.push(Op::Collect);
+                    ops.push(Op::Collect(*sequence));
                     ops.push(Op::Close);
                 }
             }
@@ -645,7 +637,7 @@ impl ImlOp {
                             Op::Extend,
                             Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
-                            Op::Collect,
+                            Op::Collect(true),
                             Op::Close,
                         ]);
                     }
@@ -666,7 +658,7 @@ impl ImlOp {
                             Op::Extend,
                             Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
-                            Op::Collect,
+                            Op::Collect(true),
                             Op::Close,
                         ]);
                     }
@@ -674,7 +666,7 @@ impl ImlOp {
                         // Optional
                         ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
                         ops.extend(body_ops);
-                        ops.push(Op::Collect);
+                        ops.push(Op::Collect(true));
                         ops.push(Op::Close);
                     }
                     (1, 1) => {}
@@ -976,6 +968,6 @@ impl From<Op> for ImlOp {
 
 impl From<Vec<ImlOp>> for ImlOp {
     fn from(items: Vec<ImlOp>) -> Self {
-        ImlOp::seq(items, false)
+        ImlOp::seq(items, None)
     }
 }
