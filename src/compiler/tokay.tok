@@ -5,8 +5,8 @@
 # Whitespace & EOL
 
 _ : @{  # true whitespace is made of comments and escaped line-breaks as well
-    [\t ]+
-    '#' [^\n]*
+    Char<\t >+
+    '#' Char<^\n>*
     '\\' '\r'? '\n'
 }
 
@@ -15,7 +15,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 _standalone_ : @{
     # helper parselet to ensure that identifiers stand alone
     # fixme: When generic parselets are available, this can be replaced by a Standalone<K> invocation
-    peek not [A-Z_a-z] _
+    peek not Char<A-Z_a-z> _
     _
 }
 
@@ -29,9 +29,9 @@ T_EOL : @{
 
 # Prime Tokens
 
-T_OctDigit : [0-7]
+T_OctDigit : Char<0-7>
 
-T_HexDigit : [0-9A-Fa-f]
+T_HexDigit : Char<0-9A-Fa-f>
 
 T_EscapeSequence : @{
     # Named escape sequences
@@ -63,7 +63,7 @@ T_EscapeSequence : @{
     # fixme: In case when odd amount of digits is provided, a syntax error shall occur.
     #        This is like in Python: "\x2" SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 0-2: truncated \xXX escape
 
-    Any
+    Char
 }
 
 T_Identifier : @{
@@ -71,17 +71,17 @@ T_Identifier : @{
 }
 
 T_Consumable : @{
-    [A-Z_] [0-9A-Z_a-z]*  ast("identifier", $0)
+    Char<A-Z_> Char<0-9A-Z_a-z>*  ast("identifier", $0)
 }
 
 T_Alias : @{
-    [A-Z_a-z] [0-9A-Z_a-z]*  ast("value_string", $0)
+    Char<A-Z_a-z> Char<0-9A-Z_a-z>*  ast("value_string", $0)
 }
 
 T_String : @{
     '"' {
         '\\' T_EscapeSequence
-        [^\\\"]
+        Char<^\\\">
         EOF  error("Unclosed string, expecting '\"'")
     }*  str_join("", $2) expect '"'
 }
@@ -89,7 +89,7 @@ T_String : @{
 T_Touch : @{
     '\'' {
         '\\' T_EscapeSequence
-        [^\\\']
+        Char<^\\\'>
         EOF  error("Unclosed match, expecting '\''")
     }*  str_join("", $2) expect '\''
 }
@@ -106,7 +106,7 @@ T_Float : @{
 
 CclChar : @{
     '\\' T_EscapeSequence
-    [^\]]
+    Char<^\>>
     EOF  error("Unclosed character-class, expecting ']'")
 }
 
@@ -234,8 +234,8 @@ CallArguments : @{
 TokenLiteral : @{
     '\'' T_Touch '\''  ast("value_token_match")
     T_Touch  ast("value_token_touch")
-    '.'  ast("value_token_any")
-    '[' Ccl ']'  ast("value_token_ccl")
+    'Char' _ '<' Ccl '>'  ast("value_token_ccl")
+    'Char'  ast("value_token_any")
 }
 
 TokenAtom : @{
@@ -412,7 +412,8 @@ Nop : Void ast("op_nop")
 
 Tokay : @{
     Instruction+
-    .  error("Parse error, unexpected token", true)
+    Char  error("Parse error, unexpected token", true)
 }
 
 _ Tokay? expect EOF  ast("main")
+#_ Tokay? expect EOF  ast_print(ast("main"))

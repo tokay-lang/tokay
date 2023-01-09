@@ -14,7 +14,7 @@ use charclass::CharClass;
 /// Checks whether identifier's name is the name of a reserved word.
 pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit" | "expect"
+        "Char" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit" | "expect"
         | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek" | "push"
         | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
             None,
