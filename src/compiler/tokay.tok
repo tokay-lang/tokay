@@ -218,8 +218,9 @@ List : @{
 }
 
 InlineBlock : @{
-    '(' _ ___ Dict {___ '|' _ ___ Dict}+ ___ expect ')'  ast("block")
+    '(' _ ___ Dict (___ '|' _ ___ Dict)+ ___ expect ')'  ast("block")
     '(' _ ___ Dict ___ expect ')'
+    '[' _ ___ List (___ '|' _ ___ List)+ ___ expect ']'  ast("block")
     '[' _ ___ List ___ expect ']'
 }
 
