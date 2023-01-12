@@ -1,10 +1,11 @@
 //! Dictionary object
-use super::{BoxedObject, List, Object, RefValue, Str};
+use super::{BoxedObject, List, Object, RefValue, Str, Value};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
+use num::ToPrimitive;
 use std::cmp::Ordering;
 
 // Alias for the inner dict
@@ -218,9 +219,12 @@ impl Dict {
             if let Some(item) = dict.get(&item) {
                 Ok(item.clone())
             } else {
-                if let Ok(index) = item.to_usize() {
-                    if let Some((_, item)) = dict.get_index(index) {
-                        return Ok(item.clone());
+                // In case index is an int that can be turned into an usize, try to obtain the item by index
+                if let Value::Int(index) = &*item.borrow() {
+                    if let Some(index) = index.to_usize() {
+                        if let Some((_, item)) = dict.get_index(index) {
+                            return Ok(item.clone());
+                        }
                     }
                 }
 
