@@ -1,5 +1,6 @@
 //! Tokay value and object representation
 pub mod dict;
+pub mod iter;
 pub mod list;
 mod method;
 mod object;
@@ -11,6 +12,7 @@ pub mod value;
 
 pub use self::str::Str;
 pub use dict::Dict;
+pub use iter::Iter;
 pub use list::List;
 pub use method::Method;
 pub use object::{BoxedObject, Object};

@@ -218,6 +218,12 @@ impl Dict {
             if let Some(item) = dict.get(&item) {
                 Ok(item.clone())
             } else {
+                if let Ok(index) = item.to_usize() {
+                    if let Some((_, item)) = dict.get_index(index) {
+                        return Ok(item.clone());
+                    }
+                }
+
                 Ok(default)
             }
         } else {
