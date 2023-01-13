@@ -8,8 +8,8 @@ In case you encounter a bug, or you miss a feature, please [file an issue](https
 
 ## Pull Requests
 
-If you created a solution for a problem or added a feature, please make a pull request.
-This can also be done as a draft, in case you want to discuss a change or aren't finished.
+If you created a solution for a problem or added a feature, please make a [pull request](https://github.com/tokay-lang/tokay/compare).<br>
+This can also be made as a draft, in case you want to discuss a change or feature, aren't finished or aren't sure if your change is ready to merge. Any pull request is welcome!
 
 ## Versioning
 
@@ -21,7 +21,7 @@ The minor-version define huger milestones. The bugfix-version is not limited to 
 
 # Creating a new release
 
-The `tokay-macros` crate is located in the folder `macros/`. Preliminarily to a Tokay release, it is necessary release `tokay-macros` in a separate version to `crates.io`. Otherwise, during development, `tokay-macros` are a local dependency in `Cargo.toml`.
+The `tokay-macros` crate is located in the folder `macros/`. Preliminarily to a Tokay release, it is necessary to release `tokay-macros` in a separate version to `crates.io`. Otherwise, during development, `tokay-macros` can be a local dependency in `Cargo.toml` - it depends on the use-case.
 
 Next are some instructions on how to create a new release.
 
