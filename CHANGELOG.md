@@ -4,38 +4,54 @@
 
 Current main branch.
 
+## [v0.6]
+
+Released on Jan 13, 2023
+
 - General
-  - Use of numeric parsing features from [num-parse](https://crates.io/crates/num-parse) for `Int` and internal string-to-int conversion ("parseInt()"-like behavior)
+  - Use of [num-parse](https://crates.io/crates/num-parse) for `Int` and internal string-to-int conversion ("parseInt()"-like behavior) (#65)
+  - Updated `clap` command-line parser to v3 (#61)
+  - Improving internal `testcase` function and moving all prior `#[test]`-functions into separate Tokay testcases (#86)
 - Syntax
+  - Operator `//` for integer division implemented (#92)
+  - Operator `%` for modulo operation implemented
+  - Area syntax `@(...)` for in-place reader extend (#78)
+  - Character-class syntax changed from `[a-z]` into `Char<a-z>`, `.` and `Any` substituted by `Char` (#98)
+  )
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
     - `()` the empty list
     - `(1,)` list with one item (explicit comma required)
-  - Implemented `[`...`]` item access syntax for rvalue and lvalue
+  - Implemented `x[...]` item access syntax for rvalue and lvalue (#80)
+  - Preliminaries for generic parselets (#10)
+  - New built-in signatures (#84)
 - Compiler
-  - Entire revision of the compiler module
+  - Parser
+    - `parser.rs` is now generated from `tokay.tok`; syntax-changes are only done in `tokay.tok` now! (#93)
+    - Removed `macros.rs` and macro-based bootstrap parser entirely
+  - Internal revision
     - Removed structs `Usage` and `ImlResult`
     - Integrating all `impl Compileable`s into `ImlOp`
-    - Code construction happens in `ImlOp` as well now
+    - Code construction now happens in `ImlOp` as well
     - Added required changes to
       - determine whether a part of code consumes input
       - preliminaries to generic parselets (yet unfinished)
-  - Include `prelude.tok` with default parselets
+  - `prelude.tok` provides some default-parselets defined in Tokay itself
     - `Number` matches either `Float` or `Int`
     - `Token` matches arbitrary tokens
 - Virtual Machine
-  - Internal refactoring of the essential `Context::collect()`-function
+  - Internal refactoring of the essential `Context::collect()`-function (#67)
   - `Frame` is now managed by `Context`
 - Values
-  - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type.
-  - Definition of mutable objects; Imutable objects push a clone of, mutable objects push a ref on the object.
+  - Turned Value::Int to crate [num-bigint](https://crates.io/crates/num-bigint), replaced Value::Addr by the same type (#55)
+  - Definition of mutable objects; Imutable objects push a clone of, mutable objects push a ref on the object
+  - `dict` now allow for any non-mutable value as key (#96)
 - Builtins
   - Added `dict.clone()`, `dict_push()`, `dict.pop()`, `dict.get_item()`, `dict.set_item()`, `list.get_item()`, `list.set_item()`, `str.get_item()`
   - Renamed `dict_update()` into `dict_merge()`
 - Examples
-  - The self-hosted Tokay parser in `examples/tokay.tok` was syncronized with the builtin parser, so both construct equally the same abstract syntax tree
+  - The self-hosted Tokay parser in `examples/tokay.tok` was now moved into `src/compiler/tokay.tok` and is used to generate `src/compiler/parser.rs` (#93)
   - The JSON parser example in `examples/json.tok` was improved to latest developments
-
 
 ## [v0.5]
 
@@ -130,7 +146,8 @@ Released on Mar 4, 2021
 - Symbol resolving and scopes
 
 
-[main]: https://github.com/tokay-lang/tokay/compare/v0.5...main
+[main]: https://github.com/tokay-lang/tokay/compare/v0.6...main
+[v0.6]: https://github.com/tokay-lang/tokay/compare/v0.5...v0.6
 [v0.5]: https://github.com/tokay-lang/tokay/compare/v0.4...v0.5
 [v0.4]: https://github.com/tokay-lang/tokay/compare/v0.3...v0.4
 [v0.3]: https://github.com/tokay-lang/tokay/compare/v0.2...v0.3
