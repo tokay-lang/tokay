@@ -1,6 +1,9 @@
 //! An iterator, probably running on a given object
-use super::{Object, RefValue};
+use super::{Object, RefValue, Value};
 use crate::value;
+use crate::Error;
+use tokay_macros::tokay_method;
+extern crate self as tokay;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Iter {
@@ -46,14 +49,44 @@ impl Iterator for Iter {
     }
 }
 
-/*
+impl Iter {
+    tokay_method!("iter : @value", { Ok(RefValue::from(Iter::new(value))) });
+
+    tokay_method!("iter_next : @iter", {
+        let mut iter = iter.borrow_mut();
+
+        if let Some(iter) = iter.object_mut::<Iter>() {
+            Ok(RefValue::from(iter.next().unwrap_or_else(|| value!(void))))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "iter",
+                iter.name()
+            )))
+        }
+    });
+
+    tokay_method!("iter_len : @iter", {
+        let mut iter = iter.borrow_mut();
+
+        Ok(RefValue::from(
+            if let Some(iter) = iter.object_mut::<Iter>() {
+                iter.count()
+            } else {
+                1
+            },
+        ))
+    });
+}
+
 impl Object for Iter {
     fn name(&self) -> &'static str {
         "iter"
     }
 
     fn repr(&self) -> String {
-        let mut repr = self.method.repr();
+        let mut repr = self.object.repr();
         if repr.starts_with("<") && repr.ends_with(">") {
             repr = repr[1..repr.len() - 1].to_string();
         }
@@ -71,23 +104,5 @@ impl Object for Iter {
 impl From<Iter> for RefValue {
     fn from(iter: Iter) -> Self {
         Value::Object(Box::new(iter)).into()
-    }
-}
-*/
-
-#[test]
-fn iter() {
-    let list = value!([1, 2, 3, 99]);
-    let iter = Iter::new(list);
-
-    for (i, value) in iter.enumerate() {
-        println!("{} => {:?}", i, value);
-    }
-
-    let dict = value!(["a" => 1, "b" => 2, "c" => 3, "d" => 99]);
-    let iter = Iter::new(dict);
-
-    for (i, value) in iter.enumerate() {
-        println!("{} => {:?}", i, value);
     }
 }
