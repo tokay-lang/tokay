@@ -445,7 +445,12 @@ impl Compiler {
             }
         }
 
-        // When not found, check for a builtin function
+        self.get_builtin(name)
+    }
+
+    /** Get defined builtin. */
+    pub(in crate::compiler) fn get_builtin(&mut self, name: &str) -> Option<ImlValue> {
+        // Check for a builtin function
         if let Some(builtin) = Builtin::get(name) {
             return Some(RefValue::from(builtin).into()); // fixme: Makes a Value into a RefValue into a Value...
         }

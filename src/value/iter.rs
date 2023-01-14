@@ -50,7 +50,7 @@ impl Iterator for Iter {
 }
 
 impl Iter {
-    tokay_method!("iter : @value", { Ok(RefValue::from(Iter::new(value))) });
+    tokay_method!("iter : @value", Ok(RefValue::from(Iter::new(value))));
 
     tokay_method!("iter_next : @iter", {
         let mut iter = iter.borrow_mut();

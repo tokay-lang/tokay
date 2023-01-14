@@ -1284,23 +1284,41 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "for" => {
                     let children = node["children"].borrow();
                     let children = children.object::<List>().unwrap();
+                    assert!(children.len() == 3);
 
-                    let (initial, condition, increment, body) = (
+                    let (var, iter_expr, body) = (
                         &children[0].borrow(),
                         &children[1].borrow(),
                         &children[2].borrow(),
-                        &children[3].borrow(),
                     );
 
-                    let initial = initial.object::<Dict>().unwrap();
-                    let condition = condition.object::<Dict>().unwrap();
-                    let increment = increment.object::<Dict>().unwrap();
+                    let var = var.object::<Dict>().unwrap();
+                    let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    // Initial
-                    let initial = traverse_node_rvalue(compiler, initial, Rvalue::CallOrLoad);
-                    let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
-                    let increment = traverse_node_rvalue(compiler, increment, Rvalue::CallOrLoad);
+                    let iter = compiler.new_local("$$$iter"); // todo: anonymous variables
+
+                    let initial = vec![
+                        traverse_node_rvalue(compiler, iter_expr, Rvalue::Load),
+                        ImlOp::call(
+                            None,
+                            compiler.get_builtin("iter").unwrap(),
+                            Some((1, false)),
+                        ),
+                        ImlOp::from(Op::StoreFast(iter)),
+                    ];
+
+                    let condition = vec![
+                        ImlOp::from(Op::LoadFast(iter)),
+                        ImlOp::call(
+                            None,
+                            compiler.get_builtin("iter_next").unwrap(),
+                            Some((1, false)),
+                        ),
+                        traverse_node_lvalue(
+                            compiler, var, true, true, //hold for preceding loop break check
+                        ),
+                    ];
 
                     compiler.loop_push();
                     let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
@@ -1308,9 +1326,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     ImlOp::Loop {
                         consuming: None,
-                        initial: Box::new(initial),
-                        condition: Box::new(condition),
-                        increment: Box::new(increment),
+                        initial: Box::new(ImlOp::from(initial)),
+                        condition: Box::new(ImlOp::from(condition)),
+                        increment: Box::new(ImlOp::Nop),
                         body: Box::new(body),
                     }
                 }
