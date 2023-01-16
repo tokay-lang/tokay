@@ -1296,8 +1296,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    let iter = compiler.new_local("$$$iter"); // todo: anonymous variables
+                    let temp = compiler.pop_temp(); // Borrow a temporary, unnamed variable
 
+                    // Create an iter() on the iter expression
                     let initial = vec![
                         traverse_node_rvalue(compiler, iter_expr, Rvalue::Load),
                         ImlOp::call(
@@ -1305,11 +1306,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             compiler.get_builtin("iter").unwrap(),
                             Some((1, false)),
                         ),
-                        ImlOp::from(Op::StoreFast(iter)),
+                        ImlOp::from(Op::StoreFast(temp)),
                     ];
 
+                    // Create the condition, which calls iter_next() until void is returned
                     let condition = vec![
-                        ImlOp::from(Op::LoadFast(iter)),
+                        ImlOp::from(Op::LoadFast(temp)),
                         ImlOp::call(
                             None,
                             compiler.get_builtin("iter_next").unwrap(),
@@ -1318,11 +1320,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         traverse_node_lvalue(
                             compiler, var, true, true, //hold for preceding loop break check
                         ),
+                        // BUG: in case anything which is !is_true() is returned, the loop will break.
+                        //      This shoud only be the case when explicit void is stacked.
                     ];
 
                     compiler.loop_push();
                     let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
                     compiler.loop_pop();
+                    compiler.push_temp(temp); // Give temp variable back for possible reuse.
 
                     ImlOp::Loop {
                         consuming: None,
