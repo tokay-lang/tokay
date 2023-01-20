@@ -8,7 +8,7 @@ mod runtime;
 
 pub use capture::*;
 pub use context::*;
-pub use op::*;
+pub(crate) use op::*;
 pub use program::*;
 pub use runtime::*;
 
