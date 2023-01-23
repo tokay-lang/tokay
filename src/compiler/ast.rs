@@ -1300,7 +1300,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Create an iter() on the iter expression
                     let initial = ImlOp::from(vec![
-                        traverse_node_rvalue(compiler, iter_expr, Rvalue::Load),
+                        traverse_node_rvalue(compiler, iter_expr, Rvalue::CallOrLoad),
                         ImlOp::call(
                             None,
                             compiler.get_builtin("iter").unwrap(),

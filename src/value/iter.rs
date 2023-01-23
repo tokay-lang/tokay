@@ -7,15 +7,19 @@ extern crate self as tokay;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Iter {
-    object: RefValue,
-    index: Option<RefValue>,
+    pub object: RefValue,
+    pub method: &'static str,
+    pub index: Option<RefValue>,
+    pub op: &'static str,
 }
 
 impl Iter {
     fn new(object: RefValue) -> Self {
         Self {
             object,
+            method: "get_item",
             index: Some(value!(0)),
+            op: "iinc",
         }
     }
 }
@@ -25,11 +29,11 @@ impl Iterator for Iter {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(index) = self.index.clone() {
-            match self.object.call_method("get_item", vec![index.clone()]) {
+            match self.object.call_method(self.method, vec![index.clone()]) {
                 Ok(Some(next)) => {
                     // When next is not void, increment index and return next
                     if !next.is_void() {
-                        self.index = Some(index.unary_op("iinc").unwrap());
+                        self.index = Some(index.unary_op(self.op).unwrap());
                         return Some(next);
                     }
                 }
@@ -50,7 +54,19 @@ impl Iterator for Iter {
 }
 
 impl Iter {
-    tokay_method!("iter : @value", Ok(RefValue::from(Iter::new(value))));
+    tokay_method!("iter : @value", {
+        if value.is("iter") {
+            Ok(value)
+        }
+        // Check for an available iter() method on the provided value first
+        else if let Ok(Some(iter)) = value.call_method("iter", Vec::new()) {
+            Ok(iter)
+        }
+        // Default fallback to Iter on the object
+        else {
+            Ok(RefValue::from(Iter::new(value)))
+        }
+    });
 
     tokay_method!("iter_next : @iter", {
         let mut iter = iter.borrow_mut();

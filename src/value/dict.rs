@@ -1,5 +1,5 @@
 //! Dictionary object
-use super::{BoxedObject, List, Object, RefValue, Str, Value};
+use super::{BoxedObject, Iter, Object, RefValue, Str, Value};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
@@ -132,17 +132,25 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_keys : @dict", {
+    tokay_method!("dict_keys : @dict, index=void", {
+        // If index is void, create an iterator on keys.
+        if index.is_void() {
+            return Ok(RefValue::from(Iter {
+                object: dict,
+                method: "keys",
+                index: Some(value!(0)),
+                op: "iinc",
+            }));
+        }
+
+        // Otherwise, borrow
         let dict = dict.borrow();
-
         if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for key in dict.keys() {
-                list.push(RefValue::from(key.to_owned()));
+            if let Some((key, _)) = dict.get_index(index.to_usize()?) {
+                Ok(key.clone())
+            } else {
+                Ok(value!(void))
             }
-
-            Ok(RefValue::from(list))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -153,46 +161,25 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_values : @dict", {
-        let dict = dict.borrow();
-
-        if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for value in dict.values() {
-                list.push(value.clone());
-            }
-
-            Ok(RefValue::from(list))
-        } else {
-            Err(Error::from(format!(
-                "{} only accepts '{}' as parameter, not '{}'",
-                __function,
-                "dict",
-                dict.name()
-            )))
+    tokay_method!("dict_items : @dict, index=void", {
+        // If index is void, create an iterator on items.
+        if index.is_void() {
+            return Ok(RefValue::from(Iter {
+                object: dict,
+                method: "items",
+                index: Some(value!(0)),
+                op: "iinc",
+            }));
         }
-    });
 
-    tokay_method!("dict_items : @dict", {
+        // Otherwise, borrow
         let dict = dict.borrow();
-
         if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for (key, value) in dict.iter() {
-                // fixme: wanted to shortcut this all with
-                //  list.push(value!([key.to_string(), value.clone()]));
-                // but doesn't compile.
-                let mut item = List::with_capacity(2);
-
-                item.push(RefValue::from(key.to_string()));
-                item.push(value.clone());
-
-                list.push(RefValue::from(item));
+            if let Some((key, value)) = dict.get_index(index.to_usize()?) {
+                Ok(value!([(key.clone()), (value.clone())]))
+            } else {
+                Ok(value!(void))
             }
-
-            Ok(RefValue::from(list))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
