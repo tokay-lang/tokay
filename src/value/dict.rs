@@ -132,6 +132,7 @@ impl Dict {
         }
     });
 
+    /// Method to retrieve or iterate the keys of a dict.
     tokay_method!("dict_keys : @dict, index=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
@@ -161,6 +162,7 @@ impl Dict {
         }
     });
 
+    /// Method to retrieve or iterate a list of [key, value] from a dict by index
     tokay_method!("dict_items : @dict, index=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {
@@ -206,7 +208,8 @@ impl Dict {
             if let Some(item) = dict.get(&item) {
                 Ok(item.clone())
             } else {
-                // In case index is an int that can be turned into an usize, try to obtain the item by index
+                // In case index is an int that can be turned into an usize,
+                // try to obtain the dict item by its index
                 if let Value::Int(index) = &*item.borrow() {
                     if let Some(index) = index.to_usize() {
                         if let Some((_, item)) = dict.get_index(index) {

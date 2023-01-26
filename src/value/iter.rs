@@ -55,7 +55,7 @@ impl Iterator for Iter {
 
 impl Iter {
     tokay_method!("iter : @value", {
-        if value.is("iter") {
+        if value.is("iter") || value.is_void() {
             Ok(value)
         }
         // Check for an available iter() method on the provided value first
