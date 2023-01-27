@@ -4420,6 +4420,10 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "___"
+                                                                    ])),
+                                                                    (value!([
                                                                         "emit" => "op_mod_expect",
                                                                         "children" =>
                                                                             (value!([

@@ -132,7 +132,7 @@ impl Dict {
         }
     });
 
-    /// Method to retrieve or iterate the keys of a dict.
+    // Method to retrieve or iterate the keys of a dict.
     tokay_method!("dict_keys : @dict, index=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
@@ -159,7 +159,7 @@ impl Dict {
         }
     });
 
-    /// Method to retrieve or iterate a list of [key, value] from a dict by index
+    // Method to retrieve or iterate a list of [key, value] from a dict by index
     tokay_method!("dict_items : @dict, index=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {

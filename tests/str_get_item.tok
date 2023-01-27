@@ -1,6 +1,6 @@
 s = "Hello"
 l = ()
-for i = 0; i < s.len; i++ {
+for i in range(s.len) {
     print(i, s[i])
     l.push(s[i] + i)
 }

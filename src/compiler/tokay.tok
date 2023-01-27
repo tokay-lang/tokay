@@ -278,7 +278,7 @@ Atomic : @{
     Literal
     Token1
     'if' _standalone_ expect HoldExpression ___ expect Statement (___ 'else' _standalone_ ___ expect Statement)?  ast("op_if")
-    'for' _standalone_ expect Lvalue _ expect 'in' _standalone_ expect Expression expect Statement  ast("op_for")
+    'for' _standalone_ expect Lvalue _ expect 'in' _standalone_ expect Expression ___ expect Statement  ast("op_for")
     'loop' _standalone_ HoldExpression ___ Block  ast("op_loop")
     'loop' _standalone_ expect Block  ast("op_loop")
     Load

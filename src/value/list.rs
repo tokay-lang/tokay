@@ -1,5 +1,5 @@
 //! List object
-use super::{BoxedObject, Object, RefValue};
+use super::{BoxedObject, Iter, Object, RefValue};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
@@ -306,12 +306,26 @@ impl std::iter::IntoIterator for List {
 
 impl From<RefValue> for List {
     fn from(refvalue: RefValue) -> Self {
-        if let Some(list) = refvalue.borrow().object::<List>() {
-            (*list).clone()
-        } else {
-            Self {
-                list: vec![refvalue.clone()],
+        match refvalue.name() {
+            "iter" => {
+                let mut iter = refvalue.borrow_mut();
+                let iter = iter.object_mut::<Iter>().unwrap();
+                let mut list = InnerList::new();
+
+                for item in iter {
+                    list.push(item);
+                }
+
+                Self { list }
             }
+            "list" => {
+                let list = refvalue.borrow();
+                let list = list.object::<List>().unwrap();
+                (*list).clone()
+            }
+            _ => Self {
+                list: vec![refvalue.clone()],
+            },
         }
     }
 }
