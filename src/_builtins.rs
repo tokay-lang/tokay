@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 55] = [
+pub static BUILTINS: [Builtin; 56] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -165,6 +165,10 @@ pub static BUILTINS: [Builtin; 55] = [
     Builtin {
         name: "print",
         func: crate::builtin::tokay_function_print,
+    },
+    Builtin {
+        name: "range",
+        func: crate::value::iter::tokay_function_range,
     },
     Builtin {
         name: "repr",

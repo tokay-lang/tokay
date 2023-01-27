@@ -136,12 +136,9 @@ impl Dict {
     tokay_method!("dict_keys : @dict, index=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
-            return Ok(RefValue::from(Iter {
-                object: dict,
-                method: "keys",
-                index: Some(value!(0)),
-                op: "iinc",
-            }));
+            return Ok(RefValue::from(Iter::new_method_op(
+                dict, "keys", "iinc", None,
+            )));
         }
 
         // Otherwise, borrow
@@ -166,12 +163,9 @@ impl Dict {
     tokay_method!("dict_items : @dict, index=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {
-            return Ok(RefValue::from(Iter {
-                object: dict,
-                method: "items",
-                index: Some(value!(0)),
-                op: "iinc",
-            }));
+            return Ok(RefValue::from(Iter::new_method_op(
+                dict, "items", "iinc", None,
+            )));
         }
 
         // Otherwise, borrow
