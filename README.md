@@ -21,7 +21,7 @@
 
 Tokay is a programming language designed for ad-hoc parsing.
 
-> Tokay is under development and not considered for production use yet; There are plenty of bugs, incomplete or experimental features and planned concepts. Be part of Tokay's ongoing development, and [contribute](#contribute)!
+> Tokay is under development and not considered for production use yet; Be part of Tokay's ongoing development, and [contribute](CONTRIBUTING.md)!
 
 ## About
 
@@ -31,7 +31,7 @@ Therefore, Tokay is both a tool and language for simple one-liners, but can also
 
 Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), has syntactic and semantic flavours of [Python](https://www.python.org/) and [Rust](https://www.rust-lang.org/), but also follows its own philosophy, ideas and design principles. Thus, it isn't compareable to other languages or projects, and is a language on its own.
 
-Tokay is still a very young project and gains much potential. [Volunteers are welcome!](#contribute)
+Tokay is still a very young project and gains much potential. [Volunteers are welcome!](CONTRIBUTING.md)
 
 ## Highlights
 
@@ -195,32 +195,7 @@ print(factorial(int(Number)))
 
 ## Documentation
 
-Same as Tokay itself, the documentation is currently established. The latest version can be obtained on the website [tokay.dev](https://tokay.dev). The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
-
-## Repository
-
-This repository holds all required source files to provide Tokay with examples.
-
-```
-.                  # Build scripts, Cargo.toml, etc.
-├── examples       # Example programs
-├── macros         # Source of the tokay-macros crate required for building
-├── src            # Tokay's source code
-│   ├── compiler   # Compiler source
-│   ├── value      # Object system source
-│   └── vm         # Virtual machine source
-└── tests          # Some use-case examples required by the test suite
-```
-
-## Contribute
-
-Contributions of any kind, might it be code, bug reports, bugfixes, documentation, support or advertising are always welcome!
-
-Take a look into the [bug tracker](https://github.com/tokay-lang/tokay/issues) or watch for `//fixme`- and `//todo`-comments in the source code for open issues and things that need to be improved (there are plenty of them).
-
-If you want to create a pull request, ensure that `cargo run` and `cargo test` run without errors. When new features where added, don't miss to write some unit tests for them. Run `cargo fmt` before you finally commit.
-
-Feel free to [contact me](https://phorward.info) directly on any questions, or [file an issue here](https://github.com/tokay-lang/tokay/issues/new).
+The Tokay homepage [tokay.dev](https://tokay.dev) provides links to a quick start and documentation. The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
 
 ## Logo
 
