@@ -3609,11 +3609,75 @@ impl Parser {
                                                                 (value!([
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
-                                                                        "value" => "Char"
+                                                                        "value" => "Chars"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "value_token_touch",
+                                                                        "value" => "<"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "value" => "_"
+                                                                        "value" => "Ccl"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "value_token_touch",
+                                                                        "value" => ">"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "call",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "ast"
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "callarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "value_string",
+                                                                                            "value" => "value_token_ccls"
+                                                                                        ]))
+                                                                                ]))
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
+                                                        ])),
+                                                        (value!([
+                                                            "emit" => "sequence",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "value_token_touch",
+                                                                        "value" => "Chars"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "call",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "ast"
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "callarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "value_string",
+                                                                                            "value" => "value_token_anys"
+                                                                                        ]))
+                                                                                ]))
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
+                                                        ])),
+                                                        (value!([
+                                                            "emit" => "sequence",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "value_token_touch",
+                                                                        "value" => "Char"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "value_token_touch",

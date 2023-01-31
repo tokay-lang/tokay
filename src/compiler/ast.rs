@@ -14,9 +14,9 @@ use charclass::CharClass;
 /// Checks whether identifier's name is the name of a reserved word.
 pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
-        "Char" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit" | "expect"
-        | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek" | "push"
-        | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
+        "Char" | "Chars" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit"
+        | "expect" | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek"
+        | "push" | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
             None,
             format!("Expected identifier, found reserved word '{}'", ident),
         )),
@@ -103,8 +103,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 RefValue::from(Token::Touch(value)).into()
             }
         }
-        "value_token_any" => RefValue::from(Token::any()).into(),
-        "value_token_ccl" => {
+        "value_token_any" => RefValue::from(Token::Char(CharClass::new().negate())).into(),
+        "value_token_anys" => RefValue::from(Token::Chars(CharClass::new().negate())).into(),
+        "value_token_ccl" | "value_token_ccls" => {
+            let many = emit.ends_with("s");
+
             let node = node["children"].borrow();
             let node = node.object::<Dict>().unwrap();
 
@@ -143,9 +146,14 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             if emit == "ccl_neg" {
-                RefValue::from(Token::Char(ccl.negate())).into()
+                ccl = ccl.negate();
             } else {
                 assert!(emit == "ccl");
+            }
+
+            if many {
+                RefValue::from(Token::Chars(ccl)).into()
+            } else {
                 RefValue::from(Token::Char(ccl)).into()
             }
         }

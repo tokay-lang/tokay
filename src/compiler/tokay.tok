@@ -234,7 +234,9 @@ CallArguments : @{
 TokenLiteral : @{
     '\'' T_Touch '\''  ast("value_token_match")
     T_Touch  ast("value_token_touch")
-    'Char' _ '<' Ccl '>'  ast("value_token_ccl")
+    'Chars' '<' Ccl '>'  ast("value_token_ccls")
+    'Chars'  ast("value_token_anys")
+    'Char' '<' Ccl '>'  ast("value_token_ccl")
     'Char'  ast("value_token_any")
 }
 
