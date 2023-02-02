@@ -12,20 +12,22 @@ extern crate self as tokay;
 pub struct MethodOpIter {
     pub object: RefValue,
     pub method: &'static str,
-    pub op: &'static str,
     pub index: Option<RefValue>,
+    pub incop: &'static str,
+    pub rindex: Option<RefValue>,
+    pub decop: &'static str,
 }
 
 impl Iterator for MethodOpIter {
     type Item = RefValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(index) = self.index.clone() {
+        if let Some(index) = &self.index {
             match self.object.call_method(self.method, vec![index.clone()]) {
                 Ok(Some(next)) => {
                     // When next is not void, increment index and return next
                     if !next.is_void() {
-                        self.index = Some(index.unary_op(self.op).unwrap());
+                        self.index = Some(index.clone().unary_op(self.incop).unwrap());
                         return Some(next);
                     }
                 }
@@ -45,11 +47,39 @@ impl Iterator for MethodOpIter {
     }
 }
 
+impl DoubleEndedIterator for MethodOpIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(rindex) = &self.rindex {
+            let rindex = rindex.clone().unary_op(self.decop).unwrap();
+
+            match self.object.call_method(self.method, vec![rindex.clone()]) {
+                Ok(Some(next)) => {
+                    // When next is not void, increment index and return next
+                    if !next.is_void() {
+                        self.rindex = Some(rindex);
+                        return Some(next);
+                    }
+                }
+                _ => {
+                    // Special case: Return the object itself once as its own iter
+                    if !rindex.is_true() {
+                        return Some(self.object.clone());
+                    }
+                }
+            }
+
+            self.rindex = None; // Invalidate this iterator
+        }
+
+        None
+    }
+}
+
 #[derive(Clone)]
 pub enum Iter {
     MethodOp(MethodOpIter),
     Builtin {
-        iter: Rc<RefCell<dyn Iterator<Item = RefValue>>>,
+        iter: Rc<RefCell<dyn DoubleEndedIterator<Item = RefValue>>>,
         repr: String,
     },
 }
@@ -57,22 +87,33 @@ pub enum Iter {
 impl Iter {
     /// Creates a new iterator on object, with default "get_item"-method and "iinc"-operation.
     pub fn new(object: RefValue) -> Self {
-        Iter::new_method_op(object, "get_item", "iinc", None)
+        Iter::new_method_op(
+            object.clone(),
+            "get_item",
+            None,
+            "iinc",
+            object.call_method("len", Vec::new()).unwrap(),
+            "idec",
+        )
     }
 
-    /// Creates a new iterator ob object, using item retrieval method and op operation.
+    /// Creates a new iterator on object, using item retrieval method and op operation.
     /// index can be set to an optional start value; If None, the iterator will be initialized with Some(0).
     pub fn new_method_op(
         object: RefValue,
         method: &'static str,
-        op: &'static str,
         index: Option<RefValue>,
+        incop: &'static str,
+        rindex: Option<RefValue>,
+        decop: &'static str,
     ) -> Self {
         Self::MethodOp(MethodOpIter {
-            object,
+            object: object.clone(),
             method,
-            op,
+            incop,
             index: index.or_else(|| Some(value!(0))),
+            decop,
+            rindex,
         })
     }
 
@@ -105,6 +146,23 @@ impl Iter {
         }
     });
 
+    tokay_method!("iter_prev : @iter", {
+        let mut iter = iter.borrow_mut();
+
+        if let Some(iter) = iter.object_mut::<Iter>() {
+            Ok(RefValue::from(
+                iter.next_back().unwrap_or_else(|| value!(void)),
+            ))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "iter",
+                iter.name()
+            )))
+        }
+    });
+
     tokay_method!("iter_len : @iter", {
         let mut iter = iter.borrow_mut();
 
@@ -127,6 +185,18 @@ impl Iterator for Iter {
             Self::Builtin { iter, .. } => {
                 let mut iter = iter.borrow_mut();
                 iter.next()
+            }
+        }
+    }
+}
+
+impl DoubleEndedIterator for Iter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::MethodOp(iter) => iter.next_back(),
+            Self::Builtin { iter, .. } => {
+                let mut iter = iter.borrow_mut();
+                iter.next_back()
             }
         }
     }
@@ -184,7 +254,7 @@ impl From<Iter> for RefValue {
 
 struct RangeIterator {
     next: Option<BigInt>,
-    stop: BigInt,
+    stop: Option<BigInt>,
     step: BigInt,
 }
 
@@ -192,15 +262,31 @@ impl Iterator for RangeIterator {
     type Item = RefValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(next) = self.next.as_mut() {
-            let ret = next.clone();
-            *next += &self.step;
-
-            if *next >= self.stop {
-                self.next = None;
+        if let (Some(next), Some(stop)) = (self.next.as_mut(), &self.stop) {
+            if *next < *stop {
+                let ret = next.clone();
+                *next += &self.step;
+                return Some(RefValue::from(ret));
             }
 
-            return Some(RefValue::from(ret));
+            self.next = None;
+            self.stop = None;
+        }
+
+        None
+    }
+}
+
+impl DoubleEndedIterator for RangeIterator {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let (Some(next), Some(stop)) = (&self.next, self.stop.as_mut()) {
+            if *stop > *next {
+                *stop -= &self.step;
+                return Some(RefValue::from(stop.clone()));
+            }
+
+            self.next = None;
+            self.stop = None;
         }
 
         None
@@ -222,7 +308,7 @@ tokay_function!("range : @start, stop=void, step=1", {
         repr: format!("range({}, {}, {})", start, stop, step),
         iter: Rc::new(RefCell::new(RangeIterator {
             next: Some(start),
-            stop,
+            stop: Some(stop),
             step,
         })),
     })

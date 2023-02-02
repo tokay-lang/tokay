@@ -137,7 +137,12 @@ impl Dict {
         // If index is void, create an iterator on keys.
         if index.is_void() {
             return Ok(RefValue::from(Iter::new_method_op(
-                dict, "keys", "iinc", None,
+                dict.clone(),
+                "keys",
+                None,
+                "iinc",
+                dict.call_method("len", Vec::new()).unwrap(),
+                "idec",
             )));
         }
 
@@ -164,7 +169,12 @@ impl Dict {
         // If index is void, create an iterator on items.
         if index.is_void() {
             return Ok(RefValue::from(Iter::new_method_op(
-                dict, "items", "iinc", None,
+                dict.clone(),
+                "items",
+                None,
+                "iinc",
+                dict.call_method("len", Vec::new()).unwrap(),
+                "idec",
             )));
         }
 
