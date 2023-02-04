@@ -66,6 +66,7 @@ impl DoubleEndedIterator for MethodOpIter {
                     _ => {
                         // Special case: Return the object itself once as its own iter
                         if !rindex.is_true() {
+                            self.rindex = None; // Invalidate this iterator
                             return Some(self.object.clone());
                         }
                     }
@@ -96,7 +97,9 @@ impl Iter {
             "get_item",
             None,
             "iinc",
-            object.call_method("len", Vec::new()).unwrap(),
+            object
+                .call_method("len", Vec::new())
+                .unwrap_or_else(|_| Some(value![1])),
             "idec",
         )
     }
