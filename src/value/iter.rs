@@ -13,29 +13,31 @@ pub struct MethodOpIter {
     pub object: RefValue,
     pub method: &'static str,
     pub index: Option<RefValue>,
-    pub incop: &'static str,
+    pub inc_op: &'static str,
     pub rindex: Option<RefValue>,
-    pub decop: &'static str,
+    pub dec_op: &'static str,
 }
 
 impl Iterator for MethodOpIter {
     type Item = RefValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(index) = &self.index {
-            match self.object.call_method(self.method, vec![index.clone()]) {
-                Ok(Some(next)) => {
-                    // When next is not void, increment index and return next
-                    if !next.is_void() {
-                        self.index = Some(index.clone().unary_op(self.incop).unwrap());
-                        return Some(next);
+        if let (Some(index), Some(rindex)) = (&self.index, &self.rindex) {
+            if index <= rindex {
+                match self.object.call_method(self.method, vec![index.clone()]) {
+                    Ok(Some(next)) => {
+                        // When next is not void, increment index and return next
+                        if !next.is_void() {
+                            self.index = Some(index.clone().unary_op(self.inc_op).unwrap());
+                            return Some(next);
+                        }
                     }
-                }
-                _ => {
-                    // Special case: Return the object itself once as its own iter
-                    if !index.is_true() {
-                        self.index = None; // Invalidate this iterator
-                        return Some(self.object.clone());
+                    _ => {
+                        // Special case: Return the object itself once as its own iter
+                        if !index.is_true() {
+                            self.index = None; // Invalidate this iterator
+                            return Some(self.object.clone());
+                        }
                     }
                 }
             }
@@ -49,21 +51,23 @@ impl Iterator for MethodOpIter {
 
 impl DoubleEndedIterator for MethodOpIter {
     fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(rindex) = &self.rindex {
-            let rindex = rindex.clone().unary_op(self.decop).unwrap();
+        if let (Some(rindex), Some(index)) = (&self.rindex, &self.index) {
+            let rindex = rindex.clone().unary_op(self.dec_op).unwrap();
 
-            match self.object.call_method(self.method, vec![rindex.clone()]) {
-                Ok(Some(next)) => {
-                    // When next is not void, increment index and return next
-                    if !next.is_void() {
-                        self.rindex = Some(rindex);
-                        return Some(next);
+            if &rindex >= index {
+                match self.object.call_method(self.method, vec![rindex.clone()]) {
+                    Ok(Some(next)) => {
+                        // When next is not void, increment index and return next
+                        if !next.is_void() {
+                            self.rindex = Some(rindex);
+                            return Some(next);
+                        }
                     }
-                }
-                _ => {
-                    // Special case: Return the object itself once as its own iter
-                    if !rindex.is_true() {
-                        return Some(self.object.clone());
+                    _ => {
+                        // Special case: Return the object itself once as its own iter
+                        if !rindex.is_true() {
+                            return Some(self.object.clone());
+                        }
                     }
                 }
             }
@@ -103,16 +107,16 @@ impl Iter {
         object: RefValue,
         method: &'static str,
         index: Option<RefValue>,
-        incop: &'static str,
+        inc_op: &'static str,
         rindex: Option<RefValue>,
-        decop: &'static str,
+        dec_op: &'static str,
     ) -> Self {
         Self::MethodOp(MethodOpIter {
             object: object.clone(),
             method,
-            incop,
+            inc_op,
             index: index.or_else(|| Some(value!(0))),
-            decop,
+            dec_op,
             rindex,
         })
     }
