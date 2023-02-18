@@ -15,17 +15,17 @@ pub(in crate::compiler) type SharedImlOp = Rc<RefCell<ImlOp>>;
 /// Target of a call or load
 #[derive(Clone)]
 pub(in crate::compiler) enum ImlTarget {
-    Unresolved(String), // Compile-time identifier (unresolved!)
-    Generic(String),    // Compile-time generic identifier
-    Static(ImlValue),   // Compile-time static value
-    Local(usize),       // Runtime local value
-    Global(usize),      // Runtime global value
+    Unknown(String),   // Compile-time unknown identifier
+    Undefined(String), // Compile-time declared but undefined identifier (used by generic parselets)
+    Static(ImlValue),  // Compile-time static value
+    Local(usize),      // Runtime local value
+    Global(usize),     // Runtime global value
 }
 
 impl ImlTarget {
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Unresolved(name) | Self::Generic(name) => {
+            Self::Unknown(name) | Self::Undefined(name) => {
                 crate::utils::identifier_is_consumable(name)
             }
             Self::Static(value) => value.is_consuming(),
@@ -35,9 +35,10 @@ impl ImlTarget {
 }
 
 impl std::fmt::Debug for ImlTarget {
+    // Manual implementation is required to avoid endless recursion here
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unresolved(name) | Self::Generic(name) => write!(f, "{}", name),
+            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Static(value) => write!(f, "{}", value),
             Self::Local(addr) => write!(f, "local@{}", addr),
             Self::Global(addr) => write!(f, "global@{}", addr),
@@ -152,7 +153,7 @@ impl ImlOp {
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
         ImlOp::Load {
             offset,
-            target: ImlTarget::Unresolved(name),
+            target: ImlTarget::Unknown(name),
         }
         .try_resolve(compiler)
     }
@@ -193,7 +194,7 @@ impl ImlOp {
 
         ImlOp::Call {
             offset,
-            target: ImlTarget::Unresolved(name),
+            target: ImlTarget::Unknown(name),
             args,
         }
         .try_resolve(compiler)
@@ -214,11 +215,11 @@ impl ImlOp {
         match self {
             Self::Shared(op) => return op.borrow_mut().resolve(compiler),
             Self::Load { target, .. } | Self::Call { target, .. } => {
-                if let ImlTarget::Unresolved(name) = target {
+                if let ImlTarget::Unknown(name) = target {
                     if let Some(value) = compiler.get_constant(&name) {
                         // In case this is a generic, the value is resolved to a generic for later dispose
-                        if matches!(value, ImlValue::Generic(_)) {
-                            *target = ImlTarget::Generic(name.clone());
+                        if matches!(value, ImlValue::Undefined(_)) {
+                            *target = ImlTarget::Undefined(name.clone());
                         } else {
                             *target = ImlTarget::Static(value);
                         }
@@ -367,7 +368,7 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlTarget::Unresolved(name) => {
+                    ImlTarget::Unknown(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Use of unresolved symbol '{}'", name),
@@ -375,8 +376,8 @@ impl ImlOp {
 
                         Op::Nop
                     }
-                    ImlTarget::Generic(name) => {
-                        unreachable!("Use of generic symbol '{}' may not occur", name)
+                    ImlTarget::Undefined(name) => {
+                        unreachable!("Use of undefined symbol '{}'", name)
                     }
                     ImlTarget::Static(value) => linker.push(value),
                     ImlTarget::Local(idx) => Op::LoadFast(*idx),
@@ -393,14 +394,14 @@ impl ImlOp {
                 }
 
                 match target {
-                    ImlTarget::Unresolved(name) => {
+                    ImlTarget::Unknown(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Call to unresolved symbol '{}'", name),
                         ));
                     }
-                    ImlTarget::Generic(name) => {
-                        unreachable!("Call to generic symbol '{}' may not occur", name)
+                    ImlTarget::Undefined(name) => {
+                        unreachable!("Call to undefined symbol '{}' may not occur", name)
                     }
                     ImlTarget::Static(value) => {
                         let idx = linker.register(value);

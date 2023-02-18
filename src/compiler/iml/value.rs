@@ -7,7 +7,7 @@ use std::rc::Rc;
 /** Compile-time values */
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Generic(String),
+    Undefined(String),
     Parselet(Rc<RefCell<ImlParselet>>),
     Value(RefValue),
 }
@@ -43,7 +43,7 @@ impl ImlValue {
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            ImlValue::Generic(ident) => crate::utils::identifier_is_consumable(ident),
+            ImlValue::Undefined(ident) => crate::utils::identifier_is_consumable(ident),
             ImlValue::Parselet(parselet) => parselet.borrow().consuming,
             ImlValue::Value(value) => value.is_consuming(),
         }
@@ -53,7 +53,7 @@ impl ImlValue {
 impl std::fmt::Debug for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Generic(s) => write!(f, "Generic({:?})", s),
+            Self::Undefined(s) => write!(f, "{}", s),
             Self::Parselet(p) => p.borrow().fmt(f),
             Self::Value(v) => v.borrow().fmt(f),
         }
@@ -63,7 +63,7 @@ impl std::fmt::Debug for ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Generic(s) => write!(f, "{}", s),
+            Self::Undefined(s) => write!(f, "{}", s),
             Self::Parselet(p) => write!(
                 f,
                 "{}",
@@ -77,7 +77,7 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Generic(_) => unreachable!(),
+            Self::Undefined(_) => unreachable!(),
             Self::Parselet(p) => {
                 state.write_u8('p' as u8);
                 p.borrow().hash(state);
