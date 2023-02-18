@@ -6,6 +6,7 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
+use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -209,8 +210,8 @@ impl Compiler {
         offset: Option<Offset>,
         name: Option<String>,
         severity: Option<u8>,
-        gen: Option<Vec<(String, Option<ImlValue>)>>,
-        sig: Option<Vec<(String, Option<ImlValue>)>>,
+        gen: Option<IndexMap<String, Option<ImlValue>>>,
+        sig: Option<IndexMap<String, Option<ImlValue>>>,
         body: ImlOp,
     ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
@@ -240,8 +241,8 @@ impl Compiler {
                 }
             }
 
-            let signature = sig.unwrap_or(Vec::new());
-            let constants = gen.unwrap_or(Vec::new());
+            let constants = gen.unwrap_or(IndexMap::new());
+            let signature = sig.unwrap_or(IndexMap::new());
 
             assert!(
                 signature.len() <= variables.len(),

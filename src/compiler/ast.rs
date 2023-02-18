@@ -1,5 +1,5 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-use std::collections::HashSet;
+use indexmap::IndexMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -162,13 +162,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.parselet_push();
 
-            // Generic signature
-            let mut gen: Vec<(String, Option<ImlValue>)> = Vec::new();
-            let mut gen_names = HashSet::new();
-
-            // Function signature
-            let mut sig: Vec<(String, Option<ImlValue>)> = Vec::new();
-            let mut sig_names = HashSet::new();
+            let mut gen: IndexMap<String, Option<ImlValue>> = IndexMap::new();
+            let mut sig: IndexMap<String, Option<ImlValue>> = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -187,15 +182,13 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 match emit {
                     "gen" => {
                         // check if identifier was not provided twice
-                        if gen_names.contains(&ident) {
+                        if gen.contains_key(&ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Generic '{}' already given in signature before", ident),
                             ));
 
                             continue;
-                        } else {
-                            gen_names.insert(ident.clone());
                         }
 
                         compiler.set_constant(&ident, ImlValue::Generic(ident.to_string()));
@@ -213,7 +206,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             None
                         };
 
-                        gen.push((ident.to_string(), default));
+                        gen.insert(ident.to_string(), default);
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     "arg" => {
@@ -241,15 +234,13 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         }
 
                         // check if identifier was not provided twice
-                        if sig_names.contains(&ident) {
+                        if sig.contains_key(&ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", ident),
                             ));
 
                             continue;
-                        } else {
-                            sig_names.insert(ident.clone());
                         }
 
                         compiler.new_local(&ident);
@@ -267,7 +258,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             None
                         };
 
-                        sig.push((ident.to_string(), default));
+                        sig.insert(ident.to_string(), default);
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     _ => unreachable!(),
