@@ -162,8 +162,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.parselet_push();
 
-            let mut gen: IndexMap<String, Option<ImlValue>> = IndexMap::new();
-            let mut sig: IndexMap<String, Option<ImlValue>> = IndexMap::new();
+            let mut constants: IndexMap<String, Option<ImlValue>> = IndexMap::new();
+            let mut signature: IndexMap<String, Option<ImlValue>> = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -182,7 +182,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 match emit {
                     "gen" => {
                         // check if identifier was not provided twice
-                        if gen.contains_key(&ident) {
+                        if constants.contains_key(&ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Generic '{}' already given in signature before", ident),
@@ -206,7 +206,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             None
                         };
 
-                        gen.insert(ident.to_string(), default);
+                        constants.insert(ident.to_string(), default);
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     "arg" => {
@@ -234,7 +234,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         }
 
                         // check if identifier was not provided twice
-                        if sig.contains_key(&ident) {
+                        if signature.contains_key(&ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", ident),
@@ -258,7 +258,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             None
                         };
 
-                        sig.insert(ident.to_string(), default);
+                        signature.insert(ident.to_string(), default);
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     _ => unreachable!(),
@@ -272,8 +272,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 traverse_node_offset(node),
                 None,
                 None,
-                Some(gen),
-                Some(sig),
+                Some(constants),
+                Some(signature),
                 body,
             );
 

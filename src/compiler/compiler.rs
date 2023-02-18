@@ -210,8 +210,8 @@ impl Compiler {
         offset: Option<Offset>,
         name: Option<String>,
         severity: Option<u8>,
-        gen: Option<IndexMap<String, Option<ImlValue>>>,
-        sig: Option<IndexMap<String, Option<ImlValue>>>,
+        constants: Option<IndexMap<String, Option<ImlValue>>>,
+        signature: Option<IndexMap<String, Option<ImlValue>>>,
         body: ImlOp,
     ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
@@ -241,8 +241,8 @@ impl Compiler {
                 }
             }
 
-            let constants = gen.unwrap_or(IndexMap::new());
-            let signature = sig.unwrap_or(IndexMap::new());
+            let constants = constants.unwrap_or(IndexMap::new());
+            let signature = signature.unwrap_or(IndexMap::new());
 
             assert!(
                 signature.len() <= variables.len(),
