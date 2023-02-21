@@ -324,7 +324,7 @@ Compare : @{
         '>=' _ expect AddSub  ast("op_compare_gteq")
         '<' _ expect AddSub  ast("op_compare_lt")
         '>' _ expect AddSub  ast("op_compare_gt")
-    }+  ast("comparisons")
+    }+  ast("op_compare")
     AddSub
 }
 
@@ -419,5 +419,5 @@ Tokay : @{
     Char  error("Parse error, unexpected token", true)
 }
 
-#_ Tokay? expect EOF  ast("main")
-_ Tokay? expect EOF  ast_print(ast("main"))
+_ Tokay? expect EOF  ast("main")
+#_ Tokay? expect EOF  ast_print(ast("main"))
