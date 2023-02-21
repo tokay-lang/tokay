@@ -5350,7 +5350,7 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "Compare"
+                                        "value" => "Comparison"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
@@ -5407,7 +5407,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_eq"
+                                                                                                                            "value" => "cmp_eq"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5447,7 +5447,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_neq"
+                                                                                                                            "value" => "cmp_neq"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5487,7 +5487,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_lteq"
+                                                                                                                            "value" => "cmp_lteq"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5527,7 +5527,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_gteq"
+                                                                                                                            "value" => "cmp_gteq"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5567,7 +5567,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_lt"
+                                                                                                                            "value" => "cmp_lt"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5607,7 +5607,7 @@ impl Parser {
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "value_string",
-                                                                                                                            "value" => "op_compare_gt"
+                                                                                                                            "value" => "cmp_gt"
                                                                                                                         ]))
                                                                                                                 ]))
                                                                                                             ]))
@@ -5630,7 +5630,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "op_compare"
+                                                                                            "value" => "comparison"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -5682,7 +5682,7 @@ impl Parser {
                                                                         "children" =>
                                                                             (value!([
                                                                                 "emit" => "identifier",
-                                                                                "value" => "Compare"
+                                                                                "value" => "Comparison"
                                                                             ]))
                                                                     ])),
                                                                     (value!([
@@ -5707,7 +5707,7 @@ impl Parser {
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "value" => "Compare"
+                                                            "value" => "Comparison"
                                                         ]))
                                                     ]))
                                             ]))

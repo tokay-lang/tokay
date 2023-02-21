@@ -873,6 +873,82 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
+        // comparison -----------------------------------------------------
+        "comparison" => {
+            // comparison can be a chain of comparisons, allowing to compare e.g. `1 < 2 < 3`
+            let children = node["children"].borrow();
+            let mut children = children.object::<List>().unwrap().clone();
+
+            let first = children.remove(0);
+            let first = first.borrow();
+
+            let mut ops = Vec::new();
+
+            ops.push(traverse_node_rvalue(
+                compiler,
+                &first.object::<Dict>().unwrap(),
+                Rvalue::CallOrLoad,
+            ));
+
+            let mut backpatch = Vec::new();
+
+            while !children.is_empty() {
+                let child = children.remove(0);
+                let child = child.borrow();
+                let child = child.object::<Dict>().unwrap();
+
+                let emit = child["emit"].borrow();
+                let emit = emit.object::<Str>().unwrap().as_str();
+
+                let next = child["children"].borrow();
+
+                ops.push(traverse_node_rvalue(
+                    compiler,
+                    &next.object::<Dict>().unwrap(),
+                    Rvalue::CallOrLoad,
+                ));
+
+                // Chained comparison requires forperand duplication
+                if !children.is_empty() {
+                    ops.push(ImlOp::from(Op::Swap(2))); // Swap operands
+                    ops.push(ImlOp::from(Op::Copy(2))); // Copy second operand
+                }
+
+                ops.push(ImlOp::from(match emit {
+                    "cmp_eq" => Op::BinaryOp("eq"),
+                    "cmp_neq" => Op::BinaryOp("neq"),
+                    "cmp_lteq" => Op::BinaryOp("lteq"),
+                    "cmp_gteq" => Op::BinaryOp("gteq"),
+                    "cmp_lt" => Op::BinaryOp("lt"),
+                    "cmp_gt" => Op::BinaryOp("gt"),
+                    _ => unimplemented!("{}", emit),
+                }));
+
+                // Push and remember placeholder for later clean-up jump
+                if !children.is_empty() {
+                    backpatch.push(ops.len());
+                    ops.push(ImlOp::Nop); // Placeholder for condition
+                }
+            }
+
+            if backpatch.len() > 0 {
+                // Jump over clean-up part with last result
+                ops.push(ImlOp::from(Op::Forward(3)));
+
+                // Otherwise, remember clean-up start
+                let clean_up = ops.len();
+                ops.push(ImlOp::from(Op::Drop));
+                ops.push(ImlOp::from(Op::PushFalse));
+
+                // Backpatch all placeholders to relative jump to the clean-up part
+                for index in backpatch {
+                    ops[index] = ImlOp::from(Op::ForwardIfFalse(clean_up - index + 1));
+                }
+            }
+
+            ImlOp::from(ops)
+        }
+
         // constant -------------------------------------------------------
         "constant" => {
             let children = node["children"].borrow();
@@ -1063,74 +1139,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             unimplemented!("{}", emit);
                         }
                     })
-                }
-
-                "compare" => {
-                    // op_compare is a chain of comparisons, which allows for something like 1 < 2 < 3.
-                    let children = node["children"].borrow();
-                    let mut children = children.object::<List>().unwrap().clone();
-
-                    let first = children.remove(0);
-                    let first = first.borrow();
-                    ops.push(traverse_node_rvalue(
-                        compiler,
-                        &first.object::<Dict>().unwrap(),
-                        Rvalue::CallOrLoad,
-                    ));
-
-                    let mut backpatch = Vec::new();
-
-                    while !children.is_empty() {
-                        let child = children.remove(0);
-                        let child = child.borrow();
-                        let child = child.object::<Dict>().unwrap();
-
-                        let emit = child["emit"].borrow();
-                        let emit = emit.object::<Str>().unwrap().as_str();
-
-                        let op = child["children"].borrow();
-
-                        ops.push(traverse_node_rvalue(
-                            compiler,
-                            &op.object::<Dict>().unwrap(),
-                            Rvalue::CallOrLoad,
-                        ));
-
-                        if !children.is_empty() {
-                            ops.push(ImlOp::from(Op::Swap(2))); // Swap operands
-                            ops.push(ImlOp::from(Op::Copy(2))); // Copy second operand
-                        }
-
-                        ops.push(ImlOp::from(match emit {
-                            "op_compare_eq" => Op::BinaryOp("eq"),
-                            "op_compare_neq" => Op::BinaryOp("neq"),
-                            "op_compare_lteq" => Op::BinaryOp("lteq"),
-                            "op_compare_gteq" => Op::BinaryOp("gteq"),
-                            "op_compare_lt" => Op::BinaryOp("lt"),
-                            "op_compare_gt" => Op::BinaryOp("gt"),
-                            _ => {
-                                unimplemented!("{}", emit);
-                            }
-                        }));
-
-                        if !children.is_empty() {
-                            backpatch.push(ops.len());
-                            ops.push(ImlOp::Nop); // Placeholder for condition
-                        }
-                    }
-
-                    if backpatch.len() > 0 {
-                        ops.push(ImlOp::from(Op::Forward(3)));
-                        let clean_up = ops.len();
-                        ops.push(ImlOp::from(Op::Drop));
-                        ops.push(ImlOp::from(Op::PushFalse));
-
-                        for index in backpatch {
-                            ops[index] = ImlOp::from(Op::ForwardIfFalse(clean_up - index + 1));
-                        }
-                    }
-
-                    ImlOp::Nop
                 }
 
                 "binary" | "logical" => {
