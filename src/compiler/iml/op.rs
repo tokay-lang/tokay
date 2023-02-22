@@ -517,9 +517,9 @@ impl ImlOp {
                 then: then_part,
                 else_: else_part,
             } => {
-                // Clone on peek
+                // Copy on peek
                 if *peek {
-                    ops.push(Op::Clone);
+                    ops.push(Op::Copy(1));
                 }
 
                 let backpatch = ops.len();
@@ -642,7 +642,7 @@ impl ImlOp {
                             Op::Extend,
                             Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
-                            Op::Collect,
+                            Op::InCollect,
                             Op::Close,
                         ]);
                     }
@@ -663,7 +663,7 @@ impl ImlOp {
                             Op::Extend,
                             Op::Backward(body_len + 4), // repeat the body
                             Op::Close,
-                            Op::Collect,
+                            Op::InCollect,
                             Op::Close,
                         ]);
                     }
@@ -671,7 +671,7 @@ impl ImlOp {
                         // Optional
                         ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
                         ops.extend(body_ops);
-                        ops.push(Op::Collect);
+                        ops.push(Op::InCollect);
                         ops.push(Op::Close);
                     }
                     (1, 1) => {}

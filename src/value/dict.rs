@@ -340,23 +340,6 @@ impl Dict {
             )))
         }
     });
-
-    /*
-    fn get_index(&self, index: &Value) -> Result<RefValue, String> {
-        let index = index.to_string();
-        if let Some(value) = self.get(&index) {
-            Ok(value.clone())
-        } else {
-            Err(format!("Key '{}' not found", index))
-        }
-    }
-
-    fn set_index(&mut self, index: &Value, value: RefValue) -> Result<(), String> {
-        let index = index.to_string();
-        self.insert(index, value);
-        Ok(())
-    }
-    */
 }
 
 // Implement PartialOrd and PartialEq on our own,
