@@ -519,9 +519,9 @@ impl ImlOp {
                 then: then_part,
                 else_: else_part,
             } => {
-                // Clone on peek
+                // Copy on peek
                 if *peek {
-                    ops.push(Op::Clone);
+                    ops.push(Op::Copy(1));
                 }
 
                 let backpatch = ops.len();

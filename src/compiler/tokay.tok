@@ -316,19 +316,21 @@ AddSub : @{
     MulDiv
 }
 
-Compare : @{
-    Compare '==' _ expect AddSub  ast("op_compare_eq")
-    Compare '!=' _ expect AddSub  ast("op_compare_neq")
-    Compare '<=' _ expect AddSub  ast("op_compare_lteq")
-    Compare '>=' _ expect AddSub  ast("op_compare_gteq")
-    Compare '<' _ expect AddSub  ast("op_compare_lt")
-    Compare '>' _ expect AddSub  ast("op_compare_gt")
+Comparison : @{
+    AddSub {
+        '==' _ expect AddSub  ast("cmp_eq")
+        '!=' _ expect AddSub  ast("cmp_neq")
+        '<=' _ expect AddSub  ast("cmp_lteq")
+        '>=' _ expect AddSub  ast("cmp_gteq")
+        '<' _ expect AddSub  ast("cmp_lt")
+        '>' _ expect AddSub  ast("cmp_gt")
+    }+  ast("comparison")
     AddSub
 }
 
 LogicalAnd : @{
-    LogicalAnd '&&' _ expect Compare  ast("op_logical_and")
-    Compare
+    LogicalAnd '&&' _ expect Comparison  ast("op_logical_and")
+    Comparison
 }
 
 LogicalOr : @{

@@ -104,12 +104,12 @@ pub(crate) enum Op {
     MakeDict(usize), // Make a Dict from specified amount of key-value-pairs on the stack
 
     // Operations
-    Drop,  // drop TOS
-    Inv,   // invalidate TOS to empty capture
-    Sep,   // separate, ensure TOS value is not shared
-    Clone, // clone TOS
-    Dup,   // duplicate TOS
-    Rot2,  // rotate TOS by 2
+    Drop,        // drop TOS
+    Inv,         // invalidate TOS to empty capture
+    Sep,         // separate, ensure TOS value is not shared
+    Dup,         // duplicate TOS (creates a new object)
+    Copy(usize), // copy indexed element as TOS
+    Swap(usize), // swap indexed element with TOS
 
     UnaryOp(&'static str),  // Operation with one operand
     BinaryOp(&'static str), // Operation with two operands
@@ -683,23 +683,35 @@ impl Op {
                     context.push(value)
                 }
 
-                Op::Clone => {
-                    let value = context.peek();
-                    context.push(value.clone())
-                }
-
                 Op::Dup => {
                     let value = context.peek();
                     let value = value.borrow();
                     context.push(value.clone().into())
                 }
 
-                Op::Rot2 => {
-                    let a = context.runtime.stack.pop().unwrap();
-                    let b = context.runtime.stack.pop().unwrap();
+                Op::Copy(index) => {
+                    assert!(*index > 0);
 
-                    context.runtime.stack.push(a);
-                    context.runtime.stack.push(b);
+                    let index = context.runtime.stack.len() - index;
+                    context
+                        .runtime
+                        .stack
+                        .push(context.runtime.stack[index].clone());
+
+                    Ok(Accept::Next)
+                }
+
+                Op::Swap(index) => {
+                    assert!(*index > 1);
+
+                    let index = context.runtime.stack.len() - index;
+                    let tos = context.runtime.stack.pop().unwrap();
+
+                    context
+                        .runtime
+                        .stack
+                        .push(context.runtime.stack[index].clone());
+                    context.runtime.stack[index] = tos;
 
                     Ok(Accept::Next)
                 }
