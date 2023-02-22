@@ -64,10 +64,6 @@ impl Token {
         }
     }
 
-    pub fn any() -> Self {
-        Self::Char(CharClass::new().negate())
-    }
-
     pub fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
         match self {
             Token::Void => Ok(Accept::Push(Capture::Empty)),

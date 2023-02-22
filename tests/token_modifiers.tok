@@ -9,7 +9,9 @@
 'a'* ''b''+  # Touch with kleene and positive modifiers
 Char<a-z>
 Char<a-z>+
+Chars<a-z>
 Char<^ '>+
+Chars<^ '>
 Int
 
 # Parsing with sequences and modifiers
@@ -29,6 +31,8 @@ Int
 #("b", ("b", "b", "b"), ("b", "b"), "b", "b")
 #("a", "b", "a", "b", "b", "b", "b", "b", "d", "e", "f", "a", "b", "c", "b", "c", "d", "a", "d", "e", "l", "l", "o", "o", "r", "l", "d", "e", "t", "a", "e", "s", "t")
 #("ab", "abbb", "bb", "def", "abcbcd", "ad", "ello", "orld", "eta", "est")
+#("ab", "abbb", "bb", "def", "abcbcd", "ad", "ello", "orld", "eta", "est")
+#("ab", "abbb", "bb", "123", "ABC", "456", "def", "\nabcbcd", "ad\nHello,", "World,", "Beta,", "Test")
 #("ab", "abbb", "bb", "123", "ABC", "456", "def", "\nabcbcd", "ad\nHello,", "World,", "Beta,", "Test")
 #(123, 456)
 #(("a", (("b", "c"), ("b", "c")), "d"), ("a", "d"))
