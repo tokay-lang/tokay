@@ -187,21 +187,17 @@ tokay_function!("range : @start, stop=void, step=1", {
     }
 
     RefValue::from(Iter {
-        iter: Rc::new(RefCell::new(
-            if (step > BigInt::zero() && start > stop) || (step < BigInt::zero() && stop > start) {
-                RangeIter {
-                    next: Some(stop),
-                    stop: start,
-                    step,
-                }
+        iter: Rc::new(RefCell::new(RangeIter {
+            next: if (step > BigInt::zero() && start > stop)
+                || (step < BigInt::zero() && stop > start)
+            {
+                None
             } else {
-                RangeIter {
-                    next: Some(start),
-                    stop,
-                    step,
-                }
+                Some(start)
             },
-        )),
+            stop,
+            step,
+        })),
     })
     .into()
 });
