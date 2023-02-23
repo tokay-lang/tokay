@@ -123,8 +123,8 @@ pub static BUILTINS: [Builtin; 57] = [
         func: crate::value::iter::Iter::tokay_method_iter_next,
     },
     Builtin {
-        name: "iter_prev",
-        func: crate::value::iter::Iter::tokay_method_iter_prev,
+        name: "iter_rev",
+        func: crate::value::iter::Iter::tokay_method_iter_rev,
     },
     Builtin {
         name: "list",

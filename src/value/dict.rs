@@ -1,5 +1,5 @@
 //! Dictionary object
-use super::{BoxedObject, Iter, Object, RefValue, Str, Value};
+use super::{BoxedObject, MethodIter, Object, RefValue, Str, Value};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
@@ -136,13 +136,11 @@ impl Dict {
     tokay_method!("dict_keys : @dict, index=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
-            return Ok(RefValue::from(Iter::new_method_op(
+            return Ok(RefValue::from(MethodIter::new_method_iter(
                 dict.clone(),
                 "keys",
                 None,
                 "iinc",
-                dict.call_method("len", Vec::new()).unwrap(),
-                "idec",
             )));
         }
 
@@ -168,13 +166,11 @@ impl Dict {
     tokay_method!("dict_items : @dict, index=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {
-            return Ok(RefValue::from(Iter::new_method_op(
+            return Ok(RefValue::from(MethodIter::new_method_iter(
                 dict.clone(),
                 "items",
                 None,
                 "iinc",
-                dict.call_method("len", Vec::new()).unwrap(),
-                "idec",
             )));
         }
 

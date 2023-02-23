@@ -12,7 +12,7 @@ pub mod value;
 
 pub use self::str::Str;
 pub use dict::Dict;
-pub use iter::Iter;
+pub use iter::{Iter, MethodIter};
 pub use list::List;
 pub use method::Method;
 pub use object::{BoxedObject, Object};
