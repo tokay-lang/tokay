@@ -2,6 +2,7 @@
 use super::{Object, RefValue, Value};
 use crate::value;
 use crate::Error;
+use num::{One, Zero};
 use num_bigint::BigInt;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -79,34 +80,61 @@ impl RefValueIter for MethodIter {
     }
 
     fn repr(&self) -> String {
-        "<MethodIter on {} >".to_string()
+        if let Some(index) = &self.index {
+            format!(
+                "<MethodIter on {}_{} at {}, using {}>",
+                self.object.name(),
+                self.object_method,
+                index.repr(),
+                self.index_op,
+            )
+        } else {
+            format!(
+                "<MethodIter on {}_{} finished, used {}>",
+                self.object.name(),
+                self.object_method,
+                self.index_op,
+            )
+        }
     }
 }
 
 struct RangeIter {
     next: Option<BigInt>,
-    stop: Option<BigInt>,
+    stop: BigInt,
     step: BigInt,
 }
 
 impl RefValueIter for RangeIter {
     fn next(&mut self) -> Option<RefValue> {
-        if let (Some(next), Some(stop)) = (self.next.as_mut(), &self.stop) {
-            if *next < *stop {
+        if let Some(next) = self.next.as_mut() {
+            if *next != self.stop {
                 let ret = next.clone();
                 *next += &self.step;
                 return Some(RefValue::from(ret));
             }
 
             self.next = None;
-            self.stop = None;
         }
 
         None
     }
 
     fn repr(&self) -> String {
-        "#todo range(...)".to_string()
+        if self.step.is_one() {
+            format!(
+                "range({}, {})",
+                self.next.as_ref().unwrap_or(&self.stop),
+                self.stop
+            )
+        } else {
+            format!(
+                "range({}, {}, {})",
+                self.next.as_ref().unwrap_or(&self.stop),
+                self.stop,
+                self.step
+            )
+        }
     }
 }
 
@@ -121,12 +149,26 @@ tokay_function!("range : @start, stop=void, step=1", {
     let stop = stop.to_bigint()?;
     let step = step.to_bigint()?;
 
+    if step.is_zero() {
+        return Error::from(format!("{} argument 'step' may not be 0", __function)).into();
+    }
+
     RefValue::from(Iter {
-        iter: Rc::new(RefCell::new(RangeIter {
-            next: Some(start),
-            stop: Some(stop),
-            step,
-        })),
+        iter: Rc::new(RefCell::new(
+            if (step > BigInt::zero() && start > stop) || (step < BigInt::zero() && stop > start) {
+                RangeIter {
+                    next: Some(stop),
+                    stop: start,
+                    step,
+                }
+            } else {
+                RangeIter {
+                    next: Some(start),
+                    stop,
+                    step,
+                }
+            },
+        )),
     })
     .into()
 });
