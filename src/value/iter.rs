@@ -97,6 +97,32 @@ impl RefValueIter for MethodIter {
             )
         }
     }
+
+    fn rev(&mut self) -> Result<(), Error> {
+        match self.index_op {
+            "iinc" => {
+                self.index_op = "idec";
+
+                match self
+                    .object
+                    .call_method("len", Vec::new())
+                    .unwrap_or_else(|_| Some(value!(1)))
+                {
+                    Some(len) => {
+                        self.index = Some(len.unary_op(self.index_op)?);
+                        Ok(())
+                    }
+                    None => Err(Error::from("This iterator cannot be reversed.")),
+                }
+            }
+            "idec" => {
+                self.index_op = "iinc";
+                self.index = Some(value!(0));
+                Ok(())
+            }
+            _ => Err(Error::from("This iterator cannot be reversed.")),
+        }
+    }
 }
 
 struct RangeIter {
@@ -135,6 +161,13 @@ impl RefValueIter for RangeIter {
                 self.step
             )
         }
+    }
+
+    fn rev(&mut self) -> Result<(), Error> {
+        let next = self.next.as_ref().unwrap_or(&self.stop).clone();
+        (self.next, self.stop) = (Some(self.stop.clone()), next);
+        self.step = -self.step.clone();
+        Ok(())
     }
 }
 

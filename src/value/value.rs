@@ -161,7 +161,9 @@ impl Object for Value {
     fn to_usize(&self) -> Result<usize, String> {
         match self {
             Self::True => Ok(1),
-            Self::Int(i) => Ok(i.to_usize().or(Some(0)).unwrap()),
+            Self::Int(i) => i
+                .to_usize()
+                .ok_or("Cannot convert BigInt to usize".to_string()),
             Self::Float(f) => Ok(*f as usize),
             Self::Object(o) => o.to_usize(),
             _ => Ok(0),

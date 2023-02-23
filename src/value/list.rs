@@ -89,11 +89,13 @@ impl List {
 
         let list = list.borrow();
 
-        if let Some(value) = list.object::<List>().unwrap().get(item.to_usize()?) {
-            Ok(value.clone())
-        } else {
-            Ok(default)
+        if let Ok(item) = item.to_usize() {
+            if let Some(value) = list.object::<List>().unwrap().get(item) {
+                return Ok(value.clone());
+            }
         }
+
+        Ok(default)
     });
 
     tokay_method!("list_set_item : @list, item, value=void", {
