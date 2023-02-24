@@ -5,18 +5,34 @@ use crate::Error;
 use num::{One, Zero};
 use num_bigint::BigInt;
 use tokay_macros::{tokay_function, tokay_method};
-use dyn_clone::DynClone;
 extern crate self as tokay;
 
-pub trait RefValueIter: DynClone {
+pub trait CloneBoxedRefValueIter {
+    fn dyn_clone(&self) -> Box<dyn RefValueIter>;
+}
+
+impl<T> CloneBoxedRefValueIter for T
+where
+    T: 'static + RefValueIter + Clone,
+{
+    fn dyn_clone(&self) -> Box<dyn RefValueIter> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn RefValueIter> {
+    fn clone(&self) -> Self {
+        self.dyn_clone()
+    }
+}
+
+pub trait RefValueIter: CloneBoxedRefValueIter {
     fn next(&mut self) -> Option<RefValue>;
     fn repr(&self) -> String;
     fn rev(&mut self) -> Result<(), Error> {
         Err(Error::from("This iterator cannot be reversed."))
     }
 }
-
-dyn_clone::clone_trait_object!(RefValueIter);
 
 #[derive(Clone)]
 pub struct MethodIter {
@@ -206,7 +222,7 @@ tokay_function!("range : @start, stop=void, step=1", {
 
 #[derive(Clone)]
 pub struct Iter {
-    iter: Box<dyn RefValueIter>
+    iter: Box<dyn RefValueIter>,
 }
 
 impl Iter {
