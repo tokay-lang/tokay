@@ -4,12 +4,11 @@ use crate::value;
 use crate::Error;
 use num::{One, Zero};
 use num_bigint::BigInt;
-use std::cell::RefCell;
-use std::rc::Rc;
 use tokay_macros::{tokay_function, tokay_method};
+use dyn_clone::DynClone;
 extern crate self as tokay;
 
-pub trait RefValueIter {
+pub trait RefValueIter: DynClone {
     fn next(&mut self) -> Option<RefValue>;
     fn repr(&self) -> String;
     fn rev(&mut self) -> Result<(), Error> {
@@ -17,7 +16,9 @@ pub trait RefValueIter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+dyn_clone::clone_trait_object!(RefValueIter);
+
+#[derive(Clone)]
 pub struct MethodIter {
     pub object: RefValue,
     pub object_method: &'static str,
@@ -40,12 +41,12 @@ impl MethodIter {
         index_op: &'static str,
     ) -> Iter {
         Iter {
-            iter: Rc::new(RefCell::new(Self {
+            iter: Box::new(Self {
                 object: object.clone(),
                 object_method,
                 index: index.or_else(|| Some(value!(0))),
                 index_op,
-            })),
+            }),
         }
     }
 }
@@ -125,6 +126,7 @@ impl RefValueIter for MethodIter {
     }
 }
 
+#[derive(Clone)]
 struct RangeIter {
     next: Option<BigInt>,
     stop: BigInt,
@@ -187,7 +189,7 @@ tokay_function!("range : @start, stop=void, step=1", {
     }
 
     RefValue::from(Iter {
-        iter: Rc::new(RefCell::new(RangeIter {
+        iter: Box::new(RangeIter {
             next: if (step > BigInt::zero() && start > stop)
                 || (step < BigInt::zero() && stop > start)
             {
@@ -197,14 +199,14 @@ tokay_function!("range : @start, stop=void, step=1", {
             },
             stop,
             step,
-        })),
+        }),
     })
     .into()
 });
 
 #[derive(Clone)]
 pub struct Iter {
-    iter: Rc<RefCell<dyn RefValueIter>>,
+    iter: Box<dyn RefValueIter>
 }
 
 impl Iter {
@@ -254,7 +256,7 @@ impl Iter {
             let mut iter = iter.borrow_mut();
 
             if let Some(iter) = iter.object_mut::<Iter>() {
-                iter.iter.borrow_mut().rev()?;
+                iter.iter.rev()?;
             } else {
                 return Err(Error::from(format!(
                     "{} only accepts '{}' as parameter, not '{}'",
@@ -273,7 +275,7 @@ impl Iterator for Iter {
     type Item = RefValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.borrow_mut().next()
+        self.iter.next()
     }
 }
 
@@ -283,7 +285,7 @@ impl Object for Iter {
     }
 
     fn repr(&self) -> String {
-        self.iter.borrow().repr()
+        self.iter.repr()
     }
 }
 
