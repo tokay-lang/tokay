@@ -45,9 +45,9 @@ impl RefValueIter for RangeIter {
     }
 
     fn rev(&mut self) -> Result<(), Error> {
-        let next = self.next.as_ref().unwrap_or(&self.stop).clone();
-        (self.next, self.stop) = (Some(self.stop.clone()), next);
         self.step = -self.step.clone();
+        let next = self.next.as_ref().unwrap_or(&self.stop).clone();
+        (self.next, self.stop) = (Some(self.stop.clone() + &self.step), next + &self.step);
         Ok(())
     }
 }

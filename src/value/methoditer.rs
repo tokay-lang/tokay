@@ -43,7 +43,7 @@ impl RefValueIter for MethodIter {
                 .call_method(self.object_method, vec![index.clone()])
             {
                 Ok(Some(next)) => {
-                    // When next is not void, increment index and return next
+                    // When next is not void, calculate index and return next
                     if !next.is_void() {
                         self.index = Some(index.clone().unary_op(self.index_op).unwrap());
                         return Some(next);
@@ -88,16 +88,22 @@ impl RefValueIter for MethodIter {
             "iinc" => {
                 self.index_op = "idec";
 
-                match self
-                    .object
-                    .call_method("len", Vec::new())
-                    .unwrap_or_else(|_| Some(value!(1)))
-                {
-                    Some(len) => {
-                        self.index = Some(len.unary_op(self.index_op)?);
-                        Ok(())
+                // fixme: this is a (bad) hack for str, which begins at 0 and counts down when reversed.
+                if self.object.is("str") {
+                    self.index = Some(value!(-1));
+                    Ok(())
+                } else {
+                    match self
+                        .object
+                        .call_method("len", Vec::new())
+                        .unwrap_or_else(|_| Some(value!(1)))
+                    {
+                        Some(len) => {
+                            self.index = Some(len.unary_op(self.index_op)?);
+                            Ok(())
+                        }
+                        None => Err(Error::from("This iterator cannot be reversed.")),
                     }
-                    None => Err(Error::from("This iterator cannot be reversed.")),
                 }
             }
             "idec" => {

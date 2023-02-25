@@ -106,8 +106,14 @@ impl Str {
         let string = string.object::<Str>().unwrap();
         let mut item = item.to_bigint()?;
 
-        while item.sign() == Sign::Minus {
+        // In case the item index is negative, calculate from string's end
+        if item.sign() == Sign::Minus {
             item = string.len() + item;
+
+            // If it's still negative, the index is out of bounds
+            if item.sign() == Sign::Minus {
+                return Ok(default);
+            }
         }
 
         if let Some(ch) = string.chars().nth(item.to_usize().unwrap_or(0)) {

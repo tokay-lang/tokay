@@ -1,0 +1,66 @@
+#testmode:repl
+dump : @v { for x in v print(x); for x in v.rev() print(x) }
+
+# list
+l = (1, 2, 3)
+dump(iter(l))
+
+# dict
+d = (first => 1 second => 2 third => 3)
+dump(iter(d))
+dump(d.keys)
+
+# str
+s = "Hello"
+dump(iter(s))
+",".join(iter(s))
+",".join(iter(s).rev)
+
+# int
+i = 42
+dump(iter(i))
+
+# float
+f = 23.5
+dump(iter(f))
+
+#---
+#1
+#2
+#3
+#3
+#2
+#1
+
+#1
+#2
+#3
+#3
+#2
+#1
+
+#first
+#second
+#third
+#third
+#second
+#first
+
+#H
+#e
+#l
+#l
+#o
+#o
+#l
+#l
+#e
+#H
+#"H,e,l,l,o"
+#"o,l,l,e,H"
+
+#42
+#42
+
+#23.5
+#23.5
