@@ -172,7 +172,7 @@ pub static BUILTINS: [Builtin; 57] = [
     },
     Builtin {
         name: "range",
-        func: crate::value::iter::tokay_function_range,
+        func: crate::builtin::range::tokay_function_range,
     },
     Builtin {
         name: "repr",

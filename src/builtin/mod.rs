@@ -6,6 +6,7 @@ use crate::{Accept, Context, Reject};
 use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
+pub mod range;
 
 // Abstraction of a built-in function
 pub struct Builtin {
