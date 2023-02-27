@@ -330,7 +330,7 @@ impl ImlOp {
                             Some(all_txt.join(" or "))
                         }
                     }
-                    item => None,
+                    _ => None,
                 }
             }
 
