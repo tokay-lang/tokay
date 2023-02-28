@@ -230,14 +230,27 @@ impl Object for Value {
 
     fn call(
         &self,
-        context: &mut Context,
-        args: usize,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         if let Value::Object(object) = self {
             object.call(context, args, nargs)
         } else {
-            Err(format!("'{}' object is not callable", self.name()).into())
+            Err(format!("'{}' is not callable", self.name()).into())
+        }
+    }
+
+    fn call_direct(
+        &self,
+        context: &mut Context,
+        args: usize,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        if let Value::Object(object) = self {
+            object.call_direct(context, args, nargs)
+        } else {
+            Err(format!("'{}' is not callable", self.name()).into())
         }
     }
 }
