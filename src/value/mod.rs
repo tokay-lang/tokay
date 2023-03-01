@@ -2,6 +2,7 @@
 pub mod dict;
 pub mod iter;
 pub mod list;
+pub mod mapiter;
 mod method;
 mod methoditer;
 mod object;
@@ -15,6 +16,7 @@ pub use self::str::Str;
 pub use dict::Dict;
 pub use iter::{Iter, RefValueIter};
 pub use list::List;
+pub use mapiter::Mapiter;
 pub use method::Method;
 pub use methoditer::MethodIter;
 pub use object::{BoxedObject, Object};

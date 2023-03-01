@@ -5,7 +5,7 @@ given unary operation (by default, iinc and idec)
 */
 use super::{Iter, Object, RefValue, RefValueIter};
 use crate::value;
-use crate::Error;
+use crate::{Context, Error};
 extern crate self as tokay;
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl MethodIter {
 }
 
 impl RefValueIter for MethodIter {
-    fn next(&mut self) -> Option<RefValue> {
+    fn next(&mut self, _context: Option<&mut Context>) -> Option<RefValue> {
         if let Some(index) = &self.index {
             match self
                 .object

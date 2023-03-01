@@ -336,6 +336,33 @@ impl Object for ParseletRef {
         self.0.borrow().consuming.is_some()
     }
 
+    fn call(
+        &self,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        match context {
+            Some(context) => {
+                let len = args.len();
+                for arg in args {
+                    //context.push(arg)?;  //yeah...doesn't work...GRRR
+                    context.runtime.stack.push(Capture::Value(arg, None, 0));
+                }
+
+                self.0.borrow().run(
+                    context.program,
+                    context.runtime,
+                    len,
+                    nargs,
+                    false,
+                    context.depth + 1,
+                )
+            }
+            None => panic!("{} needs a context to operate", self.repr()),
+        }
+    }
+
     fn call_direct(
         &self,
         context: &mut Context,

@@ -1,5 +1,5 @@
 use crate::value::{Iter, Object, RefValue, RefValueIter};
-use crate::Error;
+use crate::{Context, Error};
 use num::{One, Zero};
 use num_bigint::BigInt;
 use tokay_macros::tokay_function;
@@ -13,7 +13,7 @@ struct RangeIter {
 }
 
 impl RefValueIter for RangeIter {
-    fn next(&mut self) -> Option<RefValue> {
+    fn next(&mut self, _context: Option<&mut Context>) -> Option<RefValue> {
         if let Some(next) = self.next.as_mut() {
             if *next != self.stop {
                 let ret = next.clone();

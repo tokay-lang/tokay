@@ -214,6 +214,10 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     let def = syn::parse_macro_input!(input as BuiltinDef);
 
     let name = def.name;
+    let internal = syn::Ident::new(
+        &format!("{}_internal", name.to_string()),
+        proc_macro2::Span::call_site(),
+    );
     let callable = syn::Ident::new(
         &format!("tokay_method_{}", name.to_string()),
         proc_macro2::Span::call_site(),
@@ -238,7 +242,8 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
     // The direct usage function will return an Result<RefValue, Error>
     // instead of an Result<Accept, Reject>.
     let gen = quote! {
-        pub fn #name(
+        fn #internal(
+            context: Option<&mut tokay::Context>,
             mut args: Vec<tokay::RefValue>,
             mut nargs: Option<tokay::Dict>
         ) -> Result<tokay::RefValue, tokay::Error> {
@@ -252,12 +257,19 @@ pub fn tokay_method(input: TokenStream) -> TokenStream {
             #body
         }
 
+        pub fn #name(
+            args: Vec<tokay::RefValue>,
+            nargs: Option<tokay::Dict>
+        ) -> Result<tokay::RefValue, tokay::Error> {
+            Self::#internal(None, args, nargs)
+        }
+
         pub fn #callable(
-            _context: Option<&mut tokay::Context>,
+            context: Option<&mut tokay::Context>,
             args: Vec<tokay::RefValue>,
             nargs: Option<tokay::Dict>
         ) -> Result<tokay::Accept, tokay::Reject> {
-            let ret = Self::#name(args, nargs)?;
+            let ret = Self::#internal(context, args, nargs)?;
             Ok(tokay::Accept::Push(tokay::Capture::Value(ret, None, 10)))
         }
     };

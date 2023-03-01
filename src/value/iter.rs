@@ -1,7 +1,7 @@
 //! Abstraction of types implementing RefValueIter into an `iter` object.
 use super::{MethodIter, Object, RefValue, Value};
 use crate::value;
-use crate::Error;
+use crate::{Context, Error};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
@@ -30,7 +30,7 @@ impl Clone for BoxedRefValueIter {
 
 /// RefValueIter is a trait for iterators generating RefValues, which can optionally be reversed.
 pub trait RefValueIter: CloneBoxedRefValueIter {
-    fn next(&mut self) -> Option<RefValue>;
+    fn next(&mut self, context: Option<&mut Context>) -> Option<RefValue>;
     fn repr(&self) -> String;
     fn rev(&mut self) -> Result<(), Error> {
         Err(Error::from("This iterator cannot be reversed."))
@@ -40,7 +40,7 @@ pub trait RefValueIter: CloneBoxedRefValueIter {
 /// Iter implementing Object to be used as RefValue
 #[derive(Clone)]
 pub struct Iter {
-    iter: BoxedRefValueIter,
+    pub iter: BoxedRefValueIter,
 }
 
 impl Iter {
@@ -67,7 +67,9 @@ impl Iter {
         let mut iter = iter.borrow_mut();
 
         if let Some(iter) = iter.object_mut::<Iter>() {
-            Ok(RefValue::from(iter.next().unwrap_or_else(|| value!(void))))
+            Ok(RefValue::from(
+                iter.iter.next(context).unwrap_or_else(|| value!(void)),
+            ))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -114,7 +116,7 @@ impl Iterator for Iter {
     type Item = RefValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter.next(None)
     }
 }
 
