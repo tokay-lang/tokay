@@ -16,7 +16,7 @@ pub use self::str::Str;
 pub use dict::Dict;
 pub use iter::{Iter, RefValueIter};
 pub use list::List;
-pub use mapiter::Mapiter;
+pub use mapiter::MapIter;
 pub use method::Method;
 pub use methoditer::MethodIter;
 pub use object::{BoxedObject, Object};

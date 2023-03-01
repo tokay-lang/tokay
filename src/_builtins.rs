@@ -120,7 +120,7 @@ pub static BUILTINS: [Builtin; 58] = [
     },
     Builtin {
         name: "iter_map",
-        func: crate::value::mapiter::Mapiter::tokay_method_iter_map,
+        func: crate::value::mapiter::MapIter::tokay_method_iter_map,
     },
     Builtin {
         name: "iter_next",

@@ -1,10 +1,16 @@
 # Tokay code generator for generating a builtin registration function in Rust written in Tokay v0.4
 
+'impl' _ Identifier _ '{' {
+    impl = $3
+    accept
+}
+
 'tokay_' kind => {
     ''function''
     ''method''
     ''token''
-} '!' _ '(' _ '"' _ name => Identifier #{
+} '!' _ '(' _ '"' _ name => Identifier {
+    kind => $kind, name => $name, impl => impl
     #accept "register(\"" + $name + "\", tokay_" + $kind + "_" + $name.lower() + ")"
     #print("register(\"" + $name + "\", tokay_" + $kind + "_" + $name.lower() + ")")
-#}
+}

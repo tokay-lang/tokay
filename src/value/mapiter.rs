@@ -10,12 +10,12 @@ extern crate self as tokay;
 use std::rc::Rc;
 
 #[derive(Clone)]
-pub struct Mapiter {
+pub struct MapIter {
     pub iter: RefValue, // Iterator
     pub map: RefValue,  // Mapping
 }
 
-impl Mapiter {
+impl MapIter {
     /// Creates a new iterator on an iterator with a mapping
     pub fn new(iter: RefValue, map: RefValue) -> Iter {
         assert!(iter.is("iter"));
@@ -35,7 +35,7 @@ impl Mapiter {
     });
 }
 
-impl RefValueIter for Mapiter {
+impl RefValueIter for MapIter {
     fn next(&mut self, mut context: Option<&mut Context>) -> Option<RefValue> {
         while let Some(next) = {
             let mut iter = self.iter.borrow_mut();

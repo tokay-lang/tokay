@@ -67,10 +67,9 @@ fn main() {
                                         // create "type::Type" here in case it's a method
                                         if kind == "method" {
                                             return Some(format!(
-                                                "{}::{}{}",
+                                                "{}::{}",
                                                 part,
-                                                &part[0..1].to_uppercase(),
-                                                &part[1..]
+                                                func["impl"].borrow().to_string()
                                             ));
                                         }
                                     }
