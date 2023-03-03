@@ -15,11 +15,11 @@ a // b
 b // a
 "a" // "b"
 
-x = 7 for i = 1; i <= 7; i++ { print(i, x // i, type(x // i)) }
+x = 7 for i in range(1, 8) { print(i, x // i, type(x // i)) }
 
-x = 7. for i = 1; i <= 7; i++ { print(i, x // i, type(x // i)) }
+x = 7. for i in range(1, 8) { print(i, x // i, type(x // i)) }
 
-x = 7 for i = 1.; i <= 7.; i++ { print(i, x // i, type(x // i)) }
+x = 7 for i in range(1, 8) { i = float(i); print(i, x // i, type(x // i)) }
 
 #---
 

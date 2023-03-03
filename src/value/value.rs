@@ -161,7 +161,9 @@ impl Object for Value {
     fn to_usize(&self) -> Result<usize, String> {
         match self {
             Self::True => Ok(1),
-            Self::Int(i) => Ok(i.to_usize().or(Some(0)).unwrap()),
+            Self::Int(i) => i
+                .to_usize()
+                .ok_or("Cannot convert BigInt to usize".to_string()),
             Self::Float(f) => Ok(*f as usize),
             Self::Object(o) => o.to_usize(),
             _ => Ok(0),
@@ -228,14 +230,27 @@ impl Object for Value {
 
     fn call(
         &self,
-        context: &mut Context,
-        args: usize,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         if let Value::Object(object) = self {
             object.call(context, args, nargs)
         } else {
-            Err(format!("'{}' object is not callable", self.name()).into())
+            Err(format!("'{}' is not callable", self.name()).into())
+        }
+    }
+
+    fn call_direct(
+        &self,
+        context: &mut Context,
+        args: usize,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        if let Value::Object(object) = self {
+            object.call_direct(context, args, nargs)
+        } else {
+            Err(format!("'{}' is not callable", self.name()).into())
         }
     }
 }

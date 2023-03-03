@@ -1,4 +1,4 @@
-for i = 0; i <= 3; i++ {
+for i in range(4) {
     if i == 1
         continue
 

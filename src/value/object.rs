@@ -1,5 +1,5 @@
 use super::Dict;
-use crate::{Accept, Context, Reject};
+use crate::{Accept, Context, RefValue, Reject};
 use num_bigint::BigInt;
 use std::any::Any;
 
@@ -225,13 +225,29 @@ pub trait Object:
         !self.is_mutable()
     }
 
-    /// Call object with a given context, argument and named argument set.
+    /// Call object with optional context, arguments and named arguments set.
     fn call(
         &self,
-        _context: &mut Context,
-        _args: usize,
+        _context: Option<&mut Context>,
+        _args: Vec<RefValue>,
         _nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        Err(format!("'{}' object is not callable", self.name()).into())
+        Err(format!("'{}' is not callable", self.name()).into())
+    }
+
+    /** Directly call object with a given stack configuration.
+
+    This leads in lesser stack operations as previously pushed stack items can be
+    used directly as local variables without change, which is the case in parselets.
+    */
+    fn call_direct(
+        &self,
+        context: &mut Context,
+        args: usize,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        // Default drains the context as builtins do
+        let args = context.drain(args);
+        self.call(Some(context), args, nargs)
     }
 }

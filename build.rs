@@ -47,29 +47,34 @@ fn main() {
                             let module = path
                                 .iter()
                                 .enumerate()
-                                .map(|(i, part)| {
+                                .filter_map(|(i, part)| {
                                     let mut part = part.to_str().unwrap();
 
+                                    //println!("part = {:?}", part);
+
                                     if i == 0 {
-                                        return "crate".to_string();
+                                        return Some("crate".to_string());
                                     } else if part.ends_with(".rs")
                                     // fixme: can the be done better?
                                     {
                                         // cut away the ".rs" here...
                                         part = &part[..part.len() - 3];
 
+                                        if part == "mod" {
+                                            return None;
+                                        }
+
                                         // create "type::Type" here in case it's a method
                                         if kind == "method" {
-                                            return format!(
-                                                "{}::{}{}",
+                                            return Some(format!(
+                                                "{}::{}",
                                                 part,
-                                                &part[0..1].to_uppercase(),
-                                                &part[1..]
-                                            );
+                                                func["impl"].borrow().to_string()
+                                            ));
                                         }
                                     }
 
-                                    part.to_string()
+                                    Some(part.to_string())
                                 })
                                 .collect::<Vec<String>>()
                                 .join("::");

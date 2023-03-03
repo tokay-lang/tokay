@@ -1,0 +1,11 @@
+#testmode:repl
+
+# range with map
+list(range(10).map(@x { x * x }))
+
+# range with filtering map
+list(range(10).map(@x { if x % 2 == 0 x * x }))
+
+#---
+#(0, 1, 4, 9, 16, 25, 36, 49, 64, 81)
+#(0, 4, 16, 36, 64)
