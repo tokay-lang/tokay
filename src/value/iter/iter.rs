@@ -1,6 +1,5 @@
 //! Abstraction of types implementing RefValueIter into an `iter` object.
-use super::{MethodIter, Object, RefValue, Value};
-use crate::value;
+use crate::value::{MethodIter, Object, RefValue, Value};
 use crate::{Context, Error};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -68,7 +67,9 @@ impl Iter {
 
         if let Some(iter) = iter.object_mut::<Iter>() {
             Ok(RefValue::from(
-                iter.iter.next(context).unwrap_or_else(|| value!(void)),
+                iter.iter
+                    .next(context)
+                    .unwrap_or_else(|| tokay::value!(void)),
             ))
         } else {
             Err(Error::from(format!(

@@ -3,8 +3,7 @@ An iterator, running on a specific object using an index, yielding items that ar
 returned by a specific method call with the index. The index is calculated with a
 given unary operation (by default, iinc and idec)
 */
-use super::{Iter, Object, RefValue, RefValueIter};
-use crate::value;
+use crate::value::{Iter, Object, RefValue, RefValueIter};
 use crate::{Context, Error};
 extern crate self as tokay;
 
@@ -33,7 +32,7 @@ impl MethodIter {
         Iter::new(Box::new(Self {
             object: object.clone(),
             object_method,
-            index: index.or_else(|| Some(value!(0))),
+            index: index.or_else(|| Some(tokay::value!(0))),
             index_op,
         }))
     }
@@ -94,13 +93,13 @@ impl RefValueIter for MethodIter {
 
                 // fixme: this is a (bad) hack for str, which begins at 0 and counts down when reversed.
                 if self.object.is("str") {
-                    self.index = Some(value!(-1));
+                    self.index = Some(tokay::value!(-1));
                     Ok(())
                 } else {
                     match self
                         .object
                         .call_method("len", None, Vec::new())
-                        .unwrap_or_else(|_| Some(value!(1)))
+                        .unwrap_or_else(|_| Some(tokay::value!(1)))
                     {
                         Some(len) => {
                             self.index = Some(len.unary_op(self.index_op)?);
@@ -112,7 +111,7 @@ impl RefValueIter for MethodIter {
             }
             "idec" => {
                 self.index_op = "iinc";
-                self.index = Some(value!(0));
+                self.index = Some(tokay::value!(0));
                 Ok(())
             }
             _ => Err(Error::from("This iterator cannot be reversed.")),

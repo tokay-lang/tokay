@@ -112,27 +112,27 @@ pub static BUILTINS: [Builtin; 59] = [
     },
     Builtin {
         name: "iter",
-        func: crate::value::iter::Iter::tokay_method_iter,
+        func: crate::value::iter::iter::Iter::tokay_method_iter,
     },
     Builtin {
         name: "iter_collect",
-        func: crate::value::iter::Iter::tokay_method_iter_collect,
+        func: crate::value::iter::iter::Iter::tokay_method_iter_collect,
     },
     Builtin {
         name: "iter_len",
-        func: crate::value::iter::Iter::tokay_method_iter_len,
+        func: crate::value::iter::iter::Iter::tokay_method_iter_len,
     },
     Builtin {
         name: "iter_map",
-        func: crate::value::mapiter::MapIter::tokay_method_iter_map,
+        func: crate::value::iter::mapiter::MapIter::tokay_method_iter_map,
     },
     Builtin {
         name: "iter_next",
-        func: crate::value::iter::Iter::tokay_method_iter_next,
+        func: crate::value::iter::iter::Iter::tokay_method_iter_next,
     },
     Builtin {
         name: "iter_rev",
-        func: crate::value::iter::Iter::tokay_method_iter_rev,
+        func: crate::value::iter::iter::Iter::tokay_method_iter_rev,
     },
     Builtin {
         name: "list",

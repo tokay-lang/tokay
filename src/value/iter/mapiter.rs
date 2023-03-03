@@ -3,7 +3,7 @@ An iterator, running on a specific object using an index, yielding items that ar
 returned by a specific method call with the index. The index is calculated with a
 given unary operation (by default, iinc and idec)
 */
-use super::{Iter, Object, RefValue, RefValueIter};
+use crate::value::{Iter, Object, RefValue, RefValueIter};
 use crate::{Context, Error};
 use tokay_macros::tokay_method;
 extern crate self as tokay;

@@ -2,9 +2,7 @@
 pub mod dict;
 pub mod iter;
 pub mod list;
-pub mod mapiter;
 mod method;
-mod methoditer;
 mod object;
 mod parselet;
 mod refvalue;
@@ -14,11 +12,9 @@ pub mod value;
 
 pub use self::str::Str;
 pub use dict::Dict;
-pub use iter::{Iter, RefValueIter};
+pub use iter::*;
 pub use list::List;
-pub use mapiter::MapIter;
 pub use method::Method;
-pub use methoditer::MethodIter;
 pub use object::{BoxedObject, Object};
 pub(crate) use parselet::{Parselet, ParseletRef};
 pub use refvalue::RefValue;
