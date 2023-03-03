@@ -7,7 +7,6 @@ use super::{Iter, Object, RefValue, RefValueIter};
 use crate::{Context, Error};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
-use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct MapIter {
@@ -28,7 +27,7 @@ impl MapIter {
         if !iter.is("iter") {
             Err(Error::from("'iter' must be of type iter"))
         } else if !map.is_callable(false) {
-            Err(Error::from("'map' must be a callable"))
+            Err(Error::from("'map' must be a callable accepting arguments"))
         } else {
             Ok(RefValue::from(Iter::new(Box::new(Self { iter, map }))))
         }

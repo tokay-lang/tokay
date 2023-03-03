@@ -343,3 +343,9 @@ impl From<List> for RefValue {
         RefValue::from(Box::new(value) as BoxedObject)
     }
 }
+
+impl From<InnerList> for RefValue {
+    fn from(list: InnerList) -> Self {
+        RefValue::from(List { list })
+    }
+}

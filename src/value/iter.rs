@@ -110,6 +110,28 @@ impl Iter {
 
         Ok(iter)
     });
+
+    tokay_method!("iter_collect : @iter", {
+        let mut iter = iter.borrow_mut();
+
+        if let Some(iter) = iter.object_mut::<Iter>() {
+            let mut context = context;
+            let mut list = Vec::new();
+
+            while let Some(item) = iter.iter.next(context.as_deref_mut()) {
+                list.push(item);
+            }
+
+            Ok(RefValue::from(list))
+        } else {
+            return Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "iter",
+                iter.name()
+            )));
+        }
+    });
 }
 
 impl Iterator for Iter {
