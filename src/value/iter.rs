@@ -54,7 +54,7 @@ impl Iter {
             Ok(value)
         }
         // Check for an available iter() method on the provided value first
-        else if let Ok(Some(iter)) = value.call_method("iter", Vec::new()) {
+        else if let Ok(Some(iter)) = value.call_method("iter", context, Vec::new()) {
             Ok(iter)
         }
         // Default fallback to Iter on the object

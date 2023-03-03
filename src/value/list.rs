@@ -63,8 +63,19 @@ impl List {
 
     tokay_method!("list : @*args", {
         let list = if args.len() == 1 {
-            List::from(args[0].clone())
-        } else {
+            // In case of an iter, use the collect-method
+            if args[0].is("iter") {
+                return Ok(args[0]
+                    .call_method("collect", context, Vec::new())?
+                    .unwrap());
+            }
+            // Otherwise, create a list with one item
+            else {
+                List::from(args[0].clone())
+            }
+        }
+        // When multiple items are provided, turn these into list items
+        else {
             List { list: args }
         };
 

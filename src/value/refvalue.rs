@@ -39,6 +39,7 @@ impl RefValue {
     pub fn call_method(
         &self,
         name: &str,
+        context: Option<&mut Context>,
         mut args: Vec<RefValue>,
     ) -> Result<Option<RefValue>, String> {
         let builtin = Builtin::get_method(self.name(), name)?;
@@ -47,7 +48,7 @@ impl RefValue {
         args.insert(0, self.clone());
 
         // Call the builtin directly.
-        builtin.call(None, args)
+        builtin.call(context, args)
     }
 
     pub fn unary_op(self, op: &str) -> Result<RefValue, String> {

@@ -40,11 +40,11 @@ impl MethodIter {
 }
 
 impl RefValueIter for MethodIter {
-    fn next(&mut self, _context: Option<&mut Context>) -> Option<RefValue> {
+    fn next(&mut self, context: Option<&mut Context>) -> Option<RefValue> {
         if let Some(index) = &self.index {
             match self
                 .object
-                .call_method(self.object_method, vec![index.clone()])
+                .call_method(self.object_method, context, vec![index.clone()])
             {
                 Ok(Some(next)) => {
                     // When next is not void, calculate index and return next
@@ -99,7 +99,7 @@ impl RefValueIter for MethodIter {
                 } else {
                     match self
                         .object
-                        .call_method("len", Vec::new())
+                        .call_method("len", None, Vec::new())
                         .unwrap_or_else(|_| Some(value!(1)))
                     {
                         Some(len) => {
