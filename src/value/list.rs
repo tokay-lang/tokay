@@ -1,5 +1,5 @@
 //! List object
-use super::{BoxedObject, Object, RefValue};
+use super::{BoxedObject, Iter, Object, RefValue};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
@@ -58,8 +58,19 @@ impl List {
 
     tokay_method!("list : @*args", {
         let list = if args.len() == 1 {
-            List::from(args[0].clone())
-        } else {
+            // In case of an iter, use the collect-method
+            if args[0].is("iter") {
+                return Ok(args[0]
+                    .call_method("collect", context, Vec::new())?
+                    .unwrap());
+            }
+            // Otherwise, create a list with one item
+            else {
+                List::from(args[0].clone())
+            }
+        }
+        // When multiple items are provided, turn these into list items
+        else {
             List { list: args }
         };
 
@@ -84,11 +95,13 @@ impl List {
 
         let list = list.borrow();
 
-        if let Some(value) = list.object::<List>().unwrap().get(item.to_usize()?) {
-            Ok(value.clone())
-        } else {
-            Ok(default)
+        if let Ok(item) = item.to_usize() {
+            if let Some(value) = list.object::<List>().unwrap().get(item) {
+                return Ok(value.clone());
+            }
         }
+
+        Ok(default)
     });
 
     tokay_method!("list_set_item : @list, item, value=void", {
@@ -301,12 +314,26 @@ impl std::iter::IntoIterator for List {
 
 impl From<RefValue> for List {
     fn from(refvalue: RefValue) -> Self {
-        if let Some(list) = refvalue.borrow().object::<List>() {
-            (*list).clone()
-        } else {
-            Self {
-                list: vec![refvalue.clone()],
+        match refvalue.name() {
+            "iter" => {
+                let mut iter = refvalue.borrow_mut();
+                let iter = iter.object_mut::<Iter>().unwrap();
+                let mut list = InnerList::new();
+
+                for item in iter {
+                    list.push(item);
+                }
+
+                Self { list }
             }
+            "list" => {
+                let list = refvalue.borrow();
+                let list = list.object::<List>().unwrap();
+                (*list).clone()
+            }
+            _ => Self {
+                list: vec![refvalue.clone()],
+            },
         }
     }
 }
@@ -320,5 +347,11 @@ impl From<&RefValue> for List {
 impl From<List> for RefValue {
     fn from(value: List) -> Self {
         RefValue::from(Box::new(value) as BoxedObject)
+    }
+}
+
+impl From<InnerList> for RefValue {
+    fn from(list: InnerList) -> Self {
+        RefValue::from(List { list })
     }
 }

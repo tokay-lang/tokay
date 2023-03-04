@@ -1,10 +1,11 @@
 //! Dictionary object
-use super::{BoxedObject, List, Object, RefValue, Str};
+use super::{BoxedObject, MethodIter, Object, RefValue, Str, Value};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
+use num::ToPrimitive;
 use std::cmp::Ordering;
 
 // Alias for the inner dict
@@ -135,17 +136,26 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_keys : @dict", {
+    // Method to retrieve or iterate the keys of a dict.
+    tokay_method!("dict_keys : @dict, index=void", {
+        // If index is void, create an iterator on keys.
+        if index.is_void() {
+            return Ok(RefValue::from(MethodIter::new_method_iter(
+                dict.clone(),
+                "keys",
+                None,
+                "iinc",
+            )));
+        }
+
+        // Otherwise, borrow
         let dict = dict.borrow();
-
         if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for key in dict.keys() {
-                list.push(RefValue::from(key.to_owned()));
+            if let Some((key, _)) = dict.get_index(index.to_usize()?) {
+                Ok(key.clone())
+            } else {
+                Ok(value!(void))
             }
-
-            Ok(RefValue::from(list))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -156,46 +166,26 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_values : @dict", {
-        let dict = dict.borrow();
-
-        if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for value in dict.values() {
-                list.push(value.clone());
-            }
-
-            Ok(RefValue::from(list))
-        } else {
-            Err(Error::from(format!(
-                "{} only accepts '{}' as parameter, not '{}'",
-                __function,
-                "dict",
-                dict.name()
-            )))
+    // Method to retrieve or iterate a list of [key, value] from a dict by index
+    tokay_method!("dict_items : @dict, index=void", {
+        // If index is void, create an iterator on items.
+        if index.is_void() {
+            return Ok(RefValue::from(MethodIter::new_method_iter(
+                dict.clone(),
+                "items",
+                None,
+                "iinc",
+            )));
         }
-    });
 
-    tokay_method!("dict_items : @dict", {
+        // Otherwise, borrow
         let dict = dict.borrow();
-
         if let Some(dict) = dict.object::<Dict>() {
-            let mut list = List::with_capacity(dict.len());
-
-            for (key, value) in dict.iter() {
-                // fixme: wanted to shortcut this all with
-                //  list.push(value!([key.to_string(), value.clone()]));
-                // but doesn't compile.
-                let mut item = List::with_capacity(2);
-
-                item.push(RefValue::from(key.to_string()));
-                item.push(value.clone());
-
-                list.push(RefValue::from(item));
+            if let Some((key, value)) = dict.get_index(index.to_usize()?) {
+                Ok(value!([(key.clone()), (value.clone())]))
+            } else {
+                Ok(value!(void))
             }
-
-            Ok(RefValue::from(list))
         } else {
             Err(Error::from(format!(
                 "{} only accepts '{}' as parameter, not '{}'",
@@ -222,6 +212,16 @@ impl Dict {
             if let Some(item) = dict.get(&item) {
                 Ok(item.clone())
             } else {
+                // In case index is an int that can be turned into an usize,
+                // try to obtain the dict item by its index
+                if let Value::Int(index) = &*item.borrow() {
+                    if let Some(index) = index.to_usize() {
+                        if let Some((_, item)) = dict.get_index(index) {
+                            return Ok(item.clone());
+                        }
+                    }
+                }
+
                 Ok(default)
             }
         } else {

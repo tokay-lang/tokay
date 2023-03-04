@@ -18,7 +18,6 @@ Specifies all atomic level VM code operations to run the Tokay VM.
 pub(crate) enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging
-    Rust(Rust),          // Native rust callback
 
     // Capture frames
     Frame(usize),    // Start new frame with optional relative forward address fuse
@@ -31,19 +30,16 @@ pub(crate) enum Op {
     Fuse(usize),     // Set frame fuse to relative forward address
 
     // Loop frames
-    Loop(usize),    // Loop frame
-    IncLoop(usize), // Incremental loop frame (for-loop with incremental part skipped on first iteration)
-    Break,          // Ok(Accept::Break)
-    LoadBreak,      // Ok(Accept::Break) with value
-    Continue,       // Ok(Accept::Continue)
+    Loop(usize), // Loop frame
+    Break,       // Ok(Accept::Break)
+    LoadBreak,   // Ok(Accept::Break) with value
+    Continue,    // Ok(Accept::Continue)
 
     // Conditional jumps
-    ForwardIfTrue(usize),      // Jump forward when TOS is true
-    ForwardIfFalse(usize),     // Jump forward when TOS is false
-    ForwardIfConsumed(usize),  // Jump forward when frame consumed input
-    BackwardIfTrue(usize),     // Jump backward when TOS is true
-    BackwardIfFalse(usize),    // Jump backward when TOS is false
-    BackwardIfConsumed(usize), // Jump backward when frame consumed input
+    ForwardIfTrue(usize),     // Jump forward when TOS is true
+    ForwardIfFalse(usize),    // Jump forward when TOS is false
+    ForwardIfNotVoid(usize),  // Jump forward when TOS is not void
+    ForwardIfConsumed(usize), // Jump forward when frame consumed input
 
     // Direct jumps
     Forward(usize),  // Jump forward
@@ -144,7 +140,7 @@ impl Op {
 
             // Debug
             if context.runtime.debug == 3 {
-                context.log(&format!("{:03}:{}", ip, op));
+                context.log(&format!("{:03}:{:?}", ip, op));
             } else if context.runtime.debug > 3 {
                 if context.runtime.debug > 5 {
                     // Skip any Nop-Operations
@@ -187,8 +183,6 @@ impl Op {
                     context.source_offset = Some(**offset);
                     Ok(Accept::Next)
                 }
-
-                Op::Rust(f) => f.0(context),
 
                 // Frames
                 Op::Frame(fuse) => {
@@ -251,11 +245,11 @@ impl Op {
                 }
 
                 // Loops
-                Op::Loop(size) | Op::IncLoop(size) => {
+                Op::Loop(size) => {
                     context.loops.push(Loop {
                         frames: context.frames.len(),
-                        start: ip + if matches!(op, Op::Loop(_)) { 1 } else { 2 },
-                        end: ip + if matches!(op, Op::Loop(_)) { 0 } else { 1 } + *size,
+                        start: ip + 1,
+                        end: ip + *size,
                     });
                     Ok(Accept::Next)
                 }
@@ -329,38 +323,19 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
+                Op::ForwardIfNotVoid(goto) => {
+                    if !context.pop().is_void() {
+                        ip += goto;
+                    } else {
+                        ip += 1;
+                    }
+
+                    Ok(Accept::Hold)
+                }
+
                 Op::ForwardIfConsumed(goto) => {
                     if context.frame.reader_start != context.runtime.reader.tell() {
                         ip += goto;
-                        Ok(Accept::Hold)
-                    } else {
-                        Ok(Accept::Next)
-                    }
-                }
-
-                Op::BackwardIfTrue(goto) => {
-                    if context.pop().is_true() {
-                        ip -= goto;
-                    } else {
-                        ip += 1;
-                    }
-
-                    Ok(Accept::Hold)
-                }
-
-                Op::BackwardIfFalse(goto) => {
-                    if !context.pop().is_true() {
-                        ip -= goto;
-                    } else {
-                        ip += 1;
-                    }
-
-                    Ok(Accept::Hold)
-                }
-
-                Op::BackwardIfConsumed(goto) => {
-                    if context.frame.reader_start != context.runtime.reader.tell() {
-                        ip -= goto;
                         Ok(Accept::Hold)
                     } else {
                         Ok(Accept::Next)
@@ -426,7 +401,7 @@ impl Op {
 
                     if value.is_callable(true) {
                         // Call the value without parameters
-                        value.call(context, 0, None)
+                        value.call_direct(context, 0, None)
                     } else if value.is_mutable() {
                         // Push a reference to the value
                         context.push(value)
@@ -438,12 +413,12 @@ impl Op {
 
                 Op::Call => {
                     let target = context.pop();
-                    target.call(context, 0, None)
+                    target.call_direct(context, 0, None)
                 }
 
                 Op::CallArg(args) => {
                     let target = context.pop();
-                    target.call(context, *args, None)
+                    target.call_direct(context, *args, None)
                 }
 
                 Op::CallArgNamed(args) => {
@@ -451,16 +426,18 @@ impl Op {
                     let nargs = Value::from(context.pop());
 
                     if let Some(nargs) = nargs.into_object::<Dict>() {
-                        target.call(context, *args, Some(nargs))
+                        target.call_direct(context, *args, Some(nargs))
                     } else {
                         panic!("nargs operand required to be dict")
                     }
                 }
 
-                Op::CallStatic(addr) => context.program.statics[*addr].call(context, 0, None),
+                Op::CallStatic(addr) => {
+                    context.program.statics[*addr].call_direct(context, 0, None)
+                }
 
                 Op::CallStaticArg(addr_args) => {
-                    context.program.statics[addr_args.0].call(context, addr_args.1, None)
+                    context.program.statics[addr_args.0].call_direct(context, addr_args.1, None)
                     //println!("CallStaticArg returns {:?}", ret);
                 }
 
@@ -468,7 +445,11 @@ impl Op {
                     let nargs = Value::from(context.pop());
 
                     if let Some(nargs) = nargs.into_object::<Dict>() {
-                        context.program.statics[addr_args.0].call(context, addr_args.1, Some(nargs))
+                        context.program.statics[addr_args.0].call_direct(
+                            context,
+                            addr_args.1,
+                            Some(nargs),
+                        )
                     } else {
                         panic!("nargs operand required to be dict")
                     }
@@ -515,7 +496,7 @@ impl Op {
                     let item = context.pop();
                     let object = context.pop();
 
-                    match object.call_method("get_item", vec![item]) {
+                    match object.call_method("get_item", Some(context), vec![item]) {
                         Ok(Some(value)) => context.push(value),
                         Ok(None) => Ok(Accept::Next),
                         Err(msg) => Err(Reject::from(msg)),
@@ -609,7 +590,7 @@ impl Op {
                     let object = context.pop();
                     let value = context.pop();
 
-                    match object.call_method("set_item", vec![item, value]) {
+                    match object.call_method("set_item", Some(context), vec![item, value]) {
                         Ok(value) => {
                             let value = value.unwrap(); // setitem must always return a value!
 
@@ -781,23 +762,5 @@ impl Op {
         }
 
         state
-    }
-}
-
-impl std::fmt::Display for Op {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Op::Rust(_) => write!(f, "{{rust-function}}"),
-            op => write!(f, "{:?}", op),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct Rust(pub fn(&mut Context) -> Result<Accept, Reject>);
-
-impl std::fmt::Debug for Rust {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{rust-function}}")
     }
 }

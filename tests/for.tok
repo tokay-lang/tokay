@@ -1,6 +1,6 @@
-for i=0; i < 10; i++ {
+for i in range(10)
     print("For" + i)
-}
+
 #---
 #For0
 #For1

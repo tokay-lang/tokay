@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/** Compiler symbolic scope.
+/** Compiler symbolic scopes.
 
 In Tokay code, this relates to any block.
 Parselets introduce new variable scopes.
@@ -21,8 +21,10 @@ pub(in crate::compiler) enum Scope {
     Parselet {
         // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, ImlValue>, // Constants symbol table
-        variables: HashMap<String, usize>, // Variable symbol table
+        constants: HashMap<String, ImlValue>, // Named constants symbol table
+        variables: HashMap<String, usize>, // Named variable symbol table
+        temporaries: Vec<usize>, // List of unused temporary variables
+        locals: usize,      // Total amount of variables in this scope
         begin: Vec<ImlOp>,  // Begin operations
         end: Vec<ImlOp>,    // End operations
         is_consuming: bool, // Determines whether the scope is consuming input for early consumable detection
@@ -30,7 +32,7 @@ pub(in crate::compiler) enum Scope {
     Block {
         // block level (constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, ImlValue>, // Constants symbol table
+        constants: HashMap<String, ImlValue>, // Named constants symbol table
     },
     Loop, // loop level (allows use of break & continue)
 }
@@ -180,6 +182,8 @@ impl Compiler {
                 usage_start: self.usages.len(),
                 variables: HashMap::new(),
                 constants: HashMap::new(),
+                temporaries: Vec::new(),
+                locals: 0,
                 begin: Vec::new(),
                 end: Vec::new(),
                 is_consuming: false,
@@ -225,7 +229,7 @@ impl Compiler {
         let mut scope = self.scopes.remove(0);
 
         if let Scope::Parselet {
-            variables,
+            locals,
             begin,
             end,
             is_consuming,
@@ -244,7 +248,7 @@ impl Compiler {
             let constants = gen.unwrap_or(Vec::new());
 
             assert!(
-                signature.len() <= variables.len(),
+                signature.len() <= *locals,
                 "signature may not be longer than locals..."
             );
 
@@ -265,7 +269,7 @@ impl Compiler {
                 severity: severity.unwrap_or(5), // severity
                 constants,                       // constants
                 signature,                       // signature
-                locals: variables.len(),
+                locals: *locals,
                 // Ensure that begin and end are blocks.
                 begin,
                 end,
@@ -344,14 +348,53 @@ impl Compiler {
     pub(in crate::compiler) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
-            if let Scope::Parselet { variables, .. } = scope {
+            if let Scope::Parselet {
+                locals, variables, ..
+            } = scope
+            {
                 if let Some(addr) = variables.get(name) {
                     return *addr;
                 }
 
-                let addr = variables.len();
+                let addr = *locals;
+                *locals += 1;
                 variables.insert(name.to_string(), addr);
                 return addr;
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet scope!");
+    }
+
+    /** Pop unused or create new temporary variable */
+    pub(in crate::compiler) fn pop_temp(&mut self) -> usize {
+        for scope in &mut self.scopes {
+            // Check for scope with variables
+            if let Scope::Parselet {
+                locals,
+                temporaries,
+                ..
+            } = scope
+            {
+                if let Some(addr) = temporaries.pop() {
+                    return addr;
+                }
+
+                *locals += 1;
+                return *locals - 1;
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet scope!");
+    }
+
+    /** Release temporary variable for later re-use */
+    pub(in crate::compiler) fn push_temp(&mut self, addr: usize) {
+        for scope in &mut self.scopes {
+            // Check for scope with variables
+            if let Scope::Parselet { temporaries, .. } = scope {
+                temporaries.push(addr);
+                return;
             }
         }
 
@@ -445,7 +488,12 @@ impl Compiler {
             }
         }
 
-        // When not found, check for a builtin function
+        self.get_builtin(name)
+    }
+
+    /** Get defined builtin. */
+    pub(in crate::compiler) fn get_builtin(&mut self, name: &str) -> Option<ImlValue> {
+        // Check for a builtin function
         if let Some(builtin) = Builtin::get(name) {
             return Some(RefValue::from(builtin).into()); // fixme: Makes a Value into a RefValue into a Value...
         }

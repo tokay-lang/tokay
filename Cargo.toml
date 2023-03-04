@@ -39,7 +39,7 @@ indexmap = "1.9"
 num = "0.4"
 num-bigint = "0.4"
 rustyline = "9"
-tokay-macros = "0.3"  # use crates.io-version
-#tokay-macros = { version = "0.3", path = "macros" }  # use local version
+#tokay-macros = "0.3"  # use crates.io-version
+tokay-macros = { version = "0.4", path = "macros" }  # use local version
 num-parse = "0.1"  # use crates.io-version
 #num-parse = { version = "0.1", path = "../num-parse" }  # use local version

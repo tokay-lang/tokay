@@ -1,19 +1,18 @@
 //! Tokay virtual machine
-
 mod capture;
 mod context;
 mod op;
 mod program;
 mod runtime;
 
-pub use capture::*;
-pub use context::*;
-pub use op::*;
-pub use program::*;
-pub use runtime::*;
-
 use crate::error::Error;
 use crate::value::{RefValue, Value};
+pub use capture::*;
+pub use context::*;
+pub(crate) use op::*;
+pub use program::*;
+pub use runtime::*;
+extern crate self as tokay;
 
 // --- Accept ------------------------------------------------------------------
 
@@ -25,6 +24,16 @@ pub enum Accept {
     Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
     Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
     Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
+}
+
+impl Accept {
+    pub fn into_refvalue(self) -> RefValue {
+        match self {
+            Self::Push(capture) => capture.get_value(),
+            Self::Repeat(Some(value)) | Self::Return(Some(value)) => value,
+            _ => tokay::value!(void),
+        }
+    }
 }
 
 impl From<RefValue> for Result<Accept, Reject> {

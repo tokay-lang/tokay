@@ -81,21 +81,21 @@ impl Parselet {
         main: bool,
         depth: usize,
     ) -> Result<Accept, Reject> {
-        // Check for a previously memoized result in memo table
+        // Get unique parselet id from memory address
         let id = self as *const Parselet as usize;
 
         // When parselet is consuming, try to read previous result from cache.
         if self.consuming.is_some() {
-            // Get unique parselet id from memory address
             let reader_start = runtime.reader.tell();
 
+            // Check for a previously memoized result in memo table
             if let Some((reader_end, result)) = runtime.memo.get(&(reader_start.offset, id)) {
                 runtime.reader.reset(*reader_end);
                 return result.clone();
             }
         }
 
-        // If not, start a new context.
+        // If not, open a new context.
         let mut context = Context::new(
             program,
             self,
@@ -337,6 +337,33 @@ impl Object for ParseletRef {
     }
 
     fn call(
+        &self,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        match context {
+            Some(context) => {
+                let len = args.len();
+                for arg in args {
+                    //context.push(arg)?;  //yeah...doesn't work...GRRR
+                    context.runtime.stack.push(Capture::Value(arg, None, 0));
+                }
+
+                self.0.borrow().run(
+                    context.program,
+                    context.runtime,
+                    len,
+                    nargs,
+                    false,
+                    context.depth + 1,
+                )
+            }
+            None => panic!("{} needs a context to operate", self.repr()),
+        }
+    }
+
+    fn call_direct(
         &self,
         context: &mut Context,
         args: usize,
