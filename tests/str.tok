@@ -12,10 +12,10 @@ s * 2
 3 * s
 
 # Standard get item test
-l = () for i = 0; i < s.len; i++ { l.push(s[i] + i) } l
+l = () for i in range(s.len) { l.push(s[i] + i) } l
 
 # Extended get item test
-m = () for i = -1; i < s.len + 1; i++ { m.push(s[i] + s.get_item(i, "x") + i) } m
+m = () for i in range(-1, s.len + 1) { m.push(s[i] + s.get_item(i, "x") + i) } m
 
 # len
 s.len

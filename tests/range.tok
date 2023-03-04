@@ -1,0 +1,42 @@
+#testmode:repl
+
+to5 = range(5)
+
+for i in to5 print(i)
+for i in to5.rev print(i)
+for i in to5.rev print(i)
+
+to10by2 = range(0, 10, 2)
+for i in to10by2 print(i)
+for i in to10by2.rev print(i)
+
+#---
+#0
+#1
+#2
+#3
+#4
+
+#4
+#3
+#2
+#1
+#0
+
+#0
+#1
+#2
+#3
+#4
+
+#0
+#2
+#4
+#6
+#8
+
+#8
+#6
+#4
+#2
+#0

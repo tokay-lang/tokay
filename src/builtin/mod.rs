@@ -6,6 +6,7 @@ use crate::{Accept, Context, Reject};
 use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
+pub mod range;
 
 // Abstraction of a built-in function
 pub struct Builtin {
@@ -86,6 +87,15 @@ impl Object for BuiltinRef {
     }
 
     fn call(
+        &self,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        (self.0.func)(context, args, nargs)
+    }
+
+    fn call_direct(
         &self,
         context: &mut Context,
         args: usize,

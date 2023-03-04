@@ -1349,33 +1349,53 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "for" => {
                     let children = node["children"].borrow();
                     let children = children.object::<List>().unwrap();
+                    assert!(children.len() == 3);
 
-                    let (initial, condition, increment, body) = (
+                    let (var, iter_expr, body) = (
                         &children[0].borrow(),
                         &children[1].borrow(),
                         &children[2].borrow(),
-                        &children[3].borrow(),
                     );
 
-                    let initial = initial.object::<Dict>().unwrap();
-                    let condition = condition.object::<Dict>().unwrap();
-                    let increment = increment.object::<Dict>().unwrap();
+                    let var = var.object::<Dict>().unwrap();
+                    let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    // Initial
-                    let initial = traverse_node_rvalue(compiler, initial, Rvalue::CallOrLoad);
-                    let condition = traverse_node_rvalue(compiler, condition, Rvalue::CallOrLoad);
-                    let increment = traverse_node_rvalue(compiler, increment, Rvalue::CallOrLoad);
+                    let temp = compiler.pop_temp(); // Borrow a temporary, unnamed variable
+
+                    // Create an iter() on the iter expression
+                    let initial = ImlOp::from(vec![
+                        traverse_node_rvalue(compiler, iter_expr, Rvalue::CallOrLoad),
+                        ImlOp::call(
+                            None,
+                            compiler.get_builtin("iter").unwrap(),
+                            Some((1, false)),
+                        ),
+                        ImlOp::from(Op::StoreFast(temp)),
+                    ]);
+
+                    // Create the condition, which calls iter_next() until void is returned
+                    let condition = ImlOp::from(vec![
+                        ImlOp::from(Op::LoadFast(temp)),
+                        ImlOp::call(
+                            None,
+                            compiler.get_builtin("iter_next").unwrap(),
+                            Some((1, false)),
+                        ),
+                        traverse_node_lvalue(
+                            compiler, var, true, true, //hold for preceding loop break check
+                        ),
+                    ]);
 
                     compiler.loop_push();
                     let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
                     compiler.loop_pop();
+                    compiler.push_temp(temp); // Give temp variable back for possible reuse.
 
                     ImlOp::Loop {
-                        consuming: None,
+                        iterator: true,
                         initial: Box::new(initial),
                         condition: Box::new(condition),
-                        increment: Box::new(increment),
                         body: Box::new(body),
                     }
                 }
@@ -1390,10 +1410,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             let body = &children[0].borrow();
 
                             ImlOp::Loop {
-                                consuming: None,
+                                iterator: false,
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(ImlOp::Nop),
-                                increment: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),
@@ -1405,14 +1424,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             let (condition, body) = (&children[0].borrow(), &children[1].borrow());
 
                             ImlOp::Loop {
-                                consuming: None,
+                                iterator: false,
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(traverse_node_rvalue(
                                     compiler,
                                     condition.object::<Dict>().unwrap(),
                                     Rvalue::CallOrLoad,
                                 )),
-                                increment: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
                                     compiler,
                                     body.object::<Dict>().unwrap(),

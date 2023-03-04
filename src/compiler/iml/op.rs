@@ -85,11 +85,10 @@ pub(in crate::compiler) enum ImlOp {
 
     // Loop construct
     Loop {
-        consuming: Option<Consumable>, // Consumable state: FIXME: Remove and replace asap.
-        initial: Box<ImlOp>,           // Initial operation
-        condition: Box<ImlOp>,         // Abort condition
-        increment: Box<ImlOp>,         // Incrementor part (for-loops only)
-        body: Box<ImlOp>,              // Iterating body
+        iterator: bool,        // Test condition either for void (=true) or bool (=false)
+        initial: Box<ImlOp>,   // Initialization
+        condition: Box<ImlOp>, // Abort condition
+        body: Box<ImlOp>,      // Iterating body
     },
 
     // v--- below variants are being replaced by Tokay generics as soon as they are implemented ---v //
@@ -332,7 +331,7 @@ impl ImlOp {
                             Some(all_txt.join(" or "))
                         }
                     }
-                    item => None,
+                    _ => None,
                 }
             }
 
@@ -555,32 +554,30 @@ impl ImlOp {
                 }
             }
             ImlOp::Loop {
-                consuming, // todo: currently always false, which is wrong!
+                iterator,
                 initial,
                 condition,
-                increment,
                 body,
             } => {
+                let consuming: Option<bool> = None; // fixme: Currently not sure if this is an issue.
                 let mut repeat = Vec::new();
 
                 initial.compile(ops, linker);
 
-                let increment = increment.compile(&mut repeat, linker);
-
                 if condition.compile(&mut repeat, linker) > 0 {
-                    repeat.push(Op::ForwardIfTrue(2));
+                    if *iterator {
+                        repeat.push(Op::ForwardIfNotVoid(2));
+                    } else {
+                        repeat.push(Op::ForwardIfTrue(2));
+                    }
+
                     repeat.push(Op::Break);
                 }
 
                 body.compile(&mut repeat, linker);
                 let len = repeat.len() + if consuming.is_some() { 3 } else { 2 };
 
-                if increment > 0 {
-                    ops.push(Op::IncLoop(len));
-                    ops.push(Op::Forward(increment + 1));
-                } else {
-                    ops.push(Op::Loop(len));
-                }
+                ops.push(Op::Loop(len));
 
                 // fixme: consuming flag must be handled differently.
                 if consuming.is_some() {
@@ -824,13 +821,12 @@ impl ImlOp {
             ImlOp::Loop {
                 initial,
                 condition,
-                increment,
                 body,
                 ..
             } => {
                 let mut ret: Option<Consumable> = None;
 
-                for part in [initial, condition, increment, body] {
+                for part in [initial, condition, body] {
                     let part = part.finalize(visited, configs);
 
                     if let Some(part) = part {
@@ -902,11 +898,10 @@ impl ImlOp {
             ImlOp::Loop {
                 initial,
                 condition,
-                increment,
                 body,
                 ..
             } => {
-                for i in [&initial, &condition, &increment, &body] {
+                for i in [&initial, &condition, &body] {
                     if !i.walk(func) {
                         return false;
                     }

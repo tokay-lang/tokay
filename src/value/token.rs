@@ -209,12 +209,12 @@ impl Object for Token {
 
     fn call(
         &self,
-        context: &mut Context,
-        args: usize,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        assert!(args == 0 && nargs.is_none());
-        self.read(&mut context.runtime.reader)
+        assert!(context.is_some() && args.len() == 0 && nargs.is_none());
+        self.read(&mut context.unwrap().runtime.reader)
     }
 }
 

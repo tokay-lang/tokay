@@ -37,7 +37,7 @@ impl Object for Method {
         self.method.is_consuming()
     }
 
-    fn call(
+    fn call_direct(
         &self,
         context: &mut Context,
         args: usize,
@@ -49,7 +49,7 @@ impl Object for Method {
             Capture::Value(self.object.clone(), None, 0),
         );
 
-        self.method.call(context, args + 1, nargs)
+        self.method.call_direct(context, args + 1, nargs)
     }
 }
 

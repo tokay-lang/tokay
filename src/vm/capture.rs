@@ -107,7 +107,11 @@ impl std::fmt::Debug for Capture {
                     write!(f, "{} => ", alias.repr())?;
                 }
 
-                write!(f, "[{:x?}] {} ({})", value.id(), value.repr(), severity)
+                if let Ok(value) = value.try_borrow() {
+                    write!(f, "[{:x?}] {} ({})", value.id(), value.repr(), severity)
+                } else {
+                    write!(f, "<currently borrowed> ({})", severity)
+                }
             }
         }
     }

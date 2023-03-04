@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 53] = [
+pub static BUILTINS: [Builtin; 60] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -87,10 +87,6 @@ pub static BUILTINS: [Builtin; 53] = [
         func: crate::value::dict::Dict::tokay_method_dict_set_item,
     },
     Builtin {
-        name: "dict_values",
-        func: crate::value::dict::Dict::tokay_method_dict_values,
-    },
-    Builtin {
         name: "error",
         func: crate::error::tokay_function_error,
     },
@@ -113,6 +109,34 @@ pub static BUILTINS: [Builtin; 53] = [
     Builtin {
         name: "int",
         func: crate::value::value::Value::tokay_method_int,
+    },
+    Builtin {
+        name: "iter",
+        func: crate::value::iter::iter::Iter::tokay_method_iter,
+    },
+    Builtin {
+        name: "iter_collect",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_collect,
+    },
+    Builtin {
+        name: "iter_enum",
+        func: crate::value::iter::enumiter::EnumIter::tokay_method_iter_enum,
+    },
+    Builtin {
+        name: "iter_len",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_len,
+    },
+    Builtin {
+        name: "iter_map",
+        func: crate::value::iter::mapiter::MapIter::tokay_method_iter_map,
+    },
+    Builtin {
+        name: "iter_next",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_next,
+    },
+    Builtin {
+        name: "iter_rev",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_rev,
     },
     Builtin {
         name: "list",
@@ -157,6 +181,10 @@ pub static BUILTINS: [Builtin; 53] = [
     Builtin {
         name: "print",
         func: crate::builtin::tokay_function_print,
+    },
+    Builtin {
+        name: "range",
+        func: crate::builtin::range::tokay_function_range,
     },
     Builtin {
         name: "repr",
