@@ -75,7 +75,7 @@ impl Compiler {
         };
 
         // Compile with the default prelude
-        if with_prelude {
+        if false && with_prelude {
             compiler
                 .compile_from_str(include_str!("../prelude.tok"))
                 .unwrap(); // this should panic in case of an error!
