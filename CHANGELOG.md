@@ -4,6 +4,11 @@
 
 Current main branch.
 
+- v0.6.1:
+  - Comparison chains within expressions (#103)
+  - Iterators and `for...in`-syntax (#101)
+  - `Chars<...>` in addition to `Char<...>` syntax
+
 ## [v0.6]
 
 Released on Jan 13, 2023

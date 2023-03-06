@@ -22,10 +22,13 @@ In case your pull request is not a draft, ensure that `cargo run` and `cargo tes
 Tokay uses the semantic versioning scheme.<br>
 Any major/minor/bugfix release is being published to [crates.io](https://crates.io).
 
-As Tokay is unfinished, and under development, it currently has major version 0.<br>
-The minor-version define huger milestones. The bugfix-version is currently not limited to bugfixes, but might also contain smaller milestones within a minor-version, to allow for continous releasing of new features.
+As Tokay is unfinished, and under development, it currently has major version 0, with the following versioning convention:
 
-As Tokay reaches major version 1, the versioning scheme will be changed into a real semantic versioning, with backward-compatiblity, patch-levels, etc.
+- The minor-version defines huger milestones.
+- The bugfix-version is currently not limited to bugfixes only, but might also include smaller milestones between huger milestones, to allow for continous releasing of new features.
+- A bugfix version release might not include an updated CHANGELOG.md, even if it contains new features or breaking changes.
+
+As Tokay reaches major version 1, the versioning scheme will be changed into a real semantic versioning, with backward-compatiblity, patch-levels, deprecations etc.
 
 # Maintenance
 
