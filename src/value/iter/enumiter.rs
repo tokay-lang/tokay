@@ -17,12 +17,15 @@ impl EnumIter {
     /// Creates a enumerated iterator on an iterator.
     pub fn new(iter: RefValue) -> Iter {
         assert!(iter.is("iter"));
-        Iter::new(Box::new(Self { iter, count: BigInt::from(0) }))
+        Iter::new(Box::new(Self {
+            iter,
+            count: BigInt::from(0),
+        }))
     }
 
     tokay_method!("iter_enum : @iter", {
         if !iter.is("iter") {
-            return Err(Error::from("'iter' must be of type iter"))
+            return Err(Error::from("'iter' must be of type iter"));
         }
 
         Ok(RefValue::from(Self::new(iter)))
@@ -45,11 +48,7 @@ impl RefValueIter for EnumIter {
     }
 
     fn repr(&self) -> String {
-        format!(
-            "<EnumIter on {} at {}>",
-            self.iter.repr(),
-            self.count,
-        )
+        format!("<EnumIter on {} at {}>", self.iter.repr(), self.count,)
     }
 
     fn rev(&mut self) -> Result<(), Error> {

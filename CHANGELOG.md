@@ -22,7 +22,6 @@ Released on Jan 13, 2023
   - Operator `%` for modulo operation implemented
   - Area syntax `@(...)` for in-place reader extend (#78)
   - Character-class syntax changed from `[a-z]` into `Char<a-z>`, `.` and `Any` substituted by `Char` (#98)
-  )
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
     - `()` the empty list

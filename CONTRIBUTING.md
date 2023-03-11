@@ -67,4 +67,5 @@ Next are some instructions on how to create a new release.
     - Uncomment line to use `tokay-macros` version from crates.io (obviously `tokay-macros = "x.x"`)
     - Comment line to use local `tokay-macros` (should be `# tokay-macros = { version = "x.x", path = "macros" }`)
   - `git commit` this state
+  - `git tag` this state
   - `cargo publish`
