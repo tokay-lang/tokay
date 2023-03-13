@@ -282,7 +282,10 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::Parselet(Rc::new(RefCell::new(parselet)))
+            ImlValue::Parselet {
+                parselet: Rc::new(RefCell::new(parselet)),
+                constants: HashMap::new(),
+            }
         } else {
             unreachable!();
         }

@@ -77,7 +77,13 @@ impl Linker {
             let outer = {
                 match self.statics.get_index(i).unwrap() {
                     (_, Some(_)) => unreachable!(), // may not exist!
-                    (ImlValue::Parselet(parselet), None) => parselet.clone(),
+                    (
+                        ImlValue::Parselet {
+                            parselet,
+                            constants,
+                        },
+                        None,
+                    ) if constants.is_empty() => parselet.clone(),
                     _ => {
                         i += 1;
                         continue;
@@ -167,7 +173,11 @@ impl Linker {
             .into_iter()
             .map(|(iml, parselet)| {
                 if let Some(mut parselet) = parselet {
-                    if let ImlValue::Parselet(imlparselet) = iml {
+                    if let ImlValue::Parselet {
+                        parselet: imlparselet,
+                        ..
+                    } = iml
+                    {
                         parselet.consuming = configs
                             .get(&imlparselet.borrow().id())
                             .map_or(None, |config| Some(config.leftrec));

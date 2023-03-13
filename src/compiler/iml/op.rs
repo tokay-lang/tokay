@@ -702,7 +702,10 @@ impl ImlOp {
                 ..
             } => {
                 match callee {
-                    ImlValue::Parselet(parselet) => {
+                    ImlValue::Parselet {
+                        parselet,
+                        constants,
+                    } if constants.is_empty() => {
                         match parselet.try_borrow() {
                             // In case the parselet cannot be borrowed, it is left-recursive!
                             Err(_) => Some(Consumable {
