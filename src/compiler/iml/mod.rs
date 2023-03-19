@@ -1,14 +1,14 @@
 //! Tokay intermediate code representation
 pub use crate::vm::*;
 
-mod op;
-mod parselet;
-mod value;
+mod imlop;
+mod imlparselet;
+mod imlvalue;
 
 use super::Linker;
-pub(in crate::compiler) use op::*;
-pub(in crate::compiler) use parselet::*;
-pub(in crate::compiler) use value::*;
+pub(in crate::compiler) use imlop::*;
+pub(in crate::compiler) use imlparselet::*;
+pub(in crate::compiler) use imlvalue::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub(in crate::compiler) struct Consumable {
