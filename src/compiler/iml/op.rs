@@ -403,6 +403,37 @@ impl ImlOp {
                         unreachable!("Call to undefined symbol '{}' may not occur", name)
                     }
                     ImlTarget::Static(value) => {
+                        if let ImlValue::Parselet {
+                            parselet,
+                            constants,
+                        } = value
+                        {
+                            let parselet = parselet.borrow();
+
+                            if !parselet.constants.is_empty() {
+                                let mut required = Vec::new();
+
+                                for (name, default) in &parselet.constants {
+                                    if default.is_none() && !constants.contains_key(name) {
+                                        required.push(name.to_string());
+                                    }
+                                }
+
+                                if !required.is_empty() {
+                                    linker.errors.push(Error::new(
+                                        offset.clone(),
+                                        format!(
+                                            "Missing generic configuration on call to '{}<{}>'",
+                                            value,
+                                            required.join(", ")
+                                        ),
+                                    ));
+
+                                    return 0;
+                                }
+                            }
+                        }
+
                         let idx = linker.register(value);
 
                         match args {

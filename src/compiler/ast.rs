@@ -278,7 +278,16 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             );
 
             //println!("parselet = {:#?}", ret);
-            return ret;
+            ret
+        }
+
+        "value_generic" => {
+            let children = List::from(&node["children"]);
+            for (i, item) in children.iter().enumerate() {
+                println!("{}: {:?}", i, item);
+            }
+
+            ImlValue::from(value!(void))
         }
 
         _ => unimplemented!("unhandled value node {}", emit),

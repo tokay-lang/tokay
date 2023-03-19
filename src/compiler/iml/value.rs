@@ -8,12 +8,12 @@ use std::rc::Rc;
 /** Compile-time values */
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Undefined(String), // Yet undefined value
+    Undefined(String), // Known but undefined value (used in generic parselets)
     Value(RefValue),   // Standard value object
     Parselet {
-        // Parselet
-        parselet: Rc<RefCell<ImlParselet>>,
-        constants: HashMap<String, ImlValue>,
+        // Parselet instance
+        parselet: Rc<RefCell<ImlParselet>>, // The parselet definition
+        constants: HashMap<String, ImlValue>, // Optional parselet instance configuation
     },
 }
 
