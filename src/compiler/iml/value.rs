@@ -5,21 +5,24 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-/** Compile-time values */
+/** Intermediate value */
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Undefined(String), // Known but undefined value (used in generic parselets)
-    Value(RefValue),   // Standard value object
+    Unknown(String),   // Compile-time unknown identifier
+    Undefined(String), // Compile-time known but undefined identifier (used in generic parselets)
+    Value(RefValue),   // Compile-time static value
     Parselet {
-        // Parselet instance
+        // Compile-time parselet instance
         parselet: Rc<RefCell<ImlParselet>>, // The parselet definition
         constants: HashMap<String, ImlValue>, // Optional parselet instance configuation
     },
+    Local(usize),  // Runtime local value
+    Global(usize), // Runtime global value
 }
 
 impl ImlValue {
     pub fn value(self) -> RefValue {
-        if let ImlValue::Value(value) = self {
+        if let Self::Value(value) = self {
             value
         } else {
             panic!("{:?} cannot be unwrapped", self)
@@ -30,8 +33,8 @@ impl ImlValue {
     /// and when its callable if with or without arguments.
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
-            ImlValue::Value(value) => value.is_callable(without_arguments),
-            ImlValue::Parselet { parselet, .. } => {
+            Self::Value(value) => value.is_callable(without_arguments),
+            Self::Parselet { parselet, .. } => {
                 let parselet = parselet.borrow();
 
                 if without_arguments {
@@ -41,16 +44,19 @@ impl ImlValue {
                     true
                 }
             }
-            _ => unreachable!(),
+            _ => false,
         }
     }
 
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            ImlValue::Undefined(ident) => crate::utils::identifier_is_consumable(ident),
-            ImlValue::Value(value) => value.is_consuming(),
-            ImlValue::Parselet { parselet, .. } => parselet.borrow().consuming,
+            Self::Unknown(name) | Self::Undefined(name) => {
+                crate::utils::identifier_is_consumable(name)
+            }
+            Self::Value(value) => value.is_consuming(),
+            Self::Parselet { parselet, .. } => parselet.borrow().consuming,
+            _ => false,
         }
     }
 }
@@ -58,9 +64,11 @@ impl ImlValue {
 impl std::fmt::Debug for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Undefined(s) => write!(f, "{}", s),
+            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Value(v) => v.borrow().fmt(f),
-            ImlValue::Parselet { parselet, .. } => parselet.borrow().fmt(f),
+            Self::Parselet { .. } => write!(f, "{}", self),
+            Self::Local(addr) => write!(f, "local@{}", addr),
+            Self::Global(addr) => write!(f, "global@{}", addr),
         }
     }
 }
@@ -68,8 +76,8 @@ impl std::fmt::Debug for ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Undefined(s) => write!(f, "{}", s),
-            Self::Value(v) => write!(f, "{}", v.repr()),
+            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
+            Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet {
                 parselet,
                 constants,
@@ -94,6 +102,8 @@ impl std::fmt::Display for ImlValue {
 
                 Ok(())
             }
+            Self::Local(addr) => write!(f, "local@{}", addr),
+            Self::Global(addr) => write!(f, "global@{}", addr),
         }
     }
 }
@@ -101,7 +111,6 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Undefined(_) => unreachable!(),
             Self::Value(v) => {
                 state.write_u8('v' as u8);
                 v.hash(state)
@@ -114,6 +123,7 @@ impl std::hash::Hash for ImlValue {
                 parselet.borrow().hash(state);
                 constants.iter().collect::<Vec<_>>().hash(state);
             }
+            other => unreachable!("{:?} is unhashable", other),
         }
     }
 }

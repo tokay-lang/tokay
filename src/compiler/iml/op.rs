@@ -12,40 +12,6 @@ use std::rc::Rc;
 
 pub(in crate::compiler) type SharedImlOp = Rc<RefCell<ImlOp>>;
 
-/// Target of a call or load
-#[derive(Clone)]
-pub(in crate::compiler) enum ImlTarget {
-    Unknown(String),   // Compile-time unknown identifier
-    Undefined(String), // Compile-time declared but undefined identifier (used by generic parselets)
-    Static(ImlValue),  // Compile-time static value
-    Local(usize),      // Runtime local value
-    Global(usize),     // Runtime global value
-}
-
-impl ImlTarget {
-    pub fn is_consuming(&self) -> bool {
-        match self {
-            Self::Unknown(name) | Self::Undefined(name) => {
-                crate::utils::identifier_is_consumable(name)
-            }
-            Self::Static(value) => value.is_consuming(),
-            _ => false, // cannot determine!
-        }
-    }
-}
-
-impl std::fmt::Debug for ImlTarget {
-    // Manual implementation is required to avoid endless recursion here
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
-            Self::Static(value) => write!(f, "{}", value),
-            Self::Local(addr) => write!(f, "local@{}", addr),
-            Self::Global(addr) => write!(f, "global@{}", addr),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(in crate::compiler) enum ImlOp {
     Nop,                 // Empty operation
@@ -53,12 +19,12 @@ pub(in crate::compiler) enum ImlOp {
     Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
     Load {
         offset: Option<Offset>,
-        target: ImlTarget,
+        target: ImlValue,
         //copy: bool,  //enforce copy (Op::Sep)
     },
     Call {
         offset: Option<Offset>,
-        target: ImlTarget,
+        target: ImlValue,
         args: Option<(usize, bool)>,
     },
 
@@ -144,7 +110,7 @@ impl ImlOp {
     pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
         ImlOp::Load {
             offset,
-            target: ImlTarget::Static(value),
+            target: value,
         }
     }
 
@@ -152,7 +118,7 @@ impl ImlOp {
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
         ImlOp::Load {
             offset,
-            target: ImlTarget::Unknown(name),
+            target: ImlValue::Unknown(name),
         }
         .try_resolve(compiler)
     }
@@ -174,7 +140,7 @@ impl ImlOp {
 
         ImlOp::Call {
             offset,
-            target: ImlTarget::Static(value),
+            target: value,
             args,
         }
     }
@@ -193,7 +159,7 @@ impl ImlOp {
 
         ImlOp::Call {
             offset,
-            target: ImlTarget::Unknown(name),
+            target: ImlValue::Unknown(name),
             args,
         }
         .try_resolve(compiler)
@@ -214,21 +180,21 @@ impl ImlOp {
         match self {
             Self::Shared(op) => return op.borrow_mut().resolve(compiler),
             Self::Load { target, .. } | Self::Call { target, .. } => {
-                if let ImlTarget::Unknown(name) = target {
+                if let ImlValue::Unknown(name) = target {
                     if let Some(value) = compiler.get_constant(&name) {
                         // In case this is a generic, the value is resolved to a generic for later dispose
                         if matches!(value, ImlValue::Undefined(_)) {
-                            *target = ImlTarget::Undefined(name.clone());
+                            *target = ImlValue::Undefined(name.clone());
                         } else {
-                            *target = ImlTarget::Static(value);
+                            *target = value;
                         }
 
                         return true;
                     } else if let Some(addr) = compiler.get_local(&name) {
-                        *target = ImlTarget::Local(addr);
+                        *target = ImlValue::Local(addr);
                         return true;
                     } else if let Some(addr) = compiler.get_global(&name) {
-                        *target = ImlTarget::Global(addr);
+                        *target = ImlValue::Global(addr);
                         return true;
                     }
                 }
@@ -367,7 +333,7 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlTarget::Unknown(name) => {
+                    ImlValue::Unknown(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Use of unresolved symbol '{}'", name),
@@ -375,12 +341,12 @@ impl ImlOp {
 
                         Op::Nop
                     }
-                    ImlTarget::Undefined(name) => {
+                    ImlValue::Undefined(name) => {
                         unreachable!("Use of undefined symbol '{}'", name)
                     }
-                    ImlTarget::Static(value) => linker.push(value),
-                    ImlTarget::Local(idx) => Op::LoadFast(*idx),
-                    ImlTarget::Global(idx) => Op::LoadGlobal(*idx),
+                    ImlValue::Local(idx) => Op::LoadFast(*idx),
+                    ImlValue::Global(idx) => Op::LoadGlobal(*idx),
+                    value => linker.push(value),
                 });
             }
             ImlOp::Call {
@@ -393,16 +359,19 @@ impl ImlOp {
                 }
 
                 match target {
-                    ImlTarget::Unknown(name) => {
+                    ImlValue::Unknown(name) => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Call to unresolved symbol '{}'", name),
                         ));
                     }
-                    ImlTarget::Undefined(name) => {
+                    ImlValue::Undefined(name) => {
                         unreachable!("Call to undefined symbol '{}' may not occur", name)
                     }
-                    ImlTarget::Static(value) => {
+                    ImlValue::Local(idx) => ops.push(Op::LoadFast(*idx)),
+                    ImlValue::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
+                    value => {
+                        // When value is a parselet, check for accepted constant configuration
                         if let ImlValue::Parselet {
                             parselet,
                             constants,
@@ -459,8 +428,6 @@ impl ImlOp {
 
                         return ops.len() - start;
                     }
-                    ImlTarget::Local(idx) => ops.push(Op::LoadFast(*idx)),
-                    ImlTarget::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
                 }
 
                 match args {
@@ -728,10 +695,7 @@ impl ImlOp {
     ) -> Option<Consumable> {
         match self {
             ImlOp::Shared(op) => op.borrow().finalize(visited, configs),
-            ImlOp::Call {
-                target: ImlTarget::Static(callee),
-                ..
-            } => {
+            ImlOp::Call { target: callee, .. } => {
                 match callee {
                     ImlValue::Parselet {
                         parselet,
@@ -791,7 +755,7 @@ impl ImlOp {
                             None
                         }
                     }
-                    _ => unreachable!(),
+                    _ => None,
                 }
             }
             ImlOp::Alt { alts } => {
@@ -984,7 +948,7 @@ impl ImlOp {
     pub fn get_evaluable_value(&self) -> Result<RefValue, ()> {
         if cfg!(feature = "static_expression_evaluation") {
             if let Self::Load {
-                target: ImlTarget::Static(ImlValue::Value(value)),
+                target: ImlValue::Value(value),
                 ..
             } = self
             {

@@ -104,11 +104,7 @@ impl Compiler {
             println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
         }
 
-        if let ImlOp::Call {
-            target: ImlTarget::Static(main),
-            ..
-        } = ret
-        {
+        if let ImlOp::Call { target: main, .. } = ret {
             if self.debug > 1 {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }

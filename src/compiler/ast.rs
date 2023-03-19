@@ -308,10 +308,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value!(void).into()
         }
         // Defined parselet or value
-        ImlOp::Load {
-            target: ImlTarget::Static(value),
-            ..
-        } => {
+        ImlOp::Load { target: value, .. } => {
             compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
@@ -1233,16 +1230,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     "opt" => "?",
                                     other => other,
                                 },
-                                if matches!(
-                                    res,
-                                    ImlOp::Load {
-                                        target: ImlTarget::Static(_),
-                                        ..
-                                    } | ImlOp::Call {
-                                        target: ImlTarget::Static(_),
-                                        ..
-                                    }
-                                ) {
+                                if matches!(res, ImlOp::Load { .. } | ImlOp::Call { .. }) {
                                     "value"
                                 } else {
                                     "sequence"
@@ -1255,7 +1243,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Modifiers on usages of Token::Char can be optimized for better efficiency
                     if let ImlOp::Call {
-                        target: ImlTarget::Static(ImlValue::Value(target)),
+                        target: ImlValue::Value(target),
                         ..
                     } = &res
                     {
