@@ -187,7 +187,7 @@ impl Linker {
 
                     RefValue::from(parselet)
                 } else {
-                    iml.value()
+                    iml.into_refvalue()
                 }
             })
             .collect();

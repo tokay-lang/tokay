@@ -21,7 +21,7 @@ pub(in crate::compiler) enum ImlValue {
 }
 
 impl ImlValue {
-    pub fn value(self) -> RefValue {
+    pub fn into_refvalue(self) -> RefValue {
         if let Self::Value(value) = self {
             value
         } else {
