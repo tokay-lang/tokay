@@ -1,5 +1,6 @@
 //! Compiler's internal Abstract Syntax Tree traversal
 use indexmap::IndexMap;
+use std::collections::HashMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -283,9 +284,68 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         "value_generic" => {
             let children = List::from(&node["children"]);
-            for (i, item) in children.iter().enumerate() {
-                println!("{}: {:?}", i, item);
+            let parselet = &children[0];
+
+            let mut by_seq = Vec::new();
+            let mut by_name = HashMap::new();
+
+            for genarg in children[1..].iter() {
+                let genarg = genarg.borrow();
+                let genarg = genarg.object::<Dict>().unwrap();
+
+                let emit = genarg["emit"].borrow();
+
+                match emit.object::<Str>().unwrap().as_str() {
+                    "genarg" => {
+                        if !by_name.is_empty() {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(genarg),
+                                format!(
+                                    "Sequencial constants need to be specified before named constants."
+                                ),
+                            ));
+
+                            continue;
+                        }
+
+                        let param = &genarg["children"].borrow();
+                        let param = param.object::<Dict>().unwrap();
+
+                        by_seq.push(traverse_node_static(compiler, None, param));
+                    }
+
+                    "genarg_named" => {
+                        let children = List::from(&genarg["children"]);
+
+                        let ident = children[0].borrow();
+                        let ident = ident.object::<Dict>().unwrap();
+                        let ident = ident["value"].borrow();
+                        let ident = ident.object::<Str>().unwrap().as_str();
+
+                        if by_name.contains_key(ident) {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(genarg),
+                                format!("Named constant '{}' provided more than once.", ident),
+                            ));
+
+                            continue;
+                        }
+
+                        let param = &children[1].borrow();
+                        let param = param.object::<Dict>().unwrap();
+
+                        by_name.insert(
+                            ident.to_string(),
+                            traverse_node_static(compiler, None, param),
+                        );
+                    }
+
+                    other => unimplemented!("Unhandled genarg type {:?}", other),
+                }
             }
+
+            println!("by_seq = {:?}", by_seq);
+            println!("by_name = {:?}", by_name);
 
             ImlValue::from(value!(void))
         }
