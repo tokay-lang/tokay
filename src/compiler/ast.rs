@@ -163,8 +163,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.parselet_push();
 
-            let mut constants: IndexMap<String, Option<ImlValue>> = IndexMap::new();
-            let mut signature: IndexMap<String, Option<ImlValue>> = IndexMap::new();
+            let mut constants: IndexMap<String, ImlValue> = IndexMap::new();
+            let mut signature: IndexMap<String, ImlValue> = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -195,20 +195,20 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         compiler.set_constant(&ident, ImlValue::Undefined(ident.to_string()));
 
                         assert!(children.len() <= 2);
-                        let default = if children.len() == 2 {
-                            let default = children[1].borrow();
-                            let value = traverse_node_static(
-                                compiler,
-                                Some(&ident),
-                                default.object::<Dict>().unwrap(),
-                            );
-                            Some(value)
-                        } else {
-                            None
-                        };
 
-                        constants.insert(ident.to_string(), default);
-                        //println!("{} {} {:?}", emit.to_string(), ident, default);
+                        constants.insert(
+                            ident.to_string(),
+                            if children.len() == 2 {
+                                let default = children[1].borrow();
+                                traverse_node_static(
+                                    compiler,
+                                    Some(&ident),
+                                    default.object::<Dict>().unwrap(),
+                                )
+                            } else {
+                                ImlValue::Void
+                            },
+                        );
                     }
                     "arg" => {
                         let first = ident.chars().nth(0).unwrap();
@@ -247,19 +247,20 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         compiler.new_local(&ident);
 
                         assert!(children.len() <= 2);
-                        let default = if children.len() == 2 {
-                            let default = children[1].borrow();
-                            let value = traverse_node_static(
-                                compiler,
-                                Some(&ident),
-                                default.object::<Dict>().unwrap(),
-                            );
-                            Some(value)
-                        } else {
-                            None
-                        };
 
-                        signature.insert(ident.to_string(), default);
+                        signature.insert(
+                            ident.to_string(),
+                            if children.len() == 2 {
+                                let default = children[1].borrow();
+                                traverse_node_static(
+                                    compiler,
+                                    Some(&ident),
+                                    default.object::<Dict>().unwrap(),
+                                )
+                            } else {
+                                ImlValue::Void
+                            },
+                        );
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     _ => unreachable!(),

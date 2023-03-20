@@ -210,8 +210,8 @@ impl Compiler {
         offset: Option<Offset>,
         name: Option<String>,
         severity: Option<u8>,
-        constants: Option<IndexMap<String, Option<ImlValue>>>,
-        signature: Option<IndexMap<String, Option<ImlValue>>>,
+        constants: Option<IndexMap<String, ImlValue>>,
+        signature: Option<IndexMap<String, ImlValue>>,
         body: ImlOp,
     ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));

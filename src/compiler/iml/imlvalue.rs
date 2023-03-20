@@ -8,6 +8,7 @@ use std::rc::Rc;
 /** Intermediate value */
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
+    Void,              // Compile-time void
     Unknown(String),   // Compile-time unknown identifier
     Undefined(String), // Compile-time known but undefined identifier (used in generic parselets)
     Value(RefValue),   // Compile-time static value
@@ -39,7 +40,10 @@ impl ImlValue {
 
                 if without_arguments {
                     parselet.signature.len() == 0
-                        || parselet.signature.iter().all(|arg| arg.1.is_some())
+                        || parselet
+                            .signature
+                            .iter()
+                            .all(|arg| !matches!(arg.1, Self::Void))
                 } else {
                     true
                 }
@@ -64,6 +68,7 @@ impl ImlValue {
 impl std::fmt::Debug for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Void => write!(f, "void"),
             Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Value(v) => v.borrow().fmt(f),
             Self::Parselet { .. } => write!(f, "{}", self),
@@ -76,6 +81,7 @@ impl std::fmt::Debug for ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Void => write!(f, "void"),
             Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet {

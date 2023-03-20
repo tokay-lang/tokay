@@ -119,10 +119,9 @@ impl Linker {
                             // Copy parameter name
                             var_value.0.clone(),
                             // Register default value, if any
-                            if let Some(value) = &var_value.1 {
-                                Some(self.register(value))
-                            } else {
-                                None
+                            match &var_value.1 {
+                                ImlValue::Void => None,
+                                value => Some(self.register(value)),
                             },
                         )
                     })

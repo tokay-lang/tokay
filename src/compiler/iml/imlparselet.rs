@@ -7,12 +7,12 @@ use std::collections::{HashMap, HashSet};
 #[derive(Debug)]
 /// Intermediate parselet
 pub(in crate::compiler) struct ImlParselet {
-    pub offset: Option<Offset>,                        // Offset of definition
-    pub consuming: bool,                               // Flag if parselet is consuming
-    pub severity: u8,                                  // Capture push severity
-    pub name: Option<String>, // Parselet's name from source (for debugging)
-    pub constants: IndexMap<String, Option<ImlValue>>, // Constant signature with default constants; generic parselet when set.
-    pub signature: IndexMap<String, Option<ImlValue>>, // Argument signature with default arguments
+    pub offset: Option<Offset>,                // Offset of definition
+    pub consuming: bool,                       // Flag if parselet is consuming
+    pub severity: u8,                          // Capture push severity
+    pub name: Option<String>,                  // Parselet's name from source (for debugging)
+    pub constants: IndexMap<String, ImlValue>, // Constant signature with default constants; generic parselet when set.
+    pub signature: IndexMap<String, ImlValue>, // Argument signature with default arguments
     pub locals: usize, // Total number of local variables present (including arguments)
     pub begin: ImlOp,  // Begin-operations
     pub end: ImlOp,    // End-operations

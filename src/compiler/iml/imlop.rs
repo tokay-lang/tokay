@@ -383,7 +383,9 @@ impl ImlOp {
                                 let mut required = Vec::new();
 
                                 for (name, default) in &parselet.constants {
-                                    if default.is_none() && !constants.contains_key(name) {
+                                    if matches!(default, ImlValue::Void)
+                                        && !constants.contains_key(name)
+                                    {
                                         required.push(name.to_string());
                                     }
                                 }
