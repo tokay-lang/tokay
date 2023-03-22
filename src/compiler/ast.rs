@@ -285,10 +285,15 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         "value_generic" => {
             let children = List::from(&node["children"]);
-            let parselet = &children[0];
 
+            // Traverse the target
+            let target = &children[0].borrow();
+            let target = target.object::<Dict>().unwrap();
+            let target = traverse_node_static(compiler, None, target);
+
+            // Traverse generic arguments
             let mut by_seq = Vec::new();
-            let mut by_name = HashMap::new();
+            let mut by_name = IndexMap::new();
 
             for genarg in children[1..].iter() {
                 let genarg = genarg.borrow();
@@ -345,10 +350,14 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 }
             }
 
-            println!("by_seq = {:?}", by_seq);
-            println!("by_name = {:?}", by_name);
+            let mut ret = ImlValue::Generic {
+                target: Box::new(target),
+                by_seq,
+                by_name,
+            };
 
-            ImlValue::from(value!(void))
+            ret.resolve(compiler);
+            ret
         }
 
         _ => unimplemented!("unhandled value node {}", emit),

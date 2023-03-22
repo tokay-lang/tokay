@@ -176,33 +176,13 @@ impl ImlOp {
         shared
     }
 
+    /// Resolve volatile values from intermediate instructions
     pub(in crate::compiler) fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         match self {
             Self::Shared(op) => return op.borrow_mut().resolve(compiler),
-            Self::Load { target, .. } | Self::Call { target, .. } => {
-                if let ImlValue::Unknown(name) = target {
-                    if let Some(value) = compiler.get_constant(&name) {
-                        // In case this is a generic, the value is resolved to a generic for later dispose
-                        if matches!(value, ImlValue::Undefined(_)) {
-                            *target = ImlValue::Undefined(name.clone());
-                        } else {
-                            *target = value;
-                        }
-
-                        return true;
-                    } else if let Some(addr) = compiler.get_local(&name) {
-                        *target = ImlValue::Local(addr);
-                        return true;
-                    } else if let Some(addr) = compiler.get_global(&name) {
-                        *target = ImlValue::Global(addr);
-                        return true;
-                    }
-                }
-            }
-            _ => {}
+            Self::Load { target, .. } | Self::Call { target, .. } => target.resolve(compiler),
+            _ => false,
         }
-
-        false
     }
 
     /// Turns ImlOp construct into a kleene (none-or-many) occurence.
@@ -333,10 +313,10 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlValue::Unknown(name) => {
+                    ImlValue::Unknown(_) | ImlValue::Generic { .. } => {
                         linker.errors.push(Error::new(
                             *offset,
-                            format!("Use of unresolved symbol '{}'", name),
+                            format!("Use of unresolved symbol '{}'", target),
                         ));
 
                         Op::Nop
@@ -365,27 +345,29 @@ impl ImlOp {
                             format!("Call to unresolved symbol '{}'", name),
                         ));
                     }
+                    ImlValue::Generic { target, .. } => {
+                        linker.errors.push(Error::new(
+                            *offset,
+                            format!("Call to unresolved symbol '{}'", target),
+                        ));
+                    }
                     ImlValue::Undefined(name) => {
-                        unreachable!("Call to undefined symbol '{}' may not occur", name)
+                        unreachable!("Call to a value '{}' may not occur", name)
                     }
                     ImlValue::Local(idx) => ops.push(Op::LoadFast(*idx)),
                     ImlValue::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
                     value => {
                         // When value is a parselet, check for accepted constant configuration
                         if let ImlValue::Parselet {
-                            parselet,
+                            parselet: _,
                             constants,
                         } = value
                         {
-                            let parselet = parselet.borrow();
-
-                            if !parselet.constants.is_empty() {
+                            if !constants.is_empty() {
                                 let mut required = Vec::new();
 
-                                for (name, default) in &parselet.constants {
-                                    if matches!(default, ImlValue::Void)
-                                        && !constants.contains_key(name)
-                                    {
+                                for (name, default) in constants {
+                                    if matches!(default, ImlValue::Void) {
                                         required.push(name.to_string());
                                     }
                                 }
@@ -394,7 +376,7 @@ impl ImlOp {
                                     linker.errors.push(Error::new(
                                         offset.clone(),
                                         format!(
-                                            "Missing generic configuration on call to '{}<{}>'",
+                                            "On call to '{}', missing generic constants for {}",
                                             value,
                                             required.join(", ")
                                         ),

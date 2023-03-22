@@ -264,7 +264,6 @@ impl Compiler {
                     || end.is_consuming()
                     || body.is_consuming(),
                 severity: severity.unwrap_or(5), // severity
-                constants,                       // constants
                 signature,                       // signature
                 locals: *locals,
                 // Ensure that begin and end are blocks.
@@ -280,7 +279,7 @@ impl Compiler {
 
             ImlValue::Parselet {
                 parselet: Rc::new(RefCell::new(parselet)),
-                constants: HashMap::new(),
+                constants,
             }
         } else {
             unreachable!();

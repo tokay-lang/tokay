@@ -1,27 +1,74 @@
 //! Intermediate value representation
 use super::*;
 use crate::value::{Object, RefValue};
+use crate::Compiler;
+use indexmap::IndexMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
-/** Intermediate value */
+/** Intermediate value
+
+Intermediate values are values that result during the compile process based on current information
+from the syntax tree and symbol table information.
+
+These can be memory locations of variables, static values, functions or values whose definition is
+still pending.
+*/
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
     Void,              // Compile-time void
     Unknown(String),   // Compile-time unknown identifier
-    Undefined(String), // Compile-time known but undefined identifier (used in generic parselets)
-    Value(RefValue),   // Compile-time static value
+    Undefined(String), // Compile-time known but undefined identifier
+    Generic {
+        // Compile-time unknown generic value
+        target: Box<ImlValue>,               // The generic origin to be used
+        by_seq: Vec<ImlValue>,               // Constants by sequence
+        by_name: IndexMap<String, ImlValue>, // Constants by name
+    },
+    Value(RefValue), // Compile-time static value
     Parselet {
         // Compile-time parselet instance
         parselet: Rc<RefCell<ImlParselet>>, // The parselet definition
-        constants: HashMap<String, ImlValue>, // Optional parselet instance configuation
+        constants: IndexMap<String, ImlValue>, // Optional parselet instance configuation
     },
-    Local(usize),  // Runtime local value
-    Global(usize), // Runtime global value
+    Local(usize),  // Runtime local variable
+    Global(usize), // Runtime global variable
 }
 
 impl ImlValue {
+    pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
+        match self {
+            Self::Unknown(name) => {
+                if let Some(value) = compiler.get_constant(&name) {
+                    // In case this is a generic, the value is resolved to a generic for later dispose
+                    if matches!(value, ImlValue::Undefined(_)) {
+                        *self = ImlValue::Undefined(name.clone());
+                    } else {
+                        *self = value;
+                    }
+
+                    return true;
+                } else if let Some(addr) = compiler.get_local(&name) {
+                    *self = ImlValue::Local(addr);
+                    return true;
+                } else if let Some(addr) = compiler.get_global(&name) {
+                    *self = ImlValue::Global(addr);
+                    return true;
+                }
+            }
+            Self::Generic {
+                target,
+                by_seq,
+                by_name,
+            } => {
+                todo!();
+            }
+            _ => {}
+        }
+
+        false
+    }
+
     pub fn into_refvalue(self) -> RefValue {
         if let Self::Value(value) = self {
             value
@@ -71,7 +118,7 @@ impl std::fmt::Debug for ImlValue {
             Self::Void => write!(f, "void"),
             Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Value(v) => v.borrow().fmt(f),
-            Self::Parselet { .. } => write!(f, "{}", self),
+            Self::Parselet { .. } | Self::Generic { .. } => write!(f, "{}", self),
             Self::Local(addr) => write!(f, "local@{}", addr),
             Self::Global(addr) => write!(f, "global@{}", addr),
         }
@@ -100,12 +147,38 @@ impl std::fmt::Display for ImlValue {
 
                 if !constants.is_empty() {
                     write!(f, "<")?;
-                    for (name, value) in constants {
-                        write!(f, "{}: {}", name, value)?;
+                    for (i, (name, value)) in constants.iter().enumerate() {
+                        if matches!(value, ImlValue::Void) {
+                            write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
+                        } else {
+                            write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
+                        }
                     }
                     write!(f, ">")?;
                 }
 
+                Ok(())
+            }
+            Self::Generic {
+                target,
+                by_seq,
+                by_name,
+            } => {
+                write!(f, "{}<", target)?;
+
+                let mut first = true;
+
+                for item in by_seq {
+                    write!(f, "{}{}", if !first { ", " } else { "" }, item)?;
+                    first = false;
+                }
+
+                for (name, item) in by_name.iter() {
+                    write!(f, "{}{}:{}", if !first { ", " } else { "" }, name, item)?;
+                    first = false;
+                }
+
+                write!(f, ">")?;
                 Ok(())
             }
             Self::Local(addr) => write!(f, "local@{}", addr),
