@@ -324,25 +324,6 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
-    /** Retrieves the address of a local variable under a given name.
-
-    Returns None when the variable does not exist. */
-    pub(in crate::compiler) fn get_local(&self, name: &str) -> Option<usize> {
-        // Retrieve local variables from next parselet scope owning variables, except global scope!
-        for scope in &self.scopes[..self.scopes.len() - 1] {
-            // Check for scope with variables
-            if let Scope::Parselet { variables, .. } = &scope {
-                if let Some(addr) = variables.get(name) {
-                    return Some(*addr);
-                }
-
-                break;
-            }
-        }
-
-        None
-    }
-
     /** Insert new local variable under given name in current scope. */
     pub(in crate::compiler) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
@@ -398,19 +379,6 @@ impl Compiler {
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
-    }
-
-    /** Retrieve address of a global variable. */
-    pub(in crate::compiler) fn get_global(&self, name: &str) -> Option<usize> {
-        if let Scope::Parselet { variables, .. } = self.scopes.last().unwrap() {
-            if let Some(addr) = variables.get(name) {
-                return Some(*addr);
-            }
-
-            return None;
-        }
-
-        unreachable!("Top-level scope is not a parselet scope");
     }
 
     /** Set constant to name in current scope. */
@@ -475,15 +443,46 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet or block scope!");
     }
 
-    /** Get constant value, either from current or preceding scope,
-    a builtin or special. */
-    pub(in crate::compiler) fn get_constant(&mut self, name: &str) -> Option<ImlValue> {
-        // Check for constant in available scopes
-        for scope in &self.scopes {
-            if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
-                if let Some(value) = constants.get(name) {
-                    return Some(value.clone());
+    /** Get named value, either from current or preceding scope, a builtin or special. */
+    pub(in crate::compiler) fn get(&mut self, name: &str) -> Option<ImlValue> {
+        let mut top_parselet = true;
+
+        for (i, scope) in self.scopes.iter().enumerate() {
+            match scope {
+                Scope::Block { constants, .. } => {
+                    if let Some(value) = constants.get(name) {
+                        return Some(value.clone());
+                    }
                 }
+                Scope::Parselet {
+                    constants,
+                    variables,
+                    ..
+                } => {
+                    if let Some(value) = constants.get(name) {
+                        if !top_parselet && matches!(value, ImlValue::Generic { .. }) {
+                            continue;
+                        }
+
+                        return Some(value.clone());
+                    }
+
+                    // Check for global variable
+                    if i + 1 == self.scopes.len() {
+                        if let Some(addr) = variables.get(name) {
+                            return Some(ImlValue::Global(*addr));
+                        }
+                    }
+                    // Check for local variable
+                    else if top_parselet {
+                        if let Some(addr) = variables.get(name) {
+                            return Some(ImlValue::Local(*addr));
+                        }
+                    }
+
+                    top_parselet = false;
+                }
+                _ => {}
             }
         }
 
@@ -505,7 +504,7 @@ impl Compiler {
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
-            return Some(self.get_constant(name).unwrap());
+            return Some(self.get(name).unwrap());
         }
 
         // Check for built-in token

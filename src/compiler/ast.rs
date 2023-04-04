@@ -1,6 +1,5 @@
 //! Compiler's internal Abstract Syntax Tree traversal
 use indexmap::IndexMap;
-use std::collections::HashMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -182,17 +181,25 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                 match emit {
                     "gen" => {
+                        let offset = traverse_node_offset(node);
+
                         // check if identifier was not provided twice
                         if constants.contains_key(&ident) {
                             compiler.errors.push(Error::new(
-                                traverse_node_offset(node),
+                                offset,
                                 format!("Generic '{}' already given in signature before", ident),
                             ));
 
                             continue;
                         }
 
-                        compiler.set_constant(&ident, ImlValue::Undefined(ident.to_string()));
+                        compiler.set_constant(
+                            &ident,
+                            ImlValue::Generic {
+                                offset,
+                                name: ident.to_string(),
+                            },
+                        );
 
                         assert!(children.len() <= 2);
 
@@ -292,32 +299,21 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let target = traverse_node_static(compiler, None, target);
 
             // Traverse generic arguments
-            let mut by_seq = Vec::new();
-            let mut by_name = IndexMap::new();
+            let mut config = Vec::new();
 
             for genarg in children[1..].iter() {
                 let genarg = genarg.borrow();
                 let genarg = genarg.object::<Dict>().unwrap();
 
+                let offset = traverse_node_offset(genarg);
                 let emit = genarg["emit"].borrow();
 
                 match emit.object::<Str>().unwrap().as_str() {
                     "genarg" => {
-                        if !by_name.is_empty() {
-                            compiler.errors.push(Error::new(
-                                traverse_node_offset(genarg),
-                                format!(
-                                    "Sequencial constants need to be specified before named constants."
-                                ),
-                            ));
-
-                            continue;
-                        }
-
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        by_seq.push(traverse_node_static(compiler, None, param));
+                        config.push((offset, None, traverse_node_static(compiler, None, param)));
                     }
 
                     "genarg_named" => {
@@ -328,6 +324,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         let ident = ident["value"].borrow();
                         let ident = ident.object::<Str>().unwrap().as_str();
 
+                        /*
                         if by_name.contains_key(ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(genarg),
@@ -336,24 +333,26 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                             continue;
                         }
+                        */
 
                         let param = &children[1].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        by_name.insert(
-                            ident.to_string(),
+                        config.push((
+                            offset,
+                            Some(ident.to_string()),
                             traverse_node_static(compiler, None, param),
-                        );
+                        ));
                     }
 
                     other => unimplemented!("Unhandled genarg type {:?}", other),
                 }
             }
 
-            let mut ret = ImlValue::Generic {
+            let mut ret = ImlValue::Instance {
                 target: Box::new(target),
-                by_seq,
-                by_name,
+                config,
+                offset: traverse_node_offset(node),
             };
 
             ret.resolve(compiler);
@@ -473,93 +472,98 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 let name = item["value"].borrow();
                 let name = name.object::<Str>().unwrap().as_str();
 
-                // Check for not assigning to a constant (at any level)
-                if compiler.get_constant(name).is_some() {
-                    compiler.errors.push(Error::new(
-                        traverse_node_offset(node),
-                        format!("Cannot assign to constant '{}'", name),
-                    ));
-
-                    break;
-                }
-
-                // Check if identifier is valid
-                if let Err(mut error) = identifier_is_valid(name) {
-                    if let Some(offset) = traverse_node_offset(node) {
-                        error.patch_offset(offset);
-                    }
-
-                    compiler.errors.push(error);
-                    break;
-                }
-
-                // Check if identifier is not defining a consumable
-                if utils::identifier_is_consumable(name) {
-                    compiler.errors.push(Error::new(
-                        traverse_node_offset(node),
-
-                        if &name[0..1] == "_" {
-                            format!(
-                                "The variable '{}' is invalid, only constants may start with '_'",
-                                name
-                            )
-                        }
-                        else {
-                            format!(
-                                "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
-                                name, name.to_lowercase()
-                            )
-                        }
-                    ));
-
-                    break;
-                }
-
                 /* Generates code for a symbol store, which means:
 
                     1. look-up local variable, and store into
                     2. look-up global variable, and store into
                     3. create local variable, and store into
                 */
-                if let Some(addr) = compiler.get_local(name) {
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreFastHold(addr).into())
+                match compiler.get(name) {
+                    // Known local
+                    Some(ImlValue::Local(addr)) => {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreFast(addr).into())
+                            }
                         } else {
-                            ops.push(Op::StoreFast(addr).into())
+                            ops.push(Op::LoadFast(addr).into())
                         }
-                    } else {
-                        ops.push(Op::LoadFast(addr).into())
                     }
-                } else if let Some(addr) = compiler.get_global(name) {
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreGlobalHold(addr).into())
+                    // Known global
+                    Some(ImlValue::Global(addr)) => {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreGlobalHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreGlobal(addr).into())
+                            }
                         } else {
-                            ops.push(Op::StoreGlobal(addr).into())
+                            ops.push(Op::LoadGlobal(addr).into())
                         }
-                    } else {
-                        ops.push(Op::LoadGlobal(addr).into())
                     }
-                } else {
-                    // When chained lvalue, name must be declared!
-                    if children.len() > 1 {
+                    // Check for not assigning to a constant (at any level)
+                    Some(_) => {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
-                            format!("Undeclared variable '{}', please define it first", name),
+                            format!("Cannot assign to constant '{}'", name),
                         ));
                         break;
                     }
+                    // Undefined name
+                    None => {
+                        // Check if identifier is valid
+                        if let Err(mut error) = identifier_is_valid(name) {
+                            if let Some(offset) = traverse_node_offset(node) {
+                                error.patch_offset(offset);
+                            }
 
-                    let addr = compiler.new_local(name);
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreFastHold(addr).into())
-                        } else {
-                            ops.push(Op::StoreFast(addr).into())
+                            compiler.errors.push(error);
+                            break;
                         }
-                    } else {
-                        ops.push(Op::LoadFast(addr).into())
+
+                        // Check if identifier is not defining a consumable
+                        if utils::identifier_is_consumable(name) {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+
+                                if &name[0..1] == "_" {
+                                    format!(
+                                        "The variable '{}' is invalid, only constants may start with '_'",
+                                        name
+                                    )
+                                }
+                                else {
+                                    format!(
+                                        "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                                        name, name.to_lowercase()
+                                    )
+                                }
+                            ));
+
+                            break;
+                        }
+
+                        // When chained lvalue, name must be declared!
+                        if children.len() > 1 {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!("Undeclared variable '{}', please define it first", name),
+                            ));
+                            break;
+                        }
+
+                        let addr = compiler.new_local(name);
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreFast(addr).into())
+                            }
+                        } else {
+                            ops.push(Op::LoadFast(addr).into())
+                        }
                     }
                 }
             }

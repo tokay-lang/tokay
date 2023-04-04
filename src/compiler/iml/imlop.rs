@@ -106,7 +106,7 @@ impl ImlOp {
         }
     }
 
-    /// Load known value
+    /// Load value
     pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
         ImlOp::Load {
             offset,
@@ -116,11 +116,7 @@ impl ImlOp {
 
     /// Load unknown value by name
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        ImlOp::Load {
-            offset,
-            target: ImlValue::Unknown(name),
-        }
-        .try_resolve(compiler)
+        Self::load(offset.clone(), ImlValue::Name { offset, name }).try_resolve(compiler)
     }
 
     /// Call known value
@@ -158,8 +154,8 @@ impl ImlOp {
         }
 
         ImlOp::Call {
-            offset,
-            target: ImlValue::Unknown(name),
+            offset: offset.clone(),
+            target: ImlValue::Name { offset, name },
             args,
         }
         .try_resolve(compiler)
@@ -313,19 +309,19 @@ impl ImlOp {
                 }
 
                 ops.push(match target {
-                    ImlValue::Unknown(_) | ImlValue::Generic { .. } => {
+                    ImlValue::Name { name, .. } => {
                         linker.errors.push(Error::new(
                             *offset,
-                            format!("Use of unresolved symbol '{}'", target),
+                            format!("Use of unresolved symbol '{}'", name),
                         ));
 
                         Op::Nop
                     }
-                    ImlValue::Undefined(name) => {
-                        unreachable!("Use of undefined symbol '{}'", name)
+                    ImlValue::Generic { name, .. } => {
+                        unreachable!("Use of generic symbol '{}'", name)
                     }
-                    ImlValue::Local(idx) => Op::LoadFast(*idx),
-                    ImlValue::Global(idx) => Op::LoadGlobal(*idx),
+                    ImlValue::Local(addr) => Op::LoadFast(*addr),
+                    ImlValue::Global(addr) => Op::LoadGlobal(*addr),
                     value => linker.push(value),
                 });
             }
@@ -339,23 +335,17 @@ impl ImlOp {
                 }
 
                 match target {
-                    ImlValue::Unknown(name) => {
+                    ImlValue::Name { name, .. } => {
                         linker.errors.push(Error::new(
                             *offset,
                             format!("Call to unresolved symbol '{}'", name),
                         ));
                     }
-                    ImlValue::Generic { target, .. } => {
-                        linker.errors.push(Error::new(
-                            *offset,
-                            format!("Call to unresolved symbol '{}'", target),
-                        ));
+                    ImlValue::Generic { name, .. } => {
+                        unreachable!("Call to generic '{}' may not occur", name)
                     }
-                    ImlValue::Undefined(name) => {
-                        unreachable!("Call to a value '{}' may not occur", name)
-                    }
-                    ImlValue::Local(idx) => ops.push(Op::LoadFast(*idx)),
-                    ImlValue::Global(idx) => ops.push(Op::LoadGlobal(*idx)),
+                    ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
+                    ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
                     value => {
                         // When value is a parselet, check for accepted constant configuration
                         if let ImlValue::Parselet {

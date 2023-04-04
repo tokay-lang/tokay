@@ -1,7 +1,8 @@
 //! Intermediate value representation
 use super::*;
+use crate::compiler::Compiler;
+use crate::reader::Offset;
 use crate::value::{Object, RefValue};
-use crate::Compiler;
 use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -16,15 +17,7 @@ still pending.
 */
 #[derive(Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Void,              // Compile-time void
-    Unknown(String),   // Compile-time unknown identifier
-    Undefined(String), // Compile-time known but undefined identifier
-    Generic {
-        // Compile-time unknown generic value
-        target: Box<ImlValue>,               // The generic origin to be used
-        by_seq: Vec<ImlValue>,               // Constants by sequence
-        by_name: IndexMap<String, ImlValue>, // Constants by name
-    },
+    Void,            // Compile-time void
     Value(RefValue), // Compile-time static value
     Parselet {
         // Compile-time parselet instance
@@ -33,36 +26,57 @@ pub(in crate::compiler) enum ImlValue {
     },
     Local(usize),  // Runtime local variable
     Global(usize), // Runtime global variable
+
+    // Unresolved
+    Generic {
+        // Generic placeholder
+        offset: Option<Offset>,
+        name: String,
+    },
+    Name {
+        // Unresolved name
+        offset: Option<Offset>,
+        name: String,
+    },
+    Instance {
+        offset: Option<Offset>,                                  // Source offset
+        target: Box<ImlValue>,                                   // Instance target
+        config: Vec<(Option<Offset>, Option<String>, ImlValue)>, // Constant configuration
+    },
 }
 
 impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         match self {
-            Self::Unknown(name) => {
-                if let Some(value) = compiler.get_constant(&name) {
-                    // In case this is a generic, the value is resolved to a generic for later dispose
-                    if matches!(value, ImlValue::Undefined(_)) {
-                        *self = ImlValue::Undefined(name.clone());
-                    } else {
-                        *self = value;
-                    }
-
-                    return true;
-                } else if let Some(addr) = compiler.get_local(&name) {
-                    *self = ImlValue::Local(addr);
-                    return true;
-                } else if let Some(addr) = compiler.get_global(&name) {
-                    *self = ImlValue::Global(addr);
+            Self::Name { name, .. } => {
+                if let Some(value) = compiler.get(&name) {
+                    *self = value;
                     return true;
                 }
             }
-            Self::Generic {
+            /*
+            Self::Instance {
                 target,
-                by_seq,
-                by_name,
+                ..
+            } if matches!(target, ImlValue::Name(_)) => {
+                // Try to resolve target
+                if target.resolve(compiler) {
+                    // On success, try to resolve the entire instance
+                    return self.resolve(compiler);
+                }
+            }
+            Self::Instance {
+                target:
+                    ImlValue::Parselet {
+                        parselet,
+                        constants,
+                    },
+                config,
+                offset,
             } => {
                 todo!();
             }
+            */
             _ => {}
         }
 
@@ -102,7 +116,7 @@ impl ImlValue {
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Unknown(name) | Self::Undefined(name) => {
+            Self::Name { name, .. } | Self::Generic { name, .. } => {
                 crate::utils::identifier_is_consumable(name)
             }
             Self::Value(value) => value.is_consuming(),
@@ -116,11 +130,12 @@ impl std::fmt::Debug for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Void => write!(f, "void"),
-            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
             Self::Value(v) => v.borrow().fmt(f),
-            Self::Parselet { .. } | Self::Generic { .. } => write!(f, "{}", self),
+            Self::Parselet { .. } => write!(f, "{}", self),
             Self::Local(addr) => write!(f, "local@{}", addr),
             Self::Global(addr) => write!(f, "global@{}", addr),
+            Self::Name { name, .. } | Self::Generic { name, .. } => write!(f, "{}", name),
+            _ => todo!(),
         }
     }
 }
@@ -129,7 +144,7 @@ impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Void => write!(f, "void"),
-            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
+            Self::Name { name, .. } | Self::Generic { name, .. } => write!(f, "{}", name),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet {
                 parselet,
@@ -159,30 +174,7 @@ impl std::fmt::Display for ImlValue {
 
                 Ok(())
             }
-            Self::Generic {
-                target,
-                by_seq,
-                by_name,
-            } => {
-                write!(f, "{}<", target)?;
-
-                let mut first = true;
-
-                for item in by_seq {
-                    write!(f, "{}{}", if !first { ", " } else { "" }, item)?;
-                    first = false;
-                }
-
-                for (name, item) in by_name.iter() {
-                    write!(f, "{}{}:{}", if !first { ", " } else { "" }, name, item)?;
-                    first = false;
-                }
-
-                write!(f, ">")?;
-                Ok(())
-            }
-            Self::Local(addr) => write!(f, "local@{}", addr),
-            Self::Global(addr) => write!(f, "global@{}", addr),
+            _ => todo!(),
         }
     }
 }
