@@ -387,6 +387,73 @@ impl std::fmt::Display for ImlValue {
     }
 }
 
+/*
+impl std::fmt::Display for ImlValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Void => write!(f, "void"),
+            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
+            Self::Value(value) => write!(f, "{}", value.repr()),
+            Self::Parselet {
+                parselet,
+                constants,
+            } => {
+                write!(
+                    f,
+                    "{}",
+                    parselet
+                        .borrow()
+                        .name
+                        .as_deref()
+                        .unwrap_or("<anonymous parselet>")
+                )?;
+
+                if !constants.is_empty() {
+                    write!(f, "<")?;
+                    for (i, (name, value)) in constants.iter().enumerate() {
+                        if matches!(value, ImlValue::Void) {
+                            write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
+                        } else {
+                            write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
+                        }
+                    }
+                    write!(f, ">")?;
+                }
+
+                Ok(())
+            }
+            Self::Local(addr) => write!(f, "local@{}", addr),
+            Self::Global(addr) => write!(f, "global@{}", addr),
+            Self::Symbol {
+                name,
+                gen_by_seq,
+                gen_by_name,
+            } => {
+                write!(f, "{}", target)?;
+
+                let mut first = true;
+
+                for item in gen_by_seq {
+                    write!(f, "{}{}", if !first { ", " } else { "<" }, item)?;
+                    first = false;
+                }
+
+                for (name, item) in gen_by_name.iter() {
+                    write!(f, "{}{}:{}", if !first { ", " } else { "<" }, name, item)?;
+                    first = false;
+                }
+
+                if !first {
+                    write!(f, ">")?;
+                }
+
+                Ok(())
+            }
+        }
+    }
+}
+*/
+
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
