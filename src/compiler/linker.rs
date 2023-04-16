@@ -2,11 +2,10 @@
 
 use super::iml::*;
 use crate::value::Parselet;
-use crate::vm::{Op, Program};
+use crate::vm::Program;
 use crate::Error;
 use crate::{RefValue, Value};
 use indexmap::IndexMap;
-use num::ToPrimitive;
 use std::collections::HashMap;
 
 /// The linker glues compiled intermediate program and finalized VM program together.
@@ -32,32 +31,14 @@ impl Linker {
     In case *value* already exists inside of the current statics, the existing index will be returned,
     otherwiese the value is cloned and put into the statics table. */
     pub fn register(&mut self, value: &ImlValue) -> usize {
+        if let ImlValue::Shared(value) = value {
+            return self.register(&*value.borrow());
+        }
+
         match self.statics.get_index_of(value) {
             None => self.statics.insert_full(value.clone(), None).0,
             Some(idx) => idx,
         }
-    }
-
-    /** Generates code for a value push. For several, oftenly used values, there exists a direct operation pendant,
-    which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
-    is returned. */
-    pub fn push(&mut self, value: &ImlValue) -> Op {
-        if let ImlValue::Value(value) = value {
-            match &*value.borrow() {
-                Value::Void => return Op::PushVoid,
-                Value::Null => return Op::PushNull,
-                Value::True => return Op::PushTrue,
-                Value::False => return Op::PushFalse,
-                Value::Int(i) => match i.to_i64() {
-                    Some(0) => return Op::Push0,
-                    Some(1) => return Op::Push1,
-                    _ => {}
-                },
-                _ => {}
-            }
-        }
-
-        Op::LoadStatic(self.register(value))
     }
 
     /** Turns the Linker and its intermediate values into a final VM program ready for execution.
@@ -77,13 +58,7 @@ impl Linker {
             let outer = {
                 match self.statics.get_index(i).unwrap() {
                     (_, Some(_)) => unreachable!(), // may not exist!
-                    (
-                        ImlValue::Parselet {
-                            parselet,
-                            constants,
-                        },
-                        None,
-                    ) if constants.is_empty() => parselet.clone(),
+                    (ImlValue::Parselet(parselet), None) => parselet.clone(),
                     _ => {
                         i += 1;
                         continue;
@@ -172,11 +147,7 @@ impl Linker {
             .into_iter()
             .map(|(iml, parselet)| {
                 if let Some(mut parselet) = parselet {
-                    if let ImlValue::Parselet {
-                        parselet: imlparselet,
-                        ..
-                    } = iml
-                    {
+                    if let ImlValue::Parselet(imlparselet) = iml {
                         parselet.consuming = configs
                             .get(&imlparselet.borrow().id())
                             .map_or(None, |config| Some(config.leftrec));

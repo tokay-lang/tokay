@@ -195,8 +195,9 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                         compiler.set_constant(
                             &ident,
-                            ImlValue::Generic {
+                            ImlValue::Name {
                                 offset,
+                                generic: true,
                                 name: ident.to_string(),
                             },
                         );
@@ -381,7 +382,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
-                if let ImlValue::Parselet { parselet, .. } = &value {
+                if let ImlValue::Parselet(parselet) = &value {
                     let mut parselet = parselet.borrow_mut();
                     parselet.name = Some(lvalue.to_string());
                 }

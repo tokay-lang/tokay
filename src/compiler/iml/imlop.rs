@@ -4,19 +4,13 @@ use super::*;
 use crate::reader::Offset;
 use crate::utils;
 use crate::Compiler;
-use crate::Error;
 use crate::{Object, RefValue};
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
-
-pub(in crate::compiler) type SharedImlOp = Rc<RefCell<ImlOp>>;
 
 #[derive(Debug, Clone)]
 pub(in crate::compiler) enum ImlOp {
-    Nop,                 // Empty operation
-    Op(Op),              // VM Operation
-    Shared(SharedImlOp), // Shared ImlOp tree can be shared from various locations during compilation
+    Nop,    // Empty operation
+    Op(Op), // VM Operation
     Load {
         offset: Option<Offset>,
         target: ImlValue,
@@ -116,7 +110,15 @@ impl ImlOp {
 
     /// Load unknown value by name
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        Self::load(offset.clone(), ImlValue::Name { offset, name }).try_resolve(compiler)
+        Self::load(
+            offset.clone(),
+            ImlValue::Name {
+                offset,
+                name,
+                generic: false,
+            }
+            .try_resolve(compiler),
+        )
     }
 
     /// Call known value
@@ -155,29 +157,13 @@ impl ImlOp {
 
         ImlOp::Call {
             offset: offset.clone(),
-            target: ImlValue::Name { offset, name },
+            target: ImlValue::Name {
+                offset,
+                name,
+                generic: false,
+            }
+            .try_resolve(compiler),
             args,
-        }
-        .try_resolve(compiler)
-    }
-
-    /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlOp.
-    fn try_resolve(mut self, compiler: &mut Compiler) -> ImlOp {
-        if self.resolve(compiler) {
-            return self;
-        }
-
-        let shared = ImlOp::Shared(Rc::new(RefCell::new(self)));
-        compiler.usages.push(shared.clone());
-        shared
-    }
-
-    /// Resolve volatile values from intermediate instructions
-    pub(in crate::compiler) fn resolve(&mut self, compiler: &mut Compiler) -> bool {
-        match self {
-            Self::Shared(op) => return op.borrow_mut().resolve(compiler),
-            Self::Load { target, .. } | Self::Call { target, .. } => target.resolve(compiler),
-            _ => false,
         }
     }
 
@@ -300,30 +286,12 @@ impl ImlOp {
         match self {
             ImlOp::Nop => {}
             ImlOp::Op(op) => ops.push(op.clone()),
-            ImlOp::Shared(op) => {
-                op.borrow().compile(ops, linker);
-            }
             ImlOp::Load { offset, target } => {
                 if let Some(offset) = offset {
                     ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                ops.push(match target {
-                    ImlValue::Name { name, .. } => {
-                        linker.errors.push(Error::new(
-                            *offset,
-                            format!("Use of unresolved symbol '{}'", name),
-                        ));
-
-                        Op::Nop
-                    }
-                    ImlValue::Generic { name, .. } => {
-                        unreachable!("Use of generic symbol '{}'", name)
-                    }
-                    ImlValue::Local(addr) => Op::LoadFast(*addr),
-                    ImlValue::Global(addr) => Op::LoadGlobal(*addr),
-                    value => linker.push(value),
-                });
+                ops.push(target.compile_to_load(linker));
             }
             ImlOp::Call {
                 offset,
@@ -334,90 +302,7 @@ impl ImlOp {
                     ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                match target {
-                    ImlValue::Name { name, .. } => {
-                        linker.errors.push(Error::new(
-                            *offset,
-                            format!("Call to unresolved symbol '{}'", name),
-                        ));
-                    }
-                    ImlValue::Generic { name, .. } => {
-                        unreachable!("Call to generic '{}' may not occur", name)
-                    }
-                    ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
-                    ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
-                    value => {
-                        // When value is a parselet, check for accepted constant configuration
-                        if let ImlValue::Parselet {
-                            parselet: _,
-                            constants,
-                        } = value
-                        {
-                            if !constants.is_empty() {
-                                let mut required = Vec::new();
-
-                                for (name, default) in constants {
-                                    if matches!(default, ImlValue::Void) {
-                                        required.push(name.to_string());
-                                    }
-                                }
-
-                                if !required.is_empty() {
-                                    linker.errors.push(Error::new(
-                                        offset.clone(),
-                                        format!(
-                                            "On call to '{}', missing generic constants for {}",
-                                            value,
-                                            required.join(", ")
-                                        ),
-                                    ));
-
-                                    return 0;
-                                }
-                            }
-                        }
-
-                        let idx = linker.register(value);
-
-                        match args {
-                            // Qualified call
-                            Some((args, nargs)) => {
-                                if *args == 0 && !*nargs {
-                                    ops.push(Op::CallStatic(idx));
-                                } else if *args > 0 && !*nargs {
-                                    ops.push(Op::CallStaticArg(Box::new((idx, *args))));
-                                } else {
-                                    ops.push(Op::CallStaticArgNamed(Box::new((idx, *args))));
-                                }
-                            }
-                            // Call or load
-                            None => {
-                                if value.is_callable(true) {
-                                    ops.push(Op::CallStatic(idx));
-                                } else {
-                                    ops.push(Op::LoadStatic(idx));
-                                }
-                            }
-                        }
-
-                        return ops.len() - start;
-                    }
-                }
-
-                match args {
-                    // Qualified call
-                    Some((args, nargs)) => {
-                        if *args == 0 && *nargs == false {
-                            ops.push(Op::Call);
-                        } else if *args > 0 && *nargs == false {
-                            ops.push(Op::CallArg(*args));
-                        } else {
-                            ops.push(Op::CallArgNamed(*args));
-                        }
-                    }
-                    // Call or load
-                    None => ops.push(Op::CallOrCopy),
-                }
+                ops.extend(target.compile_to_call(linker, *args));
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
@@ -668,70 +553,7 @@ impl ImlOp {
         configs: &mut HashMap<usize, Consumable>,
     ) -> Option<Consumable> {
         match self {
-            ImlOp::Shared(op) => op.borrow().finalize(visited, configs),
-            ImlOp::Call { target: callee, .. } => {
-                match callee {
-                    ImlValue::Parselet {
-                        parselet,
-                        constants,
-                    } if constants.is_empty() => {
-                        match parselet.try_borrow() {
-                            // In case the parselet cannot be borrowed, it is left-recursive!
-                            Err(_) => Some(Consumable {
-                                leftrec: true,
-                                nullable: false,
-                            }),
-                            // Otherwise dive into this parselet...
-                            Ok(parselet) => {
-                                // ... only if it's generally flagged to be consuming.
-                                if !parselet.consuming {
-                                    return None;
-                                }
-
-                                let id = parselet.id();
-
-                                if visited.contains(&id) {
-                                    Some(Consumable {
-                                        leftrec: false,
-                                        nullable: configs[&id].nullable,
-                                    })
-                                } else {
-                                    visited.insert(id);
-
-                                    if !configs.contains_key(&id) {
-                                        configs.insert(
-                                            id,
-                                            Consumable {
-                                                leftrec: false,
-                                                nullable: false,
-                                            },
-                                        );
-                                    }
-
-                                    //fixme: Finalize on begin and end as well!
-                                    let ret = parselet.body.finalize(visited, configs);
-
-                                    visited.remove(&id);
-
-                                    ret
-                                }
-                            }
-                        }
-                    }
-                    ImlValue::Value(callee) => {
-                        if callee.is_consuming() {
-                            //println!("{:?} called, which is nullable={:?}", callee, callee.is_nullable());
-                            Some(Consumable {
-                                leftrec: false,
-                                nullable: callee.is_nullable(),
-                            })
-                        } else {
-                            None
-                        }
-                    }
-                    _ => None,
-                }
-            }
+            ImlOp::Call { target, .. } => target.finalize(visited, configs),
             ImlOp::Alt { alts } => {
                 let mut leftrec = false;
                 let mut nullable = false;
@@ -848,7 +670,6 @@ impl ImlOp {
 
         // Query along ImlOp structure
         match self {
-            ImlOp::Shared(op) => op.borrow().walk(func),
             ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
                 for item in items {
                     if !item.walk(func) {

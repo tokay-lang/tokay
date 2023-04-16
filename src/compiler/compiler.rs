@@ -50,7 +50,7 @@ pub struct Compiler {
     pub debug: u8,                  // Compiler debug mode
 
     pub(in crate::compiler) scopes: Vec<Scope>, // Current compilation scopes
-    pub(in crate::compiler) usages: Vec<ImlOp>, // Unresolved calls or loads
+    pub(in crate::compiler) usages: Vec<ImlValue>, // Unresolved values
     pub(in crate::compiler) errors: Vec<Error>, // Collected errors during compilation
 }
 
@@ -158,15 +158,15 @@ impl Compiler {
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<ImlOp> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<ImlValue> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again in case there where not resolved
-            for mut op in usages.into_iter() {
-                if op.resolve(self) {
+            for mut value in usages.into_iter() {
+                if value.resolve(self) {
                     continue;
                 }
 
-                self.usages.push(op); // Insert again for later resolve
+                self.usages.push(value); // Re-insert into usages for later resolve
             }
         }
     }
@@ -256,6 +256,16 @@ impl Compiler {
             //println!("body  = {:?}", body);
             //println!("end   = {:?}", end);
 
+            // todo: Check if the available values define a useless parselet.
+            /*
+            if matches!(begin, ImlOp::Nop)
+                || matches!(end, ImlOp::Nop)
+                || matches!(body, ImlOp::Nop)
+                || signature.is_empty() {
+                return ImlValue::Void
+            }
+            */
+
             let parselet = ImlParselet {
                 offset,
                 name,
@@ -264,6 +274,7 @@ impl Compiler {
                     || end.is_consuming()
                     || body.is_consuming(),
                 severity: severity.unwrap_or(5), // severity
+                constants,                       // constants
                 signature,                       // signature
                 locals: *locals,
                 // Ensure that begin and end are blocks.
@@ -277,10 +288,7 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::Parselet {
-                parselet: Rc::new(RefCell::new(parselet)),
-                constants,
-            }
+            ImlValue::Parselet(Rc::new(RefCell::new(parselet)))
         } else {
             unreachable!();
         }
@@ -460,7 +468,7 @@ impl Compiler {
                     ..
                 } => {
                     if let Some(value) = constants.get(name) {
-                        if !top_parselet && matches!(value, ImlValue::Generic { .. }) {
+                        if !top_parselet && matches!(value, ImlValue::Name { generic: true, .. }) {
                             continue;
                         }
 

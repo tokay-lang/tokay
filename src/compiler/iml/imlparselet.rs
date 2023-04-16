@@ -11,6 +11,7 @@ pub(in crate::compiler) struct ImlParselet {
     pub consuming: bool,                       // Flag if parselet is consuming
     pub severity: u8,                          // Capture push severity
     pub name: Option<String>,                  // Parselet's name from source (for debugging)
+    pub constants: IndexMap<String, ImlValue>, // Parselet generic signature with default configuration
     pub signature: IndexMap<String, ImlValue>, // Argument signature with default arguments
     pub locals: usize, // Total number of local variables present (including arguments)
     pub begin: ImlOp,  // Begin-operations
