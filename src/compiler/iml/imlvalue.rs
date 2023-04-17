@@ -6,7 +6,6 @@ use crate::value::{Object, RefValue, Value};
 use crate::Error;
 use num::ToPrimitive;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 /** Intermediate value
@@ -133,73 +132,6 @@ impl ImlValue {
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().consuming,
             _ => false,
-        }
-    }
-
-    // Finalize... this is a work in progress...
-    pub fn finalize(
-        &self,
-        visited: &mut HashSet<usize>,
-        configs: &mut HashMap<usize, Consumable>,
-    ) -> Option<Consumable> {
-        match self {
-            ImlValue::Shared(value) => value.borrow().finalize(visited, configs),
-            ImlValue::Parselet(parselet) => {
-                match parselet.try_borrow() {
-                    // In case the parselet cannot be borrowed, it is left-recursive!
-                    Err(_) => Some(Consumable {
-                        leftrec: true,
-                        nullable: false,
-                    }),
-                    // Otherwise dive into this parselet...
-                    Ok(parselet) => {
-                        // ... only if it's generally flagged to be consuming.
-                        if !parselet.consuming {
-                            return None;
-                        }
-
-                        let id = parselet.id();
-
-                        if visited.contains(&id) {
-                            Some(Consumable {
-                                leftrec: false,
-                                nullable: configs[&id].nullable,
-                            })
-                        } else {
-                            visited.insert(id);
-
-                            if !configs.contains_key(&id) {
-                                configs.insert(
-                                    id,
-                                    Consumable {
-                                        leftrec: false,
-                                        nullable: false,
-                                    },
-                                );
-                            }
-
-                            //fixme: Finalize on begin and end as well!
-                            let ret = parselet.body.finalize(visited, configs);
-
-                            visited.remove(&id);
-
-                            ret
-                        }
-                    }
-                }
-            }
-            ImlValue::Value(callee) => {
-                if callee.is_consuming() {
-                    //println!("{:?} called, which is nullable={:?}", callee, callee.is_nullable());
-                    Some(Consumable {
-                        leftrec: false,
-                        nullable: callee.is_nullable(),
-                    })
-                } else {
-                    None
-                }
-            }
-            _ => None,
         }
     }
 

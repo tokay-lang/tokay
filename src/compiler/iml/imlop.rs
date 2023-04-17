@@ -5,7 +5,6 @@ use crate::reader::Offset;
 use crate::utils;
 use crate::Compiler;
 use crate::{Object, RefValue};
-use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub(in crate::compiler) enum ImlOp {
@@ -545,124 +544,6 @@ impl ImlOp {
         }
 
         ops.len() - start
-    }
-
-    /** Finalize ImlOp construct on a grammar's point of view.
-
-    This function must be run inside of a closure on every parselet until no more changes occur.
-    */
-    pub(in crate::compiler) fn finalize(
-        &self,
-        visited: &mut HashSet<usize>,
-        configs: &mut HashMap<usize, Consumable>,
-    ) -> Option<Consumable> {
-        match self {
-            ImlOp::Call { target, .. } => target.finalize(visited, configs),
-            ImlOp::Alt { alts } => {
-                let mut leftrec = false;
-                let mut nullable = false;
-                let mut consumes = false;
-
-                for alt in alts {
-                    if let Some(consumable) = alt.finalize(visited, configs) {
-                        leftrec |= consumable.leftrec;
-                        nullable |= consumable.nullable;
-                        consumes = true;
-                    }
-                }
-
-                if consumes {
-                    Some(Consumable { leftrec, nullable })
-                } else {
-                    None
-                }
-            }
-            ImlOp::Seq { seq, .. } => {
-                let mut leftrec = false;
-                let mut nullable = true;
-                let mut consumes = false;
-
-                for item in seq {
-                    if !nullable {
-                        break;
-                    }
-
-                    if let Some(consumable) = item.finalize(visited, configs) {
-                        leftrec |= consumable.leftrec;
-                        nullable = consumable.nullable;
-                        consumes = true;
-                    }
-                }
-
-                if consumes {
-                    Some(Consumable { leftrec, nullable })
-                } else {
-                    None
-                }
-            }
-            ImlOp::If { then, else_, .. } => {
-                let then = then.finalize(visited, configs);
-
-                if let Some(else_) = else_.finalize(visited, configs) {
-                    if let Some(then) = then {
-                        Some(Consumable {
-                            leftrec: then.leftrec || else_.leftrec,
-                            nullable: then.nullable || else_.nullable,
-                        })
-                    } else {
-                        Some(else_)
-                    }
-                } else {
-                    then
-                }
-            }
-            ImlOp::Loop {
-                initial,
-                condition,
-                body,
-                ..
-            } => {
-                let mut ret: Option<Consumable> = None;
-
-                for part in [initial, condition, body] {
-                    let part = part.finalize(visited, configs);
-
-                    if let Some(part) = part {
-                        ret = if let Some(ret) = ret {
-                            Some(Consumable {
-                                leftrec: ret.leftrec || part.leftrec,
-                                nullable: ret.nullable || part.nullable,
-                            })
-                        } else {
-                            Some(part)
-                        }
-                    }
-                }
-
-                ret
-            }
-
-            // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. } => body.finalize(visited, configs),
-            ImlOp::Not { body } | ImlOp::Peek { body } => body.finalize(visited, configs),
-            ImlOp::Repeat { body, min, .. } => {
-                if let Some(consumable) = body.finalize(visited, configs) {
-                    if *min == 0 {
-                        Some(Consumable {
-                            leftrec: consumable.leftrec,
-                            nullable: true,
-                        })
-                    } else {
-                        Some(consumable)
-                    }
-                } else {
-                    None
-                }
-            }
-
-            // default case
-            _ => None,
-        }
     }
 
     /// Generic querying function taking a closure that either walks on the tree or stops.

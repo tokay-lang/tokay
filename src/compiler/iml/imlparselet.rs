@@ -2,7 +2,6 @@
 use super::*;
 use crate::reader::Offset;
 use indexmap::IndexMap;
-use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 /// Intermediate parselet
@@ -23,22 +22,6 @@ pub(in crate::compiler) struct ImlParselet {
 impl ImlParselet {
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
-    }
-
-    pub fn finalize(&self, configs: &mut HashMap<usize, Consumable>) -> bool {
-        let mut changes = false;
-        let id = self.id();
-
-        for part in [&self.begin, &self.body, &self.end] {
-            if let Some(result) = part.finalize(&mut HashSet::new(), configs) {
-                if !configs.contains_key(&id) || configs[&id] < result {
-                    configs.insert(id, result);
-                    changes = true;
-                }
-            }
-        }
-
-        changes
     }
 }
 
