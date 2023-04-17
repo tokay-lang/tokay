@@ -109,7 +109,7 @@ impl Compiler {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            match Linker::new(main).finalize() {
+            match ImlProgram::new(main).compile() {
                 Ok(program) => {
                     if self.debug > 1 {
                         println!("--- Finalized program ---");

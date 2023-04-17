@@ -1,32 +1,31 @@
-//! The Linker merges ImlParselets into statics, which are transferred into a VM program afterwards.
+//! ImlProgram glues ImlParselets, ImlOps and ImlValues together to produce a VM program.
 
-use super::iml::*;
+use super::*;
 use crate::value::Parselet;
 use crate::vm::Program;
 use crate::Error;
-use crate::{RefValue, Value};
+use crate::RefValue;
 use indexmap::IndexMap;
 use std::collections::HashMap;
 
-/// The linker glues compiled intermediate program and finalized VM program together.
 #[derive(Debug)]
-pub(in crate::compiler) struct Linker {
+pub(in crate::compiler) struct ImlProgram {
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
     pub errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
 }
 
-impl Linker {
+impl ImlProgram {
     pub fn new(main: ImlValue) -> Self {
         let mut statics = IndexMap::new();
         statics.insert(main, None);
 
-        Linker {
+        ImlProgram {
             statics,
             errors: Vec::new(),
         }
     }
 
-    /** Registers an ImlValue in the Linker's statics map and returns its index.
+    /** Registers an ImlValue in the ImlProgram's statics map and returns its index.
 
     In case *value* already exists inside of the current statics, the existing index will be returned,
     otherwiese the value is cloned and put into the statics table. */
@@ -41,13 +40,13 @@ impl Linker {
         }
     }
 
-    /** Turns the Linker and its intermediate values into a final VM program ready for execution.
+    /** Turns the ImlProgram and its intermediate values into a final VM program ready for execution.
 
     The finalization is done according to a grammar's point of view, as this is one of Tokays core features.
     This closure algorithm runs until no more changes on any parselet configurations regarding left-recursive
     and nullable parselet detection occurs.
     */
-    pub fn finalize(mut self) -> Result<Program, Vec<Error>> {
+    pub fn compile(mut self) -> Result<Program, Vec<Error>> {
         let mut finalize = Vec::new(); // list of consuming parselets required to be finalized
 
         // Loop until end of statics is reached

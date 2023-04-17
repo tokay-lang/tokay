@@ -3,11 +3,12 @@ pub use crate::vm::*;
 
 mod imlop;
 mod imlparselet;
+mod imlprogram;
 mod imlvalue;
 
-use super::Linker;
 pub(in crate::compiler) use imlop::*;
 pub(in crate::compiler) use imlparselet::*;
+pub(in crate::compiler) use imlprogram::*;
 pub(in crate::compiler) use imlvalue::*;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

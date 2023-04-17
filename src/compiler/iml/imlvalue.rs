@@ -206,9 +206,9 @@ impl ImlValue {
     /** Generates code for a value load. For several, oftenly used values, there exists a direct operation pendant,
     which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
     is returned. */
-    pub fn compile_to_load(&self, linker: &mut Linker) -> Op {
+    pub fn compile_to_load(&self, program: &mut ImlProgram) -> Op {
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_to_load(linker),
+            ImlValue::Shared(value) => return value.borrow().compile_to_load(program),
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => return Op::PushVoid,
                 Value::Null => return Op::PushNull,
@@ -225,7 +225,7 @@ impl ImlValue {
             ImlValue::Local(addr) => return Op::LoadFast(*addr),
             ImlValue::Global(addr) => return Op::LoadGlobal(*addr),
             ImlValue::Name { name, .. } => {
-                linker.errors.push(Error::new(
+                program.errors.push(Error::new(
                     None,
                     format!("Use of unresolved symbol '{}'", name),
                 ));
@@ -235,19 +235,23 @@ impl ImlValue {
             _ => todo!(),
         }
 
-        Op::LoadStatic(linker.register(self))
+        Op::LoadStatic(program.register(self))
     }
 
     /** Generates code for a value call. */
-    pub fn compile_to_call(&self, linker: &mut Linker, args: Option<(usize, bool)>) -> Vec<Op> {
+    pub fn compile_to_call(
+        &self,
+        program: &mut ImlProgram,
+        args: Option<(usize, bool)>,
+    ) -> Vec<Op> {
         let mut ops = Vec::new();
 
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_to_call(linker, args),
+            ImlValue::Shared(value) => return value.borrow().compile_to_call(program, args),
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
-                linker.errors.push(Error::new(
+                program.errors.push(Error::new(
                     None,
                     format!("Call to unresolved symbol '{}'", name),
                 ));
@@ -271,7 +275,7 @@ impl ImlValue {
                         }
 
                         if !required.is_empty() {
-                            linker.errors.push(Error::new(
+                            program.errors.push(Error::new(
                                 offset.clone(),
                                 format!(
                                     "On call to '{}', missing generic constants for {}",
@@ -286,7 +290,7 @@ impl ImlValue {
                 }
                 */
 
-                let idx = linker.register(value);
+                let idx = program.register(value);
 
                 match args {
                     // Qualified call
