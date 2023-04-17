@@ -76,9 +76,9 @@ impl ImlProgram {
             let mut end = Vec::new();
             let mut body = Vec::new();
 
-            parselet.begin.compile(&mut begin, &mut self);
-            parselet.end.compile(&mut end, &mut self);
-            parselet.body.compile(&mut body, &mut self);
+            parselet.begin.compile(&mut self, &mut begin);
+            parselet.end.compile(&mut self, &mut end);
+            parselet.body.compile(&mut self, &mut body);
 
             // Compile parselet from intermediate parselet
             let parselet = Parselet::new(

@@ -282,8 +282,8 @@ impl ImlOp {
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
     pub(in crate::compiler) fn compile(
         &self,
-        ops: &mut Vec<Op>,
         program: &mut ImlProgram,
+        ops: &mut Vec<Op>,
     ) -> usize {
         let start = ops.len();
 
@@ -316,7 +316,7 @@ impl ImlOp {
 
                 while let Some(item) = iter.next() {
                     let mut alt = Vec::new();
-                    item.compile(&mut alt, program);
+                    item.compile(program, &mut alt);
 
                     // When branch has more than one item, Frame it.
                     if iter.len() > 0 {
@@ -357,7 +357,7 @@ impl ImlOp {
             }
             ImlOp::Seq { seq, collection } => {
                 for item in seq.iter() {
-                    item.compile(ops, program);
+                    item.compile(program, ops);
                 }
 
                 // Check if the sequence exists of more than one operational instruction
@@ -392,13 +392,13 @@ impl ImlOp {
                 }
 
                 // Then-part
-                let mut jump = then_part.compile(ops, program) + 1;
+                let mut jump = then_part.compile(program, ops) + 1;
 
                 if !*peek {
                     let mut else_ops = Vec::new();
 
                     // Else-part
-                    if else_part.compile(&mut else_ops, program) > 0 {
+                    if else_part.compile(program, &mut else_ops) > 0 {
                         ops.push(Op::Forward(else_ops.len() + 1));
                         jump += 1;
                         ops.extend(else_ops);
@@ -423,9 +423,9 @@ impl ImlOp {
                 let consuming: Option<bool> = None; // fixme: Currently not sure if this is an issue.
                 let mut repeat = Vec::new();
 
-                initial.compile(ops, program);
+                initial.compile(program, ops);
 
-                if condition.compile(&mut repeat, program) > 0 {
+                if condition.compile(program, &mut repeat) > 0 {
                     if *iterator {
                         repeat.push(Op::ForwardIfNotVoid(2));
                     } else {
@@ -435,7 +435,7 @@ impl ImlOp {
                     repeat.push(Op::Break);
                 }
 
-                body.compile(&mut repeat, program);
+                body.compile(program, &mut repeat);
                 let len = repeat.len() + if consuming.is_some() { 3 } else { 2 };
 
                 ops.push(Op::Loop(len));
@@ -455,7 +455,7 @@ impl ImlOp {
             // DEPRECATED BELOW!!!
             ImlOp::Expect { body, msg } => {
                 let mut expect = Vec::new();
-                body.compile(&mut expect, program);
+                body.compile(program, &mut expect);
 
                 ops.push(Op::Frame(expect.len() + 2));
 
@@ -472,7 +472,7 @@ impl ImlOp {
             }
             ImlOp::Not { body } => {
                 let mut body_ops = Vec::new();
-                let body_len = body.compile(&mut body_ops, program);
+                let body_len = body.compile(program, &mut body_ops);
                 ops.push(Op::Frame(body_len + 3));
                 ops.extend(body_ops);
                 ops.push(Op::Close);
@@ -481,13 +481,13 @@ impl ImlOp {
             }
             ImlOp::Peek { body } => {
                 ops.push(Op::Frame(0));
-                body.compile(ops, program);
+                body.compile(program, ops);
                 ops.push(Op::Reset);
                 ops.push(Op::Close);
             }
             ImlOp::Repeat { body, min, max } => {
                 let mut body_ops = Vec::new();
-                let body_len = body.compile(&mut body_ops, program);
+                let body_len = body.compile(program, &mut body_ops);
 
                 match (min, max) {
                     (0, 0) => {
