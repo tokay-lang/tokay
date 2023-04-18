@@ -10,16 +10,9 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-struct Consumable {
-    pub leftrec: bool,  // Flag if consumable is left-recursive
-    pub nullable: bool, // Flag if consumable is nullable
-}
-
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlProgram {
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
-    configs: HashMap<usize, Consumable>,           // Consumable configuration per parselet
     pub errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
 }
 
@@ -30,7 +23,6 @@ impl ImlProgram {
 
         ImlProgram {
             statics,
-            configs: HashMap::new(),
             errors: Vec::new(),
         }
     }
@@ -120,7 +112,7 @@ impl ImlProgram {
             i += 1;
         }
 
-        self.finalize(&finalize);
+        let leftrec = self.finalize(finalize);
 
         // Stop on any raised error
         if !self.errors.is_empty() {
@@ -134,10 +126,9 @@ impl ImlProgram {
             .map(|(iml, parselet)| {
                 if let Some(mut parselet) = parselet {
                     if let ImlValue::Parselet(imlparselet) = iml {
-                        parselet.consuming = self
-                            .configs
+                        parselet.consuming = leftrec
                             .get(&imlparselet.borrow().id())
-                            .map_or(None, |config| Some(config.leftrec));
+                            .map_or(None, |leftrec| Some(*leftrec));
 
                         //println!("{:?} => {:?}", imlparselet.borrow().name, parselet.consuming);
                     }
@@ -158,7 +149,25 @@ impl ImlProgram {
         Ok(Program::new(statics))
     }
 
-    fn finalize(&mut self, parselets: &Vec<Rc<RefCell<ImlParselet>>>) {
+    /** Internal function to finalize a program on a grammar's point of view.
+
+    The finalization performs a closure algorithm on every parselet to detect
+
+    - nullable parselets
+    - left-recursive parselets
+
+    until no more changes occur.
+
+    It can only be run on a previously compiled program without any unresolved usages.
+    */
+    fn finalize(&mut self, parselets: Vec<Rc<RefCell<ImlParselet>>>) -> HashMap<usize, bool> {
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+        struct Consumable {
+            leftrec: bool,
+            nullable: bool,
+        }
+
+        // Finalize ImlValue
         fn finalize_value(
             value: &ImlValue,
             visited: &mut HashSet<usize>,
@@ -192,10 +201,7 @@ impl ImlProgram {
             }
         }
 
-        /** Finalize ImlOp construct on a grammar's point of view.
-
-        This function must be run inside of a closure on every parselet until no more changes occur.
-        */
+        // Finalize ImlOp
         fn finalize_op(
             op: &ImlOp,
             visited: &mut HashSet<usize>,
@@ -310,6 +316,7 @@ impl ImlProgram {
             }
         }
 
+        // Finalize ImlParselet
         fn finalize_parselet(
             parselet: &ImlParselet,
             visited: &mut HashSet<usize>,
@@ -359,14 +366,15 @@ impl ImlProgram {
         // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
         // put into the finalize list.
         let mut changes = true;
+        let mut configs = HashMap::new();
 
         while changes {
             changes = false;
 
-            for parselet in parselets {
+            for parselet in &parselets {
                 let parselet = parselet.borrow_mut(); // parselet is locked for left-recursion detection
-                changes = finalize_parselet(&*parselet, &mut HashSet::new(), &mut self.configs)
-                    > self.configs.get(&parselet.id()).cloned();
+                changes = finalize_parselet(&*parselet, &mut HashSet::new(), &mut configs)
+                    > configs.get(&parselet.id()).cloned();
             }
         }
 
@@ -376,9 +384,11 @@ impl ImlProgram {
             println!(
                 "{} consuming={:?}",
                 parselet.name.as_deref().unwrap_or("(unnamed)"),
-                self.configs[&parselet.id()]
+                configs[&parselet.id()]
             );
         }
         */
+
+        configs.into_iter().map(|(k, v)| (k, v.leftrec)).collect()
     }
 }
