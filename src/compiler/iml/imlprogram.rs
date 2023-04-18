@@ -6,9 +6,11 @@ use crate::vm::Program;
 use crate::Error;
 use crate::{Object, RefValue};
 use indexmap::IndexMap;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 struct Consumable {
     pub leftrec: bool,  // Flag if consumable is left-recursive
     pub nullable: bool, // Flag if consumable is nullable
@@ -118,29 +120,7 @@ impl ImlProgram {
             i += 1;
         }
 
-        // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
-        // put into the finalize list.
-        let mut changes = true;
-
-        while changes {
-            changes = false;
-
-            for parselet in &finalize {
-                let parselet = parselet.borrow_mut(); // parselet is locked for left-recursion detection
-                changes |= self.finalize_parselet(&*parselet);
-            }
-        }
-
-        /*
-        for p in &finalize {
-            let parselet = p.borrow();
-            println!(
-                "{} consuming={:?}",
-                parselet.name.as_deref().unwrap_or("(unnamed)"),
-                configs[&parselet.id()]
-            );
-        }
-        */
+        self.finalize(&finalize);
 
         // Stop on any raised error
         if !self.errors.is_empty() {
@@ -178,7 +158,7 @@ impl ImlProgram {
         Ok(Program::new(statics))
     }
 
-    fn finalize_parselet(&mut self, parselet: &ImlParselet) -> bool {
+    fn finalize(&mut self, parselets: &Vec<Rc<RefCell<ImlParselet>>>) {
         fn finalize_value(
             value: &ImlValue,
             visited: &mut HashSet<usize>,
@@ -194,40 +174,7 @@ impl ImlProgram {
                             nullable: false,
                         }),
                         // Otherwise dive into this parselet...
-                        Ok(parselet) => {
-                            // ... only if it's generally flagged to be consuming.
-                            if !parselet.consuming {
-                                return None;
-                            }
-
-                            let id = parselet.id();
-
-                            if visited.contains(&id) {
-                                Some(Consumable {
-                                    leftrec: false,
-                                    nullable: configs[&id].nullable,
-                                })
-                            } else {
-                                visited.insert(id);
-
-                                if !configs.contains_key(&id) {
-                                    configs.insert(
-                                        id,
-                                        Consumable {
-                                            leftrec: false,
-                                            nullable: false,
-                                        },
-                                    );
-                                }
-
-                                //fixme: Finalize on begin and end as well!
-                                let ret = finalize_op(&parselet.body, visited, configs);
-
-                                visited.remove(&id);
-
-                                ret
-                            }
-                        }
+                        Ok(parselet) => finalize_parselet(&parselet, visited, configs),
                     }
                 }
                 ImlValue::Value(callee) => {
@@ -363,18 +310,75 @@ impl ImlProgram {
             }
         }
 
-        let mut changes = false;
-        let id = parselet.id();
+        fn finalize_parselet(
+            parselet: &ImlParselet,
+            visited: &mut HashSet<usize>,
+            configs: &mut HashMap<usize, Consumable>,
+        ) -> Option<Consumable> {
+            // ... only if it's generally flagged to be consuming.
+            if !parselet.consuming {
+                return None;
+            }
 
-        for part in [&parselet.begin, &parselet.body, &parselet.end] {
-            if let Some(result) = finalize_op(part, &mut HashSet::new(), &mut self.configs) {
-                if !self.configs.contains_key(&id) || self.configs[&id] < result {
-                    self.configs.insert(id, result);
-                    changes = true;
+            let id = parselet.id();
+
+            if visited.contains(&id) {
+                Some(Consumable {
+                    leftrec: false,
+                    nullable: configs[&id].nullable,
+                })
+            } else {
+                visited.insert(id);
+
+                if !configs.contains_key(&id) {
+                    configs.insert(
+                        id,
+                        Consumable {
+                            leftrec: false,
+                            nullable: false,
+                        },
+                    );
                 }
+
+                for part in [&parselet.begin, &parselet.body, &parselet.end] {
+                    if let Some(result) = finalize_op(part, visited, configs) {
+                        if configs[&id] < result {
+                            configs.insert(id, result);
+                        }
+                    }
+                }
+
+                visited.remove(&id);
+                Some(Consumable {
+                    leftrec: false,
+                    nullable: configs[&id].nullable,
+                })
             }
         }
 
-        changes
+        // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
+        // put into the finalize list.
+        let mut changes = true;
+
+        while changes {
+            changes = false;
+
+            for parselet in parselets {
+                let parselet = parselet.borrow_mut(); // parselet is locked for left-recursion detection
+                changes = finalize_parselet(&*parselet, &mut HashSet::new(), &mut self.configs)
+                    > self.configs.get(&parselet.id()).cloned();
+            }
+        }
+
+        /*
+        for parselet in parselets {
+            let parselet = parselet.borrow();
+            println!(
+                "{} consuming={:?}",
+                parselet.name.as_deref().unwrap_or("(unnamed)"),
+                self.configs[&parselet.id()]
+            );
+        }
+        */
     }
 }
