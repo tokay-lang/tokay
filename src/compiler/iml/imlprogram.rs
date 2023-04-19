@@ -74,14 +74,6 @@ impl ImlProgram {
                 finalize.push(outer.clone());
             }
 
-            let mut begin = Vec::new();
-            let mut end = Vec::new();
-            let mut body = Vec::new();
-
-            parselet.begin.compile(&mut self, &mut begin);
-            parselet.end.compile(&mut self, &mut end);
-            parselet.body.compile(&mut self, &mut body);
-
             // Compile parselet from intermediate parselet
             let parselet = Parselet::new(
                 parselet.name.clone(),
@@ -103,9 +95,9 @@ impl ImlProgram {
                     })
                     .collect(),
                 parselet.locals,
-                begin,
-                end,
-                body,
+                parselet.begin.compile_to_vec(&mut self),
+                parselet.end.compile_to_vec(&mut self),
+                parselet.body.compile_to_vec(&mut self),
             );
 
             *self.statics.get_index_mut(i).unwrap().1 = Some(parselet);

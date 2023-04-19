@@ -279,11 +279,14 @@ impl ImlOp {
     }
 
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
-    pub(in crate::compiler) fn compile(
-        &self,
-        program: &mut ImlProgram,
-        ops: &mut Vec<Op>,
-    ) -> usize {
+    pub fn compile_to_vec(&self, program: &mut ImlProgram) -> Vec<Op> {
+        let mut ops = Vec::new();
+        self.compile(program, &mut ops);
+        ops
+    }
+
+    /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
+    pub fn compile(&self, program: &mut ImlProgram, ops: &mut Vec<Op>) -> usize {
         let start = ops.len();
 
         match self {
