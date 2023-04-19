@@ -22,7 +22,7 @@ use proc_macro::TokenStream;
 use proc_macro2;
 use quote::{quote, quote_spanned};
 use syn;
-use tokay;
+use tokay_04 as tokay; // This is Tokay v0.4
 
 /* Tokay v0.4 compat, the function has been reworked in v0.5 */
 fn tokay_run(src: &str, input: &str) -> Result<Option<tokay::value::Value>, String> {

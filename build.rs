@@ -1,6 +1,6 @@
 use glob::glob;
 use std::collections::HashMap;
-use tokay; // This is Tokay v0.4
+use tokay_04 as tokay; // This is Tokay v0.4
 
 static PATTERN: &str = "src/**/*.rs";
 

@@ -12,7 +12,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-tokay = "0.4"
+tokay_04 = { package = "tokay", version = "0.4" }
 quote = "1.0"
 syn = { version = "1.0", features = ["full", "fold", "extra-traits"] }
 proc-macro2 = "1.0"
