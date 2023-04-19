@@ -3,12 +3,10 @@
 pub(crate) mod ast;
 mod compiler;
 mod iml;
-mod linker;
 mod parser;
 
 use compiler::*;
 use iml::*;
-use linker::*;
 use parser::*;
 
 pub(crate) use ast::identifier_is_valid;

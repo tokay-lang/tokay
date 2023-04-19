@@ -6,6 +6,7 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
+use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -49,7 +50,7 @@ pub struct Compiler {
     pub debug: u8,                  // Compiler debug mode
 
     pub(in crate::compiler) scopes: Vec<Scope>, // Current compilation scopes
-    pub(in crate::compiler) usages: Vec<ImlOp>, // Unresolved calls or loads
+    pub(in crate::compiler) usages: Vec<ImlValue>, // Unresolved values
     pub(in crate::compiler) errors: Vec<Error>, // Collected errors during compilation
 }
 
@@ -103,16 +104,12 @@ impl Compiler {
             println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
         }
 
-        if let ImlOp::Call {
-            target: ImlTarget::Static(main),
-            ..
-        } = ret
-        {
+        if let ImlOp::Call { target: main, .. } = ret {
             if self.debug > 1 {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            match Linker::new(main).finalize() {
+            match ImlProgram::new(main).compile() {
                 Ok(program) => {
                     if self.debug > 1 {
                         println!("--- Finalized program ---");
@@ -161,15 +158,15 @@ impl Compiler {
             &self.scopes[0]
         {
             // Cut out usages created inside this scope for processing
-            let usages: Vec<ImlOp> = self.usages.drain(usage_start..).collect();
+            let usages: Vec<ImlValue> = self.usages.drain(usage_start..).collect();
 
             // Afterwards, resolve and insert them again in case there where not resolved
-            for mut op in usages.into_iter() {
-                if op.resolve(self) {
+            for mut value in usages.into_iter() {
+                if value.resolve(self) {
                     continue;
                 }
 
-                self.usages.push(op); // Insert again for later resolve
+                self.usages.push(value); // Re-insert into usages for later resolve
             }
         }
     }
@@ -213,8 +210,8 @@ impl Compiler {
         offset: Option<Offset>,
         name: Option<String>,
         severity: Option<u8>,
-        gen: Option<Vec<(String, Option<ImlValue>)>>,
-        sig: Option<Vec<(String, Option<ImlValue>)>>,
+        constants: Option<IndexMap<String, ImlValue>>,
+        signature: Option<IndexMap<String, ImlValue>>,
         body: ImlOp,
     ) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
@@ -244,8 +241,8 @@ impl Compiler {
                 }
             }
 
-            let signature = sig.unwrap_or(Vec::new());
-            let constants = gen.unwrap_or(Vec::new());
+            let constants = constants.unwrap_or(IndexMap::new());
+            let signature = signature.unwrap_or(IndexMap::new());
 
             assert!(
                 signature.len() <= *locals,
@@ -258,6 +255,16 @@ impl Compiler {
             //println!("begin = {:?}", begin);
             //println!("body  = {:?}", body);
             //println!("end   = {:?}", end);
+
+            // todo: Check if the available values define a useless parselet.
+            /*
+            if matches!(begin, ImlOp::Nop)
+                || matches!(end, ImlOp::Nop)
+                || matches!(body, ImlOp::Nop)
+                || signature.is_empty() {
+                return ImlValue::Void
+            }
+            */
 
             let parselet = ImlParselet {
                 offset,
@@ -325,25 +332,6 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
-    /** Retrieves the address of a local variable under a given name.
-
-    Returns None when the variable does not exist. */
-    pub(in crate::compiler) fn get_local(&self, name: &str) -> Option<usize> {
-        // Retrieve local variables from next parselet scope owning variables, except global scope!
-        for scope in &self.scopes[..self.scopes.len() - 1] {
-            // Check for scope with variables
-            if let Scope::Parselet { variables, .. } = &scope {
-                if let Some(addr) = variables.get(name) {
-                    return Some(*addr);
-                }
-
-                break;
-            }
-        }
-
-        None
-    }
-
     /** Insert new local variable under given name in current scope. */
     pub(in crate::compiler) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
@@ -399,19 +387,6 @@ impl Compiler {
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
-    }
-
-    /** Retrieve address of a global variable. */
-    pub(in crate::compiler) fn get_global(&self, name: &str) -> Option<usize> {
-        if let Scope::Parselet { variables, .. } = self.scopes.last().unwrap() {
-            if let Some(addr) = variables.get(name) {
-                return Some(*addr);
-            }
-
-            return None;
-        }
-
-        unreachable!("Top-level scope is not a parselet scope");
     }
 
     /** Set constant to name in current scope. */
@@ -476,15 +451,46 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet or block scope!");
     }
 
-    /** Get constant value, either from current or preceding scope,
-    a builtin or special. */
-    pub(in crate::compiler) fn get_constant(&mut self, name: &str) -> Option<ImlValue> {
-        // Check for constant in available scopes
-        for scope in &self.scopes {
-            if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
-                if let Some(value) = constants.get(name) {
-                    return Some(value.clone());
+    /** Get named value, either from current or preceding scope, a builtin or special. */
+    pub(in crate::compiler) fn get(&mut self, name: &str) -> Option<ImlValue> {
+        let mut top_parselet = true;
+
+        for (i, scope) in self.scopes.iter().enumerate() {
+            match scope {
+                Scope::Block { constants, .. } => {
+                    if let Some(value) = constants.get(name) {
+                        return Some(value.clone());
+                    }
                 }
+                Scope::Parselet {
+                    constants,
+                    variables,
+                    ..
+                } => {
+                    if let Some(value) = constants.get(name) {
+                        if !top_parselet && matches!(value, ImlValue::Name { generic: true, .. }) {
+                            continue;
+                        }
+
+                        return Some(value.clone());
+                    }
+
+                    // Check for global variable
+                    if i + 1 == self.scopes.len() {
+                        if let Some(addr) = variables.get(name) {
+                            return Some(ImlValue::Global(*addr));
+                        }
+                    }
+                    // Check for local variable
+                    else if top_parselet {
+                        if let Some(addr) = variables.get(name) {
+                            return Some(ImlValue::Local(*addr));
+                        }
+                    }
+
+                    top_parselet = false;
+                }
+                _ => {}
             }
         }
 
@@ -506,7 +512,7 @@ impl Compiler {
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
-            return Some(self.get_constant(name).unwrap());
+            return Some(self.get(name).unwrap());
         }
 
         // Check for built-in token

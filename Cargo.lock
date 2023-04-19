@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "tokay"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "charclass",
  "clap 4.0.10",

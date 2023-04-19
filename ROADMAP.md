@@ -7,7 +7,7 @@ This document describes upcoming changes to achieve with a specific version.
 - [x] Implement iterators and `for...in`-syntax (#101)
 - [ ] Implement generic parselets (#10, #105)
 - [ ] New list syntax `[...]`, redefining sequence/`dict` syntax (#100)
-  - The character-class token syntax will be replaced by a `Char`-builtin
+  - The character-class token syntax was replaced by a `Char`-builtin
   - List definition `list = []`
   - Dict definition `dict = ()`
   - Builtins `dict` and `list` should become obsolete, so variables can take their names

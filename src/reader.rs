@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 
 /// Position inside a reader, with row and column counting.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Offset {
     // todo: Hold source filename information as well in the future?
     pub offset: usize,
