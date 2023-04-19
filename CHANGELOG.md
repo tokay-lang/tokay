@@ -4,6 +4,8 @@
 
 Current main branch.
 
+- v0.6.2:
+  - Internal revision and clarification on compiler's intermediate structures `ImlOp`, `ImlValue` and `ImlProgram` (part of #105)
 - v0.6.1:
   - Comparison chains within expressions (#103)
   - Iterators and `for...in`-syntax (#101)
