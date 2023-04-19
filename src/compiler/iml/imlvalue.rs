@@ -138,48 +138,47 @@ impl ImlValue {
     /** Generates code for a value load. For several, oftenly used values, there exists a direct operation pendant,
     which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
     is returned. */
-    pub fn compile_to_load(&self, program: &mut ImlProgram) -> Op {
+    pub fn compile_load(&self, program: &mut ImlProgram, ops: &mut Vec<Op>) {
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_to_load(program),
+            ImlValue::Shared(value) => return value.borrow().compile_load(program, ops),
             ImlValue::Value(value) => match &*value.borrow() {
-                Value::Void => return Op::PushVoid,
-                Value::Null => return Op::PushNull,
-                Value::True => return Op::PushTrue,
-                Value::False => return Op::PushFalse,
+                Value::Void => return ops.push(Op::PushVoid),
+                Value::Null => return ops.push(Op::PushNull),
+                Value::True => return ops.push(Op::PushTrue),
+                Value::False => return ops.push(Op::PushFalse),
                 Value::Int(i) => match i.to_i64() {
-                    Some(0) => return Op::Push0,
-                    Some(1) => return Op::Push1,
+                    Some(0) => return ops.push(Op::Push0),
+                    Some(1) => return ops.push(Op::Push1),
                     _ => {}
                 },
                 _ => {}
             },
             ImlValue::Parselet(_) => {}
-            ImlValue::Local(addr) => return Op::LoadFast(*addr),
-            ImlValue::Global(addr) => return Op::LoadGlobal(*addr),
+            ImlValue::Local(addr) => return ops.push(Op::LoadFast(*addr)),
+            ImlValue::Global(addr) => return ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
                     None,
                     format!("Use of unresolved symbol '{}'", name),
                 ));
 
-                return Op::Nop;
+                return;
             }
             _ => todo!(),
         }
 
-        Op::LoadStatic(program.register(self))
+        ops.push(Op::LoadStatic(program.register(self)))
     }
 
     /** Generates code for a value call. */
-    pub fn compile_to_call(
+    pub fn compile_call(
         &self,
         program: &mut ImlProgram,
         args: Option<(usize, bool)>,
-    ) -> Vec<Op> {
-        let mut ops = Vec::new();
-
+        ops: &mut Vec<Op>,
+    ) {
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_to_call(program, args),
+            ImlValue::Shared(value) => return value.borrow().compile_call(program, args, ops),
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
@@ -187,7 +186,7 @@ impl ImlValue {
                     None,
                     format!("Call to unresolved symbol '{}'", name),
                 ));
-                return ops;
+                return;
             }
             value => {
                 // When value is a parselet, check for accepted constant configuration
@@ -221,7 +220,6 @@ impl ImlValue {
                     }
                 }
                 */
-
                 let idx = program.register(value);
 
                 match args {
@@ -245,7 +243,7 @@ impl ImlValue {
                     }
                 }
 
-                return ops;
+                return;
             }
             _ => todo!(),
         }
@@ -264,8 +262,6 @@ impl ImlValue {
             // Call or load
             None => ops.push(Op::CallOrCopy),
         }
-
-        ops
     }
 }
 

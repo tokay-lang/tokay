@@ -294,7 +294,7 @@ impl ImlOp {
                     ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                ops.push(target.compile_to_load(program));
+                target.compile_load(program, ops);
             }
             ImlOp::Call {
                 offset,
@@ -305,7 +305,7 @@ impl ImlOp {
                     ops.push(Op::Offset(Box::new(*offset)));
                 }
 
-                ops.extend(target.compile_to_call(program, *args));
+                target.compile_call(program, *args, ops);
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
