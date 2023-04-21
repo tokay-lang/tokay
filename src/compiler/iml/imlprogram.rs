@@ -6,9 +6,7 @@ use crate::vm::Program;
 use crate::Error;
 use crate::{Object, RefValue};
 use indexmap::IndexMap;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlProgram {
@@ -152,7 +150,7 @@ impl ImlProgram {
 
     It can only be run on a previously compiled program without any unresolved usages.
     */
-    fn finalize(&mut self, parselets: Vec<Rc<RefCell<ImlParselet>>>) -> HashMap<usize, bool> {
+    fn finalize(&mut self, parselets: Vec<ImlSharedParselet>) -> HashMap<usize, bool> {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
         struct Consumable {
             leftrec: bool,

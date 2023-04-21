@@ -17,16 +17,16 @@ These can be memory locations of variables, static values, functions or values w
 still pending.
 */
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
     Void,
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved
-    Value(RefValue),                    // Compile-time static value
-    Local(usize),                       // Runtime local variable
-    Global(usize),                      // Runtime global variable
-    Parselet(Rc<RefCell<ImlParselet>>), // Parselet
+    Value(RefValue),             // Compile-time static value
+    Local(usize),                // Runtime local variable
+    Global(usize),               // Runtime global variable
+    Parselet(ImlSharedParselet), // Parselet
 
     // Unresolved
     Name {
@@ -265,21 +265,6 @@ impl ImlValue {
     }
 }
 
-impl std::fmt::Debug for ImlValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Void => write!(f, "void"),
-            Self::Shared(value) => value.borrow().fmt(f),
-            Self::Value(v) => v.borrow().fmt(f),
-            Self::Parselet { .. } => write!(f, "{}", self),
-            Self::Local(addr) => write!(f, "local@{}", addr),
-            Self::Global(addr) => write!(f, "global@{}", addr),
-            Self::Name { name, .. } => write!(f, "{}", name),
-            _ => todo!(),
-        }
-    }
-}
-
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -287,15 +272,7 @@ impl std::fmt::Display for ImlValue {
             Self::Shared(value) => value.borrow().fmt(f),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet(parselet) => {
-                write!(
-                    f,
-                    "{}",
-                    parselet
-                        .borrow()
-                        .name
-                        .as_deref()
-                        .unwrap_or("<anonymous parselet>")
-                )?;
+                write!(f, "{}", parselet)?;
 
                 /*
                 if !constants.is_empty() {

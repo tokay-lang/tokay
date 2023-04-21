@@ -2,6 +2,8 @@
 use super::*;
 use crate::reader::Offset;
 use indexmap::IndexMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Debug)]
 /// Intermediate parselet
@@ -25,6 +27,16 @@ impl ImlParselet {
     }
 }
 
+impl std::fmt::Display for ImlParselet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.name.as_deref().unwrap_or("<anonymous parselet>")
+        )
+    }
+}
+
 impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
@@ -44,5 +56,47 @@ impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
+    }
+}
+
+/// Shared ImlParselet
+#[derive(Clone, Eq, PartialEq)]
+pub(in crate::compiler) struct ImlSharedParselet(Rc<RefCell<ImlParselet>>);
+
+impl ImlSharedParselet {
+    pub fn new(parselet: ImlParselet) -> Self {
+        Self(Rc::new(RefCell::new(parselet)))
+    }
+}
+
+impl std::fmt::Debug for ImlSharedParselet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ret = self.0.try_borrow_mut().is_ok();
+
+        if ret {
+            self.0.borrow().fmt(f)
+        } else {
+            write!(f, "{}", self.0.borrow())
+        }
+    }
+}
+
+impl std::fmt::Display for ImlSharedParselet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.borrow())
+    }
+}
+
+impl std::ops::Deref for ImlSharedParselet {
+    type Target = Rc<RefCell<ImlParselet>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for ImlSharedParselet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

@@ -7,9 +7,7 @@ use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
 use indexmap::IndexMap;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 /** Compiler symbolic scopes.
 
@@ -75,7 +73,7 @@ impl Compiler {
         };
 
         // Compile with the default prelude
-        if with_prelude {
+        if false && with_prelude {
             compiler
                 .compile_from_str(include_str!("../prelude.tok"))
                 .unwrap(); // this should panic in case of an error!
@@ -288,7 +286,7 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::Parselet(Rc::new(RefCell::new(parselet)))
+            ImlValue::Parselet(ImlSharedParselet::new(parselet))
         } else {
             unreachable!();
         }

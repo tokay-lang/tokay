@@ -218,7 +218,7 @@ impl ImlOp {
                     ImlOp::Call { target, .. } | ImlOp::Load { target, .. }
                         if target.is_consuming() =>
                     {
-                        Some(format!("{:?}", target).to_string())
+                        Some(format!("{}", target))
                     }
                     ImlOp::Seq { seq, .. } => {
                         let mut txt = None;
