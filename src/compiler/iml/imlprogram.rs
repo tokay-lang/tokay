@@ -72,31 +72,8 @@ impl ImlProgram {
                 finalize.push(outer.clone());
             }
 
-            // Compile parselet from intermediate parselet
-            let parselet = Parselet::new(
-                parselet.name.clone(),
-                None,
-                parselet.severity,
-                parselet
-                    .signature
-                    .iter()
-                    .map(|var_value| {
-                        (
-                            // Copy parameter name
-                            var_value.0.clone(),
-                            // Register default value, if any
-                            match &var_value.1 {
-                                ImlValue::Void => None,
-                                value => Some(self.register(value)),
-                            },
-                        )
-                    })
-                    .collect(),
-                parselet.locals,
-                parselet.begin.compile_to_vec(&mut self),
-                parselet.end.compile_to_vec(&mut self),
-                parselet.body.compile_to_vec(&mut self),
-            );
+            // Compile VM parselet from intermediate parselet
+            let parselet = parselet.compile(&mut self);
 
             *self.statics.get_index_mut(i).unwrap().1 = Some(parselet);
             i += 1;

@@ -1,6 +1,7 @@
 //! Intermediate representation of a parselet
 use super::*;
 use crate::reader::Offset;
+use crate::value::Parselet;
 use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -24,6 +25,32 @@ pub(in crate::compiler) struct ImlParselet {
 impl ImlParselet {
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
+    }
+
+    pub fn compile(&self, program: &mut ImlProgram) -> Parselet {
+        Parselet::new(
+            self.name.clone(),
+            None,
+            self.severity,
+            self.signature
+                .iter()
+                .map(|var_value| {
+                    (
+                        // Copy parameter name
+                        var_value.0.clone(),
+                        // Register default value, if any
+                        match &var_value.1 {
+                            ImlValue::Void => None,
+                            value => Some(program.register(value)),
+                        },
+                    )
+                })
+                .collect(),
+            self.locals,
+            self.begin.compile_to_vec(program),
+            self.end.compile_to_vec(program),
+            self.body.compile_to_vec(program),
+        )
     }
 }
 
@@ -71,12 +98,11 @@ impl ImlSharedParselet {
 
 impl std::fmt::Debug for ImlSharedParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ret = self.0.try_borrow_mut().is_ok();
-
-        if ret {
+        // Avoid endless recursion in case of recursive parselets
+        if self.0.try_borrow_mut().is_ok() {
             self.0.borrow().fmt(f)
         } else {
-            write!(f, "{}", self.0.borrow())
+            write!(f, "{} (recursive)", self.0.borrow())
         }
     }
 }
