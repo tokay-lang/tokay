@@ -59,7 +59,7 @@ impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         match self {
             Self::Shared(value) => value.borrow_mut().resolve(compiler),
-            Self::Name { name, .. } => {
+            Self::Name { name, generic, .. } if !*generic => {
                 if let Some(value) = compiler.get(&name) {
                     *self = value;
                     true
@@ -90,7 +90,7 @@ impl ImlValue {
                 todo!();
             }
             */
-            _ => true,
+            _ => false,
         }
     }
 
@@ -138,10 +138,16 @@ impl ImlValue {
     /** Generates code for a value load. For several, oftenly used values, there exists a direct operation pendant,
     which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
     is returned. */
-    pub fn compile_load(&self, program: &mut ImlProgram, ops: &mut Vec<Op>) {
+    pub fn compile_load(
+        &self,
+        program: &mut ImlProgram,
+        offset: &Option<Offset>,
+        ops: &mut Vec<Op>,
+    ) {
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_load(program, ops),
+            ImlValue::Shared(value) => return value.borrow().compile_load(program, offset, ops),
             ImlValue::Value(value) => match &*value.borrow() {
+                // Some frequently used values have built-in push operations
                 Value::Void => return ops.push(Op::PushVoid),
                 Value::Null => return ops.push(Op::PushNull),
                 Value::True => return ops.push(Op::PushTrue),
@@ -158,7 +164,7 @@ impl ImlValue {
             ImlValue::Global(addr) => return ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
-                    None,
+                    offset.clone(),
                     format!("Use of unresolved symbol '{}'", name),
                 ));
 
@@ -175,51 +181,50 @@ impl ImlValue {
         &self,
         program: &mut ImlProgram,
         args: Option<(usize, bool)>,
+        offset: &Option<Offset>,
         ops: &mut Vec<Op>,
     ) {
         match self {
-            ImlValue::Shared(value) => return value.borrow().compile_call(program, args, ops),
+            ImlValue::Shared(value) => {
+                return value.borrow().compile_call(program, args, offset, ops)
+            }
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
-                    None,
+                    offset.clone(),
                     format!("Call to unresolved symbol '{}'", name),
                 ));
                 return;
             }
             value => {
-                // When value is a parselet, check for accepted constant configuration
                 /*
-                if let ImlValue::Parselet {
-                    parselet: _,
-                    constants,
-                } = value
-                {
-                    if !constants.is_empty() {
-                        let mut required = Vec::new();
+                // When value is a parselet, check for accepted constant configuration
+                if let ImlValue::Parselet(parselet) = value {
+                    let mut required = Vec::new();
+                    let parselet = parselet.borrow();
 
-                        for (name, default) in constants {
-                            if matches!(default, ImlValue::Void) {
-                                required.push(name.to_string());
-                            }
+                    for (name, default) in &parselet.constants {
+                        if matches!(default, ImlValue::Void) {
+                            required.push(name.to_string());
                         }
+                    }
 
-                        if !required.is_empty() {
-                            program.errors.push(Error::new(
-                                offset.clone(),
-                                format!(
-                                    "On call to '{}', missing generic constants for {}",
-                                    value,
-                                    required.join(", ")
-                                ),
-                            ));
+                    if !required.is_empty() {
+                        program.errors.push(Error::new(
+                            offset.clone(),
+                            format!(
+                                "Call to '{}' requires generic argument '{}'",
+                                value,
+                                required.join(", ")
+                            ),
+                        ));
 
-                            return 0;
-                        }
+                        return;
                     }
                 }
                 */
+
                 let idx = program.register(value);
 
                 match args {

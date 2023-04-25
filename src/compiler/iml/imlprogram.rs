@@ -52,6 +52,7 @@ impl ImlProgram {
         // Loop until end of statics is reached
         let mut i = 0;
 
+        // self.statics grows inside of this while loop, therefore this condition.
         while i < self.statics.len() {
             // Pick only intermediate parselets, other static values are directly moved
             let outer = {

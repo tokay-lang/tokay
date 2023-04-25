@@ -43,6 +43,8 @@ pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> 
 
 // Extract offset positions into an Offset structure
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
+    //return None;  // Temporarily discard any Offset information (shortens debug output)
+
     let offset = node
         .get_str("offset")
         .and_then(|offset| Some(offset.to_usize().unwrap()));
