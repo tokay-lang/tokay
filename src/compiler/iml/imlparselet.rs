@@ -6,15 +6,14 @@ use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-#[derive(Debug)]
 /// Intermediate parselet
+#[derive(Debug)]
 pub(in crate::compiler) struct ImlParselet {
     pub offset: Option<Offset>,                // Offset of definition
     pub consuming: bool,                       // Flag if parselet is consuming
     pub severity: u8,                          // Capture push severity
-    pub name: Option<String>,                  // Parselet's name from source (for debugging)
-    pub constants: IndexMap<String, ImlValue>, // Parselet generic signature with default configuration
-    pub signature: IndexMap<String, ImlValue>, // Argument signature with default arguments
+    pub name: Option<String>,                  // Assigned name from source (for debugging)
+    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
     pub locals: usize, // Total number of local variables present (including arguments)
     pub begin: ImlOp,  // Begin-operations
     pub end: ImlOp,    // End-operations
@@ -41,7 +40,7 @@ impl ImlParselet {
                         // Register default value, if any
                         match &var_value.1 {
                             ImlValue::Void => None,
-                            value => Some(program.register(value)),
+                            value => Some(program.register(value).expect("Cannot register value")),
                         },
                     )
                 })

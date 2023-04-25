@@ -272,7 +272,6 @@ impl Compiler {
                     || end.is_consuming()
                     || body.is_consuming(),
                 severity: severity.unwrap_or(5), // severity
-                constants,                       // constants
                 signature,                       // signature
                 locals: *locals,
                 // Ensure that begin and end are blocks.
@@ -286,7 +285,10 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::Parselet(ImlSharedParselet::new(parselet))
+            ImlValue::Parselet {
+                parselet: ImlSharedParselet::new(parselet),
+                constants,
+            }
         } else {
             unreachable!();
         }

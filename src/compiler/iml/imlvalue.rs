@@ -4,6 +4,7 @@ use crate::compiler::Compiler;
 use crate::reader::Offset;
 use crate::value::{Object, RefValue, Value};
 use crate::Error;
+use indexmap::IndexMap;
 use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -23,12 +24,16 @@ pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved
-    Value(RefValue),             // Compile-time static value
-    Local(usize),                // Runtime local variable
-    Global(usize),               // Runtime global variable
-    Parselet(ImlSharedParselet), // Parselet
+    Value(RefValue), // Compile-time static value
+    Local(usize),    // Runtime local variable
+    Global(usize),   // Runtime global variable
+    Parselet {
+        // Parselet
+        parselet: ImlSharedParselet,           // Intermediate definition
+        constants: IndexMap<String, ImlValue>, // Generic signature with default configuration
+    },
 
-    // Unresolved
+    // Definitely unresolved
     Name {
         // Unresolved name
         offset: Option<Offset>, // Source offset
@@ -107,7 +112,7 @@ impl ImlValue {
         match self {
             Self::Shared(value) => value.borrow().is_callable(without_arguments),
             Self::Value(value) => value.is_callable(without_arguments),
-            Self::Parselet(parselet) => {
+            Self::Parselet { parselet, .. } => {
                 let parselet = parselet.borrow();
 
                 if without_arguments {
@@ -130,142 +135,115 @@ impl ImlValue {
             Self::Shared(value) => value.borrow().is_consuming(),
             Self::Name { name, .. } => crate::utils::identifier_is_consumable(name),
             Self::Value(value) => value.is_consuming(),
-            Self::Parselet(parselet) => parselet.borrow().consuming,
+            Self::Parselet { parselet, .. } => parselet.borrow().consuming,
             _ => false,
         }
     }
 
-    /** Generates code for a value load. For several, oftenly used values, there exists a direct operation pendant,
-    which makes storing the static value obsolete. Otherwise, *value* will be registered and a static load operation
-    is returned. */
-    pub fn compile_load(
+    /// Compile a resolved intermediate value into VM code
+    pub fn compile(
         &self,
         program: &mut ImlProgram,
         offset: &Option<Offset>,
+        call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,
     ) {
-        match self {
-            ImlValue::Shared(value) => return value.borrow().compile_load(program, offset, ops),
-            ImlValue::Value(value) => match &*value.borrow() {
-                // Some frequently used values have built-in push operations
-                Value::Void => return ops.push(Op::PushVoid),
-                Value::Null => return ops.push(Op::PushNull),
-                Value::True => return ops.push(Op::PushTrue),
-                Value::False => return ops.push(Op::PushFalse),
-                Value::Int(i) => match i.to_i64() {
-                    Some(0) => return ops.push(Op::Push0),
-                    Some(1) => return ops.push(Op::Push1),
-                    _ => {}
-                },
-                _ => {}
-            },
-            ImlValue::Parselet(_) => {}
-            ImlValue::Local(addr) => return ops.push(Op::LoadFast(*addr)),
-            ImlValue::Global(addr) => return ops.push(Op::LoadGlobal(*addr)),
-            ImlValue::Name { name, .. } => {
-                program.errors.push(Error::new(
-                    offset.clone(),
-                    format!("Use of unresolved symbol '{}'", name),
-                ));
-
-                return;
-            }
-            _ => todo!(),
+        if let Some(offset) = offset {
+            ops.push(Op::Offset(Box::new(*offset)));
         }
 
-        ops.push(Op::LoadStatic(program.register(self)))
-    }
-
-    /** Generates code for a value call. */
-    pub fn compile_call(
-        &self,
-        program: &mut ImlProgram,
-        args: Option<(usize, bool)>,
-        offset: &Option<Offset>,
-        ops: &mut Vec<Op>,
-    ) {
         match self {
-            ImlValue::Shared(value) => {
-                return value.borrow().compile_call(program, args, offset, ops)
+            ImlValue::Shared(value) => return value.borrow().compile(program, offset, call, ops),
+            ImlValue::Value(value) => {
+                if call.is_none() {
+                    match &*value.borrow() {
+                        // Some frequently used values have built-in push operations
+                        Value::Void => return ops.push(Op::PushVoid),
+                        Value::Null => return ops.push(Op::PushNull),
+                        Value::True => return ops.push(Op::PushTrue),
+                        Value::False => return ops.push(Op::PushFalse),
+                        Value::Int(i) => match i.to_i64() {
+                            Some(0) => return ops.push(Op::Push0),
+                            Some(1) => return ops.push(Op::Push1),
+                            _ => {}
+                        },
+                        _ => {}
+                    }
+                }
             }
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
                     offset.clone(),
-                    format!("Call to unresolved symbol '{}'", name),
+                    if call.is_some() {
+                        format!("Call to unresolved symbol '{}'", name)
+                    } else {
+                        format!("Use of unresolved symbol '{}'", name)
+                    },
                 ));
+
                 return;
             }
-            value => {
-                /*
+            ImlValue::Parselet {
+                parselet,
+                constants,
+            } => {
                 // When value is a parselet, check for accepted constant configuration
-                if let ImlValue::Parselet(parselet) = value {
-                    let mut required = Vec::new();
-                    let parselet = parselet.borrow();
+                let parselet = parselet.borrow();
+                let mut required = Vec::new();
 
-                    for (name, default) in &parselet.constants {
-                        if matches!(default, ImlValue::Void) {
-                            required.push(name.to_string());
-                        }
-                    }
-
-                    if !required.is_empty() {
-                        program.errors.push(Error::new(
-                            offset.clone(),
-                            format!(
-                                "Call to '{}' requires generic argument '{}'",
-                                value,
-                                required.join(", ")
-                            ),
-                        ));
-
-                        return;
-                    }
-                }
-                */
-
-                let idx = program.register(value);
-
-                match args {
-                    // Qualified call
-                    Some((args, nargs)) => {
-                        if args == 0 && !nargs {
-                            ops.push(Op::CallStatic(idx));
-                        } else if args > 0 && !nargs {
-                            ops.push(Op::CallStaticArg(Box::new((idx, args))));
-                        } else {
-                            ops.push(Op::CallStaticArgNamed(Box::new((idx, args))));
-                        }
-                    }
-                    // Call or load
-                    None => {
-                        if value.is_callable(true) {
-                            ops.push(Op::CallStatic(idx));
-                        } else {
-                            ops.push(Op::LoadStatic(idx));
-                        }
+                for (name, default) in constants {
+                    if matches!(default, ImlValue::Void) {
+                        required.push(name.to_string());
                     }
                 }
 
-                return;
+                if !required.is_empty() {
+                    program.errors.push(Error::new(
+                        offset.clone(),
+                        format!(
+                            "Call to '{}' requires generic argument {}",
+                            self,
+                            required.join(", ")
+                        ),
+                    ));
+
+                    return;
+                }
             }
             _ => todo!(),
         }
 
-        match args {
-            // Qualified call
-            Some((args, nargs)) => {
-                if args == 0 && nargs == false {
-                    ops.push(Op::Call);
-                } else if args > 0 && nargs == false {
-                    ops.push(Op::CallArg(args));
-                } else {
-                    ops.push(Op::CallArgNamed(args));
+        // Try to register value as static
+        if let Ok(idx) = program.register(self) {
+            match call {
+                // Load
+                None => ops.push(Op::LoadStatic(idx)),
+                // Call or load
+                Some(None) => {
+                    if self.is_callable(true) {
+                        ops.push(Op::CallStatic(idx));
+                    } else {
+                        ops.push(Op::LoadStatic(idx));
+                    }
                 }
+                // Call (qualified)
+                Some(Some((0, false))) => ops.push(Op::CallStatic(idx)),
+                Some(Some((args, false))) => ops.push(Op::CallStaticArg(Box::new((idx, args)))),
+                Some(Some((args, true))) => ops.push(Op::CallStaticArgNamed(Box::new((idx, args)))),
             }
-            // Call or load
-            None => ops.push(Op::CallOrCopy),
+        } else {
+            match call {
+                // Load (already done previously)
+                None => {}
+                // Call or load
+                Some(None) => ops.push(Op::CallOrCopy),
+                // Call (qualified)
+                Some(Some((0, false))) => ops.push(Op::Call),
+                Some(Some((args, false))) => ops.push(Op::CallArg(args)),
+                Some(Some((args, true))) => ops.push(Op::CallArgNamed(args)),
+            }
         }
     }
 }
@@ -276,10 +254,12 @@ impl std::fmt::Display for ImlValue {
             Self::Void => write!(f, "void"),
             Self::Shared(value) => value.borrow().fmt(f),
             Self::Value(value) => write!(f, "{}", value.repr()),
-            Self::Parselet(parselet) => {
+            Self::Parselet {
+                parselet,
+                constants,
+            } => {
                 write!(f, "{}", parselet)?;
 
-                /*
                 if !constants.is_empty() {
                     write!(f, "<")?;
                     for (i, (name, value)) in constants.iter().enumerate() {
@@ -291,7 +271,6 @@ impl std::fmt::Display for ImlValue {
                     }
                     write!(f, ">")?;
                 }
-                */
 
                 Ok(())
             }
@@ -375,10 +354,13 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('v' as u8);
                 v.hash(state)
             }
-            Self::Parselet(parselet) => {
+            Self::Parselet {
+                parselet,
+                constants,
+            } => {
                 state.write_u8('p' as u8);
                 parselet.borrow().hash(state);
-                //constants.iter().collect::<Vec<_>>().hash(state);
+                constants.iter().collect::<Vec<_>>().hash(state);
             }
             other => unreachable!("{:?} is unhashable", other),
         }

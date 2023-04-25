@@ -293,22 +293,14 @@ impl ImlOp {
             ImlOp::Nop => {}
             ImlOp::Op(op) => ops.push(op.clone()),
             ImlOp::Load { offset, target } => {
-                if let Some(offset) = offset {
-                    ops.push(Op::Offset(Box::new(*offset)));
-                }
-
-                target.compile_load(program, &offset, ops);
+                target.compile(program, &offset, None, ops);
             }
             ImlOp::Call {
                 offset,
                 target,
                 args,
             } => {
-                if let Some(offset) = offset {
-                    ops.push(Op::Offset(Box::new(*offset)));
-                }
-
-                target.compile_call(program, *args, &offset, ops);
+                target.compile(program, &offset, Some(*args), ops);
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();

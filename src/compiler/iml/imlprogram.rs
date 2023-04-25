@@ -27,16 +27,20 @@ impl ImlProgram {
 
     /** Registers an ImlValue in the ImlProgram's statics map and returns its index.
 
+    Only resolved values can be registered.
+
     In case *value* already exists inside of the current statics, the existing index will be returned,
     otherwiese the value is cloned and put into the statics table. */
-    pub fn register(&mut self, value: &ImlValue) -> usize {
-        if let ImlValue::Shared(value) = value {
-            return self.register(&*value.borrow());
-        }
-
-        match self.statics.get_index_of(value) {
-            None => self.statics.insert_full(value.clone(), None).0,
-            Some(idx) => idx,
+    pub fn register(&mut self, value: &ImlValue) -> Result<usize, ()> {
+        match value {
+            ImlValue::Shared(value) => self.register(&*value.borrow()),
+            ImlValue::Parselet { .. } | ImlValue::Value(_) => {
+                match self.statics.get_index_of(value) {
+                    None => Ok(self.statics.insert_full(value.clone(), None).0),
+                    Some(idx) => Ok(idx),
+                }
+            }
+            _ => Err(()), // Cannot register unresolved value
         }
     }
 
@@ -58,7 +62,7 @@ impl ImlProgram {
             let outer = {
                 match self.statics.get_index(i).unwrap() {
                     (_, Some(_)) => unreachable!(), // may not exist!
-                    (ImlValue::Parselet(parselet), None) => parselet.clone(),
+                    (ImlValue::Parselet { parselet, .. }, None) => parselet.clone(),
                     _ => {
                         i += 1;
                         continue;
@@ -93,7 +97,11 @@ impl ImlProgram {
             .into_iter()
             .map(|(iml, parselet)| {
                 if let Some(mut parselet) = parselet {
-                    if let ImlValue::Parselet(imlparselet) = iml {
+                    if let ImlValue::Parselet {
+                        parselet: imlparselet,
+                        ..
+                    } = iml
+                    {
                         parselet.consuming = leftrec
                             .get(&imlparselet.borrow().id())
                             .map_or(None, |leftrec| Some(*leftrec));
@@ -143,7 +151,7 @@ impl ImlProgram {
         ) -> Option<Consumable> {
             match value {
                 ImlValue::Shared(value) => finalize_value(&*value.borrow(), visited, configs),
-                ImlValue::Parselet(parselet) => {
+                ImlValue::Parselet { parselet, .. } => {
                     match parselet.try_borrow() {
                         // In case the parselet cannot be borrowed, it is left-recursive!
                         Err(_) => Some(Consumable {

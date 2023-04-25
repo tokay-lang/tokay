@@ -43,7 +43,7 @@ pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> 
 
 // Extract offset positions into an Offset structure
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
-    //return None;  // Temporarily discard any Offset information (shortens debug output)
+    //return None; // Temporarily discard any Offset information (shortens debug output)
 
     let offset = node
         .get_str("offset")
@@ -384,7 +384,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
-                if let ImlValue::Parselet(parselet) = &value {
+                if let ImlValue::Parselet { parselet, .. } = &value {
                     let mut parselet = parselet.borrow_mut();
                     parselet.name = Some(lvalue.to_string());
                 }
