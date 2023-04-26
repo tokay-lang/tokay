@@ -2,6 +2,7 @@
 use super::*;
 use crate::compiler::Compiler;
 use crate::reader::Offset;
+use crate::utils;
 use crate::value::{Object, RefValue, Value};
 use crate::Error;
 use indexmap::IndexMap;
@@ -33,7 +34,7 @@ pub(in crate::compiler) enum ImlValue {
         constants: IndexMap<String, ImlValue>, // Generic signature with default configuration
     },
 
-    // Definitely unresolved
+    // Unresolved
     Name {
         // Unresolved name
         offset: Option<Offset>, // Source offset
@@ -42,9 +43,10 @@ pub(in crate::compiler) enum ImlValue {
     },
     Instance {
         // Parselet instance
-        offset: Option<Offset>, // Source offset
-        target: Box<ImlValue>,  // Instance target
-        config: Vec<(Option<Offset>, Option<String>, ImlValue)>, // Constant configuration
+        offset: Option<Offset>,                              // Source offset
+        target: Box<ImlValue>,                               // Instance target
+        args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
+        nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
     },
 }
 
@@ -72,30 +74,130 @@ impl ImlValue {
                     false
                 }
             }
-            /*
             Self::Instance {
+                offset,
                 target,
-                ..
-            } if matches!(target, ImlValue::Name(_)) => {
-                // Try to resolve target
-                if target.resolve(compiler) {
-                    // On success, try to resolve the entire instance
-                    return self.resolve(compiler);
+                args,
+                nargs,
+            } => {
+                let mut is_resolved = true;
+
+                // Resolve target
+                if !target.resolve(compiler) {
+                    is_resolved = false;
                 }
-            }
-            Self::Instance {
-                target:
-                    ImlValue::Parselet {
+
+                // Resolve sequential generic args
+                for arg in args.iter_mut() {
+                    if !arg.1.resolve(compiler) {
+                        is_resolved = false;
+                    }
+                }
+
+                // Resolve named generic args
+                for narg in nargs.values_mut() {
+                    if !narg.1.resolve(compiler) {
+                        is_resolved = false;
+                    }
+                }
+
+                // When everything is resolved, turn the instance definition into a parselet
+                if is_resolved {
+                    if let ImlValue::Parselet {
                         parselet,
                         constants,
-                    },
-                config,
-                offset,
-            } => {
-                todo!();
+                    } = &**target
+                    {
+                        let mut new_constants = IndexMap::new();
+
+                        for (name, default) in constants.iter() {
+                            // Take arguments by sequence first
+                            let arg = if !args.is_empty() {
+                                args.remove(0)
+                            }
+                            // Otherwise, take named arguments by sequence
+                            else if let Some(narg) = nargs.shift_remove(name) {
+                                narg
+                            }
+                            // Otherwise, use default
+                            else {
+                                (*offset, default.clone())
+                            };
+
+                            // Check integrity of constant names
+                            if let Self::Void = arg.1 {
+                                compiler.errors.push(Error::new(
+                                    arg.0,
+                                    format!("Expecting argument for generic '{}'", name),
+                                ));
+                            } else if arg.1.is_consuming() {
+                                if !utils::identifier_is_consumable(name) {
+                                    compiler.errors.push(Error::new(
+                                        arg.0,
+                                        format!(
+                                            "Cannot assign consumable {} to non-consumable generic '{}'",
+                                            arg.1, name
+                                        )
+                                    ));
+                                }
+                            } else if utils::identifier_is_consumable(name) {
+                                compiler.errors.push(Error::new(
+                                    arg.0,
+                                    format!(
+                                        "Cannot assign non-consumable {} to consumable generic '{}'",
+                                        arg.1, name
+                                    )
+                                ));
+                            }
+
+                            new_constants.insert(name.clone(), arg.1);
+                        }
+
+                        // Report any errors for unconsumed generic arguments.
+                        if !args.is_empty() {
+                            compiler.errors.push(Error::new(
+                                args[0].0, // report first parameter
+                                format!(
+                                    "{} got too many  generic arguments ({} in total, expected {})",
+                                    target,
+                                    constants.len() + args.len(),
+                                    constants.len()
+                                ),
+                            ));
+                        }
+
+                        for (name, (offset, _)) in nargs {
+                            if new_constants.get(name).is_some() {
+                                compiler.errors.push(Error::new(
+                                    *offset,
+                                    format!("{} already got generic argument '{}'", target, name),
+                                ));
+                            } else {
+                                compiler.errors.push(Error::new(
+                                    *offset,
+                                    format!(
+                                        "{} does not accept generic argument named '{}'",
+                                        target, name
+                                    ),
+                                ));
+                            }
+                        }
+
+                        // Create new parselet from data provided
+                        *self = Self::Parselet {
+                            parselet: parselet.clone(),
+                            constants: new_constants,
+                        };
+
+                        return true;
+                    } else {
+                        unimplemented!();
+                    }
+                }
+
+                is_resolved
             }
-            */
-            _ => false,
+            _ => true,
         }
     }
 
@@ -212,7 +314,7 @@ impl ImlValue {
                     return;
                 }
             }
-            _ => todo!(),
+            _ => unreachable!(),
         }
 
         // Try to register value as static

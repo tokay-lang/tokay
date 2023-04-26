@@ -302,7 +302,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let target = traverse_node_static(compiler, None, target);
 
             // Traverse generic arguments
-            let mut config = Vec::new();
+            let mut args = Vec::new();
+            let mut nargs = IndexMap::new();
 
             for genarg in children[1..].iter() {
                 let genarg = genarg.borrow();
@@ -313,10 +314,21 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                 match emit.object::<Str>().unwrap().as_str() {
                     "genarg" => {
+                        if !nargs.is_empty() {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!(
+                                    "Sequencial generics need to be specified before named generics."
+                                ),
+                            ));
+
+                            continue;
+                        }
+
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        config.push((offset, None, traverse_node_static(compiler, None, param)));
+                        args.push((offset, traverse_node_static(compiler, None, param)));
                     }
 
                     "genarg_named" => {
@@ -327,25 +339,22 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         let ident = ident["value"].borrow();
                         let ident = ident.object::<Str>().unwrap().as_str();
 
-                        /*
-                        if by_name.contains_key(ident) {
+                        if nargs.contains_key(ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(genarg),
-                                format!("Named constant '{}' provided more than once.", ident),
+                                format!("Named generic '{}' provided more than once.", ident),
                             ));
 
                             continue;
                         }
-                        */
 
                         let param = &children[1].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        config.push((
-                            offset,
-                            Some(ident.to_string()),
-                            traverse_node_static(compiler, None, param),
-                        ));
+                        nargs.insert(
+                            ident.to_string(),
+                            (offset, traverse_node_static(compiler, None, param)),
+                        );
                     }
 
                     other => unimplemented!("Unhandled genarg type {:?}", other),
@@ -354,7 +363,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let mut ret = ImlValue::Instance {
                 target: Box::new(target),
-                config,
+                args,
+                nargs,
                 offset: traverse_node_offset(node),
             };
 
