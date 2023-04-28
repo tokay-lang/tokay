@@ -6,32 +6,74 @@ use indexmap::IndexMap;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+// ImlParseletModel
+// ----------------------------------------------------------------------------
+
+/// Intermediate parselet model
+#[derive(Debug)]
+pub(in crate::compiler) struct ImlParseletModel {
+    pub consuming: bool,                       // Flag if parselet is consuming
+    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
+    pub locals: usize, // Total number of local variables present (including arguments)
+    pub begin: ImlOp,  // Begin intermediate operations
+    pub end: ImlOp,    // End intermediate operations
+    pub body: ImlOp,   // Body intermediate Operations
+}
+
+// ImlParselet
+// ----------------------------------------------------------------------------
+
 /// Intermediate parselet
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParselet {
-    pub offset: Option<Offset>,                // Offset of definition
-    pub consuming: bool,                       // Flag if parselet is consuming
-    pub severity: u8,                          // Capture push severity
-    pub name: Option<String>,                  // Assigned name from source (for debugging)
-    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
-    pub locals: usize, // Total number of local variables present (including arguments)
-    pub begin: ImlOp,  // Begin-operations
-    pub end: ImlOp,    // End-operations
-    pub body: ImlOp,   // Operations
+    pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
+    pub constants: IndexMap<String, ImlValue>, // Generic signature with default configuration
+    pub offset: Option<Offset>,               // Offset of definition
+    pub name: Option<String>,                 // Assigned name from source (for debugging)
+    pub severity: u8,                         // Capture push severity
 }
 
 /** Representation of parselet in intermediate code. */
 impl ImlParselet {
+    pub fn new(
+        model: ImlParseletModel,
+        constants: IndexMap<String, ImlValue>,
+        offset: Option<Offset>,
+        name: Option<String>,
+        severity: u8,
+    ) -> Self {
+        Self {
+            model: Rc::new(RefCell::new(model)),
+            constants,
+            offset,
+            name,
+            severity,
+        }
+    }
+
+    pub fn derive(&self, constants: IndexMap<String, ImlValue>, offset: Option<Offset>) -> Self {
+        Self {
+            model: self.model.clone(),
+            constants,
+            offset,
+            name: self.name.clone(),
+            severity: self.severity,
+        }
+    }
+
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
     }
 
     pub fn compile(&self, program: &mut ImlProgram) -> Parselet {
+        let model = self.model.borrow();
+
         Parselet::new(
             self.name.clone(),
             None,
             self.severity,
-            self.signature
+            model
+                .signature
                 .iter()
                 .map(|var_value| {
                     (
@@ -45,10 +87,10 @@ impl ImlParselet {
                     )
                 })
                 .collect(),
-            self.locals,
-            self.begin.compile_to_vec(program),
-            self.end.compile_to_vec(program),
-            self.body.compile_to_vec(program),
+            model.locals,
+            model.begin.compile_to_vec(program, self),
+            model.end.compile_to_vec(program, self),
+            model.body.compile_to_vec(program, self),
         )
     }
 }
@@ -59,7 +101,21 @@ impl std::fmt::Display for ImlParselet {
             f,
             "{}",
             self.name.as_deref().unwrap_or("<anonymous parselet>")
-        )
+        )?;
+
+        if !self.constants.is_empty() {
+            write!(f, "<")?;
+            for (i, (name, value)) in self.constants.iter().enumerate() {
+                if matches!(value, ImlValue::Void) {
+                    write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
+                } else {
+                    write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
+                }
+            }
+            write!(f, ">")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -74,7 +130,9 @@ impl Eq for ImlParselet {}
 
 impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id().hash(state);
+        let model = &*self.model.borrow();
+        (model as *const ImlParseletModel as usize).hash(state);
+        self.constants.iter().collect::<Vec<_>>().hash(state);
     }
 }
 
@@ -84,6 +142,15 @@ impl std::cmp::PartialOrd for ImlParselet {
         self.id().partial_cmp(&other.id())
     }
 }
+
+impl From<ImlParselet> for ImlValue {
+    fn from(parselet: ImlParselet) -> Self {
+        ImlValue::Parselet(ImlSharedParselet::new(parselet))
+    }
+}
+
+// ImlSharedParselet
+// ----------------------------------------------------------------------------
 
 /// Shared ImlParselet
 #[derive(Clone, Eq, PartialEq)]

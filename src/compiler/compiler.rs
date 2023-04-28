@@ -247,6 +247,7 @@ impl Compiler {
                 "signature may not be longer than locals..."
             );
 
+            // Ensure that begin and end are blocks.
             let begin = ensure_block(begin.drain(..).collect());
             let end = ensure_block(end.drain(..).collect());
 
@@ -263,18 +264,13 @@ impl Compiler {
                 return ImlValue::Void
             }
             */
-
-            let parselet = ImlParselet {
-                offset,
-                name,
+            let model = ImlParseletModel {
                 consuming: *is_consuming
                     || begin.is_consuming()
                     || end.is_consuming()
                     || body.is_consuming(),
-                severity: severity.unwrap_or(5), // severity
-                signature,                       // signature
+                signature,
                 locals: *locals,
-                // Ensure that begin and end are blocks.
                 begin,
                 end,
                 body,
@@ -285,10 +281,13 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::Parselet {
-                parselet: ImlSharedParselet::new(parselet),
+            ImlValue::from(ImlParselet::new(
+                model,
                 constants,
-            }
+                offset,
+                name,
+                severity.unwrap_or(5),
+            ))
         } else {
             unreachable!();
         }
