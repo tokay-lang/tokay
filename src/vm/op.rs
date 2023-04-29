@@ -46,7 +46,6 @@ pub(crate) enum Op {
     Backward(usize), // Jump backward
 
     // Interrupts
-    Skip,                  // Err(Reject::Skip)
     Next,                  // Err(Reject::Next)
     Push,                  // Ok(Accept::Push)
     LoadPush,              // Ok(Accept::Push) with value
@@ -351,7 +350,6 @@ impl Op {
                 }
 
                 // Interrupts
-                Op::Skip => Err(Reject::Skip), // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),

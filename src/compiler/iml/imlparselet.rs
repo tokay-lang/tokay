@@ -24,6 +24,7 @@ pub(in crate::compiler) struct ImlParseletModel {
 // ----------------------------------------------------------------------------
 
 /// Intermediate parselet
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParselet {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model

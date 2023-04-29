@@ -55,6 +55,7 @@ the code is fed to the Tokay REPL, and expected output is tested against each li
 mode, it is important to specify multi-line definitions with the alternative `;` delimiter, otherwise
 a syntax error will occur (likewise in the normal REPL).
 */
+#[allow(dead_code)]
 pub(crate) fn testcase(code: &str) {
     //println!("---");
 
