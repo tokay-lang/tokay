@@ -654,6 +654,7 @@ impl Op {
                 Op::Sep => {
                     let mut value = context.pop();
 
+                    // fixme: Replace by https://doc.rust-lang.org/std/rc/struct.Rc.html#method.unwrap_or_clone ?
                     if Rc::strong_count(&value) > 1 {
                         value = RefValue::from({
                             let inner = value.borrow();

@@ -63,19 +63,19 @@ impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
             Self::Shared(value) => return value.borrow_mut().resolve(compiler),
-            Self::Name { name, generic, .. } if !*generic => compiler.get(&name),
+            Self::Name {
+                name,
+                generic: false,
+                ..
+            } => compiler.get(&name),
+            Self::Name { generic: true, .. } => return false,
             Self::Instance {
                 offset,
                 target,
                 args,
                 nargs,
             } => {
-                let mut is_resolved = true;
-
-                // Resolve target
-                if !target.resolve(compiler) {
-                    is_resolved = false;
-                }
+                let mut is_resolved = target.resolve(compiler);
 
                 // Resolve sequential generic args
                 for arg in args.iter_mut() {
@@ -93,88 +93,98 @@ impl ImlValue {
 
                 // When everything is resolved, turn the instance definition into a parselet
                 if is_resolved {
-                    if let ImlValue::Parselet(parselet) = &**target {
-                        let parselet = parselet.borrow();
-                        let mut new_constants = IndexMap::new();
+                    match &**target {
+                        ImlValue::Parselet(parselet) => {
+                            let parselet = parselet.borrow();
+                            let mut new_constants = IndexMap::new();
 
-                        for (name, default) in parselet.constants.iter() {
-                            // Take arguments by sequence first
-                            let arg = if !args.is_empty() {
-                                args.remove(0)
-                            }
-                            // Otherwise, take named arguments by sequence
-                            else if let Some(narg) = nargs.shift_remove(name) {
-                                narg
-                            }
-                            // Otherwise, use default
-                            else {
-                                (*offset, default.clone())
-                            };
+                            for (name, default) in parselet.constants.iter() {
+                                // Take arguments by sequence first
+                                let arg = if !args.is_empty() {
+                                    args.remove(0)
+                                }
+                                // Otherwise, take named arguments by sequence
+                                else if let Some(narg) = nargs.shift_remove(name) {
+                                    narg
+                                }
+                                // Otherwise, use default
+                                else {
+                                    (*offset, default.clone())
+                                };
 
-                            // Check integrity of constant names
-                            if let Self::Void = arg.1 {
-                                compiler.errors.push(Error::new(
-                                    arg.0,
-                                    format!("Expecting argument for generic '{}'", name),
-                                ));
-                            } else if arg.1.is_consuming() {
-                                if !utils::identifier_is_consumable(name) {
+                                // Check integrity of constant names
+                                if let Self::Void = arg.1 {
+                                    compiler.errors.push(Error::new(
+                                        arg.0,
+                                        format!("Expecting argument for generic '{}'", name),
+                                    ));
+                                } else if arg.1.is_consuming() {
+                                    if !utils::identifier_is_consumable(name) {
+                                        compiler.errors.push(Error::new(
+                                            arg.0,
+                                            format!(
+                                                "Cannot assign consumable {} to non-consumable generic '{}'",
+                                                arg.1, name
+                                            )
+                                        ));
+                                    }
+                                } else if utils::identifier_is_consumable(name) {
                                     compiler.errors.push(Error::new(
                                         arg.0,
                                         format!(
-                                            "Cannot assign consumable {} to non-consumable generic '{}'",
+                                            "Cannot assign non-consumable {} to consumable generic '{}'",
                                             arg.1, name
                                         )
                                     ));
                                 }
-                            } else if utils::identifier_is_consumable(name) {
-                                compiler.errors.push(Error::new(
-                                    arg.0,
-                                    format!(
-                                        "Cannot assign non-consumable {} to consumable generic '{}'",
-                                        arg.1, name
-                                    )
-                                ));
+
+                                new_constants.insert(name.clone(), arg.1);
                             }
 
-                            new_constants.insert(name.clone(), arg.1);
-                        }
-
-                        // Report any errors for unconsumed generic arguments.
-                        if !args.is_empty() {
-                            compiler.errors.push(Error::new(
-                                args[0].0, // report first parameter
-                                format!(
-                                    "{} got too many  generic arguments ({} in total, expected {})",
-                                    target,
-                                    new_constants.len() + args.len(),
-                                    new_constants.len()
-                                ),
-                            ));
-                        }
-
-                        for (name, (offset, _)) in nargs {
-                            if new_constants.get(name).is_some() {
+                            // Report any errors for unconsumed generic arguments.
+                            if !args.is_empty() {
                                 compiler.errors.push(Error::new(
-                                    *offset,
-                                    format!("{} already got generic argument '{}'", target, name),
-                                ));
-                            } else {
-                                compiler.errors.push(Error::new(
-                                    *offset,
+                                    args[0].0, // report first parameter
                                     format!(
-                                        "{} does not accept generic argument named '{}'",
-                                        target, name
+                                        "{} got too many  generic arguments ({} in total, expected {})",
+                                        target,
+                                        new_constants.len() + args.len(),
+                                        new_constants.len()
                                     ),
                                 ));
                             }
-                        }
 
-                        Some(ImlValue::from(
-                            parselet.derive(new_constants, offset.clone()),
-                        ))
-                    } else {
-                        unreachable!();
+                            for (name, (offset, _)) in nargs {
+                                if new_constants.get(name).is_some() {
+                                    compiler.errors.push(Error::new(
+                                        *offset,
+                                        format!(
+                                            "{} already got generic argument '{}'",
+                                            target, name
+                                        ),
+                                    ));
+                                } else {
+                                    compiler.errors.push(Error::new(
+                                        *offset,
+                                        format!(
+                                            "{} does not accept generic argument named '{}'",
+                                            target, name
+                                        ),
+                                    ));
+                                }
+                            }
+
+                            Some(ImlValue::from(
+                                parselet.derive(new_constants, offset.clone()),
+                            ))
+                        }
+                        target => {
+                            compiler.errors.push(Error::new(
+                                *offset,
+                                format!("Cannot create instance from '{}'", target),
+                            ));
+                            None
+                        }
                     }
                 } else {
                     None
