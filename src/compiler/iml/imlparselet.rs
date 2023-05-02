@@ -20,6 +20,12 @@ pub(in crate::compiler) struct ImlParseletModel {
     pub body: ImlOp,   // Body intermediate Operations
 }
 
+impl ImlParseletModel {
+    pub fn id(&self) -> usize {
+        self as *const ImlParseletModel as usize
+    }
+}
+
 // ImlParselet
 // ----------------------------------------------------------------------------
 
@@ -70,7 +76,7 @@ impl ImlParselet {
         let model = self.model.borrow();
 
         Parselet::new(
-            self.name.clone(),
+            Some(format!("{}", self)),
             None,
             self.severity,
             model
@@ -123,7 +129,7 @@ impl std::fmt::Display for ImlParselet {
 impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self.id() == other.id()
+        self.model.borrow().id() == other.model.borrow().id() && self.constants == other.constants
     }
 }
 

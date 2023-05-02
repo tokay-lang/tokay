@@ -40,7 +40,7 @@ impl ImlProgram {
                     Some(idx) => Ok(idx),
                 }
             }
-            _ => Err(()), // Cannot register unresolved value
+            _ => Err(()), // Cannot register this kind of value
         }
     }
 

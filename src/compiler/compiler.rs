@@ -6,8 +6,7 @@ use crate::error::Error;
 use crate::reader::*;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
-use indexmap::IndexMap;
-use std::collections::HashMap;
+use indexmap::{IndexMap, IndexSet};
 
 /** Compiler symbolic scopes.
 
@@ -20,8 +19,8 @@ pub(in crate::compiler) enum Scope {
     Parselet {
         // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, ImlValue>, // Named constants symbol table
-        variables: HashMap<String, usize>, // Named variable symbol table
+        constants: IndexMap<String, ImlValue>, // Named constants symbol table
+        variables: IndexMap<String, usize>, // Named variable symbol table
         temporaries: Vec<usize>, // List of unused temporary variables
         locals: usize,      // Total amount of variables in this scope
         begin: Vec<ImlOp>,  // Begin operations
@@ -31,7 +30,7 @@ pub(in crate::compiler) enum Scope {
     Block {
         // block level (constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: HashMap<String, ImlValue>, // Named constants symbol table
+        constants: IndexMap<String, ImlValue>, // Named constants symbol table
     },
     Loop, // loop level (allows use of break & continue)
 }
@@ -47,9 +46,10 @@ pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
 
-    pub(in crate::compiler) scopes: Vec<Scope>, // Current compilation scopes
-    pub(in crate::compiler) usages: Vec<ImlValue>, // Unresolved values
-    pub(in crate::compiler) errors: Vec<Error>, // Collected errors during compilation
+    pub(in crate::compiler) statics: IndexSet<RefValue>, // Static values collected during compilation
+    pub(in crate::compiler) scopes: Vec<Scope>,          // Current compilation scopes
+    pub(in crate::compiler) usages: Vec<ImlValue>,       // Unresolved values
+    pub(in crate::compiler) errors: Vec<Error>,          // Collected errors during compilation
 }
 
 impl Compiler {
@@ -67,6 +67,7 @@ impl Compiler {
         let mut compiler = Self {
             parser: None,
             debug: 0,
+            statics: IndexSet::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
@@ -150,6 +151,20 @@ impl Compiler {
         self.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))))
     }
 
+    /** Register a static value within a compiler instance.
+
+    This avoids that the compiler produces multiple results pointing to effectively the same values
+    (althought they are different objects, but  the same value)
+    */
+    pub(in crate::compiler) fn register_static(&mut self, value: RefValue) -> ImlValue {
+        if let Some(value) = self.statics.get(&value) {
+            ImlValue::Value(value.clone())
+        } else {
+            self.statics.insert(value.clone());
+            ImlValue::Value(value)
+        }
+    }
+
     /// Tries to resolves open usages from the current scope
     pub(in crate::compiler) fn resolve(&mut self) {
         if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
@@ -175,8 +190,8 @@ impl Compiler {
             0,
             Scope::Parselet {
                 usage_start: self.usages.len(),
-                variables: HashMap::new(),
-                constants: HashMap::new(),
+                variables: IndexMap::new(),
+                constants: IndexMap::new(),
                 temporaries: Vec::new(),
                 locals: 0,
                 begin: Vec::new(),
@@ -192,7 +207,7 @@ impl Compiler {
             0,
             Scope::Block {
                 usage_start: self.usages.len(),
-                constants: HashMap::new(),
+                constants: IndexMap::new(),
             },
         )
     }

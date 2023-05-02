@@ -79,13 +79,17 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => ImlValue::from(node["value"].clone()),
-        "value_integer" => node["value"].clone().into(),
-        "value_float" => node["value"].clone().into(),
-        "value_true" => value!(true).into(),
-        "value_false" => value!(false).into(),
-        "value_null" => value!(null).into(),
-        "value_void" => value!(void).into(),
+        "value_string" => compiler.register_static(node["value"].clone()),
+        "value_integer" => match node["value"].to_i64() {
+            Ok(0) => ImlValue::Op(Op::Push0),
+            Ok(1) => ImlValue::Op(Op::Push1),
+            _ => compiler.register_static(node["value"].clone()),
+        },
+        "value_float" => compiler.register_static(node["value"].clone()),
+        "value_true" => ImlValue::Op(Op::PushTrue),
+        "value_false" => ImlValue::Op(Op::PushFalse),
+        "value_null" => ImlValue::Op(Op::PushNull),
+        "value_void" => ImlValue::Op(Op::PushVoid),
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
@@ -99,14 +103,18 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 value = "#INVALID".to_string();
             }
 
-            if emit == "value_token_match" {
-                RefValue::from(Token::Match(value)).into()
+            compiler.register_static(if emit == "value_token_match" {
+                RefValue::from(Token::Match(value))
             } else {
-                RefValue::from(Token::Touch(value)).into()
-            }
+                RefValue::from(Token::Touch(value))
+            })
         }
-        "value_token_any" => RefValue::from(Token::Char(CharClass::new().negate())).into(),
-        "value_token_anys" => RefValue::from(Token::Chars(CharClass::new().negate())).into(),
+        "value_token_any" => {
+            compiler.register_static(RefValue::from(Token::Char(CharClass::new().negate())))
+        }
+        "value_token_anys" => {
+            compiler.register_static(RefValue::from(Token::Chars(CharClass::new().negate())))
+        }
         "value_token_ccl" | "value_token_ccls" => {
             let many = emit.ends_with("s");
 
@@ -153,11 +161,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 assert!(emit == "ccl");
             }
 
-            if many {
-                RefValue::from(Token::Chars(ccl)).into()
+            compiler.register_static(if many {
+                RefValue::from(Token::Chars(ccl))
             } else {
-                RefValue::from(Token::Char(ccl)).into()
-            }
+                RefValue::from(Token::Char(ccl))
+            })
         }
 
         // Parselets

@@ -3,10 +3,10 @@ use super::*;
 use crate::compiler::Compiler;
 use crate::reader::Offset;
 use crate::utils;
-use crate::value::{Object, RefValue, Value};
+use crate::value;
+use crate::value::{Object, RefValue};
 use crate::Error;
 use indexmap::IndexMap;
-use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -24,6 +24,7 @@ pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved: static
+    Op(Op),                      // Compile-time push operation (built-in static value)
     Value(RefValue),             // Compile-time static value
     Parselet(ImlSharedParselet), // Parselet instance
 
@@ -201,8 +202,15 @@ impl ImlValue {
         false
     }
 
+    /// Turn ImlValue into RefValue
     pub fn into_refvalue(self) -> RefValue {
         match self {
+            Self::Op(Op::PushVoid) => value!(void),
+            Self::Op(Op::PushNull) => value!(null),
+            Self::Op(Op::PushTrue) => value!(true),
+            Self::Op(Op::PushFalse) => value!(false),
+            Self::Op(Op::Push0) => value!(0),
+            Self::Op(Op::Push1) => value!(1),
             Self::Value(value) => value,
             _ => unreachable!("{:?} cannot be unwrapped", self),
         }
@@ -263,21 +271,8 @@ impl ImlValue {
             ImlValue::Shared(value) => {
                 return value.borrow().compile(program, parselet, offset, call, ops)
             }
-            ImlValue::Value(value) => {
-                match &*value.borrow() {
-                    // Some frequently used values have built-in push operations
-                    Value::Void => ops.push(Op::PushVoid),
-                    Value::Null => ops.push(Op::PushNull),
-                    Value::True => ops.push(Op::PushTrue),
-                    Value::False => ops.push(Op::PushFalse),
-                    Value::Int(i) => match i.to_i64() {
-                        Some(0) => ops.push(Op::Push0),
-                        Some(1) => ops.push(Op::Push1),
-                        _ => {}
-                    },
-                    _ => {}
-                }
-            }
+            ImlValue::Op(op) => ops.push(op.clone()),
+            ImlValue::Value(_) => {}
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Name {
