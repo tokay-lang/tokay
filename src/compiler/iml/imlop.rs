@@ -129,12 +129,6 @@ impl ImlOp {
             return Self::load(offset, value);
         }
 
-        // Early recognize call to value which is generally not call-able
-        if !value.is_callable(true) && !value.is_callable(false) {
-            // Currently not planned as final
-            todo!("The value {:?} is generally not callable!", value);
-        }
-
         ImlOp::Call {
             offset,
             target: value,

@@ -257,25 +257,25 @@ impl ImlValue {
             ops.push(Op::Offset(Box::new(*offset)));
         }
 
+        let start = ops.len();
+
         match self {
             ImlValue::Shared(value) => {
                 return value.borrow().compile(program, parselet, offset, call, ops)
             }
             ImlValue::Value(value) => {
-                if call.is_none() {
-                    match &*value.borrow() {
-                        // Some frequently used values have built-in push operations
-                        Value::Void => return ops.push(Op::PushVoid),
-                        Value::Null => return ops.push(Op::PushNull),
-                        Value::True => return ops.push(Op::PushTrue),
-                        Value::False => return ops.push(Op::PushFalse),
-                        Value::Int(i) => match i.to_i64() {
-                            Some(0) => return ops.push(Op::Push0),
-                            Some(1) => return ops.push(Op::Push1),
-                            _ => {}
-                        },
+                match &*value.borrow() {
+                    // Some frequently used values have built-in push operations
+                    Value::Void => ops.push(Op::PushVoid),
+                    Value::Null => ops.push(Op::PushNull),
+                    Value::True => ops.push(Op::PushTrue),
+                    Value::False => ops.push(Op::PushFalse),
+                    Value::Int(i) => match i.to_i64() {
+                        Some(0) => ops.push(Op::Push0),
+                        Some(1) => ops.push(Op::Push1),
                         _ => {}
-                    }
+                    },
+                    _ => {}
                 }
             }
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
@@ -328,8 +328,10 @@ impl ImlValue {
             _ => unreachable!(),
         }
 
-        // Try to register value as static
-        if let Ok(idx) = program.register(self) {
+        // Check if something has been pushed before.
+        if start == ops.len() {
+            let idx = program.register(self).unwrap();
+
             match call {
                 // Load
                 None => ops.push(Op::LoadStatic(idx)),
