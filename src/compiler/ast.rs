@@ -1240,7 +1240,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 peek: true,
                                 test: true,
                                 then: Box::new(right),
-                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                                else_: Box::new(ImlOp::from(Op::Push)),
                             }
                         }
                         "or" => {
@@ -1251,7 +1251,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 peek: true,
                                 test: false,
                                 then: Box::new(right),
-                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                                else_: Box::new(ImlOp::from(Op::Push)),
                             }
                         }
                         _ => {
@@ -1395,7 +1395,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             Rvalue::CallOrLoad,
                         )
                     } else {
-                        ImlOp::from(Op::PushVoid)
+                        ImlOp::from(Op::Push)
                     };
 
                     // Compile time evaluation;
