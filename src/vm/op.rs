@@ -749,11 +749,28 @@ impl Op {
             context.frame = context.frames.pop().unwrap();
         }
 
-        // When state is Accept::Hold here, this is when jumping behind the code.
-        // Accept::Hold will be corrected into Accept::Next in this case.
-        if matches!(state, Ok(Accept::Hold)) {
-            state = Ok(Accept::Next)
-        }
+        // Post-process state
+        state = match state {
+            // When state is Accept::Hold here, this is when jumping behind the code.
+            // Accept::Hold will be corrected into Accept::Next in this case.
+            Ok(Accept::Hold) => Ok(Accept::Next),
+            // Push severity may never be higher than parselet's severity
+            Ok(Accept::Push(mut capture)) => {
+                if capture.get_severity() > context.parselet.severity {
+                    capture.set_severity(context.parselet.severity);
+                }
+
+                Ok(Accept::Push(capture))
+            }
+            // Return always becomes a push with parselet's severity
+            Ok(Accept::Return(Some(value))) => Ok(Accept::Push(Capture::Value(
+                value,
+                None,
+                context.parselet.severity,
+            ))),
+            Ok(Accept::Return(None)) => Ok(Accept::Push(Capture::Empty)),
+            state => state,
+        };
 
         if context.runtime.debug > 3 {
             context.log(&format!("exit state = {:?}", state));

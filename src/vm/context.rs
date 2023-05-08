@@ -102,6 +102,13 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         }
     }
 
+    /// Extend a context to a new reader position, reset context
+    pub fn extend(&mut self) {
+        self.runtime.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
+        self.runtime.stack.push(Capture::Empty); // re-initialize $0
+        self.frame.reader_start = self.runtime.reader.tell(); // Set reader start to current position
+    }
+
     /// Print debug output with context depth indention
     #[inline]
     pub fn log(&self, msg: &str) {
@@ -652,6 +659,100 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 } else {
                     Ok(Accept::Push(Capture::Empty))
                 }
+            }
+        }
+    }
+
+    /// Run the current context with the associated parselet
+    pub fn run2(&mut self, main: bool) -> Result<Accept, Reject> {
+        // collected results (from repeated parselet)
+        let mut retlist = List::new();
+
+        // Debugging
+        if self.runtime.debug < 3 {
+            if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
+                for name in inspect.split(" ") {
+                    if name == self.parselet.name {
+                        self.runtime.debug = 6;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Save start of capture for $0
+        let capture_start = self.frame.capture_start;
+
+        // Begin
+        match Op::execute(&self.parselet.begin, self) {
+            Ok(Accept::Next) => {}
+            Ok(Accept::Repeat(value)) => {
+                if let Some(value) = value {
+                    retlist.push(value);
+                }
+
+                // Reset capture stack for loop repeat
+                self.extend()
+            }
+            other => return other,
+        }
+
+        // Body
+        let mut first = true;
+
+        loop {
+            match Op::execute(&self.parselet.body, self) {
+                Ok(Accept::Next) => break,
+                Ok(Accept::Repeat(value)) => {
+                    if let Some(value) = value {
+                        retlist.push(value);
+                    }
+
+                    // Reset capture stack for loop repeat
+                    self.extend()
+                }
+                Err(Reject::Next) if !first => break,
+                other => return other,
+            }
+
+            first = false;
+        }
+
+        // End
+        match Op::execute(&self.parselet.end, self) {
+            Ok(Accept::Next) | Err(Reject::Next) => {}
+            Ok(Accept::Repeat(value)) => {
+                if let Some(value) = value {
+                    retlist.push(value);
+                }
+            }
+            other => return other,
+        }
+
+        // Take result from retlist
+        if retlist.len() > 1 {
+            Ok(Accept::Push(Capture::Value(
+                RefValue::from(retlist),
+                None,
+                self.parselet.severity,
+            )))
+        } else if retlist.len() == 1 {
+            Ok(Accept::Push(Capture::Value(
+                retlist.pop().unwrap(),
+                None,
+                self.parselet.severity,
+            )))
+        } else {
+            // Otherwise, either take $0 if it was set to a value,
+            // or use any last remaining value as result.
+            let dollar0 = &mut self.runtime.stack[capture_start - 1];
+
+            if let Capture::Value(value, ..) = dollar0 {
+                Ok(Accept::Push(Capture::from(value.clone())))
+            } else if self.runtime.stack.len() > capture_start {
+                Ok(Accept::Push(self.runtime.stack.pop().unwrap()))
+            } else {
+                Ok(Accept::Push(Capture::Empty))
             }
         }
     }

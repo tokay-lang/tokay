@@ -848,7 +848,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                         ImlOp::call(None, main, None)
                     }
-                    _ => body
+                    _ => body,
                 }
             } else {
                 ImlOp::Nop
