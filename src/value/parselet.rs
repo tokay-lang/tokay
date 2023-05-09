@@ -219,11 +219,7 @@ impl Parselet {
                 .insert((reader_start.offset, id), (reader_end, result.clone()));
 
             loop {
-                let loop_result = if context.runtime.debug > 2 {
-                    context.run2(main)
-                } else {
-                    context.run(main)
-                };
+                let loop_result = self.run_in_context(&mut context, main);
 
                 match loop_result {
                     // Hard reject
@@ -267,26 +263,9 @@ impl Parselet {
 
             result
         } else {
-            let result = if context.runtime.debug > 2 {
-                loop {
-                    //println!("----------------------------------------------------------------");
-                    let state = context.run2(main);
+            let result = self.run_in_context(&mut context, main);
 
-                    //println!("main={:?} state={:?} eof={:?}", main, state, context.runtime.reader.eof());
-
-                    if main && matches!(state, Ok(_)) && !context.runtime.reader.eof() {
-                        context.runtime.reader.next();
-                        context.frame.reader_start = context.runtime.reader.tell();
-                        continue;
-                    }
-
-                    break state;
-                }
-            } else {
-                context.run(main)
-            };
-
-            if !main && self.consuming.is_some() {
+            if self.consuming.is_some() {
                 context.runtime.memo.insert(
                     (reader_start.offset, id),
                     (context.runtime.reader.tell(), result.clone()),
@@ -319,6 +298,15 @@ impl Parselet {
         */
 
         result
+    }
+
+    /// Helper function to run parselet within context, by respecting the main-flag.
+    fn run_in_context(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
+        if context.runtime.debug > 1 {
+            context.run2(main)
+        } else {
+            context.run(main)
+        }
     }
 }
 

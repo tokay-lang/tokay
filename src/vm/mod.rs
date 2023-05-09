@@ -27,6 +27,27 @@ pub enum Accept {
 }
 
 impl Accept {
+    // Helper function, turning an Accept into an Accept::Push() with a Capture and a given severity.
+    pub fn into_push(self, severity: u8) -> Accept {
+        match self {
+            Self::Next | Self::Hold => Self::Push(Capture::Empty),
+            Self::Push(mut capture) => {
+                if capture.get_severity() > severity {
+                    capture.set_severity(severity);
+                }
+                Self::Push(capture)
+            }
+            Self::Repeat(value) | Self::Return(value) => {
+                if let Some(value) = value {
+                    Self::Push(Capture::Value(value, None, severity))
+                } else {
+                    Self::Push(Capture::Empty)
+                }
+            }
+        }
+    }
+
+    // Helper function, extracts a contained RefValue from the Accept.
     pub fn into_refvalue(self) -> RefValue {
         match self {
             Self::Push(capture) => capture.get_value(),
