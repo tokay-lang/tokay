@@ -1,4 +1,4 @@
-_ : [ \t]+                # redefine whitespace to just tab and space
+_ : Char< \t>+            # redefine whitespace to just tab and space
 
 Factor : @{
     Int _                 # built-in 64-bit signed integer token

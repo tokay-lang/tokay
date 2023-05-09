@@ -1,7 +1,7 @@
 # Tokay Calc
-version : 0.3
+version : 0.4
 
-_ : [ \t]+                             # redefine whitespace to just tab and space
+_ : Char< \t>+                         # redefine whitespace to just tab and space
 
 Factor : @{
     Float _                            # built-in 64-bit signed float token
@@ -22,7 +22,7 @@ Expr : @{
 }
 
 
-begin print("Tokay Calc" version)  # print at startup
+begin print("Tokay Calc" version)      # print at startup
 
 Expr _ print("= " + $1)                # execute each expression
 'exit' exit                            # exit command
