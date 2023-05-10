@@ -701,8 +701,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         loop {
             match Op::execute(&self.parselet.body, self) {
-                Ok(Accept::Next) if main => {}
-                Err(Reject::Next) if main => {
+                Ok(Accept::Next) | Err(Reject::Next) if main => {
                     // When in main, skip one char!
                     if self.runtime.reader.next().is_none() {
                         break;
