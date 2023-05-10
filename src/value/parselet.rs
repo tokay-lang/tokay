@@ -219,7 +219,7 @@ impl Parselet {
                 .insert((reader_start.offset, id), (reader_end, result.clone()));
 
             loop {
-                let loop_result = self.run_in_context(&mut context, main);
+                let loop_result = context.run(main);
 
                 match loop_result {
                     // Hard reject
@@ -263,7 +263,7 @@ impl Parselet {
 
             result
         } else {
-            let result = self.run_in_context(&mut context, main);
+            let result = context.run(main);
 
             if self.consuming.is_some() {
                 context.runtime.memo.insert(
@@ -298,15 +298,6 @@ impl Parselet {
         */
 
         result
-    }
-
-    /// Helper function to run parselet within context, by respecting the main-flag.
-    fn run_in_context(&self, context: &mut Context, main: bool) -> Result<Accept, Reject> {
-        if context.runtime.debug > 1 {
-            context.run2(main)
-        } else {
-            context.run(main)
-        }
     }
 }
 

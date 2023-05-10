@@ -442,7 +442,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     }
 
     /// Run the current context with the associated parselet
-    pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
+    pub fn run_old(&mut self, main: bool) -> Result<Accept, Reject> {
         // Initialize parselet execution loop
         let mut results = List::new();
         let mut first = self.parselet.begin.len() > 0;
@@ -657,7 +657,21 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     }
 
     /// Run the current context with the associated parselet
-    pub fn run2(&mut self, main: bool) -> Result<Accept, Reject> {
+    pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
+        match self.run_internal(main) {
+            Err(Reject::Error(mut err)) => {
+                // Patch source position on error, when no position already set
+                if let Some(source_offset) = self.source_offset {
+                    err.patch_offset(source_offset);
+                }
+
+                Err(Reject::Error(err))
+            }
+            other => other,
+        }
+    }
+
+    fn run_internal(&mut self, main: bool) -> Result<Accept, Reject> {
         // collected results (from repeated parselet)
         let mut retlist = List::new();
 
