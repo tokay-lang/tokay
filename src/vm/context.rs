@@ -151,6 +151,17 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         self.push(value)
     }
 
+    // Reset context stack state
+    #[inline]
+    fn reset(&mut self, offset: Option<Offset>) {
+        self.runtime.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
+        self.runtime.stack.push(Capture::Empty); // re-initialize $0
+
+        if let Some(offset) = offset {
+            self.frame.reader_start = offset; // Set reader start to provided position
+        }
+    }
+
     /// Return top-level frame
     pub fn frame0(&self) -> &Frame {
         if self.frames.is_empty() {
@@ -658,22 +669,13 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
     /// Run the current context with the associated parselet
     pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
-        match self.run_internal(main) {
-            Err(Reject::Error(mut err)) => {
-                // Patch source position on error, when no position already set
-                if let Some(source_offset) = self.source_offset {
-                    err.patch_offset(source_offset);
-                }
-
-                Err(Reject::Error(err))
-            }
-            other => other,
+        /*
+        if self.runtime.debug == 0 {
+            return self.run_old(main);
         }
-    }
+        */
 
-    fn run_internal(&mut self, main: bool) -> Result<Accept, Reject> {
-        // collected results (from repeated parselet)
-        let mut retlist = List::new();
+        //println!("--- @{:?} ---", self.parselet.name);
 
         // Debugging
         if self.runtime.debug < 3 {
@@ -687,73 +689,67 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             }
         }
 
-        // Save start of capture for $0
-        let capture_start = self.frame.capture_start;
+        // collected results (from repeated parselet)
+        let mut retlist = List::new();
 
-        if !self.parselet.begin.is_empty() {
-            // Begin
-            match Op::execute(&self.parselet.begin, self) {
-                Ok(Accept::Next) => {}
-                Ok(Accept::Repeat(value)) => {
-                    if let Some(value) = value {
-                        retlist.push(value);
-                    }
-
-                    self.frame.reader_start = self.runtime.reader.tell(); // Set reader start to current position
-                }
-                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                other => return other,
+        // Begin
+        let mut ret = match Op::execute(&self.parselet.begin, self) {
+            Ok(Accept::Next) => Capture::Empty,
+            Ok(Accept::Push(capture)) => {
+                self.reset(Some(self.runtime.reader.tell()));
+                capture
             }
-
-            // Reset capture stack for loop repeat
-            self.runtime.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
-            self.runtime.stack.push(Capture::Empty); // re-initialize $0
-        }
-
-        // Body
-        let mut first = true;
-
-        loop {
-            match Op::execute(&self.parselet.body, self) {
-                Ok(Accept::Next) | Err(Reject::Next) if main => {
-                    // When in main, skip one char!
-                    if self.runtime.reader.next().is_none() {
-                        break;
-                    }
-                }
-                Ok(Accept::Next) => break,
-                Ok(Accept::Repeat(value)) => {
-                    if let Some(value) = value {
-                        retlist.push(value);
-                    }
-                }
-                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                other => return other,
-            }
-
-            // Reset capture stack for loop repeat
-            self.runtime.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
-            self.runtime.stack.push(Capture::Empty); // re-initialize $0
-            self.frame.reader_start = self.runtime.reader.tell(); // Set reader start to current position
-
-            first = false;
-        }
-
-        // End
-        match Op::execute(&self.parselet.end, self) {
-            Ok(Accept::Next) | Err(Reject::Next) => {}
             Ok(Accept::Repeat(value)) => {
                 if let Some(value) = value {
                     retlist.push(value);
                 }
+
+                self.reset(Some(self.runtime.reader.tell()));
+                Capture::Empty
             }
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
-        }
+        };
 
-        // Take result from retlist
+        // Body
+        let mut first = true;
+        ret = loop {
+            match Op::execute(&self.parselet.body, self) {
+                Ok(Accept::Next) => break ret,
+                Ok(Accept::Push(capture)) => break capture,
+                Ok(Accept::Repeat(value)) => {
+                    if let Some(value) = value {
+                        retlist.push(value);
+                    }
+                }
+                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
+                Err(Reject::Next) if !first => break Capture::Empty,
+                other => return other,
+            }
+
+            // Reset capture stack for loop repeat
+            self.reset(Some(self.runtime.reader.tell()));
+            first = false;
+        };
+
+        // End
+        ret = match Op::execute(&self.parselet.end, self) {
+            Ok(Accept::Next) => ret,
+            Ok(Accept::Push(capture)) => capture,
+            Ok(Accept::Repeat(value)) => {
+                if let Some(value) = value {
+                    retlist.push(value);
+                }
+
+                ret
+            }
+            Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
+            other => return other,
+        };
+
+        // retlist has higher priority than ret
         if !retlist.is_empty() {
-            Ok(Accept::Push(Capture::Value(
+            ret = Capture::Value(
                 if retlist.len() > 1 {
                     RefValue::from(retlist)
                 } else {
@@ -761,25 +757,10 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 },
                 None,
                 self.parselet.severity,
-            )))
-        } else {
-            // Otherwise, either take $0 if it was set to a value,
-            // or use any last remaining value as result.
-            let dollar0 = &mut self.runtime.stack[capture_start - 1];
-
-            if let Capture::Value(value, ..) = dollar0 {
-                Ok(Accept::Push(Capture::Value(
-                    value.clone(),
-                    None,
-                    self.parselet.severity,
-                )))
-            } else if self.runtime.stack.len() > capture_start {
-                Ok(Accept::Push(self.runtime.stack.pop().unwrap())
-                    .into_push(self.parselet.severity))
-            } else {
-                Ok(Accept::Push(Capture::Empty))
-            }
+            );
         }
+
+        Ok(Accept::Push(ret).into_push(self.parselet.severity))
     }
 }
 

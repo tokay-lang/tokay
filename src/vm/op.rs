@@ -115,6 +115,7 @@ impl Op {
     pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
+            //return Ok(Accept::Push(Capture::Empty));
         }
 
         fn dump(ops: &[Op], context: &Context, ip: usize) {
@@ -715,9 +716,9 @@ impl Op {
             }
 
             match state {
-                Ok(Accept::Hold) => {}
+                Ok(Accept::Hold) => state = Ok(Accept::Next),
                 Ok(Accept::Next) => ip += 1,
-                Ok(Accept::Push(capture)) => {
+                Ok(Accept::Push(capture)) if ip + 1 < ops.len() => {
                     context.runtime.stack.push(capture);
                     state = Ok(Accept::Next);
                     ip += 1;
@@ -739,6 +740,15 @@ impl Op {
 
                     context.frame = context.frames.pop().unwrap();
                 },
+                Err(Reject::Error(ref mut err)) => {
+                    // Patch context source position on error,
+                    // if no other position already set
+                    if let Some(source_offset) = context.source_offset {
+                        err.patch_offset(source_offset);
+                    }
+
+                    break;
+                }
                 _ => break,
             }
         }
@@ -749,28 +759,29 @@ impl Op {
             context.frame = context.frames.pop().unwrap();
         }
 
-        // Post-process state
-        state = match state {
-            // When state is Accept::Hold here, this is when jumping behind the code.
-            // Accept::Hold will be corrected into Accept::Next in this case.
-            Ok(Accept::Hold) => Ok(Accept::Next),
-            // Push severity may never be higher than parselet's severity
-            Ok(Accept::Push(mut capture)) => {
-                if capture.get_severity() > context.parselet.severity {
-                    capture.set_severity(context.parselet.severity);
-                }
-
-                Ok(Accept::Push(capture))
+        // In case state is Accept::Next, try to return a capture
+        if matches!(state, Ok(Accept::Next)) {
+            // Either take $0 when set
+            if let Capture::Value(value, ..) =
+                &mut context.runtime.stack[context.frame.capture_start - 1]
+            {
+                state = Ok(Accept::Push(Capture::Value(
+                    value.clone(),
+                    None,
+                    context.parselet.severity,
+                )));
+            // Otherwise, push last value
+            } else if context.runtime.stack.len() > context.frame.capture_start {
+                state = Ok(Accept::Push(context.runtime.stack.pop().unwrap())
+                    .into_push(context.parselet.severity));
             }
-            // Return always becomes a push with parselet's severity
-            Ok(Accept::Return(Some(value))) => Ok(Accept::Push(Capture::Value(
-                value,
-                None,
-                context.parselet.severity,
-            ))),
-            Ok(Accept::Return(None)) => Ok(Accept::Push(Capture::Empty)),
-            state => state,
-        };
+            /*
+            // Else, push empty capture
+            else {
+                state = Ok(Accept::Push(Capture::Empty))
+            }
+            */
+        }
 
         if context.runtime.debug > 3 {
             context.log(&format!("exit state = {:?}", state));
