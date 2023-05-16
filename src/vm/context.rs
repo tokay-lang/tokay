@@ -701,6 +701,10 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             _ => {}
         }
 
+        if self.runtime.debug > 3 {
+            self.log(&format!("final state = {:?}", state));
+        }
+
         state
     }
 
@@ -727,7 +731,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         // Begin
         let mut ret = match self.execute(&self.parselet.begin) {
-            Ok(Accept::Next) => Capture::Empty,
+            Ok(Accept::Next) | Err(Reject::Skip) => Capture::Empty,
             Ok(Accept::Push(capture)) => {
                 self.reset(Some(self.runtime.reader.tell()));
                 capture
@@ -748,6 +752,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         let mut first = true;
         ret = loop {
             match self.execute(&self.parselet.body) {
+                Err(Reject::Skip) => {}
                 Ok(Accept::Next) => break ret,
                 Ok(Accept::Push(capture)) => break capture,
                 Ok(Accept::Repeat(value)) => {
@@ -767,7 +772,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         // End
         ret = match self.execute(&self.parselet.end) {
-            Ok(Accept::Next) => ret,
+            Ok(Accept::Next) | Err(Reject::Skip) => ret,
             Ok(Accept::Push(capture)) => capture,
             Ok(Accept::Repeat(value)) => {
                 if let Some(value) = value {
@@ -807,8 +812,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         // Begin
         match self.execute(&self.parselet.begin) {
-            Ok(Accept::Next) => {}
-            Ok(Accept::Push(Capture::Empty)) => {}
+            Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
                 retlist.push(capture.extract(&self.runtime.reader));
             }
@@ -826,9 +830,10 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         // Body
         loop {
             match self.execute(&self.parselet.body) {
-                Err(Reject::Next) => {}
-                Ok(Accept::Next) => {}
-                Ok(Accept::Push(Capture::Empty)) => {}
+                Err(Reject::Next)
+                | Err(Reject::Skip)
+                | Ok(Accept::Next)
+                | Ok(Accept::Push(Capture::Empty)) => {}
                 Ok(Accept::Push(mut capture)) => {
                     retlist.push(capture.extract(&self.runtime.reader));
                 }
@@ -846,19 +851,18 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 self.runtime.reader.next();
             }
 
+            // Reset capture stack for loop repeat
+            self.reset(Some(self.runtime.reader.tell()));
+
             // Break on EOF
             if self.runtime.reader.eof() {
                 break;
             }
-
-            // Reset capture stack for loop repeat
-            self.reset(Some(self.runtime.reader.tell()));
         }
 
         // End
         match self.execute(&self.parselet.end) {
-            Ok(Accept::Next) => {}
-            Ok(Accept::Push(Capture::Empty)) => {}
+            Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
                 retlist.push(capture.extract(&self.runtime.reader));
             }

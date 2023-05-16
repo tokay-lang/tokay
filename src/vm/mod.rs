@@ -74,8 +74,8 @@ impl From<Value> for Result<Accept, Reject> {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,   // soft-reject, skip to next sequence
-    Skip,   // hard-reject, silently drop current parselet
+    Next,   // soft-reject, continue with next sequence
+    Skip,   // soft-reject, skip consumed input and continue
     Return, // hard-reject current parselet ('return'/'reject'-keyword)
     Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
     Error(Box<Error>), //hard-reject with error message (runtime error)
