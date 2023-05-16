@@ -740,47 +740,14 @@ impl Op {
 
                     context.frame = context.frames.pop().unwrap();
                 },
-                Err(Reject::Error(ref mut err)) => {
-                    // Patch context source position on error,
-                    // if no other position already set
-                    if let Some(source_offset) = context.source_offset {
-                        err.patch_offset(source_offset);
-                    }
-
-                    break;
-                }
                 _ => break,
             }
         }
 
-        // Clear all frames except the base frame
+        // Clear all frames, except base frame
         if !context.frames.is_empty() {
             context.frames.truncate(1);
             context.frame = context.frames.pop().unwrap();
-        }
-
-        // In case state is Accept::Next, try to return a capture
-        if matches!(state, Ok(Accept::Next)) {
-            // Either take $0 when set
-            if let Capture::Value(value, ..) =
-                &mut context.runtime.stack[context.frame.capture_start - 1]
-            {
-                state = Ok(Accept::Push(Capture::Value(
-                    value.clone(),
-                    None,
-                    context.parselet.severity,
-                )));
-            // Otherwise, push last value
-            } else if context.runtime.stack.len() > context.frame.capture_start {
-                state = Ok(Accept::Push(context.runtime.stack.pop().unwrap())
-                    .into_push(context.parselet.severity));
-            }
-            /*
-            // Else, push empty capture
-            else {
-                state = Ok(Accept::Push(Capture::Empty))
-            }
-            */
         }
 
         if context.runtime.debug > 3 {
