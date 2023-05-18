@@ -115,6 +115,7 @@ impl Op {
     pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
+            //return Ok(Accept::Push(Capture::Empty));
         }
 
         fn dump(ops: &[Op], context: &Context, ip: usize) {
@@ -715,9 +716,9 @@ impl Op {
             }
 
             match state {
-                Ok(Accept::Hold) => {}
+                Ok(Accept::Hold) => state = Ok(Accept::Next),
                 Ok(Accept::Next) => ip += 1,
-                Ok(Accept::Push(capture)) => {
+                Ok(Accept::Push(capture)) if ip + 1 < ops.len() => {
                     context.runtime.stack.push(capture);
                     state = Ok(Accept::Next);
                     ip += 1;
@@ -743,16 +744,10 @@ impl Op {
             }
         }
 
-        // Clear all frames except the base frame
+        // Clear all frames, except base frame
         if !context.frames.is_empty() {
             context.frames.truncate(1);
             context.frame = context.frames.pop().unwrap();
-        }
-
-        // When state is Accept::Hold here, this is when jumping behind the code.
-        // Accept::Hold will be corrected into Accept::Next in this case.
-        if matches!(state, Ok(Accept::Hold)) {
-            state = Ok(Accept::Next)
         }
 
         if context.runtime.debug > 3 {

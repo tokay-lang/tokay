@@ -803,14 +803,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         }
 
         // block ----------------------------------------------------------
-        "block" | "main" => {
+        "block" | "body" | "main" => {
             if let Some(ast) = node.get_str("children") {
                 if emit == "block" {
                     compiler.block_push();
                 }
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
-                else if compiler.scopes.len() != 1 {
+                else if emit == "main" && compiler.scopes.len() != 1 {
                     compiler.parselet_push(); // Main
                 }
 
@@ -831,20 +831,24 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     unreachable!();
                 };
 
-                if emit == "block" {
-                    compiler.block_pop();
-                    body
-                } else {
-                    let main = compiler.parselet_pop(
-                        None,
-                        Some("__main__".to_string()),
-                        None,
-                        None,
-                        None,
-                        body,
-                    );
+                match emit {
+                    "block" => {
+                        compiler.block_pop();
+                        body
+                    }
+                    "main" => {
+                        let main = compiler.parselet_pop(
+                            None,
+                            Some("__main__".to_string()),
+                            None,
+                            None,
+                            None,
+                            body,
+                        );
 
-                    ImlOp::call(None, main, None)
+                        ImlOp::call(None, main, None)
+                    }
+                    _ => body,
                 }
             } else {
                 ImlOp::Nop
