@@ -1,0 +1,29 @@
+begin print("start")
+
+Read : @{
+    begin count = 0 print("begin")
+    Char<a-z> print("body" $1, ++count) repeat
+    end print("end")
+}
+
+Read print("Yes")
+print("No")
+
+end print("finish")
+#---
+#ab1c
+#---
+#start
+#begin
+#body a 1
+#body b 2
+#end
+#Yes
+#begin
+#No
+#begin
+#body c 1
+#end
+#Yes
+#finish
+#(void, void, void)

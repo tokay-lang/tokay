@@ -27,6 +27,27 @@ pub enum Accept {
 }
 
 impl Accept {
+    // Helper function, turning an Accept into an Accept::Push() with a Capture and a given severity.
+    pub fn into_push(self, severity: u8) -> Accept {
+        match self {
+            Self::Next | Self::Hold => Self::Push(Capture::Empty),
+            Self::Push(mut capture) => {
+                if capture.get_severity() > severity {
+                    capture.set_severity(severity);
+                }
+                Self::Push(capture)
+            }
+            Self::Repeat(value) | Self::Return(value) => {
+                if let Some(value) = value {
+                    Self::Push(Capture::Value(value, None, severity))
+                } else {
+                    Self::Push(Capture::Empty)
+                }
+            }
+        }
+    }
+
+    // Helper function, extracts a contained RefValue from the Accept.
     pub fn into_refvalue(self) -> RefValue {
         match self {
             Self::Push(capture) => capture.get_value(),
@@ -53,8 +74,8 @@ impl From<Value> for Result<Accept, Reject> {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,   // soft-reject, skip to next sequence
-    Skip,   // hard-reject, silently drop current parselet
+    Next,   // soft-reject, continue with next sequence
+    Skip,   // soft-reject, skip consumed input and continue
     Return, // hard-reject current parselet ('return'/'reject'-keyword)
     Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
     Error(Box<Error>), //hard-reject with error message (runtime error)

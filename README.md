@@ -114,7 +114,7 @@ By design, Tokay constructs syntax trees from consumed information automatically
 The next program directly implements a parser and interpreter for simple mathematical expressions, like `1 + 2 + 3` or `7 * (8 + 2) / 5`. The result of each expression is printed afterwards. Processing direct and indirect left-recursions without ending in infinite loops is one of Tokay's core features.
 
 ```tokay
-_ : [ \t]+                # redefine whitespace to just tab and space
+_ : Char< \t>+            # redefine whitespace to just tab and space
 
 Factor : @{
     Int _                 # built-in 64-bit signed integer token

@@ -196,6 +196,7 @@ impl Parselet {
         }
 
         //println!("remaining {:?}", nargs);
+        let reader_start = context.frame0().reader_start;
 
         // Perform left-recursive execution
         let result = if let Some(true) = self.consuming {
@@ -203,19 +204,19 @@ impl Parselet {
             println!(
                 "--- {} @ {} ---",
                 self.name.as_deref().unwrap_or("(unnamed)"),
-                context.frame0().reader_start.offset
+                reader_start.offset
             );
             */
 
             // Left-recursive parselets are called in a loop until no more input is consumed.
-            let mut reader_end = context.frame0().reader_start;
+            let mut reader_end = reader_start;
             let mut result = Err(Reject::Next);
 
             // Insert a fake memo entry to avoid endless recursion
-            context.runtime.memo.insert(
-                (context.frame0().reader_start.offset, id),
-                (reader_end, result.clone()),
-            );
+            context
+                .runtime
+                .memo
+                .insert((reader_start.offset, id), (reader_end, result.clone()));
 
             loop {
                 let loop_result = context.run(main);
@@ -244,13 +245,13 @@ impl Parselet {
                 reader_end = loop_end;
 
                 // Save intermediate result in memo table
-                context.runtime.memo.insert(
-                    (context.frame0().reader_start.offset, id),
-                    (reader_end, result.clone()),
-                );
+                context
+                    .runtime
+                    .memo
+                    .insert((reader_start.offset, id), (reader_end, result.clone()));
 
                 // Reset reader & stack
-                context.runtime.reader.reset(context.frame0().reader_start);
+                context.runtime.reader.reset(reader_start);
                 context.runtime.stack.truncate(context.stack_start); //fixme: context.frame0()?
                 context
                     .runtime
@@ -264,9 +265,9 @@ impl Parselet {
         } else {
             let result = context.run(main);
 
-            if !main && self.consuming.is_some() {
+            if self.consuming.is_some() {
                 context.runtime.memo.insert(
-                    (context.frame0().reader_start.offset, id),
+                    (reader_start.offset, id),
                     (context.runtime.reader.tell(), result.clone()),
                 );
             }

@@ -257,6 +257,8 @@ impl Compiler {
             let constants = constants.unwrap_or(IndexMap::new());
             let signature = signature.unwrap_or(IndexMap::new());
 
+            //println!("{:?} {:?} {:?}", name, signature, *locals);
+
             assert!(
                 signature.len() <= *locals,
                 "signature may not be longer than locals..."
