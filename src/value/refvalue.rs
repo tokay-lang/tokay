@@ -379,6 +379,7 @@ impl Object for RefValue {
 impl Hash for RefValue {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &*self.borrow() {
+            Value::Void => state.write_u8('V' as u8),
             Value::Null => state.write_u8('N' as u8),
             Value::True => state.write_u8('T' as u8),
             Value::False => state.write_u8('F' as u8),

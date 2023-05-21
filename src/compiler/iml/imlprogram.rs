@@ -107,7 +107,7 @@ impl ImlProgram {
 
                     RefValue::from(parselet)
                 } else {
-                    iml.into_refvalue()
+                    iml.unwrap()
                 }
             })
             .collect();

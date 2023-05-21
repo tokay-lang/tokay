@@ -79,17 +79,17 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => compiler.register_static(node["value"].clone()),
+        "value_void" => ImlValue::Value(compiler.statics[0].clone()),
+        "value_null" => ImlValue::Value(compiler.statics[1].clone()),
+        "value_true" => ImlValue::Value(compiler.statics[2].clone()),
+        "value_false" => ImlValue::Value(compiler.statics[3].clone()),
         "value_integer" => match node["value"].to_i64() {
-            Ok(0) => ImlValue::Op(Op::Push0),
-            Ok(1) => ImlValue::Op(Op::Push1),
+            Ok(0) => ImlValue::Value(compiler.statics[4].clone()),
+            Ok(1) => ImlValue::Value(compiler.statics[5].clone()),
             _ => compiler.register_static(node["value"].clone()),
         },
         "value_float" => compiler.register_static(node["value"].clone()),
-        "value_true" => ImlValue::Op(Op::PushTrue),
-        "value_false" => ImlValue::Op(Op::PushFalse),
-        "value_null" => ImlValue::Op(Op::PushNull),
-        "value_void" => ImlValue::Op(Op::PushVoid),
+        "value_string" => compiler.register_static(node["value"].clone()),
 
         // Tokens
         "value_token_match" | "value_token_touch" => {
@@ -468,7 +468,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children).into_refvalue();
+                        let index = traverse_node_value(compiler, children).unwrap();
 
                         if store {
                             if hold {
@@ -965,8 +965,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         "capture_index" => {
             let children = node["children"].borrow();
-            let index =
-                traverse_node_value(compiler, children.object::<Dict>().unwrap()).into_refvalue();
+            let index = traverse_node_value(compiler, children.object::<Dict>().unwrap()).unwrap();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 

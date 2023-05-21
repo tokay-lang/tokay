@@ -4,6 +4,7 @@ use super::*;
 use crate::builtin::Builtin;
 use crate::error::Error;
 use crate::reader::*;
+use crate::value;
 use crate::value::{RefValue, Token};
 use crate::vm::*;
 use indexmap::{IndexMap, IndexSet};
@@ -45,7 +46,6 @@ won't be removed and can be accessed on later calls.
 pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
-
     pub(in crate::compiler) statics: IndexSet<RefValue>, // Static values collected during compilation
     pub(in crate::compiler) scopes: Vec<Scope>,          // Current compilation scopes
     pub(in crate::compiler) usages: Vec<ImlValue>,       // Unresolved values
@@ -72,6 +72,17 @@ impl Compiler {
             usages: Vec::new(),
             errors: Vec::new(),
         };
+
+        for value in [
+            value!(void),
+            value!(null),
+            value!(true),
+            value!(false),
+            value!(0),
+            value!(1),
+        ] {
+            compiler.statics.insert(value);
+        }
 
         // Compile with the default prelude
         if with_prelude {
