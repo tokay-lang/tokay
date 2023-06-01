@@ -74,12 +74,11 @@ impl From<Value> for Result<Accept, Reject> {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,   // soft-reject, continue with next sequence
-    Skip,   // soft-reject, skip consumed input and continue
-    Return, // hard-reject current parselet ('return'/'reject'-keyword)
-    Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
+    Next, // soft-reject, continue with next sequence
+    Skip, // soft-reject, skip consumed input and continue
+    Main, // hard-reject current parselet and exit to main scope ('escape'-keyword)
     Error(Box<Error>), //hard-reject with error message (runtime error)
-            // todo: Exit(u32) // stop entire program with exit code
+          // todo: Exit(u32) // stop entire program with exit code
 }
 
 impl From<Error> for Reject {

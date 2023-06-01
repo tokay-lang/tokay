@@ -139,10 +139,10 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.runtime.debug == 3 {
+            if context.debug == 3 {
                 context.log(&format!("{:03}:{:?}", ip, op));
-            } else if context.runtime.debug > 3 {
-                if context.runtime.debug > 5 {
+            } else if context.debug > 3 {
+                if context.debug > 5 {
                     // Skip any Nop-Operations
                     if matches!(op, Op::Nop | Op::Offset(_)) {
                         ip += 1;
@@ -155,7 +155,7 @@ impl Op {
                 dump(ops, context, ip);
 
                 // Dump stack and frames
-                if context.runtime.debug > 4 {
+                if context.debug > 4 {
                     context.log("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
                         context.log(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
@@ -170,7 +170,7 @@ impl Op {
                 }
 
                 // Step-by-step
-                if context.runtime.debug > 5 {
+                if context.debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }
@@ -220,15 +220,12 @@ impl Op {
                 Op::Collect => Ok(Accept::Push(context.collect(
                     context.frame.capture_start,
                     false,
-                    context.runtime.debug > 5,
+                    context.debug > 5,
                 ))),
 
                 Op::InCollect => {
-                    let mut capture = context.collect(
-                        context.frame.capture_start,
-                        false,
-                        context.runtime.debug > 5,
-                    );
+                    let mut capture =
+                        context.collect(context.frame.capture_start, false, context.debug > 5);
 
                     if capture.get_severity() > 5 {
                         capture.set_severity(5);
@@ -369,7 +366,10 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Repeat(Some(value)))
                 }
-                Op::Reject => Err(Reject::Return),
+                Op::Reject => {
+                    state = Err(Reject::Next);
+                    break;
+                }
                 Op::LoadExit => {
                     std::process::exit(context.pop().to_i64()? as i32);
                 }
@@ -388,7 +388,7 @@ impl Op {
                 Op::CallOrCopy => {
                     let value = context.pop();
 
-                    if false && context.runtime.debug > 3 {
+                    if false && context.debug > 3 {
                         println!(
                             "CallOrCopy is_callable={:?} is_mutable={:?}",
                             value.is_callable(true),
@@ -710,7 +710,7 @@ impl Op {
             };
 
             // Debug
-            if context.runtime.debug > 3 {
+            if context.debug > 3 {
                 context.log(&format!("ip = {} state = {:?}", ip, state));
             }
 
@@ -749,7 +749,7 @@ impl Op {
             context.frame = context.frames.pop().unwrap();
         }
 
-        if context.runtime.debug > 3 {
+        if context.debug > 3 {
             context.log(&format!("exit state = {:?}", state));
         }
 

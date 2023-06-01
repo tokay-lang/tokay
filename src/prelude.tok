@@ -1,4 +1,23 @@
 # Tokay default prelude
 
+Repeat : @<P> min=1, max=void {
+    P {
+        res += $1
+
+        if !max || res.len < max {
+            repeat
+        }
+    }
+
+    end {
+        print("Repeat", res, res.len, min)
+        if res.len < min {
+            reject
+        }
+
+        res
+    }
+}
+
 Number : Float | Int
 Token : Word | Number | AsciiPunctuation

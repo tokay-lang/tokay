@@ -40,6 +40,7 @@ pub struct Context<'program, 'parselet, 'runtime> {
     pub runtime: &'runtime mut Runtime, // Overall runtime
 
     pub depth: usize, // Recursion depth
+    pub debug: u8,    // Debug level
 
     // Positions
     pub stack_start: usize, // Stack start (including locals and parameters)
@@ -89,6 +90,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         // Create Context
         Self {
+            debug: runtime.debug,
             program,
             parselet,
             runtime,
@@ -495,20 +497,20 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
     /// Run the current context with the associated parselet
     pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
-        if main {
-            return self.run_as_main();
-        }
-
         // Debugging
-        if self.runtime.debug < 3 {
+        if self.debug < 3 {
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
                 for name in inspect.split(" ") {
                     if name == self.parselet.name {
-                        self.runtime.debug = 6;
+                        self.debug = 6;
                         break;
                     }
                 }
             }
+        }
+
+        if main {
+            return self.run_as_main();
         }
 
         // collected results (from repeated parselet)
