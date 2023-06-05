@@ -513,9 +513,6 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             return self.run_as_main();
         }
 
-        // collected results (from repeated parselet)
-        let mut retlist = List::new();
-
         // Begin
         let mut ret = match self.execute(&self.parselet.begin) {
             Ok(Accept::Next) | Err(Reject::Skip) => Capture::Empty,
@@ -523,11 +520,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 self.reset(Some(self.runtime.reader.tell()));
                 capture
             }
-            Ok(Accept::Repeat(value)) => {
-                if let Some(value) = value {
-                    retlist.push(value);
-                }
-
+            Ok(Accept::Repeat) => {
                 self.reset(Some(self.runtime.reader.tell()));
                 Capture::Empty
             }
@@ -542,11 +535,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 Err(Reject::Skip) => {}
                 Ok(Accept::Next) => break ret,
                 Ok(Accept::Push(capture)) => break capture,
-                Ok(Accept::Repeat(value)) => {
-                    if let Some(value) = value {
-                        retlist.push(value);
-                    }
-                }
+                Ok(Accept::Repeat) => {}
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
                 Err(Reject::Next) if !first => break Capture::Empty,
                 other => return other,
@@ -559,31 +548,11 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         // End
         ret = match self.execute(&self.parselet.end) {
-            Ok(Accept::Next) | Err(Reject::Skip) => ret,
+            Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Repeat) => ret,
             Ok(Accept::Push(capture)) => capture,
-            Ok(Accept::Repeat(value)) => {
-                if let Some(value) = value {
-                    retlist.push(value);
-                }
-
-                ret
-            }
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
         };
-
-        // retlist has higher priority than ret
-        if !retlist.is_empty() {
-            ret = Capture::Value(
-                if retlist.len() > 1 {
-                    RefValue::from(retlist)
-                } else {
-                    retlist.pop().unwrap()
-                },
-                None,
-                self.parselet.severity,
-            );
-        }
 
         Ok(Accept::Push(ret).into_push(self.parselet.severity))
     }
@@ -595,19 +564,15 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     */
     fn run_as_main(&mut self) -> Result<Accept, Reject> {
         // collected results
-        let mut retlist = List::new();
+        let mut results = List::new();
 
         // Begin
         match self.execute(&self.parselet.begin) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                retlist.push(capture.extract(&self.runtime.reader));
+                results.push(capture.extract(&self.runtime.reader));
             }
-            Ok(Accept::Repeat(value)) => {
-                if let Some(value) = value {
-                    retlist.push(value);
-                }
-            }
+            Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
         };
@@ -622,13 +587,9 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                 | Ok(Accept::Next)
                 | Ok(Accept::Push(Capture::Empty)) => {}
                 Ok(Accept::Push(mut capture)) => {
-                    retlist.push(capture.extract(&self.runtime.reader));
+                    results.push(capture.extract(&self.runtime.reader));
                 }
-                Ok(Accept::Repeat(value)) => {
-                    if let Some(value) = value {
-                        retlist.push(value);
-                    }
-                }
+                Ok(Accept::Repeat) => {}
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
                 other => return other,
             }
@@ -651,24 +612,20 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         match self.execute(&self.parselet.end) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                retlist.push(capture.extract(&self.runtime.reader));
+                results.push(capture.extract(&self.runtime.reader));
             }
-            Ok(Accept::Repeat(value)) => {
-                if let Some(value) = value {
-                    retlist.push(value);
-                }
-            }
+            Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
         };
 
-        // retlist has higher priority than ret
-        if !retlist.is_empty() {
+        // results has higher priority than ret
+        if !results.is_empty() {
             Ok(Accept::Push(Capture::Value(
-                if retlist.len() > 1 {
-                    RefValue::from(retlist)
+                if results.len() > 1 {
+                    RefValue::from(results)
                 } else {
-                    retlist.pop().unwrap()
+                    results.pop().unwrap()
                 },
                 None,
                 self.parselet.severity,

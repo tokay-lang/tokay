@@ -1,9 +1,12 @@
 P: @{
-    'a' repeat $1
+    begin count = 0
+    'x' count++ repeat
+    end count
 }
 
 P
+
 #---
-#aaaa
+#xaxxx
 #---
-#("a", "a", "a", "a")
+#(1, 3)

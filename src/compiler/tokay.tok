@@ -368,7 +368,7 @@ Statement : @{
     'next' _standalone_  ast("op_next")
     'push' _standalone_ Expression?  ast("op_push")
     'reject' _standalone_  ast("op_reject")
-    'repeat' _standalone_ Expression?  ast("op_repeat")
+    'repeat' _standalone_  ast("op_repeat")
     'return' _standalone_ Expression?  ast("op_accept")
     Expression
 }

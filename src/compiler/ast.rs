@@ -1157,7 +1157,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             let op = match parts[1] {
-                "accept" | "break" | "exit" | "push" | "repeat" => {
+                "accept" | "break" | "exit" | "push" => {
                     if parts[1] == "break" && !compiler.loop_check() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
@@ -1178,7 +1178,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "break" => Op::LoadBreak.into(),
                             "exit" => Op::LoadExit.into(),
                             "push" => Op::LoadPush.into(),
-                            "repeat" => Op::LoadRepeat.into(),
                             _ => unreachable!(),
                         }
                     } else {
@@ -1187,7 +1186,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "break" => Op::Break.into(),
                             "exit" => Op::Exit.into(),
                             "push" => Op::Push.into(),
-                            "repeat" => Op::Repeat.into(),
                             _ => unreachable!(),
                         }
                     }
@@ -1209,6 +1207,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "nop" => ImlOp::Nop,
 
                 "reject" => Op::Reject.into(),
+
+                "repeat" => Op::Repeat.into(),
 
                 "unary" => {
                     let children = node["children"].borrow();

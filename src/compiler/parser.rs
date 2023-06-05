@@ -6700,14 +6700,6 @@ impl Parser {
                                                                         "value" => "_standalone_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "op_mod_opt",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "Expression"
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
                                                                         "emit" => "call",
                                                                         "children" =>
                                                                             (value!([

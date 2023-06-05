@@ -52,7 +52,6 @@ pub(crate) enum Op {
     Accept,                // Ok(Accept::Return)
     LoadAccept,            // Ok(Accept::Return) with value
     Repeat,                // Ok(Accept::Repeat)
-    LoadRepeat,            // Ok(Accept::Repeat) with value
     Reject,                // Ok(Err::Reject)
     LoadExit,              // Exit with errorcode
     Exit,                  // Exit with 0
@@ -361,11 +360,7 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Return(Some(value)))
                 }
-                Op::Repeat => Ok(Accept::Repeat(None)),
-                Op::LoadRepeat => {
-                    let value = context.pop();
-                    Ok(Accept::Repeat(Some(value)))
-                }
+                Op::Repeat => Ok(Accept::Repeat),
                 Op::Reject => {
                     state = Err(Reject::Next);
                     break;
