@@ -54,16 +54,16 @@ impl ImlProgram {
         let mut finalize = Vec::new(); // list of consuming parselets required to be finalized
 
         // Loop until end of statics is reached
-        let mut i = 0;
+        let mut idx = 0;
 
         // self.statics grows inside of this while loop, therefore this condition.
-        while i < self.statics.len() {
+        while idx < self.statics.len() {
             // Pick only intermediate parselets, other static values are directly moved
-            let outer = match self.statics.get_index_mut(i).unwrap() {
+            let outer = match self.statics.get_index_mut(idx).unwrap() {
                 (_, Some(_)) => unreachable!(), // may not exist!
                 (ImlValue::Parselet(parselet), None) => parselet.clone(),
                 _ => {
-                    i += 1;
+                    idx += 1;
                     continue;
                 }
             };
@@ -79,9 +79,9 @@ impl ImlProgram {
             }
 
             // Compile VM parselet from intermediate parselet
-            *self.statics.get_index_mut(i).unwrap().1 = Some(parselet.compile(&mut self));
+            *self.statics.get_index_mut(idx).unwrap().1 = Some(parselet.compile(&mut self, idx));
 
-            i += 1;
+            idx += 1;
         }
 
         let leftrec = self.finalize(finalize);
@@ -150,6 +150,10 @@ impl ImlProgram {
                 ImlValue::Shared(value) => {
                     finalize_value(&*value.borrow(), current, visited, configs)
                 }
+                ImlValue::This(_) => Some(Consumable {
+                    leftrec: true,
+                    nullable: false,
+                }),
                 ImlValue::Parselet(parselet) => {
                     match parselet.try_borrow() {
                         // In case the parselet cannot be borrowed, it is left-recursive!

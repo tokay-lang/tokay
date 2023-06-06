@@ -53,7 +53,7 @@ impl Program {
                     Ok(Some(value.clone()))
                 }
             }
-            Ok(_) => Ok(None),
+            Ok(_) | Err(Reject::Next) => Ok(None),
             Err(Reject::Error(error)) => Err(*error),
             Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
         }

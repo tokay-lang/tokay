@@ -14,7 +14,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 
 _standalone_ : @{
     # helper parselet to ensure that identifiers stand alone
-    # fixme: When generic parselets are available, this can be replaced by a Standalone<K> invocation
+    # fixme: When generic parselets are available, this can be replaced by a Keyword<P> invocation
     peek not Char<A-Z_a-z> _
     _
 }
@@ -238,6 +238,7 @@ TokenLiteral : @{
     'Chars'  ast("value_token_anys")
     'Char' '<' Ccl '>'  ast("value_token_ccl")
     'Char'  ast("value_token_any")
+    'Self'  ast("value_token_self")
 }
 
 TokenAtom : @{
@@ -268,6 +269,7 @@ Literal : @{
     'false' _standalone_  ast("value_false")
     'void' _standalone_  ast("value_void")
     'null' _standalone_  ast("value_null")
+    'self' _standalone_  ast("value_self")
     T_String  ast("value_string")
     T_Float
     T_Integer

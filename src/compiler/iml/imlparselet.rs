@@ -72,7 +72,7 @@ impl ImlParselet {
         self as *const ImlParselet as usize
     }
 
-    pub fn compile(&self, program: &mut ImlProgram) -> Parselet {
+    pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
         let model = self.model.borrow();
 
         Parselet::new(
@@ -95,9 +95,9 @@ impl ImlParselet {
                 })
                 .collect(),
             model.locals,
-            model.begin.compile_to_vec(program, self),
-            model.end.compile_to_vec(program, self),
-            model.body.compile_to_vec(program, self),
+            model.begin.compile_to_vec(program, self, this),
+            model.end.compile_to_vec(program, self, this),
+            model.body.compile_to_vec(program, self, this),
         )
     }
 }

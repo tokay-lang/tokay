@@ -16,10 +16,12 @@ pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "Char" | "Chars" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit"
         | "expect" | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek"
-        | "push" | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
-            None,
-            format!("Expected identifier, found reserved word '{}'", ident),
-        )),
+        | "push" | "reject" | "repeat" | "return" | "self" | "Self" | "true" | "void" => {
+            Err(Error::new(
+                None,
+                format!("Expected identifier, found reserved word '{}'", ident),
+            ))
+        }
         _ => Ok(()),
     }
 }
@@ -83,6 +85,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_null" => ImlValue::Value(compiler.statics[1].clone()),
         "value_true" => ImlValue::Value(compiler.statics[2].clone()),
         "value_false" => ImlValue::Value(compiler.statics[3].clone()),
+        "value_self" => ImlValue::This(false),
         "value_integer" => match node["value"].to_i64() {
             Ok(0) => ImlValue::Value(compiler.statics[4].clone()),
             Ok(1) => ImlValue::Value(compiler.statics[5].clone()),
@@ -92,6 +95,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_string" => compiler.register_static(node["value"].clone()),
 
         // Tokens
+        "value_token_self" => ImlValue::This(true),
         "value_token_match" | "value_token_touch" => {
             let mut value = node["value"].to_string();
 

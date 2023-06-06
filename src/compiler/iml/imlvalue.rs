@@ -24,6 +24,7 @@ pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved: static
+    This(bool),                  // current function (false) or parselet (true)
     Value(RefValue),             // Compile-time static value
     Parselet(ImlSharedParselet), // Parselet instance
 
@@ -146,7 +147,7 @@ impl ImlValue {
                                 compiler.errors.push(Error::new(
                                     args[0].0, // report first parameter
                                     format!(
-                                        "{} got too many  generic arguments ({} in total, expected {})",
+                                        "{} got too many generic arguments ({} in total, expected {})",
                                         target,
                                         new_constants.len() + args.len(),
                                         new_constants.len()
@@ -214,6 +215,7 @@ impl ImlValue {
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
             Self::Shared(value) => value.borrow().is_callable(without_arguments),
+            Self::This(_) => true, // fixme?
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
                 let parselet = parselet.borrow();
@@ -237,6 +239,7 @@ impl ImlValue {
     pub fn is_consuming(&self) -> bool {
         match self {
             Self::Shared(value) => value.borrow().is_consuming(),
+            Self::This(consuming) => *consuming,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
             Self::Name { name, .. } => crate::utils::identifier_is_consumable(name),
@@ -250,6 +253,7 @@ impl ImlValue {
         &self,
         program: &mut ImlProgram,
         parselet: &ImlParselet,
+        this: usize,
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,
@@ -258,11 +262,14 @@ impl ImlValue {
             ops.push(Op::Offset(Box::new(*offset)));
         }
 
+        // Remember current ops start
         let start = ops.len();
 
         match self {
             ImlValue::Shared(value) => {
-                return value.borrow().compile(program, parselet, offset, call, ops)
+                return value
+                    .borrow()
+                    .compile(program, parselet, this, offset, call, ops)
             }
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
@@ -282,7 +289,9 @@ impl ImlValue {
                 name,
                 generic: true,
                 ..
-            } => return parselet.constants[name].compile(program, parselet, offset, call, ops),
+            } => {
+                return parselet.constants[name].compile(program, parselet, this, offset, call, ops)
+            }
             ImlValue::Name {
                 name,
                 generic: false,
@@ -299,6 +308,7 @@ impl ImlValue {
 
                 return;
             }
+            ImlValue::This(_) => {}
             ImlValue::Parselet(parselet) => {
                 // When value is a parselet, check for accepted constant configuration
                 let parselet = parselet.borrow();
@@ -328,7 +338,10 @@ impl ImlValue {
 
         // Check if something has been pushed before.
         if start == ops.len() {
-            let idx = program.register(self).unwrap();
+            let idx = match self {
+                ImlValue::This(_) => this,
+                _ => program.register(self).unwrap(),
+            };
 
             match call {
                 // Load
@@ -366,6 +379,8 @@ impl std::fmt::Display for ImlValue {
         match self {
             Self::Void => write!(f, "void"),
             Self::Shared(value) => value.borrow().fmt(f),
+            Self::This(true) => write!(f, "Self"),
+            Self::This(false) => write!(f, "self"),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet(parselet) => write!(f, "{}", parselet),
             Self::Name { name, .. } => write!(f, "{}", name),

@@ -273,9 +273,14 @@ impl ImlOp {
     }
 
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
-    pub fn compile_to_vec(&self, program: &mut ImlProgram, parselet: &ImlParselet) -> Vec<Op> {
+    pub fn compile_to_vec(
+        &self,
+        program: &mut ImlProgram,
+        parselet: &ImlParselet,
+        this: usize,
+    ) -> Vec<Op> {
         let mut ops = Vec::new();
-        self.compile(program, parselet, &mut ops);
+        self.compile(program, parselet, this, &mut ops);
         ops
     }
 
@@ -284,6 +289,7 @@ impl ImlOp {
         &self,
         program: &mut ImlProgram,
         parselet: &ImlParselet,
+        this: usize,
         ops: &mut Vec<Op>,
     ) -> usize {
         let start = ops.len();
@@ -292,14 +298,14 @@ impl ImlOp {
             ImlOp::Nop => {}
             ImlOp::Op(op) => ops.push(op.clone()),
             ImlOp::Load { offset, target } => {
-                target.compile(program, parselet, &offset, None, ops);
+                target.compile(program, parselet, this, &offset, None, ops);
             }
             ImlOp::Call {
                 offset,
                 target,
                 args,
             } => {
-                target.compile(program, parselet, &offset, Some(*args), ops);
+                target.compile(program, parselet, this, &offset, Some(*args), ops);
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
@@ -309,7 +315,7 @@ impl ImlOp {
 
                 while let Some(item) = iter.next() {
                     let mut alt = Vec::new();
-                    item.compile(program, parselet, &mut alt);
+                    item.compile(program, parselet, this, &mut alt);
 
                     // When branch has more than one item, Frame it.
                     if iter.len() > 0 {
@@ -350,7 +356,7 @@ impl ImlOp {
             }
             ImlOp::Seq { seq, collection } => {
                 for item in seq.iter() {
-                    item.compile(program, parselet, ops);
+                    item.compile(program, parselet, this, ops);
                 }
 
                 // Check if the sequence exists of more than one operational instruction
@@ -385,13 +391,13 @@ impl ImlOp {
                 }
 
                 // Then-part
-                let mut jump = then_part.compile(program, parselet, ops) + 1;
+                let mut jump = then_part.compile(program, parselet, this, ops) + 1;
 
                 if !*peek {
                     let mut else_ops = Vec::new();
 
                     // Else-part
-                    if else_part.compile(program, parselet, &mut else_ops) > 0 {
+                    if else_part.compile(program, parselet, this, &mut else_ops) > 0 {
                         ops.push(Op::Forward(else_ops.len() + 1));
                         jump += 1;
                         ops.extend(else_ops);
@@ -416,9 +422,9 @@ impl ImlOp {
                 let consuming: Option<bool> = None; // fixme: Currently not sure if this is an issue.
                 let mut repeat = Vec::new();
 
-                initial.compile(program, parselet, ops);
+                initial.compile(program, parselet, this, ops);
 
-                if condition.compile(program, parselet, &mut repeat) > 0 {
+                if condition.compile(program, parselet, this, &mut repeat) > 0 {
                     if *iterator {
                         repeat.push(Op::ForwardIfNotVoid(2));
                     } else {
@@ -428,7 +434,7 @@ impl ImlOp {
                     repeat.push(Op::Break);
                 }
 
-                body.compile(program, parselet, &mut repeat);
+                body.compile(program, parselet, this, &mut repeat);
                 let len = repeat.len() + if consuming.is_some() { 3 } else { 2 };
 
                 ops.push(Op::Loop(len));
@@ -448,7 +454,7 @@ impl ImlOp {
             // DEPRECATED BELOW!!!
             ImlOp::Expect { body, msg } => {
                 let mut expect = Vec::new();
-                body.compile(program, parselet, &mut expect);
+                body.compile(program, parselet, this, &mut expect);
 
                 ops.push(Op::Frame(expect.len() + 2));
 
@@ -465,7 +471,7 @@ impl ImlOp {
             }
             ImlOp::Not { body } => {
                 let mut body_ops = Vec::new();
-                let body_len = body.compile(program, parselet, &mut body_ops);
+                let body_len = body.compile(program, parselet, this, &mut body_ops);
                 ops.push(Op::Frame(body_len + 3));
                 ops.extend(body_ops);
                 ops.push(Op::Close);
@@ -474,13 +480,13 @@ impl ImlOp {
             }
             ImlOp::Peek { body } => {
                 ops.push(Op::Frame(0));
-                body.compile(program, parselet, ops);
+                body.compile(program, parselet, this, ops);
                 ops.push(Op::Reset);
                 ops.push(Op::Close);
             }
             ImlOp::Repeat { body, min, max } => {
                 let mut body_ops = Vec::new();
-                let body_len = body.compile(program, parselet, &mut body_ops);
+                let body_len = body.compile(program, parselet, this, &mut body_ops);
 
                 match (min, max) {
                     (0, 0) => {
