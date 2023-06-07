@@ -3924,7 +3924,7 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "Token1"
+                                        "value" => "Token"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
@@ -4049,8 +4049,8 @@ impl Parser {
                                                                         "emit" => "op_mod_expect",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "Token1"
+                                                                                "emit" => "value_token_self",
+                                                                                "value" => "Self"
                                                                             ]))
                                                                     ])),
                                                                     (value!([
@@ -4089,8 +4089,8 @@ impl Parser {
                                                                         "emit" => "op_mod_expect",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "Token1"
+                                                                                "emit" => "value_token_self",
+                                                                                "value" => "Self"
                                                                             ]))
                                                                     ])),
                                                                     (value!([
@@ -4129,8 +4129,8 @@ impl Parser {
                                                                         "emit" => "op_mod_expect",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "Token1"
+                                                                                "emit" => "value_token_self",
+                                                                                "value" => "Self"
                                                                             ]))
                                                                     ])),
                                                                     (value!([
@@ -4425,7 +4425,7 @@ impl Parser {
                                                         ])),
                                                         (value!([
                                                             "emit" => "identifier",
-                                                            "value" => "Token1"
+                                                            "value" => "Token"
                                                         ])),
                                                         (value!([
                                                             "emit" => "sequence",
@@ -7379,7 +7379,7 @@ impl Parser {
                                                                                         (value!([
                                                                                             (value!([
                                                                                                 "emit" => "identifier",
-                                                                                                "value" => "Token1"
+                                                                                                "value" => "Token"
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "identifier",

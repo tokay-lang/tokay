@@ -21,7 +21,7 @@ Repeat : @<P> min=1, max=void {
 
 List : @<P, Separator: (',' _), empty: true> {
     Self Separator P   $1 + $3
-    if empty Self Separator   # allows for trailing Separator
+    if empty (Self Separator)   # allows for trailing Separator
     P  ($1, )
 }
 
