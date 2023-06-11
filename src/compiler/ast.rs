@@ -1214,6 +1214,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                 "repeat" => Op::Repeat.into(),
 
+                "deref" => {
+                    let children = node["children"].borrow();
+                    let children = children.object::<Dict>().unwrap();
+
+                    traverse_node_rvalue(compiler, children, Rvalue::Load)
+                }
+
                 "unary" => {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();

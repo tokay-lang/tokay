@@ -299,6 +299,7 @@ Rvalue : @{
 Unary : @{
     '-' not '-' _ Unary  ast("op_unary_neg")
     '!' _ Unary  ast("op_unary_not")
+    '*' _ Unary  ast("op_deref")
     Rvalue _
 }
 
