@@ -1,5 +1,5 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-use std::collections::HashSet;
+use indexmap::IndexMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -162,13 +162,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
         "value_parselet" => {
             compiler.parselet_push();
 
-            // Generic signature
-            let mut gen: Vec<(String, Option<ImlValue>)> = Vec::new();
-            let mut gen_names = HashSet::new();
-
-            // Function signature
-            let mut sig: Vec<(String, Option<ImlValue>)> = Vec::new();
-            let mut sig_names = HashSet::new();
+            let mut constants: IndexMap<String, ImlValue> = IndexMap::new();
+            let mut signature: IndexMap<String, ImlValue> = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -186,35 +181,42 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                 match emit {
                     "gen" => {
+                        let offset = traverse_node_offset(node);
+
                         // check if identifier was not provided twice
-                        if gen_names.contains(&ident) {
+                        if constants.contains_key(&ident) {
                             compiler.errors.push(Error::new(
-                                traverse_node_offset(node),
+                                offset,
                                 format!("Generic '{}' already given in signature before", ident),
                             ));
 
                             continue;
-                        } else {
-                            gen_names.insert(ident.clone());
                         }
 
-                        compiler.set_constant(&ident, ImlValue::Generic(ident.to_string()));
+                        compiler.set_constant(
+                            &ident,
+                            ImlValue::Name {
+                                offset,
+                                generic: true,
+                                name: ident.to_string(),
+                            },
+                        );
 
                         assert!(children.len() <= 2);
-                        let default = if children.len() == 2 {
-                            let default = children[1].borrow();
-                            let value = traverse_node_static(
-                                compiler,
-                                Some(&ident),
-                                default.object::<Dict>().unwrap(),
-                            );
-                            Some(value)
-                        } else {
-                            None
-                        };
 
-                        gen.push((ident.to_string(), default));
-                        //println!("{} {} {:?}", emit.to_string(), ident, default);
+                        constants.insert(
+                            ident.to_string(),
+                            if children.len() == 2 {
+                                let default = children[1].borrow();
+                                traverse_node_static(
+                                    compiler,
+                                    Some(&ident),
+                                    default.object::<Dict>().unwrap(),
+                                )
+                            } else {
+                                ImlValue::Void
+                            },
+                        );
                     }
                     "arg" => {
                         let first = ident.chars().nth(0).unwrap();
@@ -241,33 +243,32 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         }
 
                         // check if identifier was not provided twice
-                        if sig_names.contains(&ident) {
+                        if signature.contains_key(&ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", ident),
                             ));
 
                             continue;
-                        } else {
-                            sig_names.insert(ident.clone());
                         }
 
                         compiler.new_local(&ident);
 
                         assert!(children.len() <= 2);
-                        let default = if children.len() == 2 {
-                            let default = children[1].borrow();
-                            let value = traverse_node_static(
-                                compiler,
-                                Some(&ident),
-                                default.object::<Dict>().unwrap(),
-                            );
-                            Some(value)
-                        } else {
-                            None
-                        };
 
-                        sig.push((ident.to_string(), default));
+                        signature.insert(
+                            ident.to_string(),
+                            if children.len() == 2 {
+                                let default = children[1].borrow();
+                                traverse_node_static(
+                                    compiler,
+                                    Some(&ident),
+                                    default.object::<Dict>().unwrap(),
+                                )
+                            } else {
+                                ImlValue::Void
+                            },
+                        );
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     _ => unreachable!(),
@@ -281,13 +282,82 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 traverse_node_offset(node),
                 None,
                 None,
-                Some(gen),
-                Some(sig),
+                Some(constants),
+                Some(signature),
                 body,
             );
 
             //println!("parselet = {:#?}", ret);
-            return ret;
+            ret
+        }
+
+        "value_generic" => {
+            let children = List::from(&node["children"]);
+
+            // Traverse the target
+            let target = &children[0].borrow();
+            let target = target.object::<Dict>().unwrap();
+            let target = traverse_node_static(compiler, None, target);
+
+            // Traverse generic arguments
+            let mut config = Vec::new();
+
+            for genarg in children[1..].iter() {
+                let genarg = genarg.borrow();
+                let genarg = genarg.object::<Dict>().unwrap();
+
+                let offset = traverse_node_offset(genarg);
+                let emit = genarg["emit"].borrow();
+
+                match emit.object::<Str>().unwrap().as_str() {
+                    "genarg" => {
+                        let param = &genarg["children"].borrow();
+                        let param = param.object::<Dict>().unwrap();
+
+                        config.push((offset, None, traverse_node_static(compiler, None, param)));
+                    }
+
+                    "genarg_named" => {
+                        let children = List::from(&genarg["children"]);
+
+                        let ident = children[0].borrow();
+                        let ident = ident.object::<Dict>().unwrap();
+                        let ident = ident["value"].borrow();
+                        let ident = ident.object::<Str>().unwrap().as_str();
+
+                        /*
+                        if by_name.contains_key(ident) {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(genarg),
+                                format!("Named constant '{}' provided more than once.", ident),
+                            ));
+
+                            continue;
+                        }
+                        */
+
+                        let param = &children[1].borrow();
+                        let param = param.object::<Dict>().unwrap();
+
+                        config.push((
+                            offset,
+                            Some(ident.to_string()),
+                            traverse_node_static(compiler, None, param),
+                        ));
+                    }
+
+                    other => unimplemented!("Unhandled genarg type {:?}", other),
+                }
+            }
+
+            let mut ret = ImlValue::Instance {
+                target: Box::new(target),
+                config,
+                offset: traverse_node_offset(node),
+            };
+
+            ret.resolve(compiler);
+            ret
         }
 
         _ => unimplemented!("unhandled value node {}", emit),
@@ -308,10 +378,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
             value!(void).into()
         }
         // Defined parselet or value
-        ImlOp::Load {
-            target: ImlTarget::Static(value),
-            ..
-        } => {
+        ImlOp::Load { target: value, .. } => {
             compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
             if let Some(lvalue) = lvalue {
@@ -381,7 +448,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children).value();
+                        let index = traverse_node_value(compiler, children).into_refvalue();
 
                         if store {
                             if hold {
@@ -406,93 +473,98 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 let name = item["value"].borrow();
                 let name = name.object::<Str>().unwrap().as_str();
 
-                // Check for not assigning to a constant (at any level)
-                if compiler.get_constant(name).is_some() {
-                    compiler.errors.push(Error::new(
-                        traverse_node_offset(node),
-                        format!("Cannot assign to constant '{}'", name),
-                    ));
-
-                    break;
-                }
-
-                // Check if identifier is valid
-                if let Err(mut error) = identifier_is_valid(name) {
-                    if let Some(offset) = traverse_node_offset(node) {
-                        error.patch_offset(offset);
-                    }
-
-                    compiler.errors.push(error);
-                    break;
-                }
-
-                // Check if identifier is not defining a consumable
-                if utils::identifier_is_consumable(name) {
-                    compiler.errors.push(Error::new(
-                        traverse_node_offset(node),
-
-                        if &name[0..1] == "_" {
-                            format!(
-                                "The variable '{}' is invalid, only constants may start with '_'",
-                                name
-                            )
-                        }
-                        else {
-                            format!(
-                                "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
-                                name, name.to_lowercase()
-                            )
-                        }
-                    ));
-
-                    break;
-                }
-
                 /* Generates code for a symbol store, which means:
 
                     1. look-up local variable, and store into
                     2. look-up global variable, and store into
                     3. create local variable, and store into
                 */
-                if let Some(addr) = compiler.get_local(name) {
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreFastHold(addr).into())
+                match compiler.get(name) {
+                    // Known local
+                    Some(ImlValue::Local(addr)) => {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreFast(addr).into())
+                            }
                         } else {
-                            ops.push(Op::StoreFast(addr).into())
+                            ops.push(Op::LoadFast(addr).into())
                         }
-                    } else {
-                        ops.push(Op::LoadFast(addr).into())
                     }
-                } else if let Some(addr) = compiler.get_global(name) {
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreGlobalHold(addr).into())
+                    // Known global
+                    Some(ImlValue::Global(addr)) => {
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreGlobalHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreGlobal(addr).into())
+                            }
                         } else {
-                            ops.push(Op::StoreGlobal(addr).into())
+                            ops.push(Op::LoadGlobal(addr).into())
                         }
-                    } else {
-                        ops.push(Op::LoadGlobal(addr).into())
                     }
-                } else {
-                    // When chained lvalue, name must be declared!
-                    if children.len() > 1 {
+                    // Check for not assigning to a constant (at any level)
+                    Some(_) => {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
-                            format!("Undeclared variable '{}', please define it first", name),
+                            format!("Cannot assign to constant '{}'", name),
                         ));
                         break;
                     }
+                    // Undefined name
+                    None => {
+                        // Check if identifier is valid
+                        if let Err(mut error) = identifier_is_valid(name) {
+                            if let Some(offset) = traverse_node_offset(node) {
+                                error.patch_offset(offset);
+                            }
 
-                    let addr = compiler.new_local(name);
-                    if store {
-                        if hold {
-                            ops.push(Op::StoreFastHold(addr).into())
-                        } else {
-                            ops.push(Op::StoreFast(addr).into())
+                            compiler.errors.push(error);
+                            break;
                         }
-                    } else {
-                        ops.push(Op::LoadFast(addr).into())
+
+                        // Check if identifier is not defining a consumable
+                        if utils::identifier_is_consumable(name) {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+
+                                if &name[0..1] == "_" {
+                                    format!(
+                                        "The variable '{}' is invalid, only constants may start with '_'",
+                                        name
+                                    )
+                                }
+                                else {
+                                    format!(
+                                        "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                                        name, name.to_lowercase()
+                                    )
+                                }
+                            ));
+
+                            break;
+                        }
+
+                        // When chained lvalue, name must be declared!
+                        if children.len() > 1 {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!("Undeclared variable '{}', please define it first", name),
+                            ));
+                            break;
+                        }
+
+                        let addr = compiler.new_local(name);
+                        if store {
+                            if hold {
+                                ops.push(Op::StoreFastHold(addr).into())
+                            } else {
+                                ops.push(Op::StoreFast(addr).into())
+                            }
+                        } else {
+                            ops.push(Op::LoadFast(addr).into())
+                        }
                     }
                 }
             }
@@ -731,14 +803,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         }
 
         // block ----------------------------------------------------------
-        "block" | "main" => {
+        "block" | "body" | "main" => {
             if let Some(ast) = node.get_str("children") {
                 if emit == "block" {
                     compiler.block_push();
                 }
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
-                else if compiler.scopes.len() != 1 {
+                else if emit == "main" && compiler.scopes.len() != 1 {
                     compiler.parselet_push(); // Main
                 }
 
@@ -759,20 +831,24 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     unreachable!();
                 };
 
-                if emit == "block" {
-                    compiler.block_pop();
-                    body
-                } else {
-                    let main = compiler.parselet_pop(
-                        None,
-                        Some("__main__".to_string()),
-                        None,
-                        None,
-                        None,
-                        body,
-                    );
+                match emit {
+                    "block" => {
+                        compiler.block_pop();
+                        body
+                    }
+                    "main" => {
+                        let main = compiler.parselet_pop(
+                            None,
+                            Some("__main__".to_string()),
+                            None,
+                            None,
+                            None,
+                            body,
+                        );
 
-                    ImlOp::call(None, main, None)
+                        ImlOp::call(None, main, None)
+                    }
+                    _ => body,
                 }
             } else {
                 ImlOp::Nop
@@ -869,7 +945,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         "capture_index" => {
             let children = node["children"].borrow();
-            let index = traverse_node_value(compiler, children.object::<Dict>().unwrap()).value();
+            let index =
+                traverse_node_value(compiler, children.object::<Dict>().unwrap()).into_refvalue();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
@@ -1167,7 +1244,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 peek: true,
                                 test: true,
                                 then: Box::new(right),
-                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                                else_: Box::new(ImlOp::from(Op::Push)),
                             }
                         }
                         "or" => {
@@ -1178,7 +1255,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 peek: true,
                                 test: false,
                                 then: Box::new(right),
-                                else_: Box::new(ImlOp::from(Op::PushVoid)),
+                                else_: Box::new(ImlOp::from(Op::Push)),
                             }
                         }
                         _ => {
@@ -1233,16 +1310,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     "opt" => "?",
                                     other => other,
                                 },
-                                if matches!(
-                                    res,
-                                    ImlOp::Load {
-                                        target: ImlTarget::Static(_),
-                                        ..
-                                    } | ImlOp::Call {
-                                        target: ImlTarget::Static(_),
-                                        ..
-                                    }
-                                ) {
+                                if matches!(res, ImlOp::Load { .. } | ImlOp::Call { .. }) {
                                     "value"
                                 } else {
                                     "sequence"
@@ -1255,7 +1323,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Modifiers on usages of Token::Char can be optimized for better efficiency
                     if let ImlOp::Call {
-                        target: ImlTarget::Static(ImlValue::Value(target)),
+                        target: ImlValue::Value(target),
                         ..
                     } = &res
                     {
@@ -1331,7 +1399,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             Rvalue::CallOrLoad,
                         )
                     } else {
-                        ImlOp::from(Op::PushVoid)
+                        ImlOp::from(Op::Push)
                     };
 
                     // Compile time evaluation;

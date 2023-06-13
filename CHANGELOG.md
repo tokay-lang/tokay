@@ -4,6 +4,13 @@
 
 Current main branch.
 
+- v0.6.2:
+  - Internal revision and clarification on compiler's intermediate structures `ImlOp`, `ImlValue` and `ImlProgram` (part of #105)
+- v0.6.1:
+  - Comparison chains within expressions (#103)
+  - Iterators and `for...in`-syntax (#101)
+  - `Chars<...>` in addition to `Char<...>` syntax
+
 ## [v0.6]
 
 Released on Jan 13, 2023
@@ -17,7 +24,6 @@ Released on Jan 13, 2023
   - Operator `%` for modulo operation implemented
   - Area syntax `@(...)` for in-place reader extend (#78)
   - Character-class syntax changed from `[a-z]` into `Char<a-z>`, `.` and `Any` substituted by `Char` (#98)
-  )
   - Improved syntax for inline blocks and sequences (`|`-operator)
   - Improved list syntax
     - `()` the empty list

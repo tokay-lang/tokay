@@ -48,7 +48,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -166,7 +166,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -230,7 +230,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -380,7 +380,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -940,7 +940,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "call",
@@ -984,7 +984,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1086,7 +1086,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1192,7 +1192,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1328,7 +1328,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1464,7 +1464,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "call",
@@ -1508,7 +1508,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "call",
@@ -1552,7 +1552,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -1626,7 +1626,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -1736,7 +1736,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -1824,7 +1824,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1886,7 +1886,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -1940,7 +1940,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2112,7 +2112,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2140,7 +2140,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -2198,7 +2198,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2358,7 +2358,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -2396,8 +2396,22 @@ impl Parser {
                                                                     "emit" => "op_mod_expect",
                                                                     "children" =>
                                                                         (value!([
-                                                                            "emit" => "identifier",
-                                                                            "value" => "Block"
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Block"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "value_string",
+                                                                                                "value" => "body"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
                                                                         ]))
                                                                 ])),
                                                                 (value!([
@@ -2436,7 +2450,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -2512,7 +2526,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -2592,7 +2606,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -2672,7 +2686,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "op_mod_pos",
@@ -2754,7 +2768,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2858,7 +2872,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2966,7 +2980,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -3082,7 +3096,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -3328,7 +3342,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -3580,7 +3594,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -3676,7 +3690,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "op_mod_pos",
@@ -3730,7 +3744,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -3950,7 +3964,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -4082,7 +4096,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -4322,7 +4336,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -4506,7 +4520,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -4814,7 +4828,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -4948,7 +4962,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5062,7 +5076,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5262,7 +5276,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5390,7 +5404,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5692,7 +5706,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5760,7 +5774,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -5828,7 +5842,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -6214,7 +6228,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -6600,7 +6614,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -6968,102 +6982,118 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
-                                                "children" =>
-                                                    (value!([
+                                                (value!([
+                                                    "emit" => "arg",
+                                                    "children" =>
                                                         (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "{"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "___"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "}"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "value_void"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "{"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "op_mod_kle",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "Instruction"
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "op_mod_expect",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "value_token_touch",
-                                                                                "value" => "}"
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "block"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
+                                                            (value!([
+                                                                "emit" => "identifier",
+                                                                "value" => "emit"
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "value_string",
+                                                                "value" => "block"
+                                                            ]))
                                                         ]))
-                                                    ]))
+                                                ])),
+                                                (value!([
+                                                    "emit" => "body",
+                                                    "children" =>
+                                                        (value!([
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "{"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "___"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "}"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "value_string",
+                                                                                                "value" => "value_void"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "{"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "op_mod_kle",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "Instruction"
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "op_mod_expect",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    "emit" => "value_token_touch",
+                                                                                    "value" => "}"
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "emit"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ]))
+                                                        ]))
+                                                ]))
                                             ]))
                                     ]))
                                 ]))
@@ -7080,7 +7110,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -7196,7 +7226,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
@@ -7270,7 +7300,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -7348,7 +7378,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -7632,7 +7662,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
