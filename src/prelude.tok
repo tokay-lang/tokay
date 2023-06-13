@@ -1,4 +1,27 @@
 # Tokay default prelude
 
+Repeat : @<P> min=1, max=void {
+    P {
+        res += $1
+        if !max || res.len < max repeat
+    }
+
+    end {
+        if res.len < min reject
+        res
+    }
+}
+
+List : @<P, Separator: (',' _), empty: true> {
+    Self Separator P   $1 + $3
+    if empty (Self Separator)   # allows for trailing Separator
+    P  ($1, )
+}
+
+Expect : @<P> msg=void {
+    P
+    error(msg || "Expecting " + *P)
+}
+
 Number : Float | Int
 Token : Word | Number | AsciiPunctuation

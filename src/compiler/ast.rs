@@ -16,10 +16,12 @@ pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "Char" | "Chars" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit"
         | "expect" | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek"
-        | "push" | "reject" | "repeat" | "return" | "true" | "void" => Err(Error::new(
-            None,
-            format!("Expected identifier, found reserved word '{}'", ident),
-        )),
+        | "push" | "reject" | "repeat" | "return" | "self" | "Self" | "true" | "void" => {
+            Err(Error::new(
+                None,
+                format!("Expected identifier, found reserved word '{}'", ident),
+            ))
+        }
         _ => Ok(()),
     }
 }
@@ -43,6 +45,8 @@ pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> 
 
 // Extract offset positions into an Offset structure
 fn traverse_node_offset(node: &Dict) -> Option<Offset> {
+    //return None; // Temporarily discard any Offset information (shortens debug output)
+
     let offset = node
         .get_str("offset")
         .and_then(|offset| Some(offset.to_usize().unwrap()));
@@ -77,15 +81,21 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_string" => ImlValue::from(node["value"].clone()),
-        "value_integer" => node["value"].clone().into(),
-        "value_float" => node["value"].clone().into(),
-        "value_true" => value!(true).into(),
-        "value_false" => value!(false).into(),
-        "value_null" => value!(null).into(),
-        "value_void" => value!(void).into(),
+        "value_void" => ImlValue::Value(compiler.statics[0].clone()),
+        "value_null" => ImlValue::Value(compiler.statics[1].clone()),
+        "value_true" => ImlValue::Value(compiler.statics[2].clone()),
+        "value_false" => ImlValue::Value(compiler.statics[3].clone()),
+        "value_self" => ImlValue::This(false),
+        "value_integer" => match node["value"].to_i64() {
+            Ok(0) => ImlValue::Value(compiler.statics[4].clone()),
+            Ok(1) => ImlValue::Value(compiler.statics[5].clone()),
+            _ => compiler.register_static(node["value"].clone()),
+        },
+        "value_float" => compiler.register_static(node["value"].clone()),
+        "value_string" => compiler.register_static(node["value"].clone()),
 
         // Tokens
+        "value_token_self" => ImlValue::This(true),
         "value_token_match" | "value_token_touch" => {
             let mut value = node["value"].to_string();
 
@@ -97,14 +107,18 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 value = "#INVALID".to_string();
             }
 
-            if emit == "value_token_match" {
-                RefValue::from(Token::Match(value)).into()
+            compiler.register_static(if emit == "value_token_match" {
+                RefValue::from(Token::Match(value))
             } else {
-                RefValue::from(Token::Touch(value)).into()
-            }
+                RefValue::from(Token::Touch(value))
+            })
         }
-        "value_token_any" => RefValue::from(Token::Char(CharClass::new().negate())).into(),
-        "value_token_anys" => RefValue::from(Token::Chars(CharClass::new().negate())).into(),
+        "value_token_any" => {
+            compiler.register_static(RefValue::from(Token::Char(CharClass::new().negate())))
+        }
+        "value_token_anys" => {
+            compiler.register_static(RefValue::from(Token::Chars(CharClass::new().negate())))
+        }
         "value_token_ccl" | "value_token_ccls" => {
             let many = emit.ends_with("s");
 
@@ -151,11 +165,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 assert!(emit == "ccl");
             }
 
-            if many {
-                RefValue::from(Token::Chars(ccl)).into()
+            compiler.register_static(if many {
+                RefValue::from(Token::Chars(ccl))
             } else {
-                RefValue::from(Token::Char(ccl)).into()
-            }
+                RefValue::from(Token::Char(ccl))
+            })
         }
 
         // Parselets
@@ -300,7 +314,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             let target = traverse_node_static(compiler, None, target);
 
             // Traverse generic arguments
-            let mut config = Vec::new();
+            let mut args = Vec::new();
+            let mut nargs = IndexMap::new();
 
             for genarg in children[1..].iter() {
                 let genarg = genarg.borrow();
@@ -311,10 +326,21 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                 match emit.object::<Str>().unwrap().as_str() {
                     "genarg" => {
+                        if !nargs.is_empty() {
+                            compiler.errors.push(Error::new(
+                                traverse_node_offset(node),
+                                format!(
+                                    "Sequencial generics need to be specified before named generics."
+                                ),
+                            ));
+
+                            continue;
+                        }
+
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        config.push((offset, None, traverse_node_static(compiler, None, param)));
+                        args.push((offset, traverse_node_static(compiler, None, param)));
                     }
 
                     "genarg_named" => {
@@ -325,25 +351,22 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         let ident = ident["value"].borrow();
                         let ident = ident.object::<Str>().unwrap().as_str();
 
-                        /*
-                        if by_name.contains_key(ident) {
+                        if nargs.contains_key(ident) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(genarg),
-                                format!("Named constant '{}' provided more than once.", ident),
+                                format!("Named generic '{}' provided more than once.", ident),
                             ));
 
                             continue;
                         }
-                        */
 
                         let param = &children[1].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        config.push((
-                            offset,
-                            Some(ident.to_string()),
-                            traverse_node_static(compiler, None, param),
-                        ));
+                        nargs.insert(
+                            ident.to_string(),
+                            (offset, traverse_node_static(compiler, None, param)),
+                        );
                     }
 
                     other => unimplemented!("Unhandled genarg type {:?}", other),
@@ -352,7 +375,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             let mut ret = ImlValue::Instance {
                 target: Box::new(target),
-                config,
+                args,
+                nargs,
                 offset: traverse_node_offset(node),
             };
 
@@ -448,7 +472,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children).into_refvalue();
+                        let index = traverse_node_value(compiler, children).unwrap();
 
                         if store {
                             if hold {
@@ -945,8 +969,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         "capture_index" => {
             let children = node["children"].borrow();
-            let index =
-                traverse_node_value(compiler, children.object::<Dict>().unwrap()).into_refvalue();
+            let index = traverse_node_value(compiler, children.object::<Dict>().unwrap()).unwrap();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
@@ -1138,7 +1161,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             let op = match parts[1] {
-                "accept" | "break" | "exit" | "push" | "repeat" => {
+                "accept" | "break" | "exit" | "push" => {
                     if parts[1] == "break" && !compiler.loop_check() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
@@ -1159,7 +1182,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "break" => Op::LoadBreak.into(),
                             "exit" => Op::LoadExit.into(),
                             "push" => Op::LoadPush.into(),
-                            "repeat" => Op::LoadRepeat.into(),
                             _ => unreachable!(),
                         }
                     } else {
@@ -1168,7 +1190,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "break" => Op::Break.into(),
                             "exit" => Op::Exit.into(),
                             "push" => Op::Push.into(),
-                            "repeat" => Op::Repeat.into(),
                             _ => unreachable!(),
                         }
                     }
@@ -1190,6 +1211,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "nop" => ImlOp::Nop,
 
                 "reject" => Op::Reject.into(),
+
+                "repeat" => Op::Repeat.into(),
+
+                "deref" => {
+                    let children = node["children"].borrow();
+                    let children = children.object::<Dict>().unwrap();
+
+                    traverse_node_rvalue(compiler, children, Rvalue::Load)
+                }
 
                 "unary" => {
                     let children = node["children"].borrow();

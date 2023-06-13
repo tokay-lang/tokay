@@ -22,7 +22,7 @@ pub enum Accept {
     Next,                     // soft-accept, run next instructions at incremented ip
     Hold,                     // soft-accept, run next instruction at current ip
     Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
-    Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
+    Repeat,                   // hard-accept, repeat parselet on current position ('repeat'-keyword)
     Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
 }
 
@@ -37,13 +37,8 @@ impl Accept {
                 }
                 Self::Push(capture)
             }
-            Self::Repeat(value) | Self::Return(value) => {
-                if let Some(value) = value {
-                    Self::Push(Capture::Value(value, None, severity))
-                } else {
-                    Self::Push(Capture::Empty)
-                }
-            }
+            Self::Repeat | Self::Return(None) => Self::Push(Capture::Empty),
+            Self::Return(Some(value)) => Self::Push(Capture::Value(value, None, severity)),
         }
     }
 
@@ -51,7 +46,7 @@ impl Accept {
     pub fn into_refvalue(self) -> RefValue {
         match self {
             Self::Push(capture) => capture.get_value(),
-            Self::Repeat(Some(value)) | Self::Return(Some(value)) => value,
+            Self::Return(Some(value)) => value,
             _ => tokay::value!(void),
         }
     }
@@ -74,12 +69,11 @@ impl From<Value> for Result<Accept, Reject> {
 /// Representing the Err-value result on a branched run of the VM.
 #[derive(Debug, Clone)]
 pub enum Reject {
-    Next,   // soft-reject, continue with next sequence
-    Skip,   // soft-reject, skip consumed input and continue
-    Return, // hard-reject current parselet ('return'/'reject'-keyword)
-    Main,   // hard-reject current parselet and exit to main scope ('escape'-keyword)
+    Next, // soft-reject, continue with next sequence
+    Skip, // soft-reject, skip consumed input and continue
+    Main, // hard-reject current parselet and exit to main scope ('escape'-keyword)
     Error(Box<Error>), //hard-reject with error message (runtime error)
-            // todo: Exit(u32) // stop entire program with exit code
+          // todo: Exit(u32) // stop entire program with exit code
 }
 
 impl From<Error> for Reject {

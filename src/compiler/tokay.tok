@@ -14,7 +14,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 
 _standalone_ : @{
     # helper parselet to ensure that identifiers stand alone
-    # fixme: When generic parselets are available, this can be replaced by a Standalone<K> invocation
+    # fixme: When generic parselets are available, this can be replaced by a Keyword<P> invocation
     peek not Char<A-Z_a-z> _
     _
 }
@@ -244,6 +244,7 @@ TokenLiteral : @{
     'Chars'  ast("value_token_anys")
     'Char' '<' Ccl '>'  ast("value_token_ccl")
     'Char'  ast("value_token_any")
+    'Self'  ast("value_token_self")
 }
 
 TokenAtom : @{
@@ -255,14 +256,14 @@ TokenAtom : @{
     ParseletInstance
 }
 
-Token1 : @{  # todo: Token1 can be renamed back to Token again when #31 is fixed and Self is used.
+Token : @{
     TokenAtom '+'  ast("op_mod_pos")
     TokenAtom '*'  ast("op_mod_kle")
     TokenAtom '?'  ast("op_mod_opt")
     TokenAtom
-    'peek' _standalone_ expect Token1  ast("op_mod_peek")
-    'not' _standalone_ expect Token1  ast("op_mod_not")
-    'expect' _standalone_ expect Token1  ast("op_mod_expect")
+    'peek' _standalone_ expect Self  ast("op_mod_peek")
+    'not' _standalone_ expect Self  ast("op_mod_not")
+    'expect' _standalone_ expect Self  ast("op_mod_expect")
 }
 
 # Expression & Flow
@@ -274,6 +275,7 @@ Literal : @{
     'false' _standalone_  ast("value_false")
     'void' _standalone_  ast("value_void")
     'null' _standalone_  ast("value_null")
+    'self' _standalone_  ast("value_self")
     T_String  ast("value_string")
     T_Float
     T_Integer
@@ -284,7 +286,7 @@ Literal : @{
 Atomic : @{
     '(' _ ___ HoldExpression ___ ')'
     Literal
-    Token1
+    Token
     'if' _standalone_ expect HoldExpression ___ expect Statement (___ 'else' _standalone_ ___ expect Statement)?  ast("op_if")
     'for' _standalone_ expect Lvalue _ expect 'in' _standalone_ expect Expression ___ expect Statement  ast("op_for")
     'loop' _standalone_ HoldExpression ___ Block  ast("op_loop")
@@ -303,6 +305,7 @@ Rvalue : @{
 Unary : @{
     '-' not '-' _ Unary  ast("op_unary_neg")
     '!' _ Unary  ast("op_unary_not")
+    '*' _ Unary  ast("op_deref")
     Rvalue _
 }
 
@@ -374,7 +377,7 @@ Statement : @{
     'next' _standalone_  ast("op_next")
     'push' _standalone_ Expression?  ast("op_push")
     'reject' _standalone_  ast("op_reject")
-    'repeat' _standalone_ Expression?  ast("op_repeat")
+    'repeat' _standalone_  ast("op_repeat")
     'return' _standalone_ Expression?  ast("op_accept")
     Expression
 }
@@ -406,7 +409,7 @@ Instruction : @{
     'end' _standalone_ Sequences expect T_EOL  ast("end")
     T_Identifier _ ':' _ {
         Literal _ peek T_EOL
-        Token1 _ peek T_EOL
+        Token _ peek T_EOL
         Sequences
     } expect T_EOL  ast("constant")
     Statement T_EOL

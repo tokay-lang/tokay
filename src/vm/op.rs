@@ -14,7 +14,7 @@ Atomic operations.
 
 Specifies all atomic level VM code operations to run the Tokay VM.
 */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging
@@ -46,14 +46,12 @@ pub(crate) enum Op {
     Backward(usize), // Jump backward
 
     // Interrupts
-    Skip,                  // Err(Reject::Skip)
     Next,                  // Err(Reject::Next)
     Push,                  // Ok(Accept::Push)
     LoadPush,              // Ok(Accept::Push) with value
     Accept,                // Ok(Accept::Return)
     LoadAccept,            // Ok(Accept::Return) with value
     Repeat,                // Ok(Accept::Repeat)
-    LoadRepeat,            // Ok(Accept::Repeat) with value
     Reject,                // Ok(Err::Reject)
     LoadExit,              // Exit with errorcode
     Exit,                  // Exit with 0
@@ -140,10 +138,10 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.runtime.debug == 3 {
+            if context.debug == 3 {
                 context.log(&format!("{:03}:{:?}", ip, op));
-            } else if context.runtime.debug > 3 {
-                if context.runtime.debug > 5 {
+            } else if context.debug > 3 {
+                if context.debug > 5 {
                     // Skip any Nop-Operations
                     if matches!(op, Op::Nop | Op::Offset(_)) {
                         ip += 1;
@@ -156,7 +154,7 @@ impl Op {
                 dump(ops, context, ip);
 
                 // Dump stack and frames
-                if context.runtime.debug > 4 {
+                if context.debug > 4 {
                     context.log("--- Stack ---");
                     for i in 0..context.runtime.stack.len() {
                         context.log(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
@@ -171,7 +169,7 @@ impl Op {
                 }
 
                 // Step-by-step
-                if context.runtime.debug > 5 {
+                if context.debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }
@@ -354,7 +352,6 @@ impl Op {
                 }
 
                 // Interrupts
-                Op::Skip => Err(Reject::Skip), // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),
@@ -368,12 +365,11 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Return(Some(value)))
                 }
-                Op::Repeat => Ok(Accept::Repeat(None)),
-                Op::LoadRepeat => {
-                    let value = context.pop();
-                    Ok(Accept::Repeat(Some(value)))
+                Op::Repeat => Ok(Accept::Repeat),
+                Op::Reject => {
+                    state = Err(Reject::Next);
+                    break;
                 }
-                Op::Reject => Err(Reject::Return),
                 Op::LoadExit => {
                     std::process::exit(context.pop().to_i64()? as i32);
                 }
@@ -392,7 +388,7 @@ impl Op {
                 Op::CallOrCopy => {
                     let value = context.pop();
 
-                    if false && context.runtime.debug > 3 {
+                    if false && context.debug > 3 {
                         println!(
                             "CallOrCopy is_callable={:?} is_mutable={:?}",
                             value.is_callable(true),
@@ -657,6 +653,7 @@ impl Op {
                 Op::Sep => {
                     let mut value = context.pop();
 
+                    // fixme: Replace by https://doc.rust-lang.org/std/rc/struct.Rc.html#method.unwrap_or_clone ?
                     if Rc::strong_count(&value) > 1 {
                         value = RefValue::from({
                             let inner = value.borrow();
@@ -713,7 +710,7 @@ impl Op {
             };
 
             // Debug
-            if context.runtime.debug > 3 {
+            if context.debug > 3 {
                 context.log(&format!("ip = {} state = {:?}", ip, state));
             }
 
@@ -752,7 +749,7 @@ impl Op {
             context.frame = context.frames.pop().unwrap();
         }
 
-        if context.runtime.debug > 3 {
+        if context.debug > 3 {
             context.log(&format!("exit state = {:?}", state));
         }
 

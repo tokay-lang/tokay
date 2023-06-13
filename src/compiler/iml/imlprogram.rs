@@ -6,9 +6,7 @@ use crate::vm::Program;
 use crate::Error;
 use crate::{Object, RefValue};
 use indexmap::IndexMap;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
 
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlProgram {
@@ -29,16 +27,20 @@ impl ImlProgram {
 
     /** Registers an ImlValue in the ImlProgram's statics map and returns its index.
 
+    Only resolved values can be registered.
+
     In case *value* already exists inside of the current statics, the existing index will be returned,
     otherwiese the value is cloned and put into the statics table. */
-    pub fn register(&mut self, value: &ImlValue) -> usize {
-        if let ImlValue::Shared(value) = value {
-            return self.register(&*value.borrow());
-        }
-
-        match self.statics.get_index_of(value) {
-            None => self.statics.insert_full(value.clone(), None).0,
-            Some(idx) => idx,
+    pub fn register(&mut self, value: &ImlValue) -> Result<usize, ()> {
+        match value {
+            ImlValue::Shared(value) => self.register(&*value.borrow()),
+            ImlValue::Parselet { .. } | ImlValue::Value(_) => {
+                match self.statics.get_index_of(value) {
+                    None => Ok(self.statics.insert_full(value.clone(), None).0),
+                    Some(idx) => Ok(idx),
+                }
+            }
+            _ => Err(()), // Cannot register this kind of value
         }
     }
 
@@ -52,56 +54,34 @@ impl ImlProgram {
         let mut finalize = Vec::new(); // list of consuming parselets required to be finalized
 
         // Loop until end of statics is reached
-        let mut i = 0;
+        let mut idx = 0;
 
-        while i < self.statics.len() {
+        // self.statics grows inside of this while loop, therefore this condition.
+        while idx < self.statics.len() {
             // Pick only intermediate parselets, other static values are directly moved
-            let outer = {
-                match self.statics.get_index(i).unwrap() {
-                    (_, Some(_)) => unreachable!(), // may not exist!
-                    (ImlValue::Parselet(parselet), None) => parselet.clone(),
-                    _ => {
-                        i += 1;
-                        continue;
-                    }
+            let outer = match self.statics.get_index_mut(idx).unwrap() {
+                (_, Some(_)) => unreachable!(), // may not exist!
+                (ImlValue::Parselet(parselet), None) => parselet.clone(),
+                _ => {
+                    idx += 1;
+                    continue;
                 }
             };
 
+            // We have to do it this ugly way because of the borrow checker...
             let parselet = outer.borrow();
+            let model = parselet.model.borrow();
 
             // Memoize parselets required to be finalized (needs a general rework later...)
-            if parselet.consuming {
+            if model.consuming {
+                //fixme...
                 finalize.push(outer.clone());
             }
 
-            // Compile parselet from intermediate parselet
-            let parselet = Parselet::new(
-                parselet.name.clone(),
-                None,
-                parselet.severity,
-                parselet
-                    .signature
-                    .iter()
-                    .map(|var_value| {
-                        (
-                            // Copy parameter name
-                            var_value.0.clone(),
-                            // Register default value, if any
-                            match &var_value.1 {
-                                ImlValue::Void => None,
-                                value => Some(self.register(value)),
-                            },
-                        )
-                    })
-                    .collect(),
-                parselet.locals,
-                parselet.begin.compile_to_vec(&mut self),
-                parselet.end.compile_to_vec(&mut self),
-                parselet.body.compile_to_vec(&mut self),
-            );
+            // Compile VM parselet from intermediate parselet
+            *self.statics.get_index_mut(idx).unwrap().1 = Some(parselet.compile(&mut self, idx));
 
-            *self.statics.get_index_mut(i).unwrap().1 = Some(parselet);
-            i += 1;
+            idx += 1;
         }
 
         let leftrec = self.finalize(finalize);
@@ -127,7 +107,7 @@ impl ImlProgram {
 
                     RefValue::from(parselet)
                 } else {
-                    iml.into_refvalue()
+                    iml.unwrap()
                 }
             })
             .collect();
@@ -152,7 +132,7 @@ impl ImlProgram {
 
     It can only be run on a previously compiled program without any unresolved usages.
     */
-    fn finalize(&mut self, parselets: Vec<Rc<RefCell<ImlParselet>>>) -> HashMap<usize, bool> {
+    fn finalize(&mut self, parselets: Vec<ImlSharedParselet>) -> HashMap<usize, bool> {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
         struct Consumable {
             leftrec: bool,
@@ -162,11 +142,18 @@ impl ImlProgram {
         // Finalize ImlValue
         fn finalize_value(
             value: &ImlValue,
+            current: &ImlParselet,
             visited: &mut HashSet<usize>,
             configs: &mut HashMap<usize, Consumable>,
         ) -> Option<Consumable> {
             match value {
-                ImlValue::Shared(value) => finalize_value(&*value.borrow(), visited, configs),
+                ImlValue::Shared(value) => {
+                    finalize_value(&*value.borrow(), current, visited, configs)
+                }
+                ImlValue::This(_) => Some(Consumable {
+                    leftrec: true,
+                    nullable: false,
+                }),
                 ImlValue::Parselet(parselet) => {
                     match parselet.try_borrow() {
                         // In case the parselet cannot be borrowed, it is left-recursive!
@@ -189,6 +176,11 @@ impl ImlProgram {
                         None
                     }
                 }
+                ImlValue::Name {
+                    name,
+                    generic: true,
+                    ..
+                } => finalize_value(&current.constants[name], current, visited, configs),
                 _ => None,
             }
         }
@@ -196,18 +188,19 @@ impl ImlProgram {
         // Finalize ImlOp
         fn finalize_op(
             op: &ImlOp,
+            current: &ImlParselet,
             visited: &mut HashSet<usize>,
             configs: &mut HashMap<usize, Consumable>,
         ) -> Option<Consumable> {
             match op {
-                ImlOp::Call { target, .. } => finalize_value(target, visited, configs),
+                ImlOp::Call { target, .. } => finalize_value(target, current, visited, configs),
                 ImlOp::Alt { alts } => {
                     let mut leftrec = false;
                     let mut nullable = false;
                     let mut consumes = false;
 
                     for alt in alts {
-                        if let Some(consumable) = finalize_op(alt, visited, configs) {
+                        if let Some(consumable) = finalize_op(alt, current, visited, configs) {
                             leftrec |= consumable.leftrec;
                             nullable |= consumable.nullable;
                             consumes = true;
@@ -230,7 +223,7 @@ impl ImlProgram {
                             break;
                         }
 
-                        if let Some(consumable) = finalize_op(item, visited, configs) {
+                        if let Some(consumable) = finalize_op(item, current, visited, configs) {
                             leftrec |= consumable.leftrec;
                             nullable = consumable.nullable;
                             consumes = true;
@@ -244,9 +237,9 @@ impl ImlProgram {
                     }
                 }
                 ImlOp::If { then, else_, .. } => {
-                    let then = finalize_op(then, visited, configs);
+                    let then = finalize_op(then, current, visited, configs);
 
-                    if let Some(else_) = finalize_op(else_, visited, configs) {
+                    if let Some(else_) = finalize_op(else_, current, visited, configs) {
                         if let Some(then) = then {
                             Some(Consumable {
                                 leftrec: then.leftrec || else_.leftrec,
@@ -268,7 +261,7 @@ impl ImlProgram {
                     let mut ret: Option<Consumable> = None;
 
                     for part in [initial, condition, body] {
-                        let part = finalize_op(part, visited, configs);
+                        let part = finalize_op(part, current, visited, configs);
 
                         if let Some(part) = part {
                             ret = if let Some(ret) = ret {
@@ -286,10 +279,12 @@ impl ImlProgram {
                 }
 
                 // DEPRECATED BELOW!!!
-                ImlOp::Expect { body, .. } => finalize_op(body, visited, configs),
-                ImlOp::Not { body } | ImlOp::Peek { body } => finalize_op(body, visited, configs),
+                ImlOp::Expect { body, .. } => finalize_op(body, current, visited, configs),
+                ImlOp::Not { body } | ImlOp::Peek { body } => {
+                    finalize_op(body, current, visited, configs)
+                }
                 ImlOp::Repeat { body, min, .. } => {
-                    if let Some(consumable) = finalize_op(body, visited, configs) {
+                    if let Some(consumable) = finalize_op(body, current, visited, configs) {
                         if *min == 0 {
                             Some(Consumable {
                                 leftrec: consumable.leftrec,
@@ -315,7 +310,9 @@ impl ImlProgram {
             configs: &mut HashMap<usize, Consumable>,
         ) -> Option<Consumable> {
             // ... only if it's generally flagged to be consuming.
-            if !parselet.consuming {
+            let model = parselet.model.borrow();
+
+            if !model.consuming {
                 return None;
             }
 
@@ -339,8 +336,8 @@ impl ImlProgram {
                     );
                 }
 
-                for part in [&parselet.begin, &parselet.body, &parselet.end] {
-                    if let Some(result) = finalize_op(part, visited, configs) {
+                for part in [&model.begin, &model.body, &model.end] {
+                    if let Some(result) = finalize_op(part, &parselet, visited, configs) {
                         if configs[&id] < result {
                             configs.insert(id, result);
                         }
