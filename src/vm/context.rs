@@ -377,7 +377,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                     idx += 1;
                 }
 
-                Capture::Value(mut value, alias, severity) if severity >= max => {
+                Capture::Value(value, alias, severity) if severity >= max => {
                     // On higher severity, drop all results collected so far
                     if severity > max {
                         idx = 0;
