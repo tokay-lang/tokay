@@ -3260,7 +3260,7 @@ impl Parser {
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "block",
+                                                "emit" => "body",
                                                 "children" =>
                                                     (value!([
                                                         "emit" => "sequence",
