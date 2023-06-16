@@ -16,7 +16,7 @@ pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
     match ident {
         "Char" | "Chars" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit"
         | "expect" | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek"
-        | "push" | "reject" | "repeat" | "return" | "self" | "Self" | "true" | "void" => {
+        | "push" | "reject" | "repeat" | "reset" | "return" | "self" | "Self" | "true" | "void" => {
             Err(Error::new(
                 None,
                 format!("Expected identifier, found reserved word '{}'", ident),
@@ -1206,6 +1206,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     Op::Continue.into()
                 }
 
+                "deref" => {
+                    let children = node["children"].borrow();
+                    let children = children.object::<Dict>().unwrap();
+
+                    traverse_node_rvalue(compiler, children, Rvalue::Load)
+                }
+
                 "next" => Op::Next.into(),
 
                 "nop" => ImlOp::Nop,
@@ -1214,12 +1221,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                 "repeat" => Op::Repeat.into(),
 
-                "deref" => {
-                    let children = node["children"].borrow();
-                    let children = children.object::<Dict>().unwrap();
-
-                    traverse_node_rvalue(compiler, children, Rvalue::Load)
-                }
+                "reset" => Op::Reset.into(),
 
                 "unary" => {
                     let children = node["children"].borrow();

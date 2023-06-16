@@ -18,6 +18,15 @@ List : @<P, Separator: (',' _), empty: true> {
     P  ($1, )
 }
 
+Not : @<P> {
+    P reject
+    accept
+}
+
+Peek : @<P> {
+    P reset
+}
+
 Expect : @<P> msg=void {
     P
     error(msg || "Expecting " + *P)

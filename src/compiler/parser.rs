@@ -6821,6 +6821,38 @@ impl Parser {
                                                                 (value!([
                                                                     (value!([
                                                                         "emit" => "value_token_touch",
+                                                                        "value" => "reset"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "_standalone_"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "call",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "ast"
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "callarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "value_string",
+                                                                                            "value" => "op_reset"
+                                                                                        ]))
+                                                                                ]))
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
+                                                        ])),
+                                                        (value!([
+                                                            "emit" => "sequence",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "value_token_touch",
                                                                         "value" => "return"
                                                                     ])),
                                                                     (value!([
