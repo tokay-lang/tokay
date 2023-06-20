@@ -100,7 +100,7 @@ impl ImlOp {
     }
 
     /// Load value
-    pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
+    pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, value: ImlValue) -> ImlOp {
         ImlOp::Load {
             offset,
             target: value,
@@ -109,24 +109,32 @@ impl ImlOp {
 
     /// Load unknown value by name
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        Self::load(
-            offset.clone(),
-            ImlValue::Name {
-                offset,
-                name,
-                generic: false,
-            }
-            .try_resolve(compiler),
-        )
+        let value = ImlValue::Name {
+            offset,
+            name,
+            generic: false,
+        }
+        .try_resolve(compiler);
+
+        Self::load(compiler, offset.clone(), value)
     }
 
     /// Call known value
-    pub fn call(offset: Option<Offset>, value: ImlValue, args: Option<(usize, bool)>) -> ImlOp {
+    pub fn call(
+        compiler: &mut Compiler,
+        offset: Option<Offset>,
+        value: ImlValue,
+        args: Option<(usize, bool)>,
+    ) -> ImlOp {
         // When args is unset, and the value is not callable without arguments,
-        // consider this call as a load.
+        // consider this call is a load.
         if args.is_none() && !value.is_callable(true) {
             // Currently not planned as final
-            return Self::load(offset, value);
+            return Self::load(compiler, offset, value);
+        }
+
+        if value.is_consuming() {
+            compiler.parselet_mark_consuming();
         }
 
         ImlOp::Call {
@@ -605,17 +613,15 @@ impl ImlOp {
                 ImlOp::Call { target, .. } => {
                     if target.is_consuming() {
                         consuming = true;
-                        return false; // stop further examination
                     }
                 }
                 ImlOp::Op(Op::Next) => {
                     consuming = true;
-                    return false; // stop further examination
                 }
                 _ => {}
             }
 
-            true
+            !consuming
         });
 
         consuming

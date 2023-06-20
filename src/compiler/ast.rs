@@ -39,7 +39,7 @@ pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> 
     } else if let Some(dict) = ast.borrow().object::<Dict>() {
         traverse_node_rvalue(compiler, dict, Rvalue::CallOrLoad)
     } else {
-        ImlOp::load(None, ImlValue::from(RefValue::from(ast.clone())))
+        ImlOp::load(compiler, None, ImlValue::from(RefValue::from(ast.clone())))
     }
 }
 
@@ -290,7 +290,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             let body = body.borrow();
-            let body = traverse_node_rvalue(compiler, body.object::<Dict>().unwrap(), Rvalue::Load);
+            let body =
+                traverse_node_rvalue(compiler, body.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
 
             let ret = compiler.parselet_pop(
                 traverse_node_offset(node),
@@ -709,9 +710,11 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
             let value = traverse_node_value(compiler, node);
 
             return match mode {
-                Rvalue::Load => ImlOp::load(offset, value),
-                Rvalue::CallOrLoad => ImlOp::call(offset, value, None),
-                Rvalue::Call(args, nargs) => ImlOp::call(offset, value, Some((args, nargs))),
+                Rvalue::Load => ImlOp::load(compiler, offset, value),
+                Rvalue::CallOrLoad => ImlOp::call(compiler, offset, value, None),
+                Rvalue::Call(args, nargs) => {
+                    ImlOp::call(compiler, offset, value, Some((args, nargs)))
+                }
             };
         }
 
@@ -870,7 +873,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             body,
                         );
 
-                        ImlOp::call(None, main, None)
+                        ImlOp::call(compiler, None, main, None)
                     }
                     _ => body,
                 }
@@ -928,6 +931,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let ident = ident.object::<Str>().unwrap().as_str();
 
                         ops.push(ImlOp::load(
+                            compiler,
                             traverse_node_offset(&param),
                             ImlValue::from(RefValue::from(ident)),
                         ));
@@ -1232,7 +1236,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     // Evaluate operation at compile-time if possible
                     if let Ok(value) = res.get_evaluable_value() {
                         if let Ok(value) = value.unary_op(parts[2]) {
-                            return ImlOp::load(traverse_node_offset(node), ImlValue::from(value));
+                            return ImlOp::load(
+                                compiler,
+                                traverse_node_offset(node),
+                                ImlValue::from(value),
+                            );
                         }
                     }
 
@@ -1297,6 +1305,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             {
                                 if let Ok(value) = left.binary_op(right, parts[2]) {
                                     return ImlOp::load(
+                                        compiler,
                                         traverse_node_offset(node),
                                         ImlValue::from(value),
                                     );
@@ -1366,6 +1375,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 // mod_pos on Token::Char becomes Token::Chars
                                 "pos" | "kle" => {
                                     let mut chars = ImlOp::call(
+                                        compiler,
                                         traverse_node_offset(node),
                                         ImlValue::from(RefValue::from(Token::Chars(ccl.clone()))),
                                         None,
@@ -1381,6 +1391,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 // mod_not on Token::Char becomes negated Token::Char
                                 "not" => {
                                     return ImlOp::call(
+                                        compiler,
                                         traverse_node_offset(node),
                                         ImlValue::from(RefValue::from(Token::Char(
                                             ccl.clone().negate(),
@@ -1475,22 +1486,20 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     // Create an iter() on the iter expression
                     let initial = ImlOp::from(vec![
                         traverse_node_rvalue(compiler, iter_expr, Rvalue::CallOrLoad),
-                        ImlOp::call(
-                            None,
-                            compiler.get_builtin("iter").unwrap(),
-                            Some((1, false)),
-                        ),
+                        {
+                            let iter = compiler.get_builtin("iter").unwrap();
+                            ImlOp::call(compiler, None, iter, Some((1, false)))
+                        },
                         ImlOp::from(Op::StoreFast(temp)),
                     ]);
 
                     // Create the condition, which calls iter_next() until void is returned
                     let condition = ImlOp::from(vec![
                         ImlOp::from(Op::LoadFast(temp)),
-                        ImlOp::call(
-                            None,
-                            compiler.get_builtin("iter_next").unwrap(),
-                            Some((1, false)),
-                        ),
+                        {
+                            let iter_next = compiler.get_builtin("iter_next").unwrap();
+                            ImlOp::call(compiler, None, iter_next, Some((1, false)))
+                        },
                         traverse_node_lvalue(
                             compiler, var, true, true, //hold for preceding loop break check
                         ),

@@ -433,15 +433,17 @@ impl Compiler {
 
         if name == "_" || name == "__" {
             self.parselet_push();
-            self.parselet_mark_consuming();
+
+            // becomes `Value+`
+            let value_pos = ImlOp::call(self, None, value, None).into_positive();
+
             value = self.parselet_pop(
                 None,
                 Some("__".to_string()),
                 Some(0), // Zero severity
                 None,
                 None,
-                // becomes `Value+`
-                ImlOp::call(None, value, None).into_positive(),
+                value_pos,
             );
 
             // Remind "__" as new constant
@@ -449,15 +451,17 @@ impl Compiler {
 
             // ...and then in-place "_" is defined as `_ : __?`
             self.parselet_push();
-            self.parselet_mark_consuming();
+
+            // becomes `Value?`
+            let value_opt = ImlOp::call(self, None, value, None).into_optional();
+
             value = self.parselet_pop(
                 None,
                 Some(name.to_string()),
                 Some(0), // Zero severity
                 None,
                 None,
-                // becomes `Value?`
-                ImlOp::call(None, value, None).into_optional(),
+                value_opt,
             );
 
             // Insert "_" afterwards
