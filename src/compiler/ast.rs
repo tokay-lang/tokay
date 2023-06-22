@@ -209,9 +209,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                         compiler.set_constant(
                             &ident,
-                            ImlValue::Name {
+                            ImlValue::Generic {
                                 offset,
-                                generic: true,
                                 name: ident.to_string(),
                             },
                         );

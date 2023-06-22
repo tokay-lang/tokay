@@ -109,12 +109,7 @@ impl ImlOp {
 
     /// Load unknown value by name
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        let value = ImlValue::Name {
-            offset,
-            name,
-            generic: false,
-        }
-        .try_resolve(compiler);
+        let value = ImlValue::Name { offset, name }.try_resolve(compiler);
 
         Self::load(compiler, offset.clone(), value)
     }
@@ -158,12 +153,7 @@ impl ImlOp {
 
         ImlOp::Call {
             offset: offset.clone(),
-            target: ImlValue::Name {
-                offset,
-                name,
-                generic: false,
-            }
-            .try_resolve(compiler),
+            target: ImlValue::Name { offset, name }.try_resolve(compiler),
             args,
         }
     }

@@ -36,7 +36,11 @@ pub(in crate::compiler) enum ImlValue {
     Name {
         // Unresolved name
         offset: Option<Offset>, // Source offset
-        generic: bool,          // Generic name, to be resolved during compilation
+        name: String,           // Identifier
+    },
+    Generic {
+        // Unresolved generic
+        offset: Option<Offset>, // Source offset
         name: String,           // Identifier
     },
     Instance {
@@ -64,12 +68,7 @@ impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
             Self::Shared(value) => return value.borrow_mut().resolve(compiler),
-            Self::Name {
-                name,
-                generic: false,
-                ..
-            } => compiler.get(&name),
-            Self::Name { generic: true, .. } => return false,
+            Self::Name { name, .. } => compiler.get(&name),
             Self::Instance {
                 offset,
                 target,
@@ -196,8 +195,7 @@ impl ImlValue {
 
         if let Some(resolve) = resolve {
             *self = resolve;
-            // Recall resolve on the resolved object.
-            return self.resolve(compiler);
+            return true;
         }
 
         false
@@ -244,17 +242,19 @@ impl ImlValue {
             Self::This(consuming) => *consuming,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
-            Self::Name { name, .. } => crate::utils::identifier_is_consumable(name),
+            Self::Name { name, .. } | Self::Generic { name, .. } => {
+                crate::utils::identifier_is_consumable(name)
+            }
             Self::Instance { target, .. } => target.is_consuming(),
             _ => false,
         }
     }
 
-    /// Compile a resolved intermediate value into VM code
+    /// Compile a resolved intermediate value into VM code or register it as a static
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        parselet: &ImlParselet,
+        current: &ImlParselet,
         this: usize,
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
@@ -271,7 +271,7 @@ impl ImlValue {
             ImlValue::Shared(value) => {
                 return value
                     .borrow()
-                    .compile(program, parselet, this, offset, call, ops)
+                    .compile(program, current, this, offset, call, ops)
             }
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
@@ -287,18 +287,10 @@ impl ImlValue {
             },
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
-            ImlValue::Name {
-                name,
-                generic: true,
-                ..
-            } => {
-                return parselet.constants[name].compile(program, parselet, this, offset, call, ops)
+            ImlValue::Generic { name, .. } => {
+                return current.constants[name].compile(program, current, this, offset, call, ops)
             }
-            ImlValue::Name {
-                name,
-                generic: false,
-                ..
-            } => {
+            ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
                     offset.clone(),
                     if call.is_some() {
@@ -312,13 +304,17 @@ impl ImlValue {
             }
             ImlValue::This(_) => {}
             ImlValue::Parselet(parselet) => {
-                // When value is a parselet, check for accepted constant configuration
                 let parselet = parselet.borrow();
+
+                // Check for accepted constant configuration;
+                // This has to be checked here, because a parselet is not always the result
+                // of an ImlValue::Instance, and therefore this can only be checked up here.
                 let mut required = Vec::new();
 
-                for (name, default) in &parselet.constants {
-                    if matches!(default, ImlValue::Void) {
-                        required.push(name.to_string());
+                for (name, value) in &parselet.constants {
+                    match value {
+                        ImlValue::Void => required.push(name.to_string()),
+                        _ => {}
                     }
                 }
 
@@ -326,7 +322,7 @@ impl ImlValue {
                     program.errors.push(Error::new(
                         offset.clone(),
                         format!(
-                            "Call to '{}' requires generic argument {}",
+                            "{} requires assignment of generic argument {}",
                             self,
                             required.join(", ")
                         ),
@@ -342,7 +338,13 @@ impl ImlValue {
         if start == ops.len() {
             let idx = match self {
                 ImlValue::This(_) => this,
-                ImlValue::Instance { .. } => panic!("OK"),
+                /*
+                ImlValue::Parselet(parselet) => {
+                    let parselet = parselet.borrow();
+
+
+                }
+                */
                 resolved => program.register(resolved).unwrap(),
             };
 
@@ -388,9 +390,8 @@ impl std::fmt::Display for ImlValue {
             Self::Parselet(parselet) => write!(f, "{}", parselet),
             Self::Global(var) => write!(f, "global({})", var),
             Self::Local(var) => write!(f, "local({})", var),
-            Self::Name { name, generic, .. } => {
-                write!(f, "{}{}", name, if *generic { "!" } else { "" })
-            }
+            Self::Name { name, .. } => write!(f, "{}", name),
+            Self::Generic { name, .. } => write!(f, "{}!", name),
             Self::Instance {
                 target,
                 args,

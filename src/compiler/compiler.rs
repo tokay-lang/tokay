@@ -499,10 +499,6 @@ impl Compiler {
                     ..
                 } => {
                     if let Some(value) = constants.get(name) {
-                        if !top_parselet && matches!(value, ImlValue::Name { generic: true, .. }) {
-                            continue;
-                        }
-
                         return Some(value.clone());
                     }
 

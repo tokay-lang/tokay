@@ -176,11 +176,9 @@ impl ImlProgram {
                         None
                     }
                 }
-                ImlValue::Name {
-                    name,
-                    generic: true,
-                    ..
-                } => finalize_value(&current.constants[name], current, visited, configs),
+                ImlValue::Generic { name, .. } => {
+                    finalize_value(&current.constants[name], current, visited, configs)
+                }
                 _ => None,
             }
         }

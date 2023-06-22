@@ -58,6 +58,8 @@ impl ImlParselet {
         }
     }
 
+    /// Derives a parselet from a given constants configuration.
+    //pub fn derive(&self, from: &IndexMap<String, ImlValue>, offset: Option<Offset>) -> Option<Self> {
     pub fn derive(&self, constants: IndexMap<String, ImlValue>, offset: Option<Offset>) -> Self {
         Self {
             model: self.model.clone(),
