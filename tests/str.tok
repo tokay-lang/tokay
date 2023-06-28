@@ -55,6 +55,12 @@ s.replace("g").upper
 "".join(l)
 "|".join(l)
 
+# split
+"aaa vx ad".split()
+"a b c d".split(" ")
+"a b c d".split(" ", 1)
+"a b c d".split(" ", 2)
+
 # repr
 repr("Hello\x09World")
 
@@ -98,5 +104,10 @@ repr("Hello\x09World")
 
 #"G0l1a2s3f4l5ü6g7e8l9"
 #"G0|l1|a2|s3|f4|l5|ü6|g7|e8|l9"
+
+#("aaa", "vx", "ad")
+#("a", "b", "c", "d")
+#("a", "b c d")
+#("a", "b", "c d")
 
 #"\"Hello\\tWorld\""
