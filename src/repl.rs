@@ -16,21 +16,23 @@ use crate::vm::Runtime;
 #[derive(Debug)]
 pub enum Stream {
     String(String),
-    File(File),
+    File(String, File),
     Stdin,
 }
 
 impl Stream {
     pub fn get_reader(&mut self) -> Reader {
         match self {
-            Stream::String(string) => Reader::new(Box::new(io::Cursor::new(string.clone()))),
-            Stream::File(file) => {
+            Stream::String(string) => Reader::new(None, Box::new(io::Cursor::new(string.clone()))),
+            Stream::File(filename, file) => {
                 let mut file = file.try_clone().expect("File cannot be cloned?");
                 file.seek(std::io::SeekFrom::Start(0))
                     .expect("Unable to seek to file's starting position");
-                Reader::new(Box::new(BufReader::new(file)))
+                Reader::new(Some(filename.clone()), Box::new(BufReader::new(file)))
             }
-            Stream::Stdin => Reader::new(Box::new(BufReader::new(io::stdin()))),
+            Stream::Stdin => {
+                Reader::new(Some("-".to_string()), Box::new(BufReader::new(io::stdin())))
+            }
         }
     }
 }
@@ -82,7 +84,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                 println!("<<< Debug switched off")
             }
             */
-            _ => match compiler.compile(Reader::new(Box::new(io::Cursor::new(code)))) {
+            _ => match compiler.compile(Reader::new(None, Box::new(io::Cursor::new(code)))) {
                 Ok(None) => {}
                 Ok(Some(program)) => {
                     for (name, stream) in &streams {
