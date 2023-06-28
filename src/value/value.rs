@@ -291,8 +291,20 @@ impl From<i64> for RefValue {
     }
 }
 
+impl From<u64> for RefValue {
+    fn from(int: u64) -> Self {
+        RefValue::from(Value::Int(BigInt::from(int)))
+    }
+}
+
 impl From<i32> for RefValue {
     fn from(int: i32) -> Self {
+        RefValue::from(Value::Int(BigInt::from(int)))
+    }
+}
+
+impl From<u32> for RefValue {
+    fn from(int: u32) -> Self {
         RefValue::from(Value::Int(BigInt::from(int)))
     }
 }

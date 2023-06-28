@@ -1,0 +1,7 @@
+print(offset)
+print((Int offset))
+#---
+#1234
+#---
+#(offset => 0, row => 1, col => 1)
+#(offset => 4, row => 1, col => 5)

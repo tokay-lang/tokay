@@ -192,3 +192,13 @@ tokay_function!("debug : @level", {
         __function, level
     )))
 });
+
+tokay_function!("offset : @", {
+    let offset = context.unwrap().runtime.reader.tell();
+    value!([
+        "offset" => (offset.offset),
+        "row" => (offset.row),
+        "col" => (offset.col)
+    ])
+    .into()
+});
