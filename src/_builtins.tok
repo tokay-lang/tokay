@@ -1,0 +1,31 @@
+# Builtin registry generator
+
+begin {
+    mod = offset()["filename"].split("/")
+    last = mod.len - 1
+    mod[last] = mod[last].replace(".rs")
+    if mod[last] == "mod" mod.pop()
+    if mod[0] == "." mod.pop(0)
+}
+
+'impl' _ Ident _ '{' {
+    impl = "::" + $3
+}
+
+'tokay_' kind => {
+    ''function''
+    ''method''
+    ''token''
+} '!' _ '(' _ '"' _ name => Ident {
+    #kind => $kind, name => $name, impl => impl
+    #accept "register(\"" + $name + "\", tokay_" + $kind + "_" + $name.lower() + ")"
+    path = "crate::" + "::".join(mod)
+    if $kind == "method" path += impl
+
+    print(
+          "    Builtin {\n" \
+        + "    " * 2 + "name: \"" + $name + "\",\n"  \
+        + "    " * 2 + "func: " + path + "::tokay_" + $kind + "_" + $name.lower() + ",\n"  \
+        + "    },"
+    )
+}

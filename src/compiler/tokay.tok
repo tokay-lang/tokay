@@ -1,6 +1,6 @@
 # Tokay grammar / parser
 # This program is used to generate Tokays own parser, and is written in Tokay itself.
-# Use the tooling in `gen_grammar/` for now.
+# Use the tooling in `build/` for now.
 
 # Whitespace & EOL
 
