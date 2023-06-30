@@ -2,13 +2,7 @@
 ETARENEG=cd ../src && awk -f ../build/etareneg.awk
 
 all:
-	@echo Please call one of the following targets:
-	@echo ""
-	@echo "  make parser         - build the parser"
-	@echo "  make reset_parser   - reset parser from git"
-	@echo "  make builtins       - build the builtin registry"
-	@echo "  make reset_builtins - reset builtin registry from git"
-	@echo ""
+	@echo No target specified. See README.md for details.
 
 # parser ----------------------------------------------------------------------
 PARSER=../src/compiler/parser.rs

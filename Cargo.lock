@@ -689,13 +689,11 @@ version = "0.6.2"
 dependencies = [
  "charclass",
  "clap 4.0.10",
- "glob",
  "indexmap",
  "num",
  "num-bigint",
  "num-parse",
  "rustyline 9.1.2",
- "tokay 0.4.0",
  "tokay-macros",
 ]
 
