@@ -1,0 +1,9 @@
+#testmode:repl
+
+(1, 2, (3, 4)).flatten
+(1, 2, (3, 4, (5,))).flatten  # fixme: flatten() should be parametrizeable, and default to 1?
+
+#---
+
+#(1, 2, 3, 4)
+#(1, 2, 3, 4, (5, ))
