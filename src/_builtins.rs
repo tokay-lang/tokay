@@ -5,7 +5,7 @@ DON'T CHANGE THIS FILE MANUALLY, IT WILL GO AWAY!!!
 */
 use crate::builtin::Builtin;
 
-pub static BUILTINS: [Builtin; 62] = [
+pub static BUILTINS: [Builtin; 63] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -173,6 +173,10 @@ pub static BUILTINS: [Builtin; 62] = [
     Builtin {
         name: "list_set_item",
         func: crate::value::list::List::tokay_method_list_set_item,
+    },
+    Builtin {
+        name: "list_sort",
+        func: crate::value::list::List::tokay_method_list_sort,
     },
     Builtin {
         name: "offset",

@@ -273,6 +273,15 @@ impl PartialOrd for Value {
     }
 }
 
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.partial_cmp(other) {
+            Some(ordering) => ordering,
+            None => self.id().cmp(&other.id()),
+        }
+    }
+}
+
 impl From<bool> for RefValue {
     fn from(value: bool) -> Self {
         RefValue::from(if value { Value::True } else { Value::False })

@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-#[derive(Clone, PartialEq, PartialOrd, Eq)]
+#[derive(Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct RefValue {
     value: Rc<RefCell<Value>>,
 }

@@ -91,6 +91,11 @@ repr((1, 2, 3, 4))
 (1, 2, (3, 4)).flatten
 (1, 2, (3, 4, (5,))).flatten  # fixme: flatten() should be parametrizeable, and default to 1?
 
+# sort
+(9,5,2,1,).sort
+(9,5,2.5,1,).sort
+("esel", "bernd", "Franz").sort
+
 #---
 
 #(1, 2, 3)
@@ -144,3 +149,7 @@ repr((1, 2, 3, 4))
 
 #(1, 2, 3, 4)
 #(1, 2, 3, 4, (5, ))
+
+#(1, 2, 5, 9)
+#(1, 2.5, 5, 9)
+#("Franz", "bernd", "esel")
