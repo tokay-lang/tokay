@@ -1,0 +1,12 @@
+#testmode:repl
+s = "Glasflügel"
+
+s.substr(4)
+s.substr(4, 3)
+s.substr(length=4)
+s.substr(4, 10)
+#---
+#"flügel"
+#"flü"
+#"Glas"
+#"flügel"

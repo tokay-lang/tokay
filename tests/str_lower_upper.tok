@@ -1,0 +1,13 @@
+#testmode:repl
+
+s = "Glasflügel"
+
+s.upper
+s.lower
+s[-4].upper
+
+#---
+
+#"GLASFLÜGEL"
+#"glasflügel"
+#"Ü"

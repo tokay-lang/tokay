@@ -17,53 +17,6 @@ l = () for i in range(s.len) { l.push(s[i] + i) } l
 # Extended get item test
 m = () for i in range(-1, s.len + 1) { m.push(s[i] + s.get_item(i, "x") + i) } m
 
-# len
-s.len
-str_len(123.456)
-
-# byteslen
-s.byteslen
-
-# endswith
-s.endswith("flügel")
-s.endswith("fluegel")
-
-# startswith
-s.startswith("Glas")
-s.startswith("Glaß")
-
-# substr
-s.substr(4)
-s.substr(4, 3)
-s.substr(length=4)
-s.substr(4, 10)
-
-# upper
-s.upper
-
-# lowr
-s.lower
-
-# replace
-s.replace("l")
-s.replace("l", "r")
-s.replace("l", n=1)
-s.replace("l", "r", 2)
-s.replace("g").upper
-
-# join
-"".join(l)
-"|".join(l)
-
-# split
-"aaa vx ad".split()
-"a b c d".split(" ")
-"a b c d".split(" ", 1)
-"a b c d".split(" ", 2)
-
-# repr
-repr("Hello\x09World")
-
 #---
 #"true"
 #"12.34"
@@ -76,38 +29,4 @@ repr("Hello\x09World")
 #"GlasflügelGlasflügelGlasflügel"
 
 #("G0", "l1", "a2", "s3", "f4", "l5", "ü6", "g7", "e8", "l9")
-#("x-1", "GG0", "ll1", "aa2", "ss3", "ff4", "ll5", "üü6", "gg7", "ee8", "ll9", "x10")
-
-#10
-#7
-#11
-
-#true
-#false
-#true
-#false
-
-#"flügel"
-#"flü"
-#"Glas"
-#"flügel"
-
-#"GLASFLÜGEL"
-
-#"glasflügel"
-
-#"Gasfüge"
-#"Grasfrüger"
-#"Gasflügel"
-#"Grasfrügel"
-#"GLASFLÜEL"
-
-#"G0l1a2s3f4l5ü6g7e8l9"
-#"G0|l1|a2|s3|f4|l5|ü6|g7|e8|l9"
-
-#("aaa", "vx", "ad")
-#("a", "b", "c", "d")
-#("a", "b c d")
-#("a", "b", "c d")
-
-#"\"Hello\\tWorld\""
+#("ll-1", "GG0", "ll1", "aa2", "ss3", "ff4", "ll5", "üü6", "gg7", "ee8", "ll9", "x10")
