@@ -34,6 +34,8 @@ l = (1, 2, 3)
 l.get_item(0, 1337) l.get_item(3, 1337) l.set_item(0) l[1] = void
 l
 
+# fixme: Missing tests for comparison, see dict.tok
+
 #---
 
 #(1, 2, 3)

@@ -2,7 +2,7 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
-use crate::value::{Dict, List, Object, Str, Value};
+use crate::value::{Dict, List, Object, RefValue, Str, Value};
 use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;

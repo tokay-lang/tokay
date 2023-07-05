@@ -1,10 +1,9 @@
-use std::fs::File;
-use std::io;
-
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{Object, ParseletRef, RefValue};
+use std::fs::File;
+use std::io;
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 

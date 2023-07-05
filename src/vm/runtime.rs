@@ -1,22 +1,19 @@
-//! Holds overall required information for VM execution.
-
-use std::collections::HashMap;
-
+//! Runtime environment for a VM program execution.
 use super::*;
 use crate::reader::{Offset, Reader};
 use crate::value::RefValue;
+use std::collections::HashMap;
 
-/** Merges a program and a reader into one container.
+/** Describes a runtime context for a VM program.
 
-Holds additional runtime information, like the stack or memoization table.
+A runtime context is a Reader on an input stream, a memoization table related to the reader
+and the stack the VM operates on.
 */
 pub struct Runtime {
     pub reader: Reader, // reader to read from
-
-    pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // memoization table
-    pub stack: Vec<Capture>,                                             // value stack
-
-    pub debug: u8, // Debug level
+    pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // parselet memoization table
+    pub stack: Vec<Capture>,                                             // VM value stack
+    pub debug: u8,                                                       // Debug level
 }
 
 impl Runtime {

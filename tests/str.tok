@@ -11,6 +11,8 @@ s
 s * 2
 3 * s
 
+# fixme: Missing tests for comparison, see dict.tok
+
 # Standard get item test
 l = () for i in range(s.len) { l.push(s[i] + i) } l
 
