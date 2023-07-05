@@ -93,7 +93,7 @@ fn main() {
             if let Some(meta) = fs::metadata(prog).ok() {
                 if !meta.is_dir() {
                     if let Ok(file) = File::open(prog) {
-                        program = Some(Stream::File(file));
+                        program = Some(Stream::File(prog.clone(), file));
                     }
                 }
             }
@@ -116,7 +116,7 @@ fn main() {
         if filename == "-" && !opts.files {
             streams.push((filename, RefCell::new(Stream::Stdin)))
         } else if let Ok(file) = File::open(filename) {
-            streams.push((filename, RefCell::new(Stream::File(file))))
+            streams.push((filename, RefCell::new(Stream::File(filename.clone(), file))))
         } else if !opts.files {
             streams.push((filename, RefCell::new(Stream::String(filename.to_string()))))
         } else {
@@ -157,9 +157,10 @@ fn main() {
 
                             readline.add_history_entry(code.as_str());
 
-                            match program
-                                .run_from_reader(Reader::new(Box::new(std::io::Cursor::new(code))))
-                            {
+                            match program.run_from_reader(Reader::new(
+                                None,
+                                Box::new(std::io::Cursor::new(code)),
+                            )) {
                                 Ok(None) => {
                                     if streams.len() > 1 {
                                         print!("\n")

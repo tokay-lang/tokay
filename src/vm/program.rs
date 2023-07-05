@@ -1,10 +1,9 @@
-use std::fs::File;
-use std::io;
-
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{Object, ParseletRef, RefValue};
+use std::fs::File;
+use std::io;
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
@@ -65,18 +64,18 @@ impl Program {
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
-        self.run_from_reader(Reader::new(Box::new(std::io::Cursor::new(src))))
+        self.run_from_reader(Reader::new(None, Box::new(std::io::Cursor::new(src))))
     }
 
     pub fn run_from_string(&self, src: String) -> Result<Option<RefValue>, Error> {
-        self.run_from_reader(Reader::new(Box::new(std::io::Cursor::new(src))))
+        self.run_from_reader(Reader::new(None, Box::new(std::io::Cursor::new(src))))
     }
 
     pub fn run_from_file(&self, filename: &str) -> Result<Option<RefValue>, Error> {
         if filename == "-" {
-            self.run_from_reader(Reader::new(Box::new(io::stdin())))
+            self.run_from_reader(Reader::new(Some("-".to_string()), Box::new(io::stdin())))
         } else if let Ok(file) = File::open(filename) {
-            self.run_from_reader(Reader::new(Box::new(file)))
+            self.run_from_reader(Reader::new(Some(filename.to_string()), Box::new(file)))
         } else {
             Err(Error::new(
                 None,

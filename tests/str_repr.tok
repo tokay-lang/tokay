@@ -1,0 +1,7 @@
+#testmode:repl
+
+repr("Hello\x09World")
+
+#---
+
+#"\"Hello\\tWorld\""

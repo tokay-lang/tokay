@@ -273,6 +273,15 @@ impl PartialOrd for Value {
     }
 }
 
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.partial_cmp(other) {
+            Some(ordering) => ordering,
+            None => self.id().cmp(&other.id()),
+        }
+    }
+}
+
 impl From<bool> for RefValue {
     fn from(value: bool) -> Self {
         RefValue::from(if value { Value::True } else { Value::False })
@@ -291,8 +300,20 @@ impl From<i64> for RefValue {
     }
 }
 
+impl From<u64> for RefValue {
+    fn from(int: u64) -> Self {
+        RefValue::from(Value::Int(BigInt::from(int)))
+    }
+}
+
 impl From<i32> for RefValue {
     fn from(int: i32) -> Self {
+        RefValue::from(Value::Int(BigInt::from(int)))
+    }
+}
+
+impl From<u32> for RefValue {
+    fn from(int: u32) -> Self {
         RefValue::from(Value::Int(BigInt::from(int)))
     }
 }

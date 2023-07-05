@@ -1,0 +1,16 @@
+#testmode:repl
+s = "Glasflügel"
+
+# endswith
+s.endswith("flügel")
+s.endswith("fluegel")
+
+# startswith
+s.startswith("Glas")
+s.startswith("Glaß")
+#---
+
+#true
+#false
+#true
+#false

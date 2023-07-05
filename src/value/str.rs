@@ -108,7 +108,7 @@ impl Str {
 
         // In case the item index is negative, calculate from string's end
         if item.sign() == Sign::Minus {
-            item = string.len() + item;
+            item = string.chars().count() + item;
 
             // If it's still negative, the index is out of bounds
             if item.sign() == Sign::Minus {
@@ -177,6 +177,39 @@ impl Str {
         }
 
         Ok(RefValue::from(ret))
+    });
+
+    tokay_method!("str_split : @s, sep=void, n=void", {
+        if !s.is("str") {
+            s = RefValue::from(s.to_string());
+        }
+
+        let string = s.borrow();
+        let string = string.object::<Str>().unwrap().as_str();
+        let sep = if sep.is_void() {
+            " ".to_string()
+        } else {
+            sep.to_string()
+        };
+
+        Ok(RefValue::from(if n.is_void() {
+            let mut list = List::new();
+
+            for part in string.split(&sep) {
+                list.push(RefValue::from(part))
+            }
+
+            list
+        } else {
+            let n = n.to_usize()?;
+            let mut list = List::with_capacity(n + 1);
+
+            for part in string.splitn(n + 1, &sep) {
+                list.push(RefValue::from(part))
+            }
+
+            list
+        }))
     });
 
     tokay_method!("str_lower : @s", {

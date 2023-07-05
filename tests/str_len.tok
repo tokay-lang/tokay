@@ -1,0 +1,14 @@
+#testmode:repl
+
+s = "Glasflügel"
+s.len
+str_len(123.456)
+str_len(true)
+s.byteslen
+
+#---
+
+#10
+#7
+#4
+#11

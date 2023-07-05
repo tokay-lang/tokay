@@ -1,0 +1,16 @@
+#testmode:repl
+type(void)
+type(true)
+type(1)
+type(23.5)
+type("hello")
+type(1, 2)
+type((1,2))
+#---
+#"void"
+#"bool"
+#"int"
+#"float"
+#"str"
+#ERR:Line 1, column 1: type() takes exactly one argument (2 given)
+#"list"

@@ -1,0 +1,15 @@
+#testmode:repl
+
+l = (1,)
+l.push(2)
+l.push((3, 4))
+
+list_push((1,2,3), 99, 1)
+list_push((1,2,3), 99, 4)
+
+#---
+
+#(1, 2)
+#(1, 2, (3, 4))
+#(1, 99, 2, 3)
+#ERR:Line 1, column 1: list_push() provided index 4 out of range in list sized 3

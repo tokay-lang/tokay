@@ -159,7 +159,10 @@ impl Compiler {
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
     pub fn compile_from_str(&mut self, src: &str) -> Result<Option<Program>, Vec<Error>> {
-        self.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))))
+        self.compile(Reader::new(
+            None,
+            Box::new(std::io::Cursor::new(src.to_owned())),
+        ))
     }
 
     /** Register a static value within a compiler instance.

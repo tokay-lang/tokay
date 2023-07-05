@@ -1,0 +1,7 @@
+print(offset)
+print((Int offset))
+#---
+#1234
+#---
+#(filename => void, offset => 0, row => 1, col => 1)
+#(filename => void, offset => 4, row => 1, col => 5)

@@ -192,3 +192,21 @@ tokay_function!("debug : @level", {
         __function, level
     )))
 });
+
+tokay_function!("offset : @", {
+    let reader = &context.unwrap().runtime.reader;
+    let offset = reader.tell();
+    let filename = if let Some(filename) = &reader.filename {
+        value!(filename.clone())
+    } else {
+        value!(void)
+    };
+
+    value!([
+        "filename" => filename,
+        "offset" => (offset.offset),
+        "row" => (offset.row),
+        "col" => (offset.col)
+    ])
+    .into()
+});

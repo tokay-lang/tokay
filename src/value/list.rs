@@ -292,6 +292,20 @@ impl List {
             }
         }
     });
+
+    tokay_method!("list_sort : @list", {
+        if !list.is("list") {
+            return Ok(Self::list(vec![list], None)?);
+        }
+
+        {
+            let mut list = list.borrow_mut();
+            let list = list.object_mut::<List>().unwrap();
+            list.sort();
+        }
+
+        Ok(list)
+    });
 }
 
 impl std::ops::Deref for List {

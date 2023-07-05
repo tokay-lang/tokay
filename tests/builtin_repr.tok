@@ -1,0 +1,8 @@
+#testmode:repl
+repr("Hello World")
+repr((1 2 3))
+repr((a => 1 b => 2 c => 3))
+#---
+#"\"Hello World\""
+#"(1, 2, 3)"
+#"(a => 1, b => 2, c => 3)"
