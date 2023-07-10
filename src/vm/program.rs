@@ -38,12 +38,12 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
+    pub fn run(&self, thread: &mut Thread) -> Result<Option<RefValue>, Error> {
         match self
             .main()
             .0
             .borrow()
-            .run(self, runtime, runtime.stack.len(), None, true, 0)
+            .run(self, thread, thread.stack.len(), None, true, 0)
         {
             Ok(Accept::Push(Capture::Value(value, ..))) => {
                 if value.is_void() {
@@ -59,8 +59,8 @@ impl Program {
     }
 
     pub fn run_from_reader(&self, reader: Reader) -> Result<Option<RefValue>, Error> {
-        let mut runtime = Runtime::new(reader);
-        self.run(&mut runtime)
+        let mut thread = Thread::new(reader);
+        self.run(&mut thread)
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {

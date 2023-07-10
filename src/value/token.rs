@@ -214,7 +214,7 @@ impl Object for Token {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         assert!(context.is_some() && args.len() == 0 && nargs.is_none());
-        self.read(&mut context.unwrap().runtime.reader)
+        self.read(&mut context.unwrap().thread.reader)
     }
 }
 
@@ -228,7 +228,7 @@ impl From<Token> for RefValue {
 
 // Matching C-style identifiers
 tokay_token!("Ident", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     if reader.once(|ch| ch.is_alphabetic() || ch == '_').is_none() {
@@ -264,9 +264,9 @@ tokay_token!("Int : @base=void, with_signs=true", {
     };
 
     if let Some(int) = if with_signs.is_true() {
-        parse_int_from_iter_with_radix::<BigInt>(&mut context.runtime.reader, base, false)
+        parse_int_from_iter_with_radix::<BigInt>(&mut context.thread.reader, base, false)
     } else {
-        parse_uint_from_iter_with_radix::<BigInt>(&mut context.runtime.reader, base, false)
+        parse_uint_from_iter_with_radix::<BigInt>(&mut context.thread.reader, base, false)
     } {
         Ok(Accept::Push(Capture::Value(crate::value!(int), None, 5)))
     } else {
@@ -276,7 +276,7 @@ tokay_token!("Int : @base=void, with_signs=true", {
 
 // Matching 64-bit floats directly
 tokay_token!("Float : @with_signs=true", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     // Sign
@@ -319,7 +319,7 @@ tokay_token!("Float : @with_signs=true", {
 
 // Words, optionally with limited length
 tokay_token!("Word : @min=1 max=void", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {

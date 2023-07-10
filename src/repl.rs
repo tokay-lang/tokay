@@ -10,7 +10,7 @@ use rustyline::Editor;
 use crate::compiler::Compiler;
 use crate::reader::Reader;
 use crate::value::{Object, RefValue};
-use crate::vm::Runtime;
+use crate::vm::Thread;
 
 // Helper enum to allow for different input types
 #[derive(Debug)]
@@ -88,11 +88,11 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                 Ok(None) => {}
                 Ok(Some(program)) => {
                     for (name, stream) in &streams {
-                        let mut runtime = Runtime::new(stream.borrow_mut().get_reader());
-                        runtime.debug = compiler.debug;
-                        runtime.load_stack(globals);
+                        let mut thread = Thread::new(stream.borrow_mut().get_reader());
+                        thread.debug = compiler.debug;
+                        thread.load_stack(globals);
 
-                        let ret = program.run(&mut runtime);
+                        let ret = program.run(&mut thread);
 
                         if streams.len() > 1 {
                             print!("{}: ", name);
@@ -108,7 +108,7 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                             Err(error) => eprintln!("{}", error),
                         }
 
-                        globals = runtime.save_stack();
+                        globals = thread.save_stack();
                     }
                 }
                 Err(errors) => {

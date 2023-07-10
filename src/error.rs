@@ -56,7 +56,7 @@ tokay_function!("error : @msg, collect=false", {
 
     if collect.is_true() {
         let mut capture = context.collect(context.frame0().capture_start, false, false);
-        let value = capture.extract(&context.runtime.reader);
+        let value = capture.extract(&context.thread.reader);
 
         let value = value.borrow();
 
@@ -67,5 +67,5 @@ tokay_function!("error : @msg, collect=false", {
         }
     }
 
-    Error::new(Some(context.runtime.reader.tell()), msg).into()
+    Error::new(Some(context.thread.reader.tell()), msg).into()
 });

@@ -34,5 +34,5 @@ This is an overview over the tokay src/-folder.
     ├── context.rs      # Context struct
     ├── op.rs           # VM operations
     ├── program.rs      # Program struct
-    └── runtime.rs      # Runtime struct that glues program, reader and context
+    └── thread.rs       # Thread struct that glues program, reader and context
 ```
