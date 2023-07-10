@@ -1680,7 +1680,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
         Some(
             context
                 .collect(capture_start, false, debug.is_true())
-                .extract(&context.runtime.reader),
+                .extract(&context.thread.reader),
         )
     } else {
         Some(value)
@@ -1717,7 +1717,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     }
 
     let start = context.frame.reader_start;
-    let reader_start = context.runtime.reader.start();
+    let reader_start = context.thread.reader.start();
 
     // Store positions of reader start
     ret.insert_str("offset", value!(start.offset + reader_start.offset));
@@ -1725,7 +1725,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     ret.insert_str("col", value!(start.col as usize));
 
     // Store positions of reader stop
-    let current = context.runtime.reader.tell();
+    let current = context.thread.reader.tell();
 
     ret.insert_str("stop_offset", value!(current.offset + reader_start.offset));
     ret.insert_str("stop_row", value!(current.row as usize));

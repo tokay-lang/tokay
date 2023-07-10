@@ -182,7 +182,7 @@ tokay_function!("type : @value", value!(value.name()).into());
 tokay_function!("debug : @level", {
     if let Ok(level) = level.to_usize() {
         if level < u8::MAX as usize {
-            context.unwrap().runtime.debug = level as u8;
+            context.unwrap().thread.debug = level as u8;
             return Ok(Accept::Next);
         }
     }
@@ -194,7 +194,7 @@ tokay_function!("debug : @level", {
 });
 
 tokay_function!("offset : @", {
-    let reader = &context.unwrap().runtime.reader;
+    let reader = &context.unwrap().thread.reader;
     let offset = reader.tell();
     let filename = if let Some(filename) = &reader.filename {
         value!(filename.clone())

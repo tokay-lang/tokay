@@ -110,10 +110,16 @@ pub(crate) enum Op {
 }
 
 impl Op {
-    pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
+    /** Runs a sequence of Ops on a given Context.
+
+    This function is the heart of the Tokay VM, and executes the individual instructions.
+
+    There are several frames managed within the context, which represent sub-sequences and
+    reader areas within the current thread.
+    */
+    pub(in crate::vm) fn run(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
-            //return Ok(Accept::Push(Capture::Empty));
         }
 
         fn dump(ops: &[Op], context: &Context, ip: usize) {
@@ -156,8 +162,8 @@ impl Op {
                 // Dump stack and frames
                 if context.debug > 4 {
                     context.log("--- Stack ---");
-                    for i in 0..context.runtime.stack.len() {
-                        context.log(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
+                    for i in 0..context.thread.stack.len() {
+                        context.log(&format!(" {:03} {:?}", i, context.thread.stack[i]));
                     }
 
                     context.log("--- Frames ---");
@@ -188,26 +194,26 @@ impl Op {
                     context.frames.push(context.frame);
                     context.frame = Frame {
                         fuse: if *fuse > 0 { Some(ip + *fuse) } else { None },
-                        capture_start: context.runtime.stack.len(),
-                        reader_start: context.runtime.reader.tell(),
+                        capture_start: context.thread.stack.len(),
+                        reader_start: context.thread.reader.tell(),
                     };
 
                     Ok(Accept::Next)
                 }
 
                 Op::Capture => {
-                    context.frame.capture_start = context.runtime.stack.len();
+                    context.frame.capture_start = context.thread.stack.len();
                     Ok(Accept::Next)
                 }
 
                 Op::Extend => {
-                    context.frame.reader_start = context.runtime.reader.tell();
+                    context.frame.reader_start = context.thread.reader.tell();
                     Ok(Accept::Next)
                 }
 
                 Op::Reset => {
-                    context.runtime.stack.truncate(context.frame.capture_start);
-                    context.runtime.reader.reset(context.frame.reader_start);
+                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.thread.reader.reset(context.frame.reader_start);
                     Ok(Accept::Next)
                 }
 
@@ -263,7 +269,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.thread.stack.truncate(context.frame.capture_start);
 
                     // Jump behind loop
                     ip = current.end;
@@ -272,7 +278,7 @@ impl Op {
                     Ok(if let Some(value) = value {
                         Accept::Push(Capture::Value(value, None, 10))
                     } else {
-                        context.runtime.stack.push(Capture::Empty);
+                        context.thread.stack.push(Capture::Empty);
                         Accept::Hold
                     })
                 }
@@ -288,7 +294,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.thread.stack.truncate(context.frame.capture_start);
 
                     // Jump to loop start.
                     ip = current.start;
@@ -328,7 +334,7 @@ impl Op {
                 }
 
                 Op::ForwardIfConsumed(goto) => {
-                    if context.frame.reader_start != context.runtime.reader.tell() {
+                    if context.frame.reader_start != context.thread.reader.tell() {
                         ip += goto;
                         Ok(Accept::Hold)
                     } else {
@@ -509,21 +515,21 @@ impl Op {
                 Op::StoreGlobal(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.runtime.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreGlobalHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.runtime.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
                 Op::StoreFast(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.runtime.stack[context.stack_start + *addr] =
+                    context.thread.stack[context.stack_start + *addr] =
                         Capture::Value(value, None, 0);
                     Ok(Accept::Push(Capture::Empty))
                 }
@@ -531,7 +537,7 @@ impl Op {
                 Op::StoreFastHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.runtime.stack[context.stack_start + *addr] =
+                    context.thread.stack[context.stack_start + *addr] =
                         Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
@@ -599,7 +605,7 @@ impl Op {
                 Op::MakeAlias => {
                     let name = context.pop();
 
-                    match context.runtime.stack.last_mut().unwrap() {
+                    match context.thread.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
                             *alias = Some(name);
                         }
@@ -668,11 +674,11 @@ impl Op {
                 Op::Copy(index) => {
                     assert!(*index > 0);
 
-                    let index = context.runtime.stack.len() - index;
+                    let index = context.thread.stack.len() - index;
                     context
-                        .runtime
+                        .thread
                         .stack
-                        .push(context.runtime.stack[index].clone());
+                        .push(context.thread.stack[index].clone());
 
                     Ok(Accept::Next)
                 }
@@ -680,14 +686,14 @@ impl Op {
                 Op::Swap(index) => {
                     assert!(*index > 1);
 
-                    let index = context.runtime.stack.len() - index;
-                    let tos = context.runtime.stack.pop().unwrap();
+                    let index = context.thread.stack.len() - index;
+                    let tos = context.thread.stack.pop().unwrap();
 
                     context
-                        .runtime
+                        .thread
                         .stack
-                        .push(context.runtime.stack[index].clone());
-                    context.runtime.stack[index] = tos;
+                        .push(context.thread.stack[index].clone());
+                    context.thread.stack[index] = tos;
 
                     Ok(Accept::Next)
                 }
@@ -713,13 +719,13 @@ impl Op {
                 Ok(Accept::Hold) => state = Ok(Accept::Next),
                 Ok(Accept::Next) => ip += 1,
                 Ok(Accept::Push(capture)) if ip + 1 < ops.len() => {
-                    context.runtime.stack.push(capture);
+                    context.thread.stack.push(capture);
                     state = Ok(Accept::Next);
                     ip += 1;
                 }
                 Err(Reject::Next) if context.frames.len() > 0 => loop {
-                    context.runtime.stack.truncate(context.frame.capture_start);
-                    context.runtime.reader.reset(context.frame.reader_start);
+                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.thread.reader.reset(context.frame.reader_start);
 
                     if let Some(fuse) = context.frame.fuse {
                         if fuse > ip {

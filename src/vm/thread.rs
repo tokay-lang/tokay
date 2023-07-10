@@ -1,22 +1,22 @@
-//! Runtime environment for a VM program execution.
+//! Runtime thread withing a VM program.
 use super::*;
 use crate::reader::{Offset, Reader};
 use crate::value::RefValue;
 use std::collections::HashMap;
 
-/** Describes a runtime context for a VM program.
+/** Describes a runtime thread within a VM program.
 
-A runtime context is a Reader on an input stream, a memoization table related to the reader
+A runtime thread is a Reader on an input stream, a memoization table related to the reader
 and the stack the VM operates on.
 */
-pub struct Runtime {
+pub struct Thread {
     pub reader: Reader, // reader to read from
     pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // parselet memoization table
     pub stack: Vec<Capture>,                                             // VM value stack
     pub debug: u8,                                                       // Debug level
 }
 
-impl Runtime {
+impl Thread {
     pub fn new(reader: Reader) -> Self {
         Self {
             reader,

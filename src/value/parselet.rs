@@ -68,14 +68,14 @@ impl Parselet {
         ret
     }
 
-    /** Run parselet on a given runtime.
+    /** Run parselet on a given thread.
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
     pub fn run(
         &self,
         program: &Program,
-        runtime: &mut Runtime,
+        thread: &mut Thread,
         args: usize,
         mut nargs: Option<Dict>,
         main: bool,
@@ -86,11 +86,11 @@ impl Parselet {
 
         // When parselet is consuming, try to read previous result from cache.
         if self.consuming.is_some() {
-            let reader_start = runtime.reader.tell();
+            let reader_start = thread.reader.tell();
 
             // Check for a previously memoized result in memo table
-            if let Some((reader_end, result)) = runtime.memo.get(&(reader_start.offset, id)) {
-                runtime.reader.reset(*reader_end);
+            if let Some((reader_end, result)) = thread.memo.get(&(reader_start.offset, id)) {
+                thread.reader.reset(*reader_end);
                 return result.clone();
             }
         }
@@ -99,10 +99,10 @@ impl Parselet {
         let mut context = Context::new(
             program,
             self,
-            runtime,
+            thread,
             self.locals,
             args,
-            if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
+            if main { self.locals } else { 0 }, // Hold thread globals when this is main!
             depth,
         );
 
@@ -133,7 +133,7 @@ impl Parselet {
             // Set remaining parameters to their defaults
             for (i, arg) in (&self.signature[args..]).iter().enumerate() {
                 // args parameters are previously pushed onto the stack.
-                let var = &mut context.runtime.stack[context.stack_start + args + i];
+                let var = &mut context.thread.stack[context.stack_start + args + i];
 
                 //println!("{} {:?} {:?}", i, arg, var);
                 if matches!(var, Capture::Empty) {
@@ -189,8 +189,8 @@ impl Parselet {
 
         // Initialize locals
         for i in 0..self.locals {
-            if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
-                context.runtime.stack[context.stack_start + i] =
+            if let Capture::Empty = context.thread.stack[context.stack_start + i] {
+                context.thread.stack[context.stack_start + i] =
                     Capture::Value(crate::value!(void), None, 0);
             }
         }
@@ -214,7 +214,7 @@ impl Parselet {
 
             // Insert a fake memo entry to avoid endless recursion
             context
-                .runtime
+                .thread
                 .memo
                 .insert((reader_start.offset, id), (reader_end, result.clone()));
 
@@ -234,7 +234,7 @@ impl Parselet {
                     _ => {}
                 }
 
-                let loop_end = context.runtime.reader.tell();
+                let loop_end = context.thread.reader.tell();
 
                 // Stop when no more input was consumed
                 if loop_end.offset <= reader_end.offset {
@@ -246,29 +246,29 @@ impl Parselet {
 
                 // Save intermediate result in memo table
                 context
-                    .runtime
+                    .thread
                     .memo
                     .insert((reader_start.offset, id), (reader_end, result.clone()));
 
                 // Reset reader & stack
-                context.runtime.reader.reset(reader_start);
-                context.runtime.stack.truncate(context.stack_start); //fixme: context.frame0()?
+                context.thread.reader.reset(reader_start);
+                context.thread.stack.truncate(context.stack_start); //fixme: context.frame0()?
                 context
-                    .runtime
+                    .thread
                     .stack
                     .resize(context.frame0().capture_start, Capture::Empty);
             }
 
-            context.runtime.reader.reset(reader_end);
+            context.thread.reader.reset(reader_end);
 
             result
         } else {
             let result = context.run(main);
 
             if self.consuming.is_some() {
-                context.runtime.memo.insert(
+                context.thread.memo.insert(
                     (reader_start.offset, id),
-                    (context.runtime.reader.tell(), result.clone()),
+                    (context.thread.reader.tell(), result.clone()),
                 );
             }
 
@@ -278,7 +278,7 @@ impl Parselet {
         /*
         // Dump AST when parselet returns an AST for debugging purposes.
         // fixme: Disabled for now, can be enabled on demand.
-        if context.runtime.debug > 1 {
+        if context.thread.debug > 1 {
             loop {
                 if let Ok(Accept::Push(Capture::Value(ref value, ..))) = result {
                     let value = value.borrow();
@@ -348,12 +348,12 @@ impl Object for ParseletRef {
                 let len = args.len();
                 for arg in args {
                     //context.push(arg)?;  //yeah...doesn't work...GRRR
-                    context.runtime.stack.push(Capture::Value(arg, None, 0));
+                    context.thread.stack.push(Capture::Value(arg, None, 0));
                 }
 
                 self.0.borrow().run(
                     context.program,
-                    context.runtime,
+                    context.thread,
                     len,
                     nargs,
                     false,
@@ -372,7 +372,7 @@ impl Object for ParseletRef {
     ) -> Result<Accept, Reject> {
         self.0.borrow().run(
             context.program,
-            context.runtime,
+            context.thread,
             args,
             nargs,
             false,

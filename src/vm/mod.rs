@@ -5,7 +5,7 @@ mod context;
 mod op;
 mod program;
 mod reject;
-mod runtime;
+mod thread;
 
 pub use accept::*;
 pub use capture::*;
@@ -13,4 +13,4 @@ pub use context::*;
 pub(crate) use op::*;
 pub use program::*;
 pub use reject::*;
-pub use runtime::*;
+pub use thread::*;
