@@ -58,8 +58,8 @@ impl Program {
         }
     }
 
-    pub fn run_from_reader(&self, reader: Reader) -> Result<Option<RefValue>, Error> {
-        let mut thread = Thread::new(reader);
+    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
+        let mut thread = Thread::new(&mut reader);
         self.run(&mut thread)
     }
 

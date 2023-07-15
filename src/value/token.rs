@@ -264,9 +264,9 @@ tokay_token!("Int : @base=void, with_signs=true", {
     };
 
     if let Some(int) = if with_signs.is_true() {
-        parse_int_from_iter_with_radix::<BigInt>(&mut context.thread.reader, base, false)
+        parse_int_from_iter_with_radix::<BigInt>(context.thread.reader, base, false)
     } else {
-        parse_uint_from_iter_with_radix::<BigInt>(&mut context.thread.reader, base, false)
+        parse_uint_from_iter_with_radix::<BigInt>(context.thread.reader, base, false)
     } {
         Ok(Accept::Push(Capture::Value(crate::value!(int), None, 5)))
     } else {

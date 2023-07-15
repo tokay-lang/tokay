@@ -32,12 +32,12 @@ pub struct Loop {
 
 /** Contexts represent stack frames for parselet calls.
 
-Via the context, most operations regarding capture storing and loading is performed. */
-pub struct Context<'program, 'parselet, 'thread> {
+Within the context, most operations regarding capture storing and loading is performed. */
+pub struct Context<'program, 'parselet, 'reader, 'thread> {
     // References
-    pub program: &'program Program,    // Program
-    pub parselet: &'parselet Parselet, // Current parselet that is executed
-    pub thread: &'thread mut Thread,   // Overall thread
+    pub program: &'program Program,           // Program
+    pub parselet: &'parselet Parselet,        // Current parselet
+    pub thread: &'thread mut Thread<'reader>, // Current VM thread
 
     pub depth: usize, // Recursion depth
 
@@ -55,11 +55,11 @@ pub struct Context<'program, 'parselet, 'thread> {
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
 }
 
-impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
+impl<'program, 'parselet, 'reader, 'thread> Context<'program, 'parselet, 'reader, 'thread> {
     pub fn new(
         program: &'program Program,
         parselet: &'parselet Parselet,
-        thread: &'thread mut Thread,
+        thread: &'thread mut Thread<'reader>,
         locals: usize,
         take: usize,
         hold: usize,
@@ -677,7 +677,9 @@ impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
     }
 }
 
-impl<'program, 'parselet, 'thread> Drop for Context<'program, 'parselet, 'thread> {
+impl<'program, 'parselet, 'reader, 'thread> Drop
+    for Context<'program, 'parselet, 'reader, 'thread>
+{
     fn drop(&mut self) {
         self.thread.stack.truncate(self.stack_start + self.hold);
     }

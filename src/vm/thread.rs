@@ -9,15 +9,15 @@ use std::collections::HashMap;
 A runtime thread is a Reader on an input stream, a memoization table related to the reader
 and the stack the VM operates on.
 */
-pub struct Thread {
-    pub reader: Reader, // reader to read from
+pub struct Thread<'reader> {
+    pub reader: &'reader mut Reader, // reader to read from
     pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // parselet memoization table
     pub stack: Vec<Capture>,                                             // VM value stack
     pub debug: u8,                                                       // Debug level
 }
 
-impl Thread {
-    pub fn new(reader: Reader) -> Self {
+impl<'reader> Thread<'reader> {
+    pub fn new(reader: &'reader mut Reader) -> Self {
         Self {
             reader,
             memo: HashMap::new(),
@@ -44,9 +44,4 @@ impl Thread {
         self.memo.clear();
         self.stack.clear();
     }
-
-    /*
-        TODO: Implement a drop function that releases the reader
-        (and maybe also output and error) for further use.
-    */
 }
