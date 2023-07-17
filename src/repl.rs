@@ -89,11 +89,11 @@ pub fn repl(streams: Vec<(&str, RefCell<Stream>)>) {
                 Ok(Some(program)) => {
                     for (name, stream) in &streams {
                         let mut reader = stream.borrow_mut().get_reader();
-                        let mut thread = Thread::new(&mut reader);
+                        let mut thread = Thread::new(&program, &mut reader);
                         thread.debug = compiler.debug;
                         thread.load_stack(globals);
 
-                        let ret = program.run(&mut thread);
+                        let ret = thread.run();
 
                         if streams.len() > 1 {
                             print!("{}: ", name);

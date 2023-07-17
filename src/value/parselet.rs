@@ -74,7 +74,6 @@ impl Parselet {
     like subsequent parselet. */
     pub fn run(
         &self,
-        program: &Program,
         thread: &mut Thread,
         args: usize,
         mut nargs: Option<Dict>,
@@ -97,9 +96,8 @@ impl Parselet {
 
         // If not, open a new context.
         let mut context = Context::new(
-            program,
-            self,
             thread,
+            self,
             self.locals,
             args,
             if main { self.locals } else { 0 }, // Hold thread globals when this is main!
@@ -148,7 +146,8 @@ impl Parselet {
                     // Otherwise, use default value if available.
                     if let Some(addr) = arg.1 {
                         // fixme: This might leak the immutable static value to something mutable...
-                        *var = Capture::Value(context.program.statics[addr].clone(), None, 0);
+                        *var =
+                            Capture::Value(context.thread.program.statics[addr].clone(), None, 0);
                         //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }
@@ -351,14 +350,9 @@ impl Object for ParseletRef {
                     context.thread.stack.push(Capture::Value(arg, None, 0));
                 }
 
-                self.0.borrow().run(
-                    context.program,
-                    context.thread,
-                    len,
-                    nargs,
-                    false,
-                    context.depth + 1,
-                )
+                self.0
+                    .borrow()
+                    .run(context.thread, len, nargs, false, context.depth + 1)
             }
             None => panic!("{} needs a context to operate", self.repr()),
         }
@@ -370,14 +364,9 @@ impl Object for ParseletRef {
         args: usize,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        self.0.borrow().run(
-            context.program,
-            context.thread,
-            args,
-            nargs,
-            false,
-            context.depth + 1,
-        )
+        self.0
+            .borrow()
+            .run(context.thread, args, nargs, false, context.depth + 1)
     }
 }
 

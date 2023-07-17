@@ -33,11 +33,10 @@ pub struct Loop {
 /** Contexts represent stack frames for parselet calls.
 
 Within the context, most operations regarding capture storing and loading is performed. */
-pub struct Context<'program, 'parselet, 'reader, 'thread> {
+pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
-    pub program: &'program Program,           // Program
-    pub parselet: &'parselet Parselet,        // Current parselet
-    pub thread: &'thread mut Thread<'reader>, // Current VM thread
+    pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
+    pub parselet: &'parselet Parselet,                  // Current parselet
 
     pub depth: usize, // Recursion depth
 
@@ -55,11 +54,10 @@ pub struct Context<'program, 'parselet, 'reader, 'thread> {
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
 }
 
-impl<'program, 'parselet, 'reader, 'thread> Context<'program, 'parselet, 'reader, 'thread> {
+impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 'parselet> {
     pub fn new(
-        program: &'program Program,
+        thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
-        thread: &'thread mut Thread<'reader>,
         locals: usize,
         take: usize,
         hold: usize,
@@ -89,9 +87,8 @@ impl<'program, 'parselet, 'reader, 'thread> Context<'program, 'parselet, 'reader
 
         // Create Context
         Self {
-            program,
-            parselet,
             thread,
+            parselet,
             depth,
             stack_start,
             hold,
@@ -677,8 +674,8 @@ impl<'program, 'parselet, 'reader, 'thread> Context<'program, 'parselet, 'reader
     }
 }
 
-impl<'program, 'parselet, 'reader, 'thread> Drop
-    for Context<'program, 'parselet, 'reader, 'thread>
+impl<'program, 'reader, 'thread, 'parselet> Drop
+    for Context<'program, 'reader, 'thread, 'parselet>
 {
     fn drop(&mut self) {
         self.thread.stack.truncate(self.stack_start + self.hold);

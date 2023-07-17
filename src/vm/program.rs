@@ -1,7 +1,7 @@
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{Object, ParseletRef, RefValue};
+use crate::value::{ParseletRef, RefValue};
 use std::fs::File;
 use std::io;
 
@@ -38,29 +38,8 @@ impl Program {
         }
     }
 
-    pub fn run(&self, thread: &mut Thread) -> Result<Option<RefValue>, Error> {
-        match self
-            .main()
-            .0
-            .borrow()
-            .run(self, thread, thread.stack.len(), None, true, 0)
-        {
-            Ok(Accept::Push(Capture::Value(value, ..))) => {
-                if value.is_void() {
-                    Ok(None)
-                } else {
-                    Ok(Some(value.clone()))
-                }
-            }
-            Ok(_) => Ok(None),
-            Err(Reject::Error(error)) => Err(*error),
-            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
-        }
-    }
-
     pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
-        let mut thread = Thread::new(&mut reader);
-        self.run(&mut thread)
+        Thread::new(self, &mut reader).run()
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
