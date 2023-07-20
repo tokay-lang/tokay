@@ -5,8 +5,8 @@
 
 use crate::builtin::Builtin;
 
+/*GENERATE cargo run -- _builtins.tok -- `find . -name "*.rs"` */
 pub static BUILTINS: [Builtin; 63] = [
-/*GENERATE cargo run -- _builtins.tok -- `find . -name "*.rs" -print0 | xargs -0 echo` */
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -259,5 +259,5 @@ pub static BUILTINS: [Builtin; 63] = [
         name: "type",
         func: crate::builtin::tokay_function_type,
     },
-/*ETARENEG*/
 ];
+/*ETARENEG*/
