@@ -4,7 +4,7 @@
 
 Current main branch.
 
-- v0.6.3:
+- v0.6.4:
   - Main parselet operates on multiple inputs (Readers) now
   - Restructuring parts of VM, `Runtime` renamed into `Thread`
   - Several test cases restructured
@@ -12,6 +12,7 @@ Current main branch.
   - `Ord` on Value and RefValue, builtin `list_sort()`
   - Implementing `str_split(s, sep=void, n=void)`
   - Fix `begin` and `end` feature of parselets (#109)
+- v0.6.3: Test release by mistake, see #106 for details.
 - v0.6.2:
   - Internal revision and clarification on compiler's intermediate structures `ImlOp`, `ImlValue` and `ImlProgram` (part of #105)
 - v0.6.1:
