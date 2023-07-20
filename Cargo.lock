@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "tokay"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "charclass",
  "clap 4.0.10",
@@ -702,6 +702,8 @@ dependencies = [
 [[package]]
 name = "tokay-macros"
 version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80669a368f5e26a584dd3937b2e85fb455edad2065e2e289f1950fa201bbf4e0"
 dependencies = [
  "glob",
  "proc-macro2",
