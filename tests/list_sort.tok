@@ -1,0 +1,11 @@
+#testmode:repl
+
+(9,5,2,1,).sort
+(9,5,2.5,1,).sort
+("esel", "bernd", "Franz").sort
+
+#---
+
+#(1, 2, 5, 9)
+#(1, 2.5, 5, 9)
+#("Franz", "bernd", "esel")

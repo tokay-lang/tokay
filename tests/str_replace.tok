@@ -1,0 +1,16 @@
+#testmode:repl
+s = "Glasflügel"
+
+s.replace("l")
+s.replace("l", "r")
+s.replace("l", n=1)
+s.replace("l", "r", 2)
+s.upper().replace("G")
+
+#---
+
+#"Gasfüge"
+#"Grasfrüger"
+#"Gasflügel"
+#"Grasfrügel"
+#"LASFLÜEL"

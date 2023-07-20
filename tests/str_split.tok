@@ -1,0 +1,13 @@
+#testmode:repl
+
+"aaa vx ad".split()
+"a b c d".split(" ")
+"a b c d".split(" ", 1)
+"a b c d".split(" ", 2)
+
+#---
+
+#("aaa", "vx", "ad")
+#("a", "b", "c", "d")
+#("a", "b c d")
+#("a", "b", "c d")

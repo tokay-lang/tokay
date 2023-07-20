@@ -7575,17 +7575,17 @@ impl Parser {
         )
     }
 
-    pub fn parse(&self, reader: Reader) -> Result<RefValue, Error> {
+    pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
         //self.0.dump();
-        let mut runtime = Runtime::new(reader);
+        let mut thread = Thread::new(&self.0, vec![&mut reader]);
 
         if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
-            runtime.debug = level.parse::<u8>().unwrap_or_default();
+            thread.debug = level.parse::<u8>().unwrap_or_default();
         } else {
-            runtime.debug = 0;
+            thread.debug = 0;
         }
 
-        match self.0.run(&mut runtime) {
+        match thread.run() {
             Ok(Some(ast)) => {
                 if ast.borrow().object::<Dict>().is_some() {
                     Ok(ast)

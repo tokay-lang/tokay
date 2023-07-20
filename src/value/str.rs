@@ -108,7 +108,7 @@ impl Str {
 
         // In case the item index is negative, calculate from string's end
         if item.sign() == Sign::Minus {
-            item = string.len() + item;
+            item = string.chars().count() + item;
 
             // If it's still negative, the index is out of bounds
             if item.sign() == Sign::Minus {

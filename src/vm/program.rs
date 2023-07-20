@@ -1,10 +1,9 @@
-use std::fs::File;
-use std::io;
-
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
-use crate::value::{Object, ParseletRef, RefValue};
+use crate::value::{ParseletRef, RefValue};
+use std::fs::File;
+use std::io;
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
@@ -39,29 +38,8 @@ impl Program {
         }
     }
 
-    pub fn run(&self, runtime: &mut Runtime) -> Result<Option<RefValue>, Error> {
-        match self
-            .main()
-            .0
-            .borrow()
-            .run(self, runtime, runtime.stack.len(), None, true, 0)
-        {
-            Ok(Accept::Push(Capture::Value(value, ..))) => {
-                if value.is_void() {
-                    Ok(None)
-                } else {
-                    Ok(Some(value.clone()))
-                }
-            }
-            Ok(_) => Ok(None),
-            Err(Reject::Error(error)) => Err(*error),
-            Err(other) => Err(Error::new(None, format!("Runtime error {:?}", other))),
-        }
-    }
-
-    pub fn run_from_reader(&self, reader: Reader) -> Result<Option<RefValue>, Error> {
-        let mut runtime = Runtime::new(reader);
-        self.run(&mut runtime)
+    pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
+        Thread::new(self, vec![&mut reader]).run()
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
