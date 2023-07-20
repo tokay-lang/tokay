@@ -30,6 +30,8 @@ begin {
         + "    },"
 }
 
+Char<^\n>+ '\n'  # ignore any other lines entirely
+
 end {
     print("pub static BUILTINS: [Builtin; " + registry.len() + "] = [")
 
