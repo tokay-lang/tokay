@@ -32,12 +32,11 @@ pub struct Loop {
 
 /** Contexts represent stack frames for parselet calls.
 
-Via the context, most operations regarding capture storing and loading is performed. */
-pub struct Context<'program, 'parselet, 'thread> {
+Within the context, most operations regarding capture storing and loading is performed. */
+pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
-    pub program: &'program Program,    // Program
-    pub parselet: &'parselet Parselet, // Current parselet that is executed
-    pub thread: &'thread mut Thread,   // Overall thread
+    pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
+    pub parselet: &'parselet Parselet,                  // Current parselet
 
     pub depth: usize, // Recursion depth
     pub debug: u8,    // Debug level
@@ -56,11 +55,10 @@ pub struct Context<'program, 'parselet, 'thread> {
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
 }
 
-impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
+impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 'parselet> {
     pub fn new(
-        program: &'program Program,
+        thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
-        thread: &'thread mut Thread,
         locals: usize,
         take: usize,
         hold: usize,
@@ -91,9 +89,8 @@ impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
         // Create Context
         Self {
             debug: thread.debug,
-            program,
-            parselet,
             thread,
+            parselet,
             depth,
             stack_start,
             hold,
@@ -560,7 +557,8 @@ impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
     /** Run the current context as a main parselet.
 
     __main__-parselets are executed differently, as they handle unrecognized input as whitespace or gap,
-    by skipping over it.
+    by skipping over it. __main__ parselets do also operate on multiple input Readers by sequence inside
+    of the Context's thread.
     */
     fn run_as_main(&mut self) -> Result<Accept, Reject> {
         // collected results
@@ -577,35 +575,50 @@ impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
             other => return other,
         };
 
-        self.reset(Some(self.thread.reader.tell()));
-
-        // Body
         loop {
-            match self.execute(&self.parselet.body) {
-                Err(Reject::Next)
-                | Err(Reject::Skip)
-                | Ok(Accept::Next)
-                | Ok(Accept::Push(Capture::Empty)) => {}
-                Ok(Accept::Push(mut capture)) => {
-                    results.push(capture.extract(&self.thread.reader));
-                }
-                Ok(Accept::Repeat) => {}
-                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                other => return other,
-            }
-
-            // Skip one character if nothing was consumed
-            if self.frame.reader_start == self.thread.reader.tell() {
-                self.thread.reader.next();
-            }
-
-            // Reset capture stack for loop repeat
             self.reset(Some(self.thread.reader.tell()));
 
-            // Break on EOF
-            if self.thread.reader.eof() {
+            // Body
+            loop {
+                match self.execute(&self.parselet.body) {
+                    Err(Reject::Next)
+                    | Err(Reject::Skip)
+                    | Ok(Accept::Next)
+                    | Ok(Accept::Push(Capture::Empty)) => {}
+                    Ok(Accept::Push(mut capture)) => {
+                        results.push(capture.extract(&self.thread.reader));
+                    }
+                    Ok(Accept::Repeat) => {}
+                    Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
+                    other => return other,
+                }
+
+                if self.frame.reader_start == self.thread.reader.tell() {
+                    // Skip one character if nothing was consumed
+                    self.thread.reader.next();
+
+                    // Drop all memoizations
+                    self.thread.memo.clear();
+                }
+
+                // Reset capture stack for loop repeat
+                self.reset(Some(self.thread.reader.tell()));
+
+                // Break on EOF
+                if self.thread.reader.eof() {
+                    break;
+                }
+            }
+
+            if self.thread.readers.is_empty() {
                 break;
             }
+
+            // Change reader within thread, and continue
+            self.thread.reader = self.thread.readers.remove(0);
+
+            // Drop all memoizations
+            self.thread.memo.clear();
         }
 
         // End
@@ -636,7 +649,9 @@ impl<'program, 'parselet, 'thread> Context<'program, 'parselet, 'thread> {
     }
 }
 
-impl<'program, 'parselet, 'thread> Drop for Context<'program, 'parselet, 'thread> {
+impl<'program, 'reader, 'thread, 'parselet> Drop
+    for Context<'program, 'reader, 'thread, 'parselet>
+{
     fn drop(&mut self) {
         self.thread.stack.truncate(self.stack_start + self.hold);
     }

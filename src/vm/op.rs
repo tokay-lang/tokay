@@ -431,11 +431,15 @@ impl Op {
                 }
 
                 Op::CallStatic(addr) => {
-                    context.program.statics[*addr].call_direct(context, 0, None)
+                    context.thread.program.statics[*addr].call_direct(context, 0, None)
                 }
 
                 Op::CallStaticArg(addr_args) => {
-                    context.program.statics[addr_args.0].call_direct(context, addr_args.1, None)
+                    context.thread.program.statics[addr_args.0].call_direct(
+                        context,
+                        addr_args.1,
+                        None,
+                    )
                     //println!("CallStaticArg returns {:?}", ret);
                 }
 
@@ -443,7 +447,7 @@ impl Op {
                     let nargs = Value::from(context.pop());
 
                     if let Some(nargs) = nargs.into_object::<Dict>() {
-                        context.program.statics[addr_args.0].call_direct(
+                        context.thread.program.statics[addr_args.0].call_direct(
                             context,
                             addr_args.1,
                             Some(nargs),
@@ -455,7 +459,7 @@ impl Op {
 
                 // Variables and values
                 Op::LoadStatic(addr) => {
-                    let value = &context.program.statics[*addr];
+                    let value = &context.thread.program.statics[*addr];
                     context.push(value.borrow().clone().into())
                 }
                 Op::Push0 => context.push(value!(0i64)),
