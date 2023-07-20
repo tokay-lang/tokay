@@ -586,7 +586,8 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     /** Run the current context as a main parselet.
 
     __main__-parselets are executed differently, as they handle unrecognized input as whitespace or gap,
-    by skipping over it.
+    by skipping over it. __main__ parselets do also operate on multiple input Readers by sequence inside
+    of the Context's thread.
     */
     fn run_as_main(&mut self) -> Result<Accept, Reject> {
         // collected results
@@ -607,39 +608,54 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             other => return other,
         };
 
-        self.reset(Some(self.thread.reader.tell()));
-
-        // Body
         loop {
-            match self.execute(&self.parselet.body) {
-                Err(Reject::Next)
-                | Err(Reject::Skip)
-                | Ok(Accept::Next)
-                | Ok(Accept::Push(Capture::Empty)) => {}
-                Ok(Accept::Push(mut capture)) => {
-                    retlist.push(capture.extract(&self.thread.reader));
-                }
-                Ok(Accept::Repeat(value)) => {
-                    if let Some(value) = value {
-                        retlist.push(value);
-                    }
-                }
-                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                other => return other,
-            }
-
-            // Skip one character if nothing was consumed
-            if self.frame.reader_start == self.thread.reader.tell() {
-                self.thread.reader.next();
-            }
-
-            // Reset capture stack for loop repeat
             self.reset(Some(self.thread.reader.tell()));
 
-            // Break on EOF
-            if self.thread.reader.eof() {
+            // Body
+            loop {
+                match self.execute(&self.parselet.body) {
+                    Err(Reject::Next)
+                    | Err(Reject::Skip)
+                    | Ok(Accept::Next)
+                    | Ok(Accept::Push(Capture::Empty)) => {}
+                    Ok(Accept::Push(mut capture)) => {
+                        retlist.push(capture.extract(&self.thread.reader));
+                    }
+                    Ok(Accept::Repeat(value)) => {
+                        if let Some(value) = value {
+                            retlist.push(value);
+                        }
+                    }
+                    Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
+                    other => return other,
+                }
+
+                if self.frame.reader_start == self.thread.reader.tell() {
+                    // Skip one character if nothing was consumed
+                    self.thread.reader.next();
+
+                    // Drop all memoizations
+                    self.thread.memo.clear();
+                }
+
+                // Reset capture stack for loop repeat
+                self.reset(Some(self.thread.reader.tell()));
+
+                // Break on EOF
+                if self.thread.reader.eof() {
+                    break;
+                }
+            }
+
+            if self.thread.readers.is_empty() {
                 break;
             }
+
+            // Change reader within thread, and continue
+            self.thread.reader = self.thread.readers.remove(0);
+
+            // Drop all memoizations
+            self.thread.memo.clear();
         }
 
         // End

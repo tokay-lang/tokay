@@ -5,24 +5,29 @@ use crate::value::RefValue;
 use crate::{Error, Object};
 use std::collections::HashMap;
 
-/** Describes a runtime thread within a VM program.
+/** Thread which is executing a VM program.
 
-A runtime thread is a Reader on an input stream, a memoization table related to the reader
-and the stack the VM operates on.
+Holds runtime-specific information like the stack, readers and the packrat memoization table.
 */
 pub struct Thread<'program, 'reader> {
-    pub program: &'program Program,  // the program this thread belongs to
-    pub reader: &'reader mut Reader, // reader to read from
+    pub program: &'program Program, // the program this thread belongs to
+
+    pub reader: &'reader mut Reader,       // Current reader
+    pub readers: Vec<&'reader mut Reader>, // List of readers
+
     pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // parselet memoization table
     pub stack: Vec<Capture>,                                             // VM value stack
     pub debug: u8,                                                       // Debug level
 }
 
 impl<'program, 'reader> Thread<'program, 'reader> {
-    pub fn new(program: &'program Program, reader: &'reader mut Reader) -> Self {
+    pub fn new(program: &'program Program, mut readers: Vec<&'reader mut Reader>) -> Self {
+        assert!(readers.len() > 0, "Expecting at least one reader");
+
         Self {
             program,
-            reader,
+            reader: readers.remove(0), // first reader becomes current reader
+            readers,                   // other readers are kept for later use
             memo: HashMap::new(),
             stack: Vec::new(),
             debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
@@ -41,11 +46,6 @@ impl<'program, 'reader> Thread<'program, 'reader> {
 
     pub fn save_stack(&mut self) -> Vec<RefValue> {
         self.stack.drain(..).map(|item| item.get_value()).collect()
-    }
-
-    pub fn reset(&mut self) {
-        self.memo.clear();
-        self.stack.clear();
     }
 
     pub fn run(&mut self) -> Result<Option<RefValue>, Error> {

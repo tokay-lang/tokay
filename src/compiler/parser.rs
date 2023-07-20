@@ -7582,7 +7582,7 @@ impl Parser {
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
         //self.0.dump();
-        let mut thread = Thread::new(&self.0, &mut reader);
+        let mut thread = Thread::new(&self.0, vec![&mut reader]);
 
         if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
             thread.debug = level.parse::<u8>().unwrap_or_default();

@@ -39,7 +39,7 @@ impl Program {
     }
 
     pub fn run_from_reader(&self, mut reader: Reader) -> Result<Option<RefValue>, Error> {
-        Thread::new(self, &mut reader).run()
+        Thread::new(self, vec![&mut reader]).run()
     }
 
     pub fn run_from_str(&self, src: &'static str) -> Result<Option<RefValue>, Error> {
