@@ -51,21 +51,27 @@ This repository holds all required source files to provide Tokay with examples.
 
 ## Releasing a version
 
-The `tokay-macros` crate is located in the folder `macros/`. Preliminarily to a Tokay release, it is necessary to release `tokay-macros` in a separate version to `crates.io`. Otherwise, during development, `tokay-macros` can be a local dependency in `Cargo.toml` - it depends on the use-case.
+> The `tokay-macros` crate is located in the folder `macros/`. Preliminarily to a Tokay release, it is necessary to release `tokay-macros` in a separate version to `crates.io`, in case something changed regarding `tokay-macros` during the release. During development, `tokay-macros` can be a local dependency in `Cargo.toml`, but it cannot be a local dependency within a release.
 
 Next are some instructions on how to create a new release.
 
-- Release `tokay-macros` (only required when version changed)
-  - `cd macros`
-  - In `Cargo.toml`, check and/or bump version number
-  - `cargo publish`
-- Release `tokay`
-  - Make sure `CHANGELOG.md` is updated
-  - Check for updated copyright year in `LICENSE`, `README.md`, `src/lib.rs` and `src/main.rs`
-  - `Cargo.toml`
-    - Check and/or bump version number
-    - Uncomment line to use `tokay-macros` version from crates.io (obviously `tokay-macros = "x.x"`)
-    - Comment line to use local `tokay-macros` (should be `# tokay-macros = { version = "x.x", path = "macros" }`)
-  - `git commit` this state
-  - `git tag` this state
-  - `cargo publish`
+### Release `tokay-macros`
+
+(only required when version of `tokay-macros` changed)
+
+- `cd macros`
+- In `Cargo.toml`, check and/or bump version number
+- `cargo publish`
+
+### Release `tokay`
+
+- Make sure `CHANGELOG.md` is updated
+- Check for updated copyright year in `LICENSE`, `README.md`, `src/lib.rs` and `src/main.rs`
+- Edit `Cargo.toml`
+  - Check and/or bump version number
+  - Uncomment line to use `tokay-macros` version from crates.io (obviously `tokay-macros = "x.x"`)
+  - Comment line to use local `tokay-macros` (should be `# tokay-macros = { version = "x.x", path = "macros" }`)
+- Ensure `cargo clean && cargo run && cargo test` succeeds
+- `git commit` this state
+- `git tag` this state
+- `cargo publish`
