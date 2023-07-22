@@ -37,12 +37,10 @@ pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
     pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
     pub parselet: &'parselet Parselet,                  // Current parselet
-
-    pub depth: usize, // Recursion depth
+    pub depth: usize,                                   // Recursion depth
 
     // Positions
     pub stack_start: usize, // Stack start (including locals and parameters)
-    hold: usize,            // Defines number of stack items to hold on context drop
 
     // Virtual machine
     pub frames: Vec<Frame>, // Frame stack
@@ -58,9 +56,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     pub fn new(
         thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
-        locals: usize,
         take: usize,
-        hold: usize,
         depth: usize,
     ) -> Self {
         let stack_start = thread.stack.len() - take;
@@ -76,12 +72,12 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         // Initialize local variables and $0
         thread
             .stack
-            .resize(stack_start + locals + 1, Capture::Empty);
+            .resize(stack_start + parselet.locals + 1, Capture::Empty);
 
         // Create context frame0
         let frame = Frame {
             fuse: None,
-            capture_start: stack_start + locals + 1,
+            capture_start: stack_start + parselet.locals + 1,
             reader_start: thread.reader.tell(),
         };
 
@@ -91,7 +87,6 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             parselet,
             depth,
             stack_start,
-            hold,
             frames: Vec::new(),
             frame,
             loops: Vec::new(),
@@ -694,6 +689,6 @@ impl<'program, 'reader, 'thread, 'parselet> Drop
     for Context<'program, 'reader, 'thread, 'parselet>
 {
     fn drop(&mut self) {
-        self.thread.stack.truncate(self.stack_start + self.hold);
+        self.thread.stack.truncate(self.stack_start);
     }
 }

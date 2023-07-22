@@ -95,14 +95,7 @@ impl Parselet {
         }
 
         // If not, open a new context.
-        let mut context = Context::new(
-            thread,
-            self,
-            self.locals,
-            args,
-            if main { self.locals } else { 0 }, // Hold thread globals when this is main!
-            depth,
-        );
+        let mut context = Context::new(thread, self, args, depth);
 
         if !main {
             // Check for provided argument count bounds first
@@ -295,6 +288,11 @@ impl Parselet {
             }
         }
         */
+
+        if main {
+            // main parselet keeps locals on stack
+            context.stack_start += self.locals;
+        }
 
         result
     }
