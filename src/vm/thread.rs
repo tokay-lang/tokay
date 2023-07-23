@@ -16,7 +16,7 @@ pub struct Thread<'program, 'reader> {
     pub readers: Vec<&'reader mut Reader>, // List of readers
 
     pub memo: HashMap<(usize, usize), (Offset, Result<Accept, Reject>)>, // parselet memoization table
-    pub stack: Vec<Capture>,                                             // VM value stack
+    pub globals: Vec<RefValue>,                                          // Global variables
     pub debug: u8,                                                       // Debug level
 }
 
@@ -29,7 +29,7 @@ impl<'program, 'reader> Thread<'program, 'reader> {
             reader: readers.remove(0), // first reader becomes current reader
             readers,                   // other readers are kept for later use
             memo: HashMap::new(),
-            stack: Vec::new(),
+            globals: Vec::new(),
             debug: if let Ok(level) = std::env::var("TOKAY_DEBUG") {
                 level.parse::<u8>().unwrap_or_default()
             } else {
@@ -38,23 +38,13 @@ impl<'program, 'reader> Thread<'program, 'reader> {
         }
     }
 
-    pub fn load_stack(&mut self, stack: Vec<RefValue>) {
-        for item in stack {
-            self.stack.push(Capture::Value(item, None, 0));
-        }
-    }
-
-    pub fn save_stack(&mut self) -> Vec<RefValue> {
-        self.stack.drain(..).map(|item| item.get_value()).collect()
-    }
-
     pub fn run(&mut self) -> Result<Option<RefValue>, Error> {
         match self
             .program
             .main()
             .0
             .borrow()
-            .run(self, self.stack.len(), None, true, 0)
+            .run(self, Vec::new(), None, true, 0)
         {
             Ok(Accept::Push(Capture::Value(value, ..))) => {
                 if value.is_void() {
