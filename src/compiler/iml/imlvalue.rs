@@ -96,7 +96,7 @@ impl ImlValue {
                     match &**target {
                         ImlValue::Parselet(parselet) => {
                             let parselet = parselet.borrow();
-                            let mut new_constants = IndexMap::new();
+                            let mut constants = IndexMap::new();
 
                             for (name, default) in parselet.constants.iter() {
                                 // Take arguments by sequence first
@@ -138,7 +138,7 @@ impl ImlValue {
                                     ));
                                 }
 
-                                new_constants.insert(name.clone(), arg.1);
+                                constants.insert(name.clone(), arg.1);
                             }
 
                             // Report any errors for unconsumed generic arguments.
@@ -148,14 +148,14 @@ impl ImlValue {
                                     format!(
                                         "{} got too many generic arguments ({} in total, expected {})",
                                         target,
-                                        new_constants.len() + args.len(),
-                                        new_constants.len()
+                                        constants.len() + args.len(),
+                                        constants.len()
                                     ),
                                 ));
                             }
 
                             for (name, (offset, _)) in nargs {
-                                if new_constants.get(name).is_some() {
+                                if constants.get(name).is_some() {
                                     compiler.errors.push(Error::new(
                                         *offset,
                                         format!(
@@ -174,9 +174,17 @@ impl ImlValue {
                                 }
                             }
 
-                            Some(ImlValue::from(
-                                parselet.derive(new_constants, offset.clone()),
-                            ))
+                            // Make a parselet derivation from the instance definition;
+                            // This can be the final parselet definition, but constants
+                            // might contain Generic references as well, which are being
+                            // resolved during compilation.
+                            Some(ImlValue::from(ImlParselet {
+                                model: parselet.model.clone(),
+                                constants,
+                                offset: parselet.offset.clone(),
+                                name: parselet.name.clone(),
+                                severity: parselet.severity,
+                            }))
                         }
                         target => {
                             compiler.errors.push(Error::new(
@@ -338,13 +346,9 @@ impl ImlValue {
         if start == ops.len() {
             let idx = match self {
                 ImlValue::This(_) => this,
-                /*
-                ImlValue::Parselet(parselet) => {
-                    let parselet = parselet.borrow();
-
-
-                }
-                */
+                ImlValue::Parselet(parselet) => program
+                    .register(&ImlValue::Parselet(parselet.derive(&current.constants)))
+                    .unwrap(),
                 resolved => program.register(resolved).unwrap(),
             };
 
@@ -434,7 +438,7 @@ impl std::hash::Hash for ImlValue {
             }
             Self::Parselet(parselet) => {
                 state.write_u8('p' as u8);
-                parselet.borrow().hash(state);
+                parselet.hash(state);
             }
             other => unreachable!("{:?} is unhashable", other),
         }

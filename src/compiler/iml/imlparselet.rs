@@ -58,16 +58,35 @@ impl ImlParselet {
         }
     }
 
-    /// Derives a parselet from a given constants configuration.
-    //pub fn derive(&self, from: &IndexMap<String, ImlValue>, offset: Option<Offset>) -> Option<Self> {
-    pub fn derive(&self, constants: IndexMap<String, ImlValue>, offset: Option<Offset>) -> Self {
-        Self {
+    /** Derives a parselet from a given namespace when required.
+
+    The namespace defines the constant configuration of a surrounding parselet,
+    and extends the parselet's constant configuration, making it a derivation.
+
+    Returns None if no derivation can be created, otherwise returns Some(Self).
+    */
+    pub fn derive(&self, namespace: &IndexMap<String, ImlValue>) -> Option<Self> {
+        let mut constants = self.constants.clone();
+        let mut modified = false;
+
+        for value in constants.values_mut() {
+            if let ImlValue::Generic { name, .. } = value {
+                *value = namespace.get(name).unwrap().clone();
+                modified = true;
+            }
+        }
+
+        if !modified {
+            return None;
+        }
+
+        Some(ImlParselet {
             model: self.model.clone(),
             constants,
-            offset,
+            offset: self.offset.clone(),
             name: self.name.clone(),
             severity: self.severity,
-        }
+        })
     }
 
     pub fn id(&self) -> usize {
@@ -168,6 +187,22 @@ pub(in crate::compiler) struct ImlSharedParselet(Rc<RefCell<ImlParselet>>);
 impl ImlSharedParselet {
     pub fn new(parselet: ImlParselet) -> Self {
         Self(Rc::new(RefCell::new(parselet)))
+    }
+
+    pub fn derive(&self, namespace: &IndexMap<String, ImlValue>) -> Self {
+        if let Ok(parselet) = self.try_borrow() {
+            if let Some(derive) = parselet.derive(namespace) {
+                return Self::new(derive);
+            }
+        }
+
+        self.clone()
+    }
+}
+
+impl std::hash::Hash for ImlSharedParselet {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.borrow().hash(state);
     }
 }
 
