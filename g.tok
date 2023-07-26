@@ -1,0 +1,18 @@
+T: @<P, t: "yeah"> {
+    P 'x' P  print(t $0)
+}
+
+#T
+print("Start")
+T<'a'>
+T<'b'>
+T<'a'>
+'\n'
+Char print("Nee" $1)
+#T<'a', "yo">
+#T<t:"yes">
+#T<z:"x">
+#T<Int>
+#T<P:'x', p:'y'>
+#T<1,2,3>
+#T<'x'>("y")

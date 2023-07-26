@@ -1,0 +1,11 @@
+# cargo run -- -e g3.tok -- xxbbxbbxxbb
+
+X : @<A> {
+    A A
+}
+
+Y : @<B> {
+    X<B>
+}
+
+Y<'x'> Y<'b'>
