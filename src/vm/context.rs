@@ -40,6 +40,7 @@ pub struct Context<'program, 'reader, 'thread, 'parselet> {
     pub depth: usize,                                   // Recursion depth
 
     // Virtual machine
+    var: Capture,            // Context variable ($0)
     pub stack: Vec<Capture>, // Capture stack
     pub frames: Vec<Frame>,  // Frame stack
     pub frame: Frame,        // Current frame
@@ -57,11 +58,9 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         depth: usize,
         mut stack: Vec<Capture>,
     ) -> Self {
-        stack.push(Capture::Empty); // Initialize $0
-
         let frame = Frame {
             fuse: None,
-            capture_start: parselet.locals + 1,
+            capture_start: parselet.locals,
             reader_start: thread.reader.tell(),
         };
 
@@ -70,6 +69,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             thread,
             parselet,
             depth,
+            var: Capture::Empty,
             stack,
             frames: Vec::new(),
             // Create context frame0
@@ -131,8 +131,8 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     // Reset context stack state
     #[inline]
     fn reset(&mut self, offset: Option<Offset>) {
-        self.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
-        self.stack.push(Capture::Empty); // re-initialize $0
+        self.stack.truncate(self.frame.capture_start); // Truncate stack
+        self.var = Capture::Empty; // Reset $0
 
         if let Some(offset) = offset {
             self.frame.reader_start = offset; // Set reader start to provided position
@@ -160,32 +160,34 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         let frame0 = self.frame0();
-        let capture_start = frame0.capture_start;
         let reader_start = frame0.reader_start;
 
-        let pos = capture_start + pos - 1;
-
-        if pos >= self.stack.len() {
-            None
-        }
-        // This is $0?
-        else if pos < capture_start {
+        if pos == 0 {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value, ..) = &self.stack[pos] {
+            if let Capture::Value(value, ..) = &self.var {
                 return Some(value.clone());
             }
 
             // ...returns the current range read so far.
-            Some(RefValue::from(
+            return Some(RefValue::from(
                 self.thread
                     .reader
                     .get(&self.thread.reader.capture_from(&reader_start)),
-            ))
-        // Any other index.
-        } else {
-            self.stack[pos].degrade();
-            Some(self.stack[pos].extract(&self.thread.reader))
+            ));
         }
+
+        let capture_start = frame0.capture_start;
+
+        let pos = capture_start + pos - 1;
+
+        if pos >= self.stack.len() {
+            return None;
+        }
+
+        let capture = &mut self.stack[pos];
+
+        capture.degrade(); // fixme: Can't extract do the degration?
+        Some(capture.extract(&self.thread.reader))
     }
 
     /** Return a capture by name as RefValue. */
@@ -197,7 +199,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
-                capture.degrade();
+                capture.degrade(); // fixme: Can't extract do the degration?
                 return Some(capture.extract(&self.thread.reader));
             }
         }
@@ -207,6 +209,11 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
     /** Set a capture to a RefValue by index. */
     pub fn set_capture(&mut self, pos: usize, value: RefValue) {
+        if pos == 0 {
+            self.var = Capture::from(value);
+            return;
+        }
+
         let capture_start = self.frame0().capture_start;
         let pos = capture_start + pos - 1;
 
@@ -216,17 +223,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
         let capture = &mut self.stack[pos];
 
-        // $0 gets a higher severity than normal captures.
-        let severity = if pos < capture_start { 10 } else { 5 };
-
         match capture {
-            Capture::Empty => *capture = Capture::Value(value, None, severity),
-            Capture::Range(_, alias, _) => {
-                *capture = Capture::Value(value, alias.clone(), severity)
-            }
-            Capture::Value(capture_value, ..) => {
-                *capture_value = value;
-            }
+            Capture::Empty => *capture = Capture::Value(value, None, 5),
+            Capture::Range(_, alias, _) => *capture = Capture::Value(value, alias.clone(), 5),
+            Capture::Value(capture_value, ..) => *capture_value = value,
         }
     }
 
@@ -244,9 +244,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                     Capture::Range(_, alias, _) => {
                         *capture = Capture::Value(value, alias.clone(), 5)
                     }
-                    Capture::Value(capture_value, ..) => {
-                        *capture_value = value;
-                    }
+                    Capture::Value(capture_value, ..) => *capture_value = value,
                 }
                 break;
             }
@@ -436,7 +434,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             // In case state is Accept::Next, try to return a capture
             Ok(Accept::Next) => {
                 // Either take $0 when set
-                if let Capture::Value(value, ..) = &mut self.stack[self.frame.capture_start - 1] {
+                if let Capture::Value(value, ..) = &mut self.var {
                     state = Ok(Accept::Push(Capture::Value(
                         value.clone(),
                         None,
