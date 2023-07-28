@@ -58,6 +58,14 @@ impl ImlParselet {
         }
     }
 
+    /// Checks if a ImlParselet is completely resolved, or if it has open generics
+    pub fn is_resolved(&self) -> bool {
+        !self
+            .constants
+            .values()
+            .any(|value| matches!(value, ImlValue::Generic { .. }))
+    }
+
     /** Derives a parselet from a given namespace when required.
 
     The namespace defines the constant configuration of a surrounding parselet,
@@ -66,18 +74,16 @@ impl ImlParselet {
     Returns None if no derivation can be created, otherwise returns Some(Self).
     */
     pub fn derive(&self, namespace: &IndexMap<String, ImlValue>) -> Option<Self> {
-        let mut constants = self.constants.clone();
-        let mut modified = false;
-
-        for value in constants.values_mut() {
-            if let ImlValue::Generic { name, .. } = value {
-                *value = namespace.get(name).unwrap().clone();
-                modified = true;
-            }
+        if self.is_resolved() {
+            return None;
         }
 
-        if !modified {
-            return None;
+        let mut constants = self.constants.clone();
+
+        for value in constants.values_mut() {
+            while let ImlValue::Generic { name, .. } = value {
+                *value = namespace.get(name).unwrap().clone();
+            }
         }
 
         Some(ImlParselet {
