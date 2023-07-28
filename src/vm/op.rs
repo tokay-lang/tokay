@@ -164,8 +164,8 @@ impl Op {
                 // Dump stack and frames
                 if context.thread.debug > 4 {
                     context.log("--- Stack ---");
-                    for i in 0..context.thread.stack.len() {
-                        context.log(&format!(" {:03} {:?}", i, context.thread.stack[i]));
+                    for i in 0..context.stack.len() {
+                        context.log(&format!(" {:03} {:?}", i, context.stack[i]));
                     }
 
                     context.log("--- Frames ---");
@@ -196,7 +196,7 @@ impl Op {
                     context.frames.push(context.frame);
                     context.frame = Frame {
                         fuse: if *fuse > 0 { Some(ip + *fuse) } else { None },
-                        capture_start: context.thread.stack.len(),
+                        capture_start: context.stack.len(),
                         reader_start: context.thread.reader.tell(),
                     };
 
@@ -204,7 +204,7 @@ impl Op {
                 }
 
                 Op::Capture => {
-                    context.frame.capture_start = context.thread.stack.len();
+                    context.frame.capture_start = context.stack.len();
                     Ok(Accept::Next)
                 }
 
@@ -214,7 +214,7 @@ impl Op {
                 }
 
                 Op::Reset => {
-                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
                     context.thread.reader.reset(context.frame.reader_start);
                     Ok(Accept::Next)
                 }
@@ -274,7 +274,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
 
                     // Jump behind loop
                     ip = current.end;
@@ -283,7 +283,7 @@ impl Op {
                     Ok(if let Some(value) = value {
                         Accept::Push(Capture::Value(value, None, 10))
                     } else {
-                        context.thread.stack.push(Capture::Empty);
+                        context.stack.push(Capture::Empty);
                         Accept::Hold
                     })
                 }
@@ -299,7 +299,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
 
                     // Jump to loop start.
                     ip = current.start;
@@ -476,8 +476,8 @@ impl Op {
                 Op::PushTrue => context.push(value!(true)),
                 Op::PushFalse => context.push(value!(false)),
 
-                Op::LoadGlobal(addr) => context.load(*addr),
-                Op::LoadFast(addr) => context.load(context.stack_start + *addr),
+                Op::LoadGlobal(addr) => context.push(context.thread.globals[*addr].clone()),
+                Op::LoadFast(addr) => context.load(*addr),
 
                 Op::LoadFastCapture(index) => {
                     let value = context.get_capture(*index).unwrap_or(value!(void));
@@ -526,30 +526,28 @@ impl Op {
                 Op::StoreGlobal(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.thread.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.globals[*addr] = value;
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreGlobalHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.thread.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.globals[*addr] = value;
                     Ok(Accept::Next)
                 }
 
                 Op::StoreFast(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.thread.stack[context.stack_start + *addr] =
-                        Capture::Value(value, None, 0);
+                    context.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreFastHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.thread.stack[context.stack_start + *addr] =
-                        Capture::Value(value, None, 0);
+                    context.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
@@ -616,7 +614,7 @@ impl Op {
                 Op::MakeAlias => {
                     let name = context.pop();
 
-                    match context.thread.stack.last_mut().unwrap() {
+                    match context.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
                             *alias = Some(name);
                         }
@@ -684,11 +682,8 @@ impl Op {
                 Op::Copy(index) => {
                     assert!(*index > 0);
 
-                    let index = context.thread.stack.len() - index;
-                    context
-                        .thread
-                        .stack
-                        .push(context.thread.stack[index].clone());
+                    let index = context.stack.len() - index;
+                    context.stack.push(context.stack[index].clone());
 
                     Ok(Accept::Next)
                 }
@@ -696,14 +691,11 @@ impl Op {
                 Op::Swap(index) => {
                     assert!(*index > 1);
 
-                    let index = context.thread.stack.len() - index;
-                    let tos = context.thread.stack.pop().unwrap();
+                    let index = context.stack.len() - index;
+                    let tos = context.stack.pop().unwrap();
 
-                    context
-                        .thread
-                        .stack
-                        .push(context.thread.stack[index].clone());
-                    context.thread.stack[index] = tos;
+                    context.stack.push(context.stack[index].clone());
+                    context.stack[index] = tos;
 
                     Ok(Accept::Next)
                 }
@@ -729,12 +721,12 @@ impl Op {
                 Ok(Accept::Hold) => state = Ok(Accept::Next),
                 Ok(Accept::Next) => ip += 1,
                 Ok(Accept::Push(capture)) if ip + 1 < ops.len() => {
-                    context.thread.stack.push(capture);
+                    context.stack.push(capture);
                     state = Ok(Accept::Next);
                     ip += 1;
                 }
                 Err(Reject::Next) if context.frames.len() > 0 => loop {
-                    context.thread.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
                     context.thread.reader.reset(context.frame.reader_start);
 
                     if let Some(fuse) = context.frame.fuse {
