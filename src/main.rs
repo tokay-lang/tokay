@@ -154,7 +154,7 @@ fn repl(opts: &Opts) {
 
                     let mut thread = Thread::new(&program, readers.iter_mut().collect());
                     thread.debug = compiler.debug;
-                    thread.load_stack(globals);
+                    thread.globals = globals;
 
                     match thread.run() {
                         Ok(Some(value)) => println!("{}", value.repr()),
@@ -162,7 +162,7 @@ fn repl(opts: &Opts) {
                         _ => {}
                     }
 
-                    globals = thread.save_stack();
+                    globals = thread.globals;
                 }
                 Err(errors) => {
                     for error in errors {

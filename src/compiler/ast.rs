@@ -473,97 +473,92 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 let name = item["value"].borrow();
                 let name = name.object::<Str>().unwrap().as_str();
 
-                /* Generates code for a symbol store, which means:
-
-                    1. look-up local variable, and store into
-                    2. look-up global variable, and store into
-                    3. create local variable, and store into
-                */
-                match compiler.get(name) {
-                    // Known local
-                    Some(ImlValue::Local(addr)) => {
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreFastHold(addr).into())
+                // This loop is only iterated in case a variable isn't known!
+                'load: loop {
+                    match compiler.get(name) {
+                        // Known local
+                        Some(ImlValue::Local(addr)) => {
+                            if store {
+                                if hold {
+                                    ops.push(Op::StoreFastHold(addr).into())
+                                } else {
+                                    ops.push(Op::StoreFast(addr).into())
+                                }
                             } else {
-                                ops.push(Op::StoreFast(addr).into())
-                            }
-                        } else {
-                            ops.push(Op::LoadFast(addr).into())
-                        }
-                    }
-                    // Known global
-                    Some(ImlValue::Global(addr)) => {
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreGlobalHold(addr).into())
-                            } else {
-                                ops.push(Op::StoreGlobal(addr).into())
-                            }
-                        } else {
-                            ops.push(Op::LoadGlobal(addr).into())
-                        }
-                    }
-                    // Check for not assigning to a constant (at any level)
-                    Some(_) => {
-                        compiler.errors.push(Error::new(
-                            traverse_node_offset(node),
-                            format!("Cannot assign to constant '{}'", name),
-                        ));
-                        break;
-                    }
-                    // Undefined name
-                    None => {
-                        // Check if identifier is valid
-                        if let Err(mut error) = identifier_is_valid(name) {
-                            if let Some(offset) = traverse_node_offset(node) {
-                                error.patch_offset(offset);
+                                ops.push(Op::LoadFast(addr).into())
                             }
 
-                            compiler.errors.push(error);
                             break;
                         }
+                        // Known global
+                        Some(ImlValue::Global(addr)) => {
+                            if store {
+                                if hold {
+                                    ops.push(Op::StoreGlobalHold(addr).into())
+                                } else {
+                                    ops.push(Op::StoreGlobal(addr).into())
+                                }
+                            } else {
+                                ops.push(Op::LoadGlobal(addr).into())
+                            }
 
-                        // Check if identifier is not defining a consumable
-                        if utils::identifier_is_consumable(name) {
+                            break;
+                        }
+                        // Check for not assigning to a constant (at any level)
+                        Some(_) => {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
+                                format!("Cannot assign to constant '{}'", name),
+                            ));
+                            break 'load;
+                        }
+                        // Undefined name
+                        None => {
+                            // Check if identifier is valid
+                            if let Err(mut error) = identifier_is_valid(name) {
+                                if let Some(offset) = traverse_node_offset(node) {
+                                    error.patch_offset(offset);
+                                }
 
-                                if &name[0..1] == "_" {
+                                compiler.errors.push(error);
+                                break 'load;
+                            }
+
+                            // Check if identifier is not defining a consumable
+                            if utils::identifier_is_consumable(name) {
+                                compiler.errors.push(Error::new(
+                                    traverse_node_offset(node),
+
+                                    if &name[0..1] == "_" {
+                                        format!(
+                                            "The variable '{}' is invalid, only constants may start with '_'",
+                                            name
+                                        )
+                                    }
+                                    else {
+                                        format!(
+                                            "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
+                                            name, name.to_lowercase()
+                                        )
+                                    }
+                                ));
+
+                                break 'load;
+                            }
+
+                            // When chained lvalue, name must be declared!
+                            if children.len() > 1 {
+                                compiler.errors.push(Error::new(
+                                    traverse_node_offset(node),
                                     format!(
-                                        "The variable '{}' is invalid, only constants may start with '_'",
+                                        "Undeclared variable '{}', please define it first",
                                         name
-                                    )
-                                }
-                                else {
-                                    format!(
-                                        "Cannot assign variable named '{}'; Try lower-case identifier, e.g. '{}'",
-                                        name, name.to_lowercase()
-                                    )
-                                }
-                            ));
-
-                            break;
-                        }
-
-                        // When chained lvalue, name must be declared!
-                        if children.len() > 1 {
-                            compiler.errors.push(Error::new(
-                                traverse_node_offset(node),
-                                format!("Undeclared variable '{}', please define it first", name),
-                            ));
-                            break;
-                        }
-
-                        let addr = compiler.new_local(name);
-                        if store {
-                            if hold {
-                                ops.push(Op::StoreFastHold(addr).into())
-                            } else {
-                                ops.push(Op::StoreFast(addr).into())
+                                    ),
+                                ));
+                                break;
                             }
-                        } else {
-                            ops.push(Op::LoadFast(addr).into())
+
+                            compiler.new_local(name);
                         }
                     }
                 }

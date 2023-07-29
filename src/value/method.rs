@@ -44,8 +44,8 @@ impl Object for Method {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         // A method call injects the relating "this" object into the stack and calls the method afterwards.
-        context.thread.stack.insert(
-            context.thread.stack.len() - args,
+        context.stack.insert(
+            context.stack.len() - args,
             Capture::Value(self.object.clone(), None, 0),
         );
 
