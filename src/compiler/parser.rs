@@ -15,11 +15,11 @@ impl Parser {
             // First of all: DON'T PANIC!
 
             // Below code blob between the markers GENERATE and ETARENEG (which is "GENERATE" reversed!)
-            // is injected by tokay itself, by running the program `tokay.tok` with tokay, parsing itself.
+            // is injected by Tokay itself, by running the program `tokay.tok` with tokay, parsing itself.
             // This generates an abstract syntax tree (AST) representation of `tokay.tok` in form of
-            // value!-marcro calls, which is injected below between the markers.
+            // value!-macro calls, which is injected below between the two markers.
 
-            // If something goes wrong, it is important to keep a working copy of this file in Git,
+            // If something goes wrong, it is important to keep a working copy of this file in Git
             // to have a working version of the parser at hand before its automatical replacement.
             // The best way is to test grammar changes with `tokay.tok` intensely before rebuilding the
             // parser, to ensure all runs well.
