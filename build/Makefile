@@ -8,6 +8,21 @@ all:
 	@echo "  make parser      update src/compiler/parse.rs from src/compiler/tokay.tok"
 	@echo ""
 
+# builtins --------------------------------------------------------------------
+BUILTINS=../src/_builtins.rs
+
+builtins: $(BUILTINS)
+
+$(BUILTINS): .FORCE
+	$(ETARENEG) $@ >$@.1 && mv $@.1 $@
+
+show-builtins:
+	$(ETARENEG) $(BUILTINS) 2>/dev/null
+
+reset-builtins:
+	git checkout $(BUILTINS)
+
+
 # parser ----------------------------------------------------------------------
 PARSER=../src/compiler/parser.rs
 
@@ -16,22 +31,8 @@ parser: $(PARSER)
 $(PARSER): .FORCE
 	$(ETARENEG) $@ >$@.1 && mv $@.1 $@
 
-show_parser:
-	$(ETARENEG) $(PARSER)
+show-parser:
+	$(ETARENEG) $(PARSER) 2>/dev/null
 
-reset_parser:
+reset-parser:
 	git checkout $(PARSER)
-
-# builtin ---------------------------------------------------------------------
-BUILTINS=../src/_builtins.rs
-
-builtins: $(BUILTINS)
-
-$(BUILTINS): .FORCE
-	$(ETARENEG) $@ >$@.1 && mv $@.1 $@
-
-show_builtins:
-	$(ETARENEG) $(BUILTINS)
-
-reset_builtins:
-	git checkout $(BUILTINS)
