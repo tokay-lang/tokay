@@ -7,13 +7,15 @@ begin {
     impl = "::" + $3
 }
 
-'tokay_' kind => {
+_ 'tokay_' kind => {
     ''function''
     ''method''
     ''token''
 } '!' _ '(' _ '"' _ name => Ident {
     #kind => $kind, name => $name, impl => impl
     #accept "register(\"" + $name + "\", tokay_" + $kind + "_" + $name.lower() + ")"
+    #print(offset()["filename"], $kind, $name)
+
     mod = offset()["filename"].split("/")
     last = mod.len - 1
     mod[last] = mod[last].replace(".rs")
