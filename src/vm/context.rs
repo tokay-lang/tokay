@@ -41,12 +41,11 @@ pub struct Context<'program, 'reader, 'thread, 'parselet> {
     pub depth: usize, // Recursion depth
     pub debug: u8,    // Debug level
 
-    // Positions
-    pub stack_start: usize, // Stack start (including locals and parameters)
-
     // Virtual machine
-    pub frames: Vec<Frame>, // Frame stack
-    pub frame: Frame,       // Current frame
+    var: Capture,            // Context variable ($0)
+    pub stack: Vec<Capture>, // Capture stack
+    pub frames: Vec<Frame>,  // Frame stack
+    pub frame: Frame,        // Current frame
 
     pub loops: Vec<Loop>, // Loop stack
 
@@ -58,28 +57,12 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     pub fn new(
         thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
-        take: usize,
         depth: usize,
+        stack: Vec<Capture>,
     ) -> Self {
-        let stack_start = thread.stack.len() - take;
-
-        /*
-        println!("--- {:?} ---", parselet.name);
-        println!("stack = {:#?}", thread.stack);
-        println!("stack = {:?}", thread.stack.len());
-        println!("start = {:?}", stack_start);
-        println!("resize = {:?}", stack_start + locals + 1);
-        */
-
-        // Initialize local variables and $0
-        thread
-            .stack
-            .resize(stack_start + parselet.locals + 1, Capture::Empty);
-
-        // Create context frame0
         let frame = Frame {
             fuse: None,
-            capture_start: stack_start + parselet.locals + 1,
+            capture_start: parselet.locals,
             reader_start: thread.reader.tell(),
         };
 
@@ -89,8 +72,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             thread,
             parselet,
             depth,
-            stack_start,
+            var: Capture::Empty,
+            stack,
             frames: Vec::new(),
+            // Create context frame0
             frame,
             loops: Vec::new(),
             source_offset: None,
@@ -126,7 +111,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     #[inline]
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let mut capture = self.thread.stack.pop().unwrap();
+        let mut capture = self.stack.pop().unwrap();
         capture.extract(&mut self.thread.reader)
     }
 
@@ -134,14 +119,14 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     #[inline]
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let capture = self.thread.stack.last_mut().unwrap();
+        let capture = self.stack.last_mut().unwrap();
         capture.extract(&mut self.thread.reader)
     }
 
     // Push a value onto the stack
     #[inline]
     pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
-        let capture = &mut self.thread.stack[index];
+        let capture = &mut self.stack[index];
         let value = capture.extract(&self.thread.reader);
         self.push(value)
     }
@@ -149,8 +134,8 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     // Reset context stack state
     #[inline]
     fn reset(&mut self, offset: Option<Offset>) {
-        self.thread.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
-        self.thread.stack.push(Capture::Empty); // re-initialize $0
+        self.stack.truncate(self.frame.capture_start); // Truncate stack
+        self.var = Capture::Empty; // Reset $0
 
         if let Some(offset) = offset {
             self.frame.reader_start = offset; // Set reader start to provided position
@@ -178,44 +163,46 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         let frame0 = self.frame0();
-        let capture_start = frame0.capture_start;
         let reader_start = frame0.reader_start;
 
-        let pos = capture_start + pos - 1;
-
-        if pos >= self.thread.stack.len() {
-            None
-        }
-        // This is $0?
-        else if pos < capture_start {
+        if pos == 0 {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value, ..) = &self.thread.stack[pos] {
+            if let Capture::Value(value, ..) = &self.var {
                 return Some(value.clone());
             }
 
             // ...returns the current range read so far.
-            Some(RefValue::from(
+            return Some(RefValue::from(
                 self.thread
                     .reader
                     .get(&self.thread.reader.capture_from(&reader_start)),
-            ))
-        // Any other index.
-        } else {
-            self.thread.stack[pos].degrade();
-            Some(self.thread.stack[pos].extract(&self.thread.reader))
+            ));
         }
+
+        let capture_start = frame0.capture_start;
+
+        let pos = capture_start + pos - 1;
+
+        if pos >= self.stack.len() {
+            return None;
+        }
+
+        let capture = &mut self.stack[pos];
+
+        capture.degrade(); // fixme: Can't extract do the degration?
+        Some(capture.extract(&self.thread.reader))
     }
 
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
         let capture_start = self.frame0().capture_start;
-        let tos = self.thread.stack.len();
+        let tos = self.stack.len();
 
         for i in (0..tos - capture_start).rev() {
-            let capture = &mut self.thread.stack[capture_start + i];
+            let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
-                capture.degrade();
+                capture.degrade(); // fixme: Can't extract do the degration?
                 return Some(capture.extract(&self.thread.reader));
             }
         }
@@ -225,36 +212,34 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
     /** Set a capture to a RefValue by index. */
     pub fn set_capture(&mut self, pos: usize, value: RefValue) {
-        let capture_start = self.frame0().capture_start;
-        let pos = capture_start + pos - 1;
-
-        if pos >= self.thread.stack.len() {
+        if pos == 0 {
+            self.var = Capture::from(value);
             return;
         }
 
-        let capture = &mut self.thread.stack[pos];
+        let capture_start = self.frame0().capture_start;
+        let pos = capture_start + pos - 1;
 
-        // $0 gets a higher severity than normal captures.
-        let severity = if pos < capture_start { 10 } else { 5 };
+        if pos >= self.stack.len() {
+            return;
+        }
+
+        let capture = &mut self.stack[pos];
 
         match capture {
-            Capture::Empty => *capture = Capture::Value(value, None, severity),
-            Capture::Range(_, alias, _) => {
-                *capture = Capture::Value(value, alias.clone(), severity)
-            }
-            Capture::Value(capture_value, ..) => {
-                *capture_value = value;
-            }
+            Capture::Empty => *capture = Capture::Value(value, None, 5),
+            Capture::Range(_, alias, _) => *capture = Capture::Value(value, alias.clone(), 5),
+            Capture::Value(capture_value, ..) => *capture_value = value,
         }
     }
 
     /** Set a capture to a RefValue by name. */
     pub fn set_capture_by_name(&mut self, name: &str, value: RefValue) {
         let capture_start = self.frame0().capture_start;
-        let tos = self.thread.stack.len();
+        let tos = self.stack.len();
 
         for i in (0..tos - capture_start).rev() {
-            let capture = &mut self.thread.stack[capture_start + i];
+            let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
                 match capture {
@@ -262,9 +247,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                     Capture::Range(_, alias, _) => {
                         *capture = Capture::Value(value, alias.clone(), 5)
                     }
-                    Capture::Value(capture_value, ..) => {
-                        *capture_value = value;
-                    }
+                    Capture::Value(capture_value, ..) => *capture_value = value,
                 }
                 break;
             }
@@ -291,7 +274,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         debug: bool,          // Print debug information
     ) -> Capture {
         // Early abort when capture_start is behind stack len
-        if capture_start > self.thread.stack.len() {
+        if capture_start > self.stack.len() {
             return Capture::Empty;
         }
 
@@ -301,14 +284,13 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         let captures: Vec<Capture> = if copy {
             // fixme: copy feature isn't used...
             Vec::from_iter(
-                self.thread.stack[capture_start..]
+                self.stack[capture_start..]
                     .iter()
                     .filter(|item| !(matches!(item, Capture::Empty)))
                     .cloned(),
             )
         } else {
-            self.thread
-                .stack
+            self.stack
                 .drain(capture_start..)
                 .filter(|item| !(matches!(item, Capture::Empty)))
                 .collect()
@@ -431,11 +413,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
     /// Drains n items off the stack into a vector of values
     pub fn drain(&mut self, n: usize) -> Vec<RefValue> {
-        let tos = self.thread.stack.len();
+        let tos = self.stack.len();
         assert!(n <= tos - self.frame0().capture_start);
 
         let captures: Vec<Capture> = self
-            .thread
             .stack
             .drain(tos - n..)
             .filter(|capture| !matches!(capture, Capture::Empty))
@@ -456,18 +437,17 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             // In case state is Accept::Next, try to return a capture
             Ok(Accept::Next) => {
                 // Either take $0 when set
-                if let Capture::Value(value, ..) =
-                    &mut self.thread.stack[self.frame.capture_start - 1]
-                {
+                if let Capture::Value(value, ..) = &mut self.var {
                     state = Ok(Accept::Push(Capture::Value(
                         value.clone(),
                         None,
                         self.parselet.severity,
                     )));
                 // Otherwise, push last value
-                } else if self.thread.stack.len() > self.frame.capture_start {
-                    state = Ok(Accept::Push(self.thread.stack.pop().unwrap())
-                        .into_push(self.parselet.severity));
+                } else if self.stack.len() > self.frame.capture_start {
+                    state =
+                        Ok(Accept::Push(self.stack.pop().unwrap())
+                            .into_push(self.parselet.severity));
                 }
             }
 
@@ -642,13 +622,5 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         } else {
             Ok(Accept::Push(Capture::Empty))
         }
-    }
-}
-
-impl<'program, 'reader, 'thread, 'parselet> Drop
-    for Context<'program, 'reader, 'thread, 'parselet>
-{
-    fn drop(&mut self) {
-        self.thread.stack.truncate(self.stack_start);
     }
 }
