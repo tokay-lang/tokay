@@ -56,7 +56,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
         depth: usize,
-        mut stack: Vec<Capture>,
+        stack: Vec<Capture>,
     ) -> Self {
         let frame = Frame {
             fuse: None,

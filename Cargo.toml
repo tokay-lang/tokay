@@ -27,10 +27,6 @@ keywords = [
 default = ["static_expression_evaluation"]
 static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
 
-[build-dependencies]
-tokay_04 = { package = "tokay", version = "0.4" }
-glob = "0.3"
-
 [dependencies]
 charclass = "0.2"  # use crates.io-version
 #charclass = { version = "0.2", path = "../charclass" }  # use local version
