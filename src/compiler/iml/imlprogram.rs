@@ -140,14 +140,13 @@ impl ImlProgram {
         // Finalize ImlValue
         fn finalize_value(
             value: &ImlValue,
-            all: &HashSet<ImlSharedParselet>,
             current: &ImlParselet,
             visited: &mut IndexSet<ImlSharedParselet>,
             configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
             match value {
                 ImlValue::Shared(value) => {
-                    finalize_value(&*value.borrow(), all, current, visited, configs)
+                    finalize_value(&*value.borrow(), current, visited, configs)
                 }
                 ImlValue::This(_) => Some(Consumable {
                     leftrec: true,
@@ -157,10 +156,10 @@ impl ImlProgram {
                     // Try to derive the parselet with current constants
                     let derived = parselet.derive(&current.constants);
 
-                    // The derived parselet must be in all!
-                    let parselet = all.get(&derived).unwrap();
+                    // The derived parselet's original must be in the configs!
+                    let parselet = configs.get_key_value(&derived).unwrap().0.clone();
 
-                    finalize_parselet(&parselet, all, visited, configs)
+                    finalize_parselet(&parselet, visited, configs)
                 }
                 ImlValue::Value(callee) => {
                     if callee.is_consuming() {
@@ -175,7 +174,7 @@ impl ImlProgram {
                 }
                 ImlValue::Generic { name, .. } => {
                     // fixme: Is this still relevant???
-                    finalize_value(&current.constants[name], all, current, visited, configs)
+                    finalize_value(&current.constants[name], current, visited, configs)
                 }
                 _ => None,
             }
@@ -184,22 +183,19 @@ impl ImlProgram {
         // Finalize ImlOp
         fn finalize_op(
             op: &ImlOp,
-            all: &HashSet<ImlSharedParselet>,
             current: &ImlParselet,
             visited: &mut IndexSet<ImlSharedParselet>,
             configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
             match op {
-                ImlOp::Call { target, .. } => {
-                    finalize_value(target, all, current, visited, configs)
-                }
+                ImlOp::Call { target, .. } => finalize_value(target, current, visited, configs),
                 ImlOp::Alt { alts } => {
                     let mut leftrec = false;
                     let mut nullable = false;
                     let mut consumes = false;
 
                     for alt in alts {
-                        if let Some(consumable) = finalize_op(alt, all, current, visited, configs) {
+                        if let Some(consumable) = finalize_op(alt, current, visited, configs) {
                             leftrec |= consumable.leftrec;
                             nullable |= consumable.nullable;
                             consumes = true;
@@ -222,8 +218,7 @@ impl ImlProgram {
                             break;
                         }
 
-                        if let Some(consumable) = finalize_op(item, all, current, visited, configs)
-                        {
+                        if let Some(consumable) = finalize_op(item, current, visited, configs) {
                             leftrec |= consumable.leftrec;
                             nullable = consumable.nullable;
                             consumes = true;
@@ -237,9 +232,9 @@ impl ImlProgram {
                     }
                 }
                 ImlOp::If { then, else_, .. } => {
-                    let then = finalize_op(then, all, current, visited, configs);
+                    let then = finalize_op(then, current, visited, configs);
 
-                    if let Some(else_) = finalize_op(else_, all, current, visited, configs) {
+                    if let Some(else_) = finalize_op(else_, current, visited, configs) {
                         if let Some(then) = then {
                             Some(Consumable {
                                 leftrec: then.leftrec || else_.leftrec,
@@ -261,7 +256,7 @@ impl ImlProgram {
                     let mut ret: Option<Consumable> = None;
 
                     for part in [initial, condition, body] {
-                        let part = finalize_op(part, all, current, visited, configs);
+                        let part = finalize_op(part, current, visited, configs);
 
                         if let Some(part) = part {
                             ret = if let Some(ret) = ret {
@@ -279,12 +274,12 @@ impl ImlProgram {
                 }
 
                 // DEPRECATED BELOW!!!
-                ImlOp::Expect { body, .. } => finalize_op(body, all, current, visited, configs),
+                ImlOp::Expect { body, .. } => finalize_op(body, current, visited, configs),
                 ImlOp::Not { body } | ImlOp::Peek { body } => {
-                    finalize_op(body, all, current, visited, configs)
+                    finalize_op(body, current, visited, configs)
                 }
                 ImlOp::Repeat { body, min, .. } => {
-                    if let Some(consumable) = finalize_op(body, all, current, visited, configs) {
+                    if let Some(consumable) = finalize_op(body, current, visited, configs) {
                         if *min == 0 {
                             Some(Consumable {
                                 leftrec: consumable.leftrec,
@@ -306,7 +301,6 @@ impl ImlProgram {
         // Finalize ImlParselet
         fn finalize_parselet(
             current: &ImlSharedParselet,
-            all: &HashSet<ImlSharedParselet>,
             visited: &mut IndexSet<ImlSharedParselet>,
             configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
@@ -319,21 +313,17 @@ impl ImlProgram {
             }
 
             if let Some(idx) = visited.get_index_of(current) {
+                // When in visited, this is a recursion
                 Some(Consumable {
-                    leftrec: idx == 0,
+                    leftrec: idx == 0, // If the idx is 0, current is the seeked parselet, and is left-recursive
                     nullable: configs[current].nullable,
                 })
             } else {
+                // If not already visited, add and recurse.
                 visited.insert(current.clone());
-                configs
-                    .entry(current.clone())
-                    .or_insert_with(|| Consumable {
-                        leftrec: false,
-                        nullable: false,
-                    });
 
                 for part in [&model.begin, &model.body, &model.end] {
-                    if let Some(result) = finalize_op(part, all, &parselet, visited, configs) {
+                    if let Some(result) = finalize_op(part, &parselet, visited, configs) {
                         if configs[current] < result {
                             configs.insert(current.clone(), result);
                         }
@@ -341,6 +331,7 @@ impl ImlProgram {
                 }
 
                 visited.remove(current);
+
                 Some(Consumable {
                     leftrec: false,
                     nullable: configs[current].nullable,
@@ -351,14 +342,24 @@ impl ImlProgram {
         // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
         // put into the finalize list.
         let mut changes = true;
-        let mut configs = HashMap::new();
+        let mut configs = parselets
+            .iter()
+            .map(|k| {
+                (
+                    k.clone(),
+                    Consumable {
+                        leftrec: false,
+                        nullable: false,
+                    },
+                )
+            })
+            .collect();
 
         while changes {
             changes = false;
 
             for parselet in &parselets {
-                let result =
-                    finalize_parselet(parselet, &parselets, &mut IndexSet::new(), &mut configs);
+                let result = finalize_parselet(parselet, &mut IndexSet::new(), &mut configs);
                 changes = result > configs.get(parselet).cloned();
             }
         }
