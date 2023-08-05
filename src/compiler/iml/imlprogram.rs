@@ -1,11 +1,11 @@
-//! ImlProgram glues ImlParselets, ImlOps and ImlValues together to produce a VM program.
+//! ImlProgram glues ImlParselet, ImlOp and ImlValue together to produce a VM program.
 
 use super::*;
 use crate::value::Parselet;
 use crate::vm::Program;
 use crate::Error;
 use crate::{Object, RefValue};
-use indexmap::IndexMap;
+use indexmap::{indexmap, IndexMap, IndexSet};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
@@ -16,11 +16,8 @@ pub(in crate::compiler) struct ImlProgram {
 
 impl ImlProgram {
     pub fn new(main: ImlValue) -> Self {
-        let mut statics = IndexMap::new();
-        statics.insert(main, None);
-
         ImlProgram {
-            statics,
+            statics: indexmap!(main => None),
             errors: Vec::new(),
         }
     }
@@ -97,7 +94,7 @@ impl ImlProgram {
                 if let Some(mut parselet) = parselet {
                     if let ImlValue::Parselet(imlparselet) = iml {
                         parselet.consuming = leftrec
-                            .get(&imlparselet.borrow().id())
+                            .get(&imlparselet)
                             .map_or(None, |leftrec| Some(*leftrec));
 
                         //println!("{:?} => {:?}", imlparselet.borrow().name, parselet.consuming);
@@ -130,7 +127,10 @@ impl ImlProgram {
 
     It can only be run on a previously compiled program without any unresolved usages.
     */
-    fn finalize(&mut self, parselets: HashSet<ImlSharedParselet>) -> HashMap<usize, bool> {
+    fn finalize(
+        &mut self,
+        parselets: HashSet<ImlSharedParselet>,
+    ) -> HashMap<ImlSharedParselet, bool> {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
         struct Consumable {
             leftrec: bool,
@@ -142,8 +142,8 @@ impl ImlProgram {
             value: &ImlValue,
             all: &HashSet<ImlSharedParselet>,
             current: &ImlParselet,
-            visited: &mut HashSet<usize>,
-            configs: &mut HashMap<usize, Consumable>,
+            visited: &mut IndexSet<ImlSharedParselet>,
+            configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
             match value {
                 ImlValue::Shared(value) => {
@@ -154,31 +154,13 @@ impl ImlProgram {
                     nullable: false,
                 }),
                 ImlValue::Parselet(parselet) => {
-                    // Try to borrow the parselet directly
-                    match parselet.try_borrow() {
-                        // In case the parselet cannot be borrowed, it is left-recursive!
-                        Err(_) => Some(Consumable {
-                            leftrec: true,
-                            nullable: false,
-                        }),
-                        // Otherwise, further examine derive!
-                        Ok(_) => {
-                            // Try to derive the parselet with current constants
-                            let derived = parselet.derive(&current.constants);
+                    // Try to derive the parselet with current constants
+                    let derived = parselet.derive(&current.constants);
 
-                            // The derived parselet must be in all!
-                            let parselet = all.get(&derived).unwrap();
+                    // The derived parselet must be in all!
+                    let parselet = all.get(&derived).unwrap();
 
-                            match parselet.try_borrow() {
-                                // In case the derived parselet cannot be borrowed, it is left-recursive!
-                                Err(_) => Some(Consumable {
-                                    leftrec: true,
-                                    nullable: false,
-                                }),
-                                Ok(parselet) => finalize_parselet(&parselet, all, visited, configs),
-                            }
-                        }
-                    }
+                    finalize_parselet(&parselet, all, visited, configs)
                 }
                 ImlValue::Value(callee) => {
                     if callee.is_consuming() {
@@ -204,8 +186,8 @@ impl ImlProgram {
             op: &ImlOp,
             all: &HashSet<ImlSharedParselet>,
             current: &ImlParselet,
-            visited: &mut HashSet<usize>,
-            configs: &mut HashMap<usize, Consumable>,
+            visited: &mut IndexSet<ImlSharedParselet>,
+            configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
             match op {
                 ImlOp::Call { target, .. } => {
@@ -323,50 +305,45 @@ impl ImlProgram {
 
         // Finalize ImlParselet
         fn finalize_parselet(
-            parselet: &ImlParselet,
+            current: &ImlSharedParselet,
             all: &HashSet<ImlSharedParselet>,
-            visited: &mut HashSet<usize>,
-            configs: &mut HashMap<usize, Consumable>,
+            visited: &mut IndexSet<ImlSharedParselet>,
+            configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
             // ... only if it's generally flagged to be consuming.
+            let parselet = current.borrow();
             let model = parselet.model.borrow();
 
             if !model.consuming {
                 return None;
             }
 
-            let id = parselet.id();
-
-            if visited.contains(&id) {
+            if let Some(idx) = visited.get_index_of(current) {
                 Some(Consumable {
-                    leftrec: false,
-                    nullable: configs[&id].nullable,
+                    leftrec: idx == 0,
+                    nullable: configs[current].nullable,
                 })
             } else {
-                visited.insert(id);
-
-                if !configs.contains_key(&id) {
-                    configs.insert(
-                        id,
-                        Consumable {
-                            leftrec: false,
-                            nullable: false,
-                        },
-                    );
-                }
+                visited.insert(current.clone());
+                configs
+                    .entry(current.clone())
+                    .or_insert_with(|| Consumable {
+                        leftrec: false,
+                        nullable: false,
+                    });
 
                 for part in [&model.begin, &model.body, &model.end] {
                     if let Some(result) = finalize_op(part, all, &parselet, visited, configs) {
-                        if configs[&id] < result {
-                            configs.insert(id, result);
+                        if configs[current] < result {
+                            configs.insert(current.clone(), result);
                         }
                     }
                 }
 
-                visited.remove(&id);
+                visited.remove(current);
                 Some(Consumable {
                     leftrec: false,
-                    nullable: configs[&id].nullable,
+                    nullable: configs[current].nullable,
                 })
             }
         }
@@ -380,20 +357,20 @@ impl ImlProgram {
             changes = false;
 
             for parselet in &parselets {
-                let parselet = parselet.borrow_mut(); // parselet is locked for left-recursion detection
-                changes =
-                    finalize_parselet(&*parselet, &parselets, &mut HashSet::new(), &mut configs)
-                        > configs.get(&parselet.id()).cloned();
+                let result =
+                    finalize_parselet(parselet, &parselets, &mut IndexSet::new(), &mut configs);
+                changes = result > configs.get(parselet).cloned();
             }
         }
 
         /*
-        for parselet in parselets {
-            let parselet = parselet.borrow();
+        println!("--- final config ---");
+
+        for parselet in &parselets {
             println!(
                 "{} consuming={:?}",
-                parselet.name.as_deref().unwrap_or("(unnamed)"),
-                configs[&parselet.id()]
+                parselet.borrow().name.as_deref().unwrap_or("(unnamed)"),
+                configs[&parselet]
             );
         }
         */
