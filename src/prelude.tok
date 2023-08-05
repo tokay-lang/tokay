@@ -24,7 +24,7 @@ Not : @<P> {
 }
 
 Peek : @<P> {
-    P reset
+    p = {P} reset accept p
 }
 
 Expect : @<P> msg=void {
