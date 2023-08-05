@@ -1,16 +1,22 @@
 # Tokay default prelude
 
 Repeat : @<P> min=1, max=void {
+    begin {
+        res = list()
+    }
+
     P {
         res += $1
         if !max || res.len < max repeat
     }
 
-    end {
-        if res.len < min reject
-        res
-    }
+    if !res || res.len < min reject
+    res
 }
+
+Pos : @<P>{ Repeat<P> }
+Kle : @<P>{ Repeat<P>(min=0) }
+Opt : @<P>{ P | Void }
 
 List : @<P, Separator: (',' _), empty: true> {
     Self Separator P   $1 + $3
@@ -20,7 +26,7 @@ List : @<P, Separator: (',' _), empty: true> {
 
 Not : @<P> {
     P reject
-    accept
+    Void
 }
 
 Peek : @<P> {
