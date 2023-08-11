@@ -373,15 +373,14 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 }
             }
 
-            let mut ret = ImlValue::Instance {
+            let ret = ImlValue::Instance {
                 target: Box::new(target),
                 args,
                 nargs,
                 offset: traverse_node_offset(node),
             };
 
-            ret.resolve(compiler);
-            ret
+            ret.try_resolve(compiler)
         }
 
         _ => unimplemented!("unhandled value node {}", emit),

@@ -74,6 +74,7 @@ impl ImlProgram {
             }
 
             // Compile VM parselet from intermediate parselet
+            // println!("...compiling {} {:?}", idx, parselet.name);
             *self.statics.get_index_mut(idx).unwrap().1 = Some(parselet.compile(&mut self, idx));
 
             idx += 1;

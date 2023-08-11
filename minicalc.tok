@@ -1,0 +1,10 @@
+
+Main : @{
+    Expect<Expr>    print("= " + $1)
+}
+
+Expr : @{
+    Int
+}
+
+Main

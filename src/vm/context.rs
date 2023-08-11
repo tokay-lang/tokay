@@ -472,6 +472,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
         // Debugging
         if self.debug < 3 {
+            //println!("{:?}", self.parselet.name);
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
                 for name in inspect.split(" ") {
                     if name == self.parselet.name {

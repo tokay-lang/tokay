@@ -191,11 +191,11 @@ impl ImlValue {
                                 *offset,
                                 format!("Cannot create instance from '{}'", target),
                             ));
-                            None
+                            return false;
                         }
                     }
                 } else {
-                    None
+                    return false;
                 }
             }
             _ => return true, // anything else is considered as resolved
@@ -339,7 +339,7 @@ impl ImlValue {
                     return;
                 }
             }
-            _ => unreachable!("{:?}", self),
+            _ => unreachable!("{}", self),
         }
 
         // Check if something has been pushed before.
@@ -391,7 +391,15 @@ impl std::fmt::Display for ImlValue {
             Self::This(true) => write!(f, "Self"),
             Self::This(false) => write!(f, "self"),
             Self::Value(value) => write!(f, "{}", value.repr()),
-            Self::Parselet(parselet) => write!(f, "{}", parselet),
+            Self::Parselet(parselet) => write!(
+                f,
+                "{}",
+                parselet
+                    .borrow()
+                    .name
+                    .as_deref()
+                    .unwrap_or("<anonymous parselet>")
+            ),
             Self::Global(var) => write!(f, "global({})", var),
             Self::Local(var) => write!(f, "local({})", var),
             Self::Name { name, .. } => write!(f, "{}", name),
@@ -432,6 +440,7 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
+            Self::Shared(value) => value.borrow().hash(state),
             Self::Value(value) => {
                 state.write_u8('v' as u8);
                 value.hash(state)
