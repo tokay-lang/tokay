@@ -58,74 +58,8 @@ impl ImlParselet {
         }
     }
 
-    /// Checks if a ImlParselet is completely resolved, or if it has open generics
-    pub fn is_resolved(&self) -> bool {
-        !self
-            .constants
-            .values()
-            .any(|value| matches!(value, ImlValue::Generic { .. }))
-    }
-
-    /** Derives a parselet from a given namespace when required.
-
-    The namespace defines the constant configuration of a surrounding parselet,
-    and extends the parselet's constant configuration, making it a derivation.
-
-    Returns None if no derivation can be created, otherwise returns Some(Self).
-    */
-    pub fn derive(&self, namespace: &IndexMap<String, ImlValue>) -> Option<Self> {
-        if self.is_resolved() {
-            return None;
-        }
-
-        let mut constants = self.constants.clone();
-
-        for value in constants.values_mut() {
-            while let ImlValue::Generic { name, .. } = value {
-                *value = namespace.get(name).unwrap().clone();
-            }
-        }
-
-        Some(ImlParselet {
-            model: self.model.clone(),
-            constants,
-            offset: self.offset.clone(),
-            name: self.name.clone(),
-            severity: self.severity,
-        })
-    }
-
     pub fn id(&self) -> usize {
         self as *const ImlParselet as usize
-    }
-
-    pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
-        let model = self.model.borrow();
-
-        Parselet::new(
-            Some(format!("{}", self)),
-            None,
-            self.severity,
-            model
-                .signature
-                .iter()
-                .map(|var_value| {
-                    (
-                        // Copy parameter name
-                        var_value.0.clone(),
-                        // Register default value, if any
-                        match &var_value.1 {
-                            ImlValue::Void => None,
-                            value => Some(program.register(value).expect("Cannot register value")),
-                        },
-                    )
-                })
-                .collect(),
-            model.locals,
-            model.begin.compile_to_vec(program, self, this),
-            model.end.compile_to_vec(program, self, this),
-            model.body.compile_to_vec(program, self, this),
-        )
     }
 }
 
@@ -195,14 +129,83 @@ impl ImlSharedParselet {
         Self(Rc::new(RefCell::new(parselet)))
     }
 
-    pub fn derive(&self, namespace: &IndexMap<String, ImlValue>) -> Self {
-        if let Ok(parselet) = self.try_borrow() {
-            if let Some(derive) = parselet.derive(namespace) {
-                return Self::new(derive);
+    /// Checks if a parselet is completely resolved, or if it has open generics
+    pub fn is_generic(&self) -> bool {
+        self.borrow()
+            .constants
+            .values()
+            .any(|value| matches!(value, ImlValue::Generic { .. } | ImlValue::This(_)))
+    }
+
+    /** Derives a parselet by surrouning parselet from.
+
+    The namespace defines the constant configuration of a surrounding parselet,
+    and extends the parselet's constant configuration, making it a derivation.
+
+    Returns derived parselet in case it was derive, otherwise returns a clone of self.
+    */
+    pub fn derive(&self, from: &ImlSharedParselet) -> Self {
+        let mut constants = self.borrow().constants.clone();
+        let mut changes = false;
+
+        for value in constants.values_mut() {
+            // Replace any generics
+            while let ImlValue::Generic { name, .. } = value {
+                *value = from.borrow().constants.get(name).unwrap().clone();
+                changes = true;
+            }
+
+            // Replace any this
+            if let ImlValue::This(_) = value {
+                *value = ImlValue::Parselet(from.clone());
+                changes = true;
             }
         }
 
-        self.clone()
+        if !changes {
+            return self.clone();
+        }
+
+        // Create derivation of this parselet
+        let parselet = self.borrow();
+
+        Self::new(ImlParselet {
+            model: parselet.model.clone(),
+            constants,
+            offset: parselet.offset.clone(),
+            name: parselet.name.clone(),
+            severity: parselet.severity,
+        })
+    }
+
+    pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
+        let parselet = self.borrow();
+        let model = parselet.model.borrow();
+
+        Parselet::new(
+            Some(format!("{}", parselet)),
+            None,
+            parselet.severity,
+            model
+                .signature
+                .iter()
+                .map(|var_value| {
+                    (
+                        // Copy parameter name
+                        var_value.0.clone(),
+                        // Register default value, if any
+                        match &var_value.1 {
+                            ImlValue::Void => None,
+                            value => Some(program.register(value).expect("Cannot register value")),
+                        },
+                    )
+                })
+                .collect(),
+            model.locals,
+            model.begin.compile_to_vec(program, (self, this)),
+            model.end.compile_to_vec(program, (self, this)),
+            model.body.compile_to_vec(program, (self, this)),
+        )
     }
 }
 

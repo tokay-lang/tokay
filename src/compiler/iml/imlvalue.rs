@@ -24,11 +24,11 @@ pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved: static
-    This(bool),                  // current function (false) or parselet (true)
     Value(RefValue),             // Compile-time static value
     Parselet(ImlSharedParselet), // Parselet instance
 
     // Resolved: dynamic
+    This(bool),    // self-reference function (false) or parselet (true)
     Local(usize),  // Runtime local variable
     Global(usize), // Runtime global variable
 
@@ -262,8 +262,7 @@ impl ImlValue {
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        current: &ImlParselet,
-        this: usize,
+        current: (&ImlSharedParselet, usize),
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,
@@ -277,9 +276,7 @@ impl ImlValue {
 
         match self {
             ImlValue::Shared(value) => {
-                return value
-                    .borrow()
-                    .compile(program, current, this, offset, call, ops)
+                return value.borrow().compile(program, current, offset, call, ops)
             }
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
@@ -296,7 +293,8 @@ impl ImlValue {
             ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
             ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Generic { name, .. } => {
-                return current.constants[name].compile(program, current, this, offset, call, ops)
+                return current.0.borrow().constants[name]
+                    .compile(program, current, offset, call, ops)
             }
             ImlValue::Name { name, .. } => {
                 program.errors.push(Error::new(
@@ -345,10 +343,17 @@ impl ImlValue {
         // Check if something has been pushed before.
         if start == ops.len() {
             let idx = match self {
-                ImlValue::This(_) => this,
-                ImlValue::Parselet(parselet) => program
-                    .register(&ImlValue::Parselet(parselet.derive(&current.constants)))
-                    .unwrap(),
+                ImlValue::This(_) => current.1, // use current index
+                ImlValue::Parselet(parselet) => {
+                    if parselet.is_generic() {
+                        // Otherwise, this is a generic, so create a derivation
+                        let derive = ImlValue::Parselet(parselet.derive(current.0));
+                        program.register(&derive).unwrap()
+                    } else {
+                        // If target is resolved, just register
+                        program.register(self).unwrap()
+                    }
+                }
                 resolved => program.register(resolved).unwrap(),
             };
 
@@ -449,6 +454,12 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('p' as u8);
                 parselet.hash(state);
             }
+            /*
+            Self::This(consumable) => {
+                state.write_u8('s' as u8);
+                consumable.hash(state);
+            }
+            */
             other => unreachable!("{:?} is unhashable", other),
         }
     }

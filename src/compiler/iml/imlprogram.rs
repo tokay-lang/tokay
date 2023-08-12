@@ -54,7 +54,7 @@ impl ImlProgram {
         // self.statics grows inside of this while loop, therefore this condition.
         while idx < self.statics.len() {
             // Pick only intermediate parselets, other static values are directly moved
-            let outer = match self.statics.get_index_mut(idx).unwrap() {
+            let parselet = match self.statics.get_index_mut(idx).unwrap() {
                 (_, Some(_)) => unreachable!(), // may not exist!
                 (ImlValue::Parselet(parselet), None) => parselet.clone(),
                 _ => {
@@ -63,14 +63,10 @@ impl ImlProgram {
                 }
             };
 
-            // We have to do it this ugly way because of the borrow checker...
-            let parselet = outer.borrow();
-            let model = parselet.model.borrow();
-
             // Memoize parselets required to be finalized (needs a general rework later...)
-            if model.consuming {
+            if parselet.borrow().model.borrow().consuming {
                 //fixme...
-                finalize.insert(outer.clone());
+                finalize.insert(parselet.clone());
             }
 
             // Compile VM parselet from intermediate parselet
@@ -141,7 +137,7 @@ impl ImlProgram {
         // Finalize ImlValue
         fn finalize_value(
             value: &ImlValue,
-            current: &ImlParselet,
+            current: &ImlSharedParselet,
             visited: &mut IndexSet<ImlSharedParselet>,
             configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
@@ -155,7 +151,7 @@ impl ImlProgram {
                 }),
                 ImlValue::Parselet(parselet) => {
                     // Try to derive the parselet with current constants
-                    let derived = parselet.derive(&current.constants);
+                    let derived = parselet.derive(current);
 
                     // The derived parselet's original must be in the configs!
                     let parselet = configs.get_key_value(&derived).unwrap().0.clone();
@@ -175,7 +171,7 @@ impl ImlProgram {
                 }
                 ImlValue::Generic { name, .. } => {
                     // fixme: Is this still relevant???
-                    finalize_value(&current.constants[name], current, visited, configs)
+                    finalize_value(&current.borrow().constants[name], current, visited, configs)
                 }
                 _ => None,
             }
@@ -184,7 +180,7 @@ impl ImlProgram {
         // Finalize ImlOp
         fn finalize_op(
             op: &ImlOp,
-            current: &ImlParselet,
+            current: &ImlSharedParselet,
             visited: &mut IndexSet<ImlSharedParselet>,
             configs: &mut HashMap<ImlSharedParselet, Consumable>,
         ) -> Option<Consumable> {
@@ -324,7 +320,7 @@ impl ImlProgram {
                 visited.insert(current.clone());
 
                 for part in [&model.begin, &model.body, &model.end] {
-                    if let Some(result) = finalize_op(part, &parselet, visited, configs) {
+                    if let Some(result) = finalize_op(part, current, visited, configs) {
                         if configs[current] < result {
                             configs.insert(current.clone(), result);
                         }
