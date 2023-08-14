@@ -24,8 +24,8 @@ pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved: static
-    Value(RefValue),             // Compile-time static value
-    Parselet(ImlSharedParselet), // Parselet instance
+    Value(RefValue),       // Compile-time static value
+    Parselet(ImlParselet), // Parselet instance
 
     // Resolved: dynamic
     This(bool),    // self-reference function (false) or parselet (true)
@@ -44,7 +44,7 @@ pub(in crate::compiler) enum ImlValue {
         name: String,           // Identifier
     },
     Instance {
-        // Parselet instance definition
+        // Unresolved parselet instance definition
         offset: Option<Offset>,                              // Source offset
         target: Box<ImlValue>,                               // Instance target
         args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
@@ -178,7 +178,7 @@ impl ImlValue {
                             // This can be the final parselet definition, but constants
                             // might contain Generic references as well, which are being
                             // resolved during compilation.
-                            Some(ImlValue::from(ImlParselet {
+                            Some(ImlValue::from(ImlParseletConfig {
                                 model: parselet.model.clone(),
                                 constants,
                                 offset: parselet.offset.clone(),
@@ -262,7 +262,7 @@ impl ImlValue {
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        current: (&ImlSharedParselet, usize),
+        current: (&ImlParselet, usize),
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,

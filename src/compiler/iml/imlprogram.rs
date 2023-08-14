@@ -1,4 +1,4 @@
-//! ImlProgram glues ImlParselet, ImlOp and ImlValue together to produce a VM program.
+//! ImlProgram glues ImlParseletConfig, ImlOp and ImlValue together to produce a VM program.
 
 use super::*;
 use crate::value::Parselet;
@@ -124,10 +124,7 @@ impl ImlProgram {
 
     It can only be run on a previously compiled program without any unresolved usages.
     */
-    fn finalize(
-        &mut self,
-        parselets: HashSet<ImlSharedParselet>,
-    ) -> HashMap<ImlSharedParselet, bool> {
+    fn finalize(&mut self, parselets: HashSet<ImlParselet>) -> HashMap<ImlParselet, bool> {
         #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
         struct Consumable {
             leftrec: bool,
@@ -137,9 +134,9 @@ impl ImlProgram {
         // Finalize ImlValue
         fn finalize_value(
             value: &ImlValue,
-            current: &ImlSharedParselet,
-            visited: &mut IndexSet<ImlSharedParselet>,
-            configs: &mut HashMap<ImlSharedParselet, Consumable>,
+            current: &ImlParselet,
+            visited: &mut IndexSet<ImlParselet>,
+            configs: &mut HashMap<ImlParselet, Consumable>,
         ) -> Option<Consumable> {
             match value {
                 ImlValue::Shared(value) => {
@@ -180,9 +177,9 @@ impl ImlProgram {
         // Finalize ImlOp
         fn finalize_op(
             op: &ImlOp,
-            current: &ImlSharedParselet,
-            visited: &mut IndexSet<ImlSharedParselet>,
-            configs: &mut HashMap<ImlSharedParselet, Consumable>,
+            current: &ImlParselet,
+            visited: &mut IndexSet<ImlParselet>,
+            configs: &mut HashMap<ImlParselet, Consumable>,
         ) -> Option<Consumable> {
             match op {
                 ImlOp::Call { target, .. } => finalize_value(target, current, visited, configs),
@@ -295,11 +292,11 @@ impl ImlProgram {
             }
         }
 
-        // Finalize ImlParselet
+        // Finalize ImlParseletConfig
         fn finalize_parselet(
-            current: &ImlSharedParselet,
-            visited: &mut IndexSet<ImlSharedParselet>,
-            configs: &mut HashMap<ImlSharedParselet, Consumable>,
+            current: &ImlParselet,
+            visited: &mut IndexSet<ImlParselet>,
+            configs: &mut HashMap<ImlParselet, Consumable>,
         ) -> Option<Consumable> {
             // ... only if it's generally flagged to be consuming.
             let parselet = current.borrow();

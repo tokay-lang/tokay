@@ -29,7 +29,7 @@ impl ImlParseletModel {
     }
 }
 
-// ImlParselet
+// ImlParseletConfig
 // ----------------------------------------------------------------------------
 
 /** Intermediate parselet configuration.
@@ -40,7 +40,7 @@ before a parselet configuration is turned into a parselet.
 */
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(in crate::compiler) struct ImlParselet {
+pub(in crate::compiler) struct ImlParseletConfig {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
     pub constants: IndexMap<String, ImlValue>, // Generic signature with default configuration
     pub offset: Option<Offset>,               // Offset of definition
@@ -49,7 +49,7 @@ pub(in crate::compiler) struct ImlParselet {
 }
 
 /** Representation of parselet in intermediate code. */
-impl ImlParselet {
+impl ImlParseletConfig {
     pub fn new(
         model: ImlParseletModel,
         constants: IndexMap<String, ImlValue>,
@@ -67,11 +67,11 @@ impl ImlParselet {
     }
 
     pub fn id(&self) -> usize {
-        self as *const ImlParselet as usize
+        self as *const ImlParseletConfig as usize
     }
 }
 
-impl std::fmt::Display for ImlParselet {
+impl std::fmt::Display for ImlParseletConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -95,16 +95,16 @@ impl std::fmt::Display for ImlParselet {
     }
 }
 
-impl std::cmp::PartialEq for ImlParselet {
+impl std::cmp::PartialEq for ImlParseletConfig {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self.model.borrow().id() == other.model.borrow().id() && self.constants == other.constants
     }
 }
 
-impl Eq for ImlParselet {}
+impl Eq for ImlParseletConfig {}
 
-impl std::hash::Hash for ImlParselet {
+impl std::hash::Hash for ImlParseletConfig {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let model = &*self.model.borrow();
         (model as *const ImlParseletModel as usize).hash(state);
@@ -112,28 +112,28 @@ impl std::hash::Hash for ImlParselet {
     }
 }
 
-impl std::cmp::PartialOrd for ImlParselet {
+impl std::cmp::PartialOrd for ImlParseletConfig {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
     }
 }
 
-impl From<ImlParselet> for ImlValue {
-    fn from(parselet: ImlParselet) -> Self {
-        ImlValue::Parselet(ImlSharedParselet::new(parselet))
+impl From<ImlParseletConfig> for ImlValue {
+    fn from(parselet: ImlParseletConfig) -> Self {
+        ImlValue::Parselet(ImlParselet::new(parselet))
     }
 }
 
-// ImlSharedParselet
+// ImlParselet
 // ----------------------------------------------------------------------------
 
-/// Shared ImlParselet
+/// Shared ImlParseletConfig
 #[derive(Clone, Eq, PartialEq)]
-pub(in crate::compiler) struct ImlSharedParselet(Rc<RefCell<ImlParselet>>);
+pub(in crate::compiler) struct ImlParselet(Rc<RefCell<ImlParseletConfig>>);
 
-impl ImlSharedParselet {
-    pub fn new(parselet: ImlParselet) -> Self {
+impl ImlParselet {
+    pub fn new(parselet: ImlParseletConfig) -> Self {
         Self(Rc::new(RefCell::new(parselet)))
     }
 
@@ -160,7 +160,7 @@ impl ImlSharedParselet {
     The function either returns a derived parselet in case it was derive,
     otherwise it returns a clone of self.
     */
-    pub fn derive(&self, from: &ImlSharedParselet) -> Self {
+    pub fn derive(&self, from: &ImlParselet) -> Self {
         let mut constants = self.borrow().constants.clone();
         let mut changes = false;
 
@@ -186,7 +186,7 @@ impl ImlSharedParselet {
         // Create derivation of the inner parselet
         let parselet = self.borrow();
 
-        Self::new(ImlParselet {
+        Self::new(ImlParseletConfig {
             model: parselet.model.clone(),
             constants,
             offset: parselet.offset.clone(),
@@ -228,13 +228,13 @@ impl ImlSharedParselet {
     }
 }
 
-impl std::hash::Hash for ImlSharedParselet {
+impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.borrow().hash(state);
     }
 }
 
-impl std::fmt::Debug for ImlSharedParselet {
+impl std::fmt::Debug for ImlParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Avoid endless recursion in case of recursive parselets
         if self.0.try_borrow_mut().is_ok() {
@@ -245,21 +245,21 @@ impl std::fmt::Debug for ImlSharedParselet {
     }
 }
 
-impl std::fmt::Display for ImlSharedParselet {
+impl std::fmt::Display for ImlParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0.borrow())
     }
 }
 
-impl std::ops::Deref for ImlSharedParselet {
-    type Target = Rc<RefCell<ImlParselet>>;
+impl std::ops::Deref for ImlParselet {
+    type Target = Rc<RefCell<ImlParseletConfig>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for ImlSharedParselet {
+impl std::ops::DerefMut for ImlParselet {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
