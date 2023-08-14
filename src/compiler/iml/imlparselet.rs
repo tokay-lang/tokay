@@ -9,7 +9,10 @@ use std::rc::Rc;
 // ImlParseletModel
 // ----------------------------------------------------------------------------
 
-/// Intermediate parselet model
+/** Intermediate parselet model.
+
+The model defines the code and local varibles of the parselet, and is shared by
+several parselet configurations. */
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletModel {
     pub consuming: bool,                       // Flag if parselet is consuming
@@ -29,7 +32,12 @@ impl ImlParseletModel {
 // ImlParselet
 // ----------------------------------------------------------------------------
 
-/// Intermediate parselet
+/** Intermediate parselet configuration.
+
+A parselet configuration is a model with as given constants definition.
+The constants definition might be generic, which needs to be resolved first
+before a parselet configuration is turned into a parselet.
+*/
 #[allow(dead_code)]
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParselet {
@@ -129,7 +137,7 @@ impl ImlSharedParselet {
         Self(Rc::new(RefCell::new(parselet)))
     }
 
-    /// Checks if a parselet is completely resolved, or if it has open generics
+    /// Checks if an intermediate parselet is completely resolved, or if it has open generics
     pub fn is_generic(&self) -> bool {
         self.borrow()
             .constants
@@ -137,36 +145,45 @@ impl ImlSharedParselet {
             .any(|value| matches!(value, ImlValue::Generic { .. } | ImlValue::This(_)))
     }
 
-    /** Derives a parselet by surrouning parselet from.
+    /** Derives an intermediate parselet by another intermediate parselet (`from`).
 
-    The namespace defines the constant configuration of a surrounding parselet,
-    and extends the parselet's constant configuration, making it a derivation.
+    The namespace defines the constant configuration of a surrounding parselet (`from`),
+    and extends the intermediate parselet's constant configuration, making it a derivation.
 
-    Returns derived parselet in case it was derive, otherwise returns a clone of self.
+    ```tokay
+    A<X>: X           # intermediate generic parselet A
+    B<Y>: 'x' A<Y>    # intermediate generic parselet B using a parselet instance of A
+
+    B<'m'> B<'n'>     # parselet instances, construct the final parselets: B<'m'>, A<'m'>, B<'n'> A<'n'>
+    ```
+
+    The function either returns a derived parselet in case it was derive,
+    otherwise it returns a clone of self.
     */
     pub fn derive(&self, from: &ImlSharedParselet) -> Self {
         let mut constants = self.borrow().constants.clone();
         let mut changes = false;
 
         for value in constants.values_mut() {
-            // Replace any generics
+            // Replace any generics until no more are open
             while let ImlValue::Generic { name, .. } = value {
                 *value = from.borrow().constants.get(name).unwrap().clone();
                 changes = true;
             }
 
-            // Replace any this
+            // Replace any values of self
             if let ImlValue::This(_) = value {
                 *value = ImlValue::Parselet(from.clone());
                 changes = true;
             }
         }
 
+        // When there is no change, there is no derivation
         if !changes {
             return self.clone();
         }
 
-        // Create derivation of this parselet
+        // Create derivation of the inner parselet
         let parselet = self.borrow();
 
         Self::new(ImlParselet {
@@ -178,6 +195,8 @@ impl ImlSharedParselet {
         })
     }
 
+    /** Compiles an intermediate parselet into a compiled VM parselet,
+    which is part of the provided `program` and indexed by `this`. */
     pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
         let parselet = self.borrow();
         let model = parselet.model.borrow();
