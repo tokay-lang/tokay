@@ -331,7 +331,7 @@ impl ImlOp {
                             jumps.push(ret.len() - 1);
                         }
 
-                        ret.push(Op::Reset);
+                        ret.push(Op::Reset(true));
                     } else {
                         ret.extend(alt);
                     }
@@ -477,7 +477,7 @@ impl ImlOp {
             ImlOp::Peek { body } => {
                 ops.push(Op::Frame(0));
                 body.compile(program, current, ops);
-                ops.push(Op::Reset);
+                ops.push(Op::Reset(true));
                 ops.push(Op::Close);
             }
             ImlOp::Repeat { body, min, max } => {

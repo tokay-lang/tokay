@@ -236,12 +236,15 @@ impl std::hash::Hash for ImlParselet {
 
 impl std::fmt::Debug for ImlParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.borrow())
         // Avoid endless recursion in case of recursive parselets
+        /*
         if self.0.try_borrow_mut().is_ok() {
             self.0.borrow().fmt(f)
         } else {
             write!(f, "{} (recursive)", self.0.borrow())
         }
+        */
     }
 }
 

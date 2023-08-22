@@ -23,7 +23,7 @@ pub(crate) enum Op {
     Frame(usize), // Start new frame with optional relative forward address fuse
     Capture,      // Reset frame capture to current stack size, saving captures
     Extend,       // Extend frame's reader to current position
-    Reset,        // Reset frame
+    Reset(bool),  // Reset frame, either full (true = stack+reader) or reader only (false)
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
     InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
@@ -122,17 +122,6 @@ impl Op {
             return Ok(Accept::Next);
         }
 
-        fn dump(ops: &[Op], context: &Context, ip: usize) {
-            for (i, op) in ops.iter().enumerate() {
-                context.log(&format!(
-                    "{}{:03} {:?}",
-                    if i == ip { ">" } else { " " },
-                    i,
-                    op
-                ));
-            }
-        }
-
         assert!(context.frames.len() == 0);
 
         // ---------------------------------------------------------------------
@@ -157,6 +146,18 @@ impl Op {
 
                 // Dump entire code
                 context.log("--- Code ---");
+
+                fn dump(ops: &[Op], context: &Context, ip: usize) {
+                    for (i, op) in ops.iter().enumerate() {
+                        context.log(&format!(
+                            "{}{:03} {:?}",
+                            if i == ip { ">" } else { " " },
+                            i,
+                            op
+                        ));
+                    }
+                }
+
                 dump(ops, context, ip);
 
                 // Dump stack and frames
@@ -211,8 +212,10 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Reset => {
-                    context.stack.truncate(context.frame.capture_start);
+                Op::Reset(full) => {
+                    if *full {
+                        context.stack.truncate(context.frame.capture_start);
+                    }
                     context.thread.reader.reset(context.frame.reader_start);
                     Ok(Accept::Next)
                 }

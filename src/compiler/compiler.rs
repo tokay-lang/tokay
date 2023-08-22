@@ -109,8 +109,9 @@ impl Compiler {
             return Err(self.errors.drain(..).collect());
         }
 
+        assert!(self.scopes.len() == 1);
+
         if self.debug > 1 {
-            assert!(self.scopes.len() == 1);
             println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
         }
 

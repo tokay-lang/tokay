@@ -30,12 +30,12 @@ Not : @<P> {
 }
 
 Peek : @<P> {
-    p = {P} reset accept p
+    P reset
 }
 
 Expect : @<P> msg=void {
     P
-    error(msg || "Expecting " + *P)
+    error(msg || "Expecting " + *P + ", but got " + repr((Token | Char)))
 }
 
 Number : Float | Int
