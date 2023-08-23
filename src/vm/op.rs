@@ -363,12 +363,8 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
                 }
-
-                Op::Accept => Ok(Accept::Return(None)),
-                Op::LoadAccept => {
-                    let value = context.pop();
-                    Ok(Accept::Return(Some(value)))
-                }
+                Op::Accept => Ok(Accept::Return(Capture::Empty)),
+                Op::LoadAccept => Ok(Accept::Return(context.stack.pop().unwrap())),
                 Op::Repeat => Ok(Accept::Repeat),
                 Op::Reject => {
                     state = Err(Reject::Next);
