@@ -190,7 +190,7 @@ ParseletInstanceArgument : @{
 }
 
 ParseletInstance : @{
-    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ Expect<'>'> _  ast("value_generic")
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ Expect<'>'>  ast("value_generic")
     StaticParseletInstance
 }
 

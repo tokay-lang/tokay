@@ -2931,10 +2931,6 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
                                                                         "emit" => "call",
                                                                         "children" =>
                                                                             (value!([
