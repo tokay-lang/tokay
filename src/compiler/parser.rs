@@ -7680,7 +7680,7 @@ impl Parser {
             /*ETARENEG*/
         ;
 
-        let mut compiler = Compiler::new(false);
+        let mut compiler = Compiler::new();
         compiler.debug = 0; // unset debug always
 
         Self(

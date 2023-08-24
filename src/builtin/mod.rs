@@ -182,7 +182,8 @@ tokay_function!("type : @value", value!(value.name()).into());
 tokay_function!("debug : @level", {
     if let Ok(level) = level.to_usize() {
         if level < u8::MAX as usize {
-            context.unwrap().thread.debug = level as u8;
+            let context = context.unwrap();
+            context.debug = level as u8;
             return Ok(Accept::Next);
         }
     }

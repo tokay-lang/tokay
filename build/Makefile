@@ -6,6 +6,7 @@ all:
 	@echo ""
 	@echo "  make builtins    update src/_builtins.rs from src/"
 	@echo "  make parser      update src/compiler/parse.rs from src/compiler/tokay.tok"
+	@echo "  make prelude     update src/compiler/prelude.rs from src/prelude.tok"
 	@echo ""
 
 # builtins --------------------------------------------------------------------
@@ -36,3 +37,17 @@ show-parser:
 
 reset-parser:
 	git checkout $(PARSER)
+
+# prelude ----------------------------------------------------------------------
+PRELUDE=../src/compiler/prelude.rs
+
+prelude: $(PRELUDE)
+
+$(PRELUDE): .FORCE
+	$(ETARENEG) $@ >$@.1 && mv $@.1 $@
+
+show-prelude:
+	$(ETARENEG) $(PRELUDE) 2>/dev/null
+
+reset-prelude:
+	git checkout $(PRELUDE)

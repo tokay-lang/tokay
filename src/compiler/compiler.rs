@@ -63,7 +63,7 @@ impl Compiler {
     By default, the prelude should be loaded, otherwise several standard parselets are not available.
     Ignoring the prelude is only useful on bootstrap currently.
     */
-    pub fn new(with_prelude: bool) -> Self {
+    pub fn new() -> Self {
         let mut compiler = Self {
             parser: None,
             debug: 0,
@@ -85,11 +85,7 @@ impl Compiler {
         }
 
         // Compile with the default prelude
-        if with_prelude {
-            compiler
-                .compile_from_str(include_str!("../prelude.tok"))
-                .unwrap(); // this should panic in case of an error!
-        }
+        compiler.load_prelude();
 
         // Set compiler debug level afterwards
         compiler.debug = if let Ok(level) = std::env::var("TOKAY_DEBUG") {

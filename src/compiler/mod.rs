@@ -4,6 +4,7 @@ pub(crate) mod ast;
 mod compiler;
 mod iml;
 mod parser;
+mod prelude;
 
 use compiler::*;
 use iml::*;

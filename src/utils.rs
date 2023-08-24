@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 
 This function is mostly used internally within tests, but can also be used from outside. */
 pub fn run(src: &str, input: &str) -> Result<Option<RefValue>, String> {
-    let mut compiler = Compiler::new(true);
+    let mut compiler = Compiler::new();
 
     match compiler.compile_from_str(src) {
         Ok(Some(program)) => program

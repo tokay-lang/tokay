@@ -98,7 +98,7 @@ fn get_readers(opts: &Opts) -> Vec<Reader> {
 // Read-Eval-Print-Loop (REPL) for Tokay
 fn repl(opts: &Opts) {
     let mut globals: Vec<RefValue> = Vec::new();
-    let mut compiler = Compiler::new(true);
+    let mut compiler = Compiler::new();
 
     // todo: Implement a completer?
     let mut readline = rustyline::Editor::<()>::new();
@@ -230,7 +230,7 @@ fn main() {
     }
 
     if let Some(program) = program {
-        let mut compiler = Compiler::new(true);
+        let mut compiler = Compiler::new();
 
         match compiler.compile(program) {
             Ok(None) => {}
