@@ -381,7 +381,7 @@ Statement : @{
 # Blocks and Sequences
 
 Block : @ emit = "block" {
-    #'{' _ ___ '}'  ast("value_void")
+    '{' _ ___ '}'  ast("value_void")
     '{' _ Instruction* _ Expect<'}'>   ast(emit)
 }
 

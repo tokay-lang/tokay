@@ -35,7 +35,7 @@ Peek : @<P> {
 
 Expect : @<P> msg=void {
     accept P
-    error(msg || "Expecting " + *P + ", but got " + repr((Token | Char)))
+    error(msg || "Expecting " + *P + ", but got " + repr((Token | Char | "end-of-file")))
 }
 
 Number : Float | Int

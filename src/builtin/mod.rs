@@ -184,6 +184,7 @@ tokay_function!("debug : @level", {
         if level < u8::MAX as usize {
             let context = context.unwrap();
             context.debug = level as u8;
+            //context.thread.debug = level as u8;
             return Ok(Accept::Next);
         }
     }

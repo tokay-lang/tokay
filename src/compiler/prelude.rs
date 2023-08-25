@@ -796,6 +796,14 @@ impl Compiler {
                                                                                                                                                     "emit" => "value_token_any",
                                                                                                                                                     "value" => "Char"
                                                                                                                                                 ]))
+                                                                                                                                        ])),
+                                                                                                                                        (value!([
+                                                                                                                                            "emit" => "inline_sequence",
+                                                                                                                                            "children" =>
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "value_string",
+                                                                                                                                                    "value" => "end-of-file"
+                                                                                                                                                ]))
                                                                                                                                         ]))
                                                                                                                                     ]))
                                                                                                                             ]))
