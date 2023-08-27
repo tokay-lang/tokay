@@ -15,7 +15,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 _standalone_ : @{
     # helper parselet to ensure that identifiers stand alone
     # fixme: When generic parselets are available, this can be replaced by a Keyword<P> invocation
-    peek not Char<A-Z_a-z> _
+    Peek<Not<Char<A-Z_a-z>>> _
     _
 }
 
@@ -204,7 +204,7 @@ InlineSequenceItem : @{
 
 InlineSequence : @{
     # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
-    Expression ___ ',' _ ___ peek ')'  ast("list")
+    Expression ___ ',' _ ___ Peek<')'>  ast("list")
 
     # A sequence is a list of items optionally separated by ","
     (InlineSequenceItem ___ (',' _)? ___)+  ast("inline_sequence")
@@ -255,10 +255,6 @@ Token : @{
     TokenAtom '*'  ast("op_mod_kle")
     TokenAtom '?'  ast("op_mod_opt")
     TokenAtom
-    # deprecated:
-    'peek' _standalone_ Expect<Self>  ast("op_mod_peek")
-    'not' _standalone_ Expect<Self>  ast("op_mod_not")
-    #'expect' _standalone_ Expect<Self>  ast("op_mod_expect")
 }
 
 # Expression & Flow
@@ -298,7 +294,7 @@ Rvalue : @{
 }
 
 Unary : @{
-    '-' not '-' _ Unary  ast("op_unary_neg")
+    '-' Not<'-'> _ Unary  ast("op_unary_neg")
     '!' _ Unary  ast("op_unary_not")
     '*' _ Unary  ast("op_deref")
     Rvalue _
@@ -313,8 +309,8 @@ MulDiv : @{
 }
 
 AddSub : @{
-    AddSub '+' not '+' _ Expect<MulDiv>  ast("op_binary_add")
-    AddSub '-' not '-' _ Expect<MulDiv>  ast("op_binary_sub")
+    AddSub '+' Not<'+'> _ Expect<MulDiv>  ast("op_binary_add")
+    AddSub '-' Not<'-'> _ Expect<MulDiv>  ast("op_binary_sub")
     MulDiv
 }
 
@@ -347,7 +343,7 @@ HoldExpression : @{
     Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div_hold")
     Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi_hold")
     Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod_hold")
-    Lvalue _ '=' not ('>' | '=') _ Expect<HoldExpression>  ast("assign_hold")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign_hold")
     LogicalOr
 }
 
@@ -358,7 +354,7 @@ Expression : @{
     Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div")
     Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi")
     Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod")
-    Lvalue _ '=' not ('>' | '=') _ Expect<HoldExpression>  ast("assign")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign")
     LogicalOr
 }
 
@@ -404,8 +400,8 @@ Instruction : @{
     'begin' _standalone_ Sequences Expect<T_EOL>  ast("begin")
     'end' _standalone_ Sequences Expect<T_EOL>  ast("end")
     T_Identifier _ ':' _ {
-        Literal _ peek T_EOL
-        Token _ peek T_EOL
+        Literal _ Peek<T_EOL>
+        Token _ Peek<T_EOL>
         Sequences
     } Expect<T_EOL>  ast("constant")
     Statement T_EOL

@@ -1404,9 +1404,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         "pos" => res.into_positive(),
                         "kle" => res.into_kleene(),
                         "opt" => res.into_optional(),
-                        "peek" => res.into_peek(),
-                        "expect" => res.into_expect(None),
-                        "not" => res.into_not(),
                         _ => unreachable!(),
                     }
                 }

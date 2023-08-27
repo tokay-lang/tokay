@@ -1,5 +1,4 @@
 use super::*;
-use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
 use crate::value::{Dict, List, Object, RefValue, Str, Value};
@@ -46,16 +45,15 @@ pub(crate) enum Op {
     Backward(usize), // Jump backward
 
     // Interrupts
-    Next,                  // Err(Reject::Next)
-    Push,                  // Ok(Accept::Push)
-    LoadPush,              // Ok(Accept::Push) with value
-    Accept,                // Ok(Accept::Return)
-    LoadAccept,            // Ok(Accept::Return) with value
-    Repeat,                // Ok(Accept::Repeat)
-    Reject,                // Ok(Err::Reject)
-    LoadExit,              // Exit with errorcode
-    Exit,                  // Exit with 0
-    Error(Option<String>), // Error with optional error message (otherwise its expected on stack)
+    Next,       // Err(Reject::Next)
+    Push,       // Ok(Accept::Push)
+    LoadPush,   // Ok(Accept::Push) with value
+    Accept,     // Ok(Accept::Return)
+    LoadAccept, // Ok(Accept::Return) with value
+    Repeat,     // Ok(Accept::Repeat)
+    Reject,     // Ok(Err::Reject)
+    LoadExit,   // Exit with errorcode
+    Exit,       // Exit with 0
 
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
@@ -374,15 +372,6 @@ impl Op {
                     std::process::exit(context.pop().to_i64()? as i32);
                 }
                 Op::Exit => std::process::exit(0),
-
-                Op::Error(msg) => {
-                    if let Some(msg) = msg {
-                        Error::new(Some(context.frame.reader_start), msg.clone()).into()
-                    } else {
-                        Error::new(Some(context.frame.reader_start), context.pop().to_string())
-                            .into()
-                    }
-                }
 
                 // Calls
                 Op::CallOrCopy => {

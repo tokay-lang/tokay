@@ -268,10 +268,6 @@ impl ImlProgram {
                 }
 
                 // DEPRECATED BELOW!!!
-                ImlOp::Expect { body, .. } => finalize_op(body, current, visited, configs),
-                ImlOp::Not { body } | ImlOp::Peek { body } => {
-                    finalize_op(body, current, visited, configs)
-                }
                 ImlOp::Repeat { body, min, .. } => {
                     if let Some(consumable) = finalize_op(body, current, visited, configs) {
                         if *min == 0 {

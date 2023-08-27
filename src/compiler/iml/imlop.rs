@@ -52,22 +52,6 @@ pub(in crate::compiler) enum ImlOp {
 
     // v--- below variants are being replaced by Tokay generics as soon as they are implemented ---v //
 
-    // Expect (deprecated!)
-    Expect {
-        body: Box<ImlOp>,
-        msg: Option<String>,
-    },
-
-    // Not (deprecated!)
-    Not {
-        body: Box<ImlOp>,
-    },
-
-    // Peek (deprecated!)
-    Peek {
-        body: Box<ImlOp>,
-    },
-
     // Repeat (deprecated!)
     Repeat {
         body: Box<ImlOp>,
@@ -182,91 +166,6 @@ impl ImlOp {
             body: Box::new(self),
             min: 0,
             max: 1,
-        }
-    }
-
-    /// Turns ImlOp construct into a peeked parser
-    pub fn into_peek(self) -> Self {
-        Self::Peek {
-            body: Box::new(self),
-        }
-    }
-
-    /// Turns ImlOp construct into a negated parser
-    pub fn into_not(self) -> Self {
-        Self::Not {
-            body: Box::new(self),
-        }
-    }
-
-    /// Turns ImlOp construct into an expecting parser
-    pub fn into_expect(self, mut msg: Option<String>) -> Self {
-        // When no msg is provided, generate a message from the next consumables in range!
-        // This got a bit out of hand, and should be done later via something like a FIRST() attribute on parselet.
-        // Generally, this code becomes unnecessary when the Expect<P> generic is made available (see #10 for details)
-        if msg.is_none() {
-            fn get_expect(op: &ImlOp) -> Option<String> {
-                match op {
-                    ImlOp::Call { target, .. } | ImlOp::Load { target, .. }
-                        if target.is_consuming() =>
-                    {
-                        Some(format!("{}", target))
-                    }
-                    ImlOp::Seq { seq, .. } => {
-                        let mut txt = None;
-
-                        for item in seq {
-                            item.walk(&mut |op| {
-                                txt = get_expect(op);
-                                !txt.is_some()
-                            });
-
-                            if txt.is_some() {
-                                break;
-                            }
-                        }
-
-                        txt
-                    }
-                    ImlOp::Alt { alts, .. } => {
-                        let mut all_txt = Vec::new();
-
-                        for item in alts {
-                            let mut txt = None;
-
-                            item.walk(&mut |op| {
-                                txt = get_expect(op);
-                                !txt.is_some()
-                            });
-
-                            if let Some(txt) = txt {
-                                all_txt.push(txt);
-                            }
-                        }
-
-                        if all_txt.is_empty() {
-                            None
-                        } else {
-                            Some(all_txt.join(" or "))
-                        }
-                    }
-                    _ => None,
-                }
-            }
-
-            self.walk(&mut |op| {
-                msg = get_expect(op);
-                !msg.is_some()
-            });
-
-            if let Some(txt) = msg {
-                msg = Some(format!("Expecting {}", txt).to_string())
-            }
-        }
-
-        Self::Expect {
-            body: Box::new(self),
-            msg,
         }
     }
 
@@ -448,38 +347,6 @@ impl ImlOp {
                 }
             }
             // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, msg } => {
-                let mut expect = Vec::new();
-                body.compile(program, current, &mut expect);
-
-                ops.push(Op::Frame(expect.len() + 2));
-
-                ops.extend(expect);
-                ops.extend(vec![
-                    Op::Forward(2),
-                    Op::Error(Some(if let Some(msg) = msg {
-                        msg.clone()
-                    } else {
-                        format!("Expecting {:?}", body)
-                    })),
-                    Op::Close,
-                ]);
-            }
-            ImlOp::Not { body } => {
-                let mut body_ops = Vec::new();
-                let body_len = body.compile(program, current, &mut body_ops);
-                ops.push(Op::Frame(body_len + 3));
-                ops.extend(body_ops);
-                ops.push(Op::Close);
-                ops.push(Op::Next);
-                ops.push(Op::Close);
-            }
-            ImlOp::Peek { body } => {
-                ops.push(Op::Frame(0));
-                body.compile(program, current, ops);
-                ops.push(Op::Reset(true));
-                ops.push(Op::Close);
-            }
             ImlOp::Repeat { body, min, max } => {
                 let mut body_ops = Vec::new();
                 let body_len = body.compile(program, current, &mut body_ops);
@@ -584,10 +451,7 @@ impl ImlOp {
                 true
             }
             // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. }
-            | ImlOp::Not { body }
-            | ImlOp::Peek { body }
-            | ImlOp::Repeat { body, .. } => body.walk(func),
+            ImlOp::Repeat { body, .. } => body.walk(func),
 
             _ => true,
         }
