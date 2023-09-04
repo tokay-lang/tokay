@@ -11,20 +11,14 @@ use crate::value::{Dict, List, Object, RefValue, Str, Token};
 use crate::vm::*;
 use charclass::CharClass;
 
-/// Checks whether identifier's name is the name of a reserved word.
-pub fn identifier_is_valid(ident: &str) -> Result<(), Error> {
-    match ident {
-        "Char" | "Chars" | "accept" | "begin" | "break" | "continue" | "else" | "end" | "exit"
-        | "expect" | "false" | "for" | "if" | "in" | "loop" | "next" | "not" | "null" | "peek"
-        | "push" | "reject" | "repeat" | "reset" | "return" | "self" | "Self" | "true" | "void" => {
-            Err(Error::new(
-                None,
-                format!("Expected identifier, found reserved word '{}'", ident),
-            ))
-        }
-        _ => Ok(()),
-    }
-}
+pub static RESERVED_TOKENS: &[&'static str] = &[
+    "Char", "Chars", "EOF", "Expect", "Not", "Kle", "Opt", "Peek", "Pos", "Repeat", "Self", "Void",
+];
+
+pub static RESERVED_KEYWORDS: &[&'static str] = &[
+    "accept", "begin", "break", "continue", "else", "end", "exit", "false", "for", "if", "in",
+    "loop", "next", "null", "push", "reject", "repeat", "reset", "return", "self", "true", "void",
+];
 
 /// AST traversal entry
 pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
@@ -537,13 +531,13 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                         }
                         // Undefined name
                         None => {
-                            // Check if identifier is valid
-                            if let Err(mut error) = identifier_is_valid(name) {
-                                if let Some(offset) = traverse_node_offset(node) {
-                                    error.patch_offset(offset);
-                                }
+                            // Check if identifier is not a reserved word
+                            if compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
+                                compiler.errors.push(Error::new(
+                                    traverse_node_offset(node),
+                                    format!("Expected identifier, found reserved word '{}'", name),
+                                ));
 
-                                compiler.errors.push(error);
                                 break 'load;
                             }
 
@@ -651,23 +645,19 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
 
             let offset = traverse_node_offset(node);
 
-            // Check if identifier is valid
-            return if let Err(mut error) = identifier_is_valid(name) {
-                if let Some(offset) = offset {
-                    error.patch_offset(offset);
-                }
+            // Check if identifier is not a reserved word
+            if compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
+                compiler.errors.push(Error::new(
+                    offset,
+                    format!("Expected identifier, found reserved word '{}'", name),
+                ));
+            }
 
-                compiler.errors.push(error);
-                ImlOp::Nop
-            } else {
-                match mode {
-                    Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),
-                    Rvalue::CallOrLoad => {
-                        ImlOp::call_by_name(compiler, offset, name.to_string(), None)
-                    }
-                    Rvalue::Call(args, nargs) => {
-                        ImlOp::call_by_name(compiler, offset, name.to_string(), Some((args, nargs)))
-                    }
+            return match mode {
+                Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),
+                Rvalue::CallOrLoad => ImlOp::call_by_name(compiler, offset, name.to_string(), None),
+                Rvalue::Call(args, nargs) => {
+                    ImlOp::call_by_name(compiler, offset, name.to_string(), Some((args, nargs)))
                 }
             };
         }
@@ -1057,12 +1047,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let ident = ident["value"].borrow();
             let ident = ident.object::<Str>().unwrap().as_str();
 
-            if let Err(mut error) = identifier_is_valid(ident) {
-                if let Some(offset) = traverse_node_offset(node) {
-                    error.patch_offset(offset);
-                }
+            // Disallow assignment to any reserved identifier
+            if compiler.restrict
+                && (RESERVED_KEYWORDS.contains(&ident) || RESERVED_TOKENS.contains(&ident))
+            {
+                compiler.errors.push(Error::new(
+                    traverse_node_offset(node),
+                    format!("Expected identifier, found reserved word '{}'", ident),
+                ));
 
-                compiler.errors.push(error);
                 return ImlOp::Nop;
             }
 
@@ -1363,6 +1356,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     {
                         let target = target.borrow();
 
+                        // TODO: The Char-modifier-stuff needs the be refactored in a separate pull request.
                         if let Some(Token::Char(ccl)) = target.object::<Token>() {
                             match parts[2] {
                                 // mod_pos on Token::Char becomes Token::Chars
@@ -1373,15 +1367,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                         ImlValue::from(RefValue::from(Token::Chars(ccl.clone()))),
                                         None,
                                     );
+
+                                    // mod_kle on Token::Char becomes Token::Chars.into_optional()
                                     if parts[2] == "kle" {
-                                        // mod_kle on Token::Char becomes Token::Chars.into_optional()
                                         chars = chars.into_optional();
                                     }
 
                                     return chars;
                                 }
 
-                                // mod_not on Token::Char becomes negated Token::Char
+                                // mod_not on Token::Char becomes a negated Token::Char
                                 "not" => {
                                     return ImlOp::call(
                                         compiler,

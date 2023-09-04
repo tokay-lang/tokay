@@ -46,6 +46,7 @@ won't be removed and can be accessed on later calls.
 pub struct Compiler {
     parser: Option<parser::Parser>,         // Internal Tokay parser
     pub debug: u8,                          // Compiler debug mode
+    pub(super) restrict: bool,              // Restrict assignment of reserved identifiers
     pub(super) statics: IndexSet<RefValue>, // Static values collected during compilation
     pub(super) scopes: Vec<Scope>,          // Current compilation scopes
     pub(super) usages: Vec<ImlValue>,       // Unresolved values
@@ -68,6 +69,7 @@ impl Compiler {
         let mut compiler = Self {
             parser: None,
             debug: 0,
+            restrict: true,
             statics: IndexSet::new(),
             scopes: Vec::new(),
             usages: Vec::new(),

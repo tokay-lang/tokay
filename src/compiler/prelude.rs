@@ -900,8 +900,10 @@ impl Compiler {
             /*ETARENEG*/
         ;
 
+        self.restrict = false;
         self.compile_from_ast(&ast)
             .expect("prelude cannot be compiled!")
             .expect("prelude contains no main?");
+        self.restrict = true;
     }
 }
