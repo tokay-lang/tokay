@@ -159,6 +159,11 @@ impl List {
     });
 
     tokay_method!("list_iadd : @list, append", {
+        // Don't append void
+        if append.is_void() {
+            return Ok(list)
+        }
+
         // In case list is not a list, make it a list.
         if !list.is("list") {
             let item = RefValue::from(list.borrow().clone());
@@ -192,6 +197,11 @@ impl List {
     });
 
     tokay_method!("list_add : @list, append", {
+        // Don't append void
+        if append.is_void() {
+            return Ok(list)
+        }
+
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
@@ -215,6 +225,11 @@ impl List {
     });
 
     tokay_method!("list_push : @list, item, index=void", {
+        // Don't push void
+        if item.is_void() {
+            return Ok(list)
+        }
+
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
