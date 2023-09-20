@@ -1793,7 +1793,7 @@ tokay_function!("ast2rust : @ast, level=0", {
             );
         } else {
             assert!(
-                ["str", "int", "float", "bool"].contains(&value.name()),
+                ["str", "int", "float", "bool", "void"].contains(&value.name()),
                 "No matching Rust primitive for {} found",
                 value.name()
             );

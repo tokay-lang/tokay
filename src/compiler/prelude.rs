@@ -326,12 +326,8 @@ impl Compiler {
                                                                                 ]))
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "call",
-                                                                            "children" =>
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "list"
-                                                                                ]))
+                                                                            "emit" => "list",
+                                                                            "value" => void
                                                                         ]))
                                                                     ]))
                                                             ])),

@@ -15,7 +15,7 @@ Expect : @<P> msg=void {
 }
 
 Repeat : @<P, min: 1, max: void> {
-    res = list()
+    res = ()
 
     loop {
         P {
