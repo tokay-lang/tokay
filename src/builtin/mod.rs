@@ -212,3 +212,7 @@ tokay_function!("offset : @", {
     ])
     .into()
 });
+
+tokay_function!("eof : @", {
+    value!(context.unwrap().thread.reader.eof()).into()
+});

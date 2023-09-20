@@ -22,7 +22,7 @@ pub struct Reader {
     peeked: char,                 // Currently peeked char
     offset: Offset,               // Current offset
     start: Offset,                // Offset of last commit
-    eof: bool,                    // EOF marker
+    pub eof: bool,                // EOF marker
 }
 
 impl Reader {

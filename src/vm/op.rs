@@ -160,6 +160,10 @@ impl Op {
 
                 // Dump stack and frames
                 if context.debug > 4 {
+                    context.log("--- Reader ---");
+                    context.log(&format!(" offset={:?}", context.thread.reader.tell()));
+                    context.log(&format!(" eof={:?}", context.thread.reader.eof));
+
                     context.log("--- Stack ---");
                     for i in 0..context.stack.len() {
                         context.log(&format!(" {:03} {:?}", i, context.stack[i]));

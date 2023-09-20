@@ -509,7 +509,12 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                 Err(Reject::Skip) => {}
                 Ok(Accept::Next) => break ret,
                 Ok(Accept::Push(capture)) => break capture,
-                Ok(Accept::Repeat) => {}
+                Ok(Accept::Repeat) => {
+                    // break on eof
+                    if self.thread.reader.eof {
+                        break ret;
+                    }
+                }
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
                 Err(Reject::Next) if !first => break Capture::Empty,
                 other => return other,
