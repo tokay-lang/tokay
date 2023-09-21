@@ -561,29 +561,23 @@ impl Compiler {
                                                     "emit" => "body",
                                                     "children" =>
                                                         (value!([
-                                                            "emit" => "call",
+                                                            "emit" => "value_generic",
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "identifier",
+                                                                        "value" => "Repeat"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "genarg",
                                                                         "children" =>
                                                                             (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Repeat"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "P"
-                                                                                        ]))
-                                                                                ]))
+                                                                                "emit" => "identifier",
+                                                                                "value" => "P"
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "callarg_named",
+                                                                        "emit" => "genarg_named",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
