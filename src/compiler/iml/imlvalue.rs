@@ -49,11 +49,12 @@ pub(in crate::compiler) enum ImlValue {
         target: Box<ImlValue>,                               // Instance target
         args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
         nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
+        severity: Option<u8>,                                // optional desired severity
     },
 }
 
 impl ImlValue {
-    fn into_generic(self, name: &str) -> Self {
+    pub fn into_generic(self, name: &str, severity: Option<u8>) -> Self {
         Self::Instance {
             offset: None,
             target: Box::new(ImlValue::Name {
@@ -62,22 +63,8 @@ impl ImlValue {
             }),
             args: vec![(None, self)],
             nargs: IndexMap::new(),
+            severity,
         }
-    }
-
-    /// Turns ImlValue into a Kle<T> (none-or-many) occurence.
-    pub fn into_kleene(self) -> Self {
-        self.into_generic("Kle")
-    }
-
-    /// Turns ImlValue into a Pos<T> (one-or-many) occurence.
-    pub fn into_positive(self) -> Self {
-        self.into_generic("Pos")
-    }
-
-    /// Turns ImlOp construct into an optional (none-or-one) occurence.
-    pub fn into_optional(self) -> Self {
-        self.into_generic("Opt")
     }
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
@@ -101,6 +88,7 @@ impl ImlValue {
                 target,
                 args,
                 nargs,
+                severity,
             } => {
                 let mut is_resolved = target.resolve(compiler);
 
@@ -210,7 +198,7 @@ impl ImlValue {
                                 constants,
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
-                                severity: parselet.severity,
+                                severity: severity.unwrap_or(parselet.severity),
                             }))
                         }
                         target => {

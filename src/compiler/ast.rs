@@ -372,6 +372,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 args,
                 nargs,
                 offset: traverse_node_offset(node),
+                severity: None,
             };
 
             ret.try_resolve(compiler)
@@ -1400,9 +1401,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ImlOp::Call {
                         offset: None,
                         target: match parts[2] {
-                            "pos" => res.into_positive(),
-                            "kle" => res.into_kleene(),
-                            "opt" => res.into_optional(),
+                            "pos" => res.into_generic("Pos", None),
+                            "kle" => res.into_generic("Kle", None),
+                            "opt" => res.into_generic("Opt", None),
                             _ => unreachable!(),
                         }
                         .try_resolve(compiler),

@@ -436,11 +436,11 @@ impl Compiler {
 
         if name == "_" || name == "__" {
             // `__` becomes `Value+`
-            value = value.into_positive().try_resolve(self);
+            value = value.into_generic("Pos", Some(0)).try_resolve(self);
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            value = value.into_optional().try_resolve(self);
+            value = value.into_generic("Opt", Some(0)).try_resolve(self);
         }
 
         // Insert constant into next constant-holding scope
