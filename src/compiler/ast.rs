@@ -1324,8 +1324,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    let res = traverse_node_rvalue(compiler, children, Rvalue::CallOrLoad);
+                    let res = traverse_node_static(compiler, None, children);
 
+                    /*
                     if !res.is_consuming() {
                         compiler.errors.push(Error::new(
                             traverse_node_offset(node),
@@ -1394,12 +1395,18 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
+                    */
 
-                    match parts[2] {
-                        "pos" => res.into_positive(),
-                        "kle" => res.into_kleene(),
-                        "opt" => res.into_optional(),
-                        _ => unreachable!(),
+                    ImlOp::Call {
+                        offset: None,
+                        target: match parts[2] {
+                            "pos" => res.into_positive(),
+                            "kle" => res.into_kleene(),
+                            "opt" => res.into_optional(),
+                            _ => unreachable!(),
+                        }
+                        .try_resolve(compiler),
+                        args: None,
                     }
                 }
 

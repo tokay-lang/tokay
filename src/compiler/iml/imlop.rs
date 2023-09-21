@@ -142,33 +142,6 @@ impl ImlOp {
         }
     }
 
-    /// Turns ImlOp construct into a kleene (none-or-many) occurence.
-    pub fn into_kleene(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 0,
-            max: 0,
-        }
-    }
-
-    /// Turns ImlOp construct into a positive (one-or-many) occurence.
-    pub fn into_positive(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 1,
-            max: 0,
-        }
-    }
-
-    /// Turns ImlOp construct into an optional (none-or-one) occurence.
-    pub fn into_optional(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 0,
-            max: 1,
-        }
-    }
-
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
     pub fn compile_to_vec(
         &self,

@@ -435,39 +435,12 @@ impl Compiler {
         let mut secondary = None;
 
         if name == "_" || name == "__" {
-            self.parselet_push();
-
-            // becomes `Value+`
-            let value_pos = ImlOp::call(self, None, value, None).into_positive();
-
-            value = self.parselet_pop(
-                None,
-                Some("__".to_string()),
-                Some(0), // Zero severity
-                None,
-                None,
-                value_pos,
-            );
-
-            // Remind "__" as new constant
+            // `__` becomes `Value+`
+            value = value.into_positive().try_resolve(self);
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            self.parselet_push();
-
-            // becomes `Value?`
-            let value_opt = ImlOp::call(self, None, value, None).into_optional();
-
-            value = self.parselet_pop(
-                None,
-                Some(name.to_string()),
-                Some(0), // Zero severity
-                None,
-                None,
-                value_opt,
-            );
-
-            // Insert "_" afterwards
+            value = value.into_optional().try_resolve(self);
         }
 
         // Insert constant into next constant-holding scope

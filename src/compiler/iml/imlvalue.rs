@@ -53,6 +53,33 @@ pub(in crate::compiler) enum ImlValue {
 }
 
 impl ImlValue {
+    fn into_generic(self, name: &str) -> Self {
+        Self::Instance {
+            offset: None,
+            target: Box::new(ImlValue::Name {
+                offset: None,
+                name: name.to_string(),
+            }),
+            args: vec![(None, self)],
+            nargs: IndexMap::new(),
+        }
+    }
+
+    /// Turns ImlValue into a Kle<T> (none-or-many) occurence.
+    pub fn into_kleene(self) -> Self {
+        self.into_generic("Kle")
+    }
+
+    /// Turns ImlValue into a Pos<T> (one-or-many) occurence.
+    pub fn into_positive(self) -> Self {
+        self.into_generic("Pos")
+    }
+
+    /// Turns ImlOp construct into an optional (none-or-one) occurence.
+    pub fn into_optional(self) -> Self {
+        self.into_generic("Opt")
+    }
+
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
     pub fn try_resolve(mut self, compiler: &mut Compiler) -> Self {
         if self.resolve(compiler) {
