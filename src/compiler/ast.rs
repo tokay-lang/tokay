@@ -1349,12 +1349,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     } else {
                         compiler.parselet_mark_consuming();
                     }
+                    */
 
                     // Modifiers on usages of Token::Char can be optimized for better efficiency
-                    if let ImlOp::Call {
-                        target: ImlValue::Value(target),
-                        ..
-                    } = &res
+                    if let ImlValue::Value(target) = &res
                     {
                         let target = target.borrow();
 
@@ -1363,31 +1361,29 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             match parts[2] {
                                 // mod_pos on Token::Char becomes Token::Chars
                                 "pos" | "kle" => {
-                                    let mut chars = ImlOp::call(
-                                        compiler,
-                                        traverse_node_offset(node),
-                                        ImlValue::from(RefValue::from(Token::Chars(ccl.clone()))),
-                                        None,
-                                    );
+                                    let mut chars = ImlValue::from(RefValue::from(Token::Chars(ccl.clone())));
 
-                                    // mod_kle on Token::Char becomes Token::Chars.into_optional()
+                                    // mod_kle on Token::Char becomes optional Token::Chars
                                     if parts[2] == "kle" {
-                                        chars = chars.into_optional();
+                                        chars = chars.into_generic("Opt", None).try_resolve(compiler);
                                     }
 
-                                    return chars;
+                                    return ImlOp::Call{
+                                        offset: traverse_node_offset(node),
+                                        target: chars,
+                                        args: None,
+                                    };
                                 }
 
                                 // mod_not on Token::Char becomes a negated Token::Char
                                 "not" => {
-                                    return ImlOp::call(
-                                        compiler,
-                                        traverse_node_offset(node),
-                                        ImlValue::from(RefValue::from(Token::Char(
+                                    return ImlOp::Call{
+                                        offset: traverse_node_offset(node),
+                                        target: ImlValue::from(RefValue::from(Token::Char(
                                             ccl.clone().negate(),
                                         ))),
-                                        None,
-                                    );
+                                        args: None,
+                                    };
                                 }
                                 _ => {}
                             }
@@ -1396,7 +1392,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Push operation position here
                     ops.push(traverse_offset(node));
-                    */
 
                     ImlOp::Call {
                         offset: None,
