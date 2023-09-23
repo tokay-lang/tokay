@@ -29,7 +29,7 @@ Repeat : @<P, min: 1, max: void> {
 }
 
 Pos : @<P>{ Repeat<P> }
-Kle : @<P>{ Repeat<P, min:0> }
+Kle : @<P>{ Repeat<P, min:0> || void }
 Opt : @<P>{ P | Void }
 
 List : @<P, Separator: (',' _), empty: true> {

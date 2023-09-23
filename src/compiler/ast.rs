@@ -1352,8 +1352,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     */
 
                     // Modifiers on usages of Token::Char can be optimized for better efficiency
-                    if let ImlValue::Value(target) = &res
-                    {
+                    if let ImlValue::Value(target) = &res {
                         let target = target.borrow();
 
                         // TODO: The Char-modifier-stuff needs the be refactored in a separate pull request.
@@ -1361,14 +1360,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             match parts[2] {
                                 // mod_pos on Token::Char becomes Token::Chars
                                 "pos" | "kle" => {
-                                    let mut chars = ImlValue::from(RefValue::from(Token::Chars(ccl.clone())));
+                                    let mut chars =
+                                        ImlValue::from(RefValue::from(Token::Chars(ccl.clone())));
 
                                     // mod_kle on Token::Char becomes optional Token::Chars
                                     if parts[2] == "kle" {
-                                        chars = chars.into_generic("Opt", None).try_resolve(compiler);
+                                        chars =
+                                            chars.into_generic("Opt", None).try_resolve(compiler);
                                     }
 
-                                    return ImlOp::Call{
+                                    return ImlOp::Call {
                                         offset: traverse_node_offset(node),
                                         target: chars,
                                         args: None,
@@ -1377,7 +1378,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                                 // mod_not on Token::Char becomes a negated Token::Char
                                 "not" => {
-                                    return ImlOp::Call{
+                                    return ImlOp::Call {
                                         offset: traverse_node_offset(node),
                                         target: ImlValue::from(RefValue::from(Token::Char(
                                             ccl.clone().negate(),

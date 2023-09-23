@@ -561,34 +561,44 @@ impl Compiler {
                                                     "emit" => "body",
                                                     "children" =>
                                                         (value!([
-                                                            "emit" => "value_generic",
+                                                            "emit" => "op_logical_or",
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Repeat"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "genarg",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "P"
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "genarg_named",
+                                                                        "emit" => "value_generic",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
                                                                                     "emit" => "identifier",
-                                                                                    "value" => "min"
+                                                                                    "value" => "Repeat"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "value_integer",
-                                                                                    "value" => 0
+                                                                                    "emit" => "genarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "identifier",
+                                                                                            "value" => "P"
+                                                                                        ]))
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "genarg_named",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "min"
+                                                                                            ])),
+                                                                                            (value!([
+                                                                                                "emit" => "value_integer",
+                                                                                                "value" => 0
+                                                                                            ]))
+                                                                                        ]))
                                                                                 ]))
                                                                             ]))
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "value_void",
+                                                                        "value" => "void"
                                                                     ]))
                                                                 ]))
                                                         ]))
