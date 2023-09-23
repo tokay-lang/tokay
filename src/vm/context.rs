@@ -314,7 +314,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
         let mut list = List::new(); // List collector
         let mut dict = Dict::new(); // Dict collector
-        let mut max = 0; // Maximum severity
+        let mut max = 1; // Maximum severity, must be at least 1
         let mut idx = 0; // Keep the order for dicts
 
         // Collect any significant captures and values
