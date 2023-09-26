@@ -161,7 +161,7 @@ impl List {
     tokay_method!("list_iadd : @list, append", {
         // Don't append void
         if append.is_void() {
-            return Ok(list)
+            return Ok(list);
         }
 
         // In case list is not a list, make it a list.
@@ -199,7 +199,7 @@ impl List {
     tokay_method!("list_add : @list, append", {
         // Don't append void
         if append.is_void() {
-            return Ok(list)
+            return Ok(list);
         }
 
         // In case list is not a list, make it a list.
@@ -227,7 +227,7 @@ impl List {
     tokay_method!("list_push : @list, item, index=void", {
         // Don't push void
         if item.is_void() {
-            return Ok(list)
+            return Ok(list);
         }
 
         // In case list is not a list, make it a list.

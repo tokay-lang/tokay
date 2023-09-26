@@ -1,13 +1,13 @@
 # direct1
 D1: @{
-    D1? ''a''
+    D1? Char<a>
 }
 'D1' print(D1)
 
 # direct2
 D2: @{
-    D2 'b'
-    'a'
+    D2 Char<b>
+    Char<a>
 }
 'D2' print(D2)
 
