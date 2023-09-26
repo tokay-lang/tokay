@@ -415,7 +415,6 @@ impl Compiler {
             value = self.parselet_pop(
                 None,
                 Some("__".to_string()),
-                // Context::collect() should ignore severity 0 values (#118)
                 Some(0), // Zero severity
                 None,
                 None,
