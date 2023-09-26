@@ -205,7 +205,7 @@ impl Object for Token {
                         range,
                         None,
                         if matches!(self, Token::Touch(_)) {
-                            1
+                            0
                         } else {
                             5
                         },
