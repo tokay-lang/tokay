@@ -152,6 +152,7 @@ impl Compiler {
 
         if self.debug > 0 {
             ast::print(&ast);
+            //println!("###\n{:#?}\n###", ast);
         }
 
         self.compile_from_ast(&ast)

@@ -1211,7 +1211,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                 "repeat" => Op::Repeat.into(),
 
-                "reset" => Op::Reset(false).into(),
+                "reset" => Op::ResetReader.into(),
 
                 "unary" => {
                     let children = node["children"].borrow();

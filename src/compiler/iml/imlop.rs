@@ -209,12 +209,12 @@ impl ImlOp {
                 let mut initial_fuse = None;
 
                 while let Some(item) = iter.next() {
-                    let mut alt = Vec::new();
-                    item.compile(program, current, &mut alt);
+                    let alt = item.compile_to_vec(program, current);
 
                     // When branch has more than one item, Frame it.
                     if iter.len() > 0 {
-                        let fuse = alt.len() + if item.is_consuming() { 3 } else { 2 };
+                        let consuming = item.is_consuming();
+                        let fuse = alt.len() + if consuming { 3 } else { 2 };
 
                         if initial_fuse.is_none() {
                             initial_fuse = Some(fuse) // this is used for the initial frame
@@ -224,13 +224,14 @@ impl ImlOp {
 
                         ret.extend(alt);
 
-                        if item.is_consuming() {
+                        if consuming {
                             // Insert Nop as location for later jump backpatch
                             ret.push(Op::Nop);
                             jumps.push(ret.len() - 1);
+                            ret.push(Op::Reset);
+                        } else {
+                            ret.push(Op::ResetCapture);
                         }
-
-                        ret.push(Op::Reset(true));
                     } else {
                         ret.extend(alt);
                     }
@@ -457,7 +458,15 @@ impl ImlOp {
         }
     }
 
+    // Defines the ImlOp's consuming state from point of view as an ImlOp.
+    // The ImlOp deeply can still consume, but this is a semantic issue.
+    // During code-generation, this function is useful to determine whether
+    // the ImlOp is directly consuming or not.
     pub fn is_consuming(&self) -> bool {
+        if matches!(self, ImlOp::Loop { .. } | ImlOp::If { .. }) {
+            return false;
+        }
+
         let mut consuming = false;
 
         self.walk(&mut |op| {
