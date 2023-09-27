@@ -2634,6 +2634,10 @@ impl Parser {
                                                                     "value" => "_"
                                                                 ])),
                                                                 (value!([
+                                                                    "emit" => "identifier",
+                                                                    "value" => "___"
+                                                                ])),
+                                                                (value!([
                                                                     "emit" => "op_mod_kle",
                                                                     "children" =>
                                                                         (value!([
@@ -2643,6 +2647,10 @@ impl Parser {
                                                                                     (value!([
                                                                                         "emit" => "identifier",
                                                                                         "value" => "ParseletGeneric"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "___"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "op_mod_opt",
@@ -2658,6 +2666,10 @@ impl Parser {
                                                                                                         (value!([
                                                                                                             "emit" => "identifier",
                                                                                                             "value" => "_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "___"
                                                                                                         ]))
                                                                                                     ]))
                                                                                             ]))
@@ -2667,7 +2679,7 @@ impl Parser {
                                                                 ])),
                                                                 (value!([
                                                                     "emit" => "identifier",
-                                                                    "value" => "_"
+                                                                    "value" => "___"
                                                                 ])),
                                                                 (value!([
                                                                     "emit" => "value_generic",
@@ -2690,6 +2702,10 @@ impl Parser {
                                                                 (value!([
                                                                     "emit" => "identifier",
                                                                     "value" => "_"
+                                                                ])),
+                                                                (value!([
+                                                                    "emit" => "identifier",
+                                                                    "value" => "___"
                                                                 ]))
                                                             ]))
                                                     ]))
