@@ -22,7 +22,9 @@ pub(crate) enum Op {
     Frame(usize), // Start new frame with optional relative forward address fuse
     Capture,      // Reset frame capture to current stack size, saving captures
     Extend,       // Extend frame's reader to current position
-    Reset(bool),  // Reset frame, either full (true = stack+reader) or reader only (false)
+    Reset,        // Reset frame, stack+reader
+    ResetReader,  // Reset reader
+    ResetCapture, // Reset captures
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
     InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
@@ -214,11 +216,19 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Reset(full) => {
-                    if *full {
-                        context.stack.truncate(context.frame.capture_start);
-                    }
+                Op::Reset => {
+                    context.stack.truncate(context.frame.capture_start);
                     context.thread.reader.reset(context.frame.reader_start);
+                    Ok(Accept::Next)
+                }
+
+                Op::ResetReader => {
+                    context.thread.reader.reset(context.frame.reader_start);
+                    Ok(Accept::Next)
+                }
+
+                Op::ResetCapture => {
+                    context.stack.truncate(context.frame.capture_start);
                     Ok(Accept::Next)
                 }
 

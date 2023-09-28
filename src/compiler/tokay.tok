@@ -167,7 +167,7 @@ ParseletGeneric : @{
 }
 
 ParseletGenerics : @{
-    '<' _ (ParseletGeneric (',' _)?)* _ Expect<'>'> _
+    '<' _ ___ (ParseletGeneric ___ (',' _ ___)?)* ___ Expect<'>'> _ ___
 }
 
 ## Parselet: Arguments

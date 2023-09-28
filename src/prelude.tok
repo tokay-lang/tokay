@@ -14,22 +14,38 @@ Expect : @<P> msg=void {
     error(msg || "Expecting " + *P + ", but got " + repr((Token | Char | "end-of-file")))
 }
 
-Repeat : @<P, min: 1, max: void> {
+Repeat : @<
+    P,          # Parselet
+    min: 1,     # minimum occurence
+    max: void,  # maximum occurence, void for unlimited
+    blur: true  # result blurrying; empty list becomes void, one-item list becomes item
+> {
     res = ()
 
     loop {
         P {
             res += $1
-            if max && res.len == max return res
+            if max && res.len == max break
         }
 
         if res.len < min reject
-        break res
+        break
     }
+
+    if blur {
+        if res.len == 0 {
+            accept void
+        }
+        else if res.len == 1 {
+            accept res[0]
+        }
+    }
+
+    res
 }
 
-Pos : @<P>{ Repeat<P> }
-Kle : @<P>{ Repeat<P, min:0> || void }
+Pos : @<P, blur: true>{ Repeat<P, blur: blur> }
+Kle : @<P, blur: true>{ Repeat<P, min: 0, blur: blur> || void }
 Opt : @<P>{ P | Void }
 
 List : @<P, Separator: (',' _), empty: true> {
@@ -40,3 +56,5 @@ List : @<P, Separator: (',' _), empty: true> {
 
 Number : Float | Int
 Token : Word | Number | AsciiPunctuation
+
+# print("=> ", XKle<'a'>)
