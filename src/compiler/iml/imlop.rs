@@ -410,82 +410,49 @@ impl ImlOp {
         ops.len() - start
     }
 
-    /// Generic querying function taking a closure that either walks on the tree or stops.
-    pub fn walk(&self, func: &mut dyn FnMut(&Self) -> bool) -> bool {
-        // Call closure on current ImlOp, break on false return
-        if !func(self) {
-            return false;
-        }
-
-        // Query along ImlOp structure
-        match self {
-            ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
-                for item in items {
-                    if !item.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            ImlOp::If { then, else_, .. } => {
-                for i in [&then, &else_] {
-                    if !i.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            ImlOp::Loop {
-                initial,
-                condition,
-                body,
-                ..
-            } => {
-                for i in [&initial, &condition, &body] {
-                    if !i.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            // DEPRECATED BELOW!!!
-            ImlOp::Repeat { body, .. } => body.walk(func),
-
-            _ => true,
-        }
-    }
-
     // Defines the ImlOp's consuming state from point of view as an ImlOp.
     // The ImlOp deeply can still consume, but this is a semantic issue.
     // During code-generation, this function is useful to determine whether
     // the ImlOp is directly consuming or not.
     pub fn is_consuming(&self) -> bool {
-        if matches!(self, ImlOp::Loop { .. } | ImlOp::If { .. }) {
-            return false;
-        }
-
-        let mut consuming = false;
-
-        self.walk(&mut |op| {
+        fn walk(op: &ImlOp) -> Option<bool> {
+            // Query along ImlOp structure
             match op {
                 ImlOp::Call { target, .. } => {
                     if target.is_consuming() {
-                        consuming = true;
+                        return Some(true);
                     }
+
+                    None
                 }
-                ImlOp::Op(Op::Next) => {
-                    consuming = true;
+                ImlOp::Op(Op::Next) => Some(true),
+                ImlOp::Loop { .. } | ImlOp::If { peek: false, .. } => Some(false),
+                ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
+                    for item in items {
+                        if let Some(res) = walk(item) {
+                            return Some(res);
+                        }
+                    }
+
+                    None
                 }
-                _ => {}
+                ImlOp::If { then, else_, .. } => {
+                    for item in [&then, &else_] {
+                        if let Some(res) = walk(item) {
+                            return Some(res);
+                        }
+                    }
+
+                    None
+                }
+                // DEPRECATED BELOW!!!
+                ImlOp::Repeat { body, .. } => walk(body),
+
+                _ => None,
             }
+        }
 
-            !consuming
-        });
-
-        consuming
+        walk(self).unwrap_or(false)
     }
 
     /** Returns a value to operate with or evaluate during compile-time.
