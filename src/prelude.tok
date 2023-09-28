@@ -24,7 +24,7 @@ Repeat : @<
 
     loop {
         P {
-            res += $1
+            res.push($1)
             if max && res.len == max break
         }
 
