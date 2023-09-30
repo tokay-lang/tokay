@@ -1351,43 +1351,52 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     }
                     */
 
+                    let mut assume_severity = None;
+
                     // Modifiers on usages of Token::Char can be optimized for better efficiency
                     if let ImlValue::Value(target) = &res {
                         let target = target.borrow();
 
                         // TODO: The Char-modifier-stuff needs the be refactored in a separate pull request.
-                        if let Some(Token::Char(ccl)) = target.object::<Token>() {
-                            match parts[2] {
-                                // mod_pos on Token::Char becomes Token::Chars
-                                "pos" | "kle" => {
-                                    let mut chars =
-                                        ImlValue::from(RefValue::from(Token::Chars(ccl.clone())));
+                        match target.object::<Token>() {
+                            Some(Token::Char(ccl)) => {
+                                match parts[2] {
+                                    // mod_pos on Token::Char becomes Token::Chars
+                                    "pos" | "kle" => {
+                                        let mut chars = ImlValue::from(RefValue::from(
+                                            Token::Chars(ccl.clone()),
+                                        ));
 
-                                    // mod_kle on Token::Char becomes optional Token::Chars
-                                    if parts[2] == "kle" {
-                                        chars =
-                                            chars.into_generic("Opt", None).try_resolve(compiler);
+                                        // mod_kle on Token::Char becomes optional Token::Chars
+                                        if parts[2] == "kle" {
+                                            chars = chars
+                                                .into_generic("Opt", None)
+                                                .try_resolve(compiler);
+                                        }
+
+                                        return ImlOp::Call {
+                                            offset: traverse_node_offset(node),
+                                            target: chars,
+                                            args: None,
+                                        };
                                     }
 
-                                    return ImlOp::Call {
-                                        offset: traverse_node_offset(node),
-                                        target: chars,
-                                        args: None,
-                                    };
+                                    // mod_not on Token::Char becomes a negated Token::Char
+                                    "not" => {
+                                        return ImlOp::Call {
+                                            offset: traverse_node_offset(node),
+                                            target: ImlValue::from(RefValue::from(Token::Char(
+                                                ccl.clone().negate(),
+                                            ))),
+                                            args: None,
+                                        };
+                                    }
+                                    _ => {}
                                 }
-
-                                // mod_not on Token::Char becomes a negated Token::Char
-                                "not" => {
-                                    return ImlOp::Call {
-                                        offset: traverse_node_offset(node),
-                                        target: ImlValue::from(RefValue::from(Token::Char(
-                                            ccl.clone().negate(),
-                                        ))),
-                                        args: None,
-                                    };
-                                }
-                                _ => {}
                             }
+                            // fixme: This is an ugly hack to keep severity for modified versions
+                            Some(Token::Touch(_)) => assume_severity = Some(0),
+                            _ => {}
                         }
                     }
 
@@ -1397,9 +1406,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ImlOp::Call {
                         offset: None,
                         target: match parts[2] {
-                            "pos" => res.into_generic("Pos", None),
-                            "kle" => res.into_generic("Kle", None),
-                            "opt" => res.into_generic("Opt", None),
+                            "pos" => res.into_generic("Pos", assume_severity),
+                            "kle" => res.into_generic("Kle", assume_severity),
+                            "opt" => res.into_generic("Opt", assume_severity),
                             _ => unreachable!(),
                         }
                         .try_resolve(compiler),
