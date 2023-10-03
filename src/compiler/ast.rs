@@ -373,6 +373,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 nargs,
                 offset: traverse_node_offset(node),
                 severity: None,
+                generated: false,
             };
 
             ret.try_resolve(compiler)
@@ -1383,13 +1384,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                                     // mod_not on Token::Char becomes a negated Token::Char
                                     "not" => {
-                                        return ImlOp::Call {
-                                            offset: traverse_node_offset(node),
-                                            target: ImlValue::from(RefValue::from(Token::Char(
+                                        return ImlOp::call(
+                                            compiler,
+                                            traverse_node_offset(node),
+                                            ImlValue::from(RefValue::from(Token::Char(
                                                 ccl.clone().negate(),
                                             ))),
-                                            args: None,
-                                        };
+                                            None,
+                                        );
                                     }
                                     _ => {}
                                 }
@@ -1400,20 +1402,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         }
                     }
 
-                    // Push operation position here
-                    ops.push(traverse_offset(node));
-
-                    ImlOp::Call {
-                        offset: None,
-                        target: match parts[2] {
+                    ImlOp::call(
+                        compiler,
+                        traverse_node_offset(node),
+                        match parts[2] {
                             "pos" => res.into_generic("Pos", assume_severity),
                             "kle" => res.into_generic("Kle", assume_severity),
                             "opt" => res.into_generic("Opt", assume_severity),
                             _ => unreachable!(),
-                        }
-                        .try_resolve(compiler),
-                        args: None,
-                    }
+                        },
+                        None,
+                    )
                 }
 
                 "if" => {

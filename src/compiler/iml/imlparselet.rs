@@ -46,6 +46,7 @@ pub(in crate::compiler) struct ImlParseletConfig {
     pub offset: Option<Offset>,               // Offset of definition
     pub name: Option<String>,                 // Assigned name from source (for debugging)
     pub severity: u8,                         // Capture push severity
+    pub generated: bool,
 }
 
 /** Representation of parselet in intermediate code. */
@@ -56,6 +57,7 @@ impl ImlParseletConfig {
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
+        generated: bool,
     ) -> Self {
         Self {
             model: Rc::new(RefCell::new(model)),
@@ -63,6 +65,7 @@ impl ImlParseletConfig {
             offset,
             name,
             severity,
+            generated,
         }
     }
 
@@ -192,6 +195,7 @@ impl ImlParselet {
             offset: parselet.offset.clone(),
             name: parselet.name.clone(),
             severity: parselet.severity,
+            generated: parselet.generated,
         })
     }
 

@@ -119,7 +119,10 @@ impl Compiler {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            match ImlProgram::new(main).compile() {
+            let mut program = ImlProgram::new(main);
+            program.debug = self.debug > 1;
+
+            match program.compile() {
                 Ok(program) => {
                     if self.debug > 1 {
                         println!("--- Finalized program ---");
@@ -151,6 +154,7 @@ impl Compiler {
         };
 
         if self.debug > 0 {
+            println!("--- Abstract Syntax Tree ---");
             ast::print(&ast);
             //println!("###\n{:#?}\n###", ast);
         }
@@ -319,6 +323,7 @@ impl Compiler {
                 offset,
                 name,
                 severity.unwrap_or(5),
+                false,
             ))
         } else {
             unreachable!();

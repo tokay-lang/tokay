@@ -84,10 +84,10 @@ impl ImlOp {
     }
 
     /// Load value
-    pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, value: ImlValue) -> ImlOp {
+    pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, target: ImlValue) -> ImlOp {
         ImlOp::Load {
             offset,
-            target: value,
+            target,
         }
     }
 
@@ -102,23 +102,25 @@ impl ImlOp {
     pub fn call(
         compiler: &mut Compiler,
         offset: Option<Offset>,
-        value: ImlValue,
+        target: ImlValue,
         args: Option<(usize, bool)>,
     ) -> ImlOp {
+        let target = target.try_resolve(compiler);
+
         // When args is unset, and the value is not callable without arguments,
         // consider this call is a load.
-        if args.is_none() && !value.is_callable(true) {
+        if args.is_none() && !target.is_callable(true) {
             // Currently not planned as final
-            return Self::load(compiler, offset, value);
+            return Self::load(compiler, offset, target);
         }
 
-        if value.is_consuming() {
+        if target.is_consuming() {
             compiler.parselet_mark_consuming();
         }
 
         ImlOp::Call {
             offset,
-            target: value,
+            target,
             args,
         }
     }

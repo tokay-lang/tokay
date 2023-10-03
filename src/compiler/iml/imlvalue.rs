@@ -50,6 +50,7 @@ pub(in crate::compiler) enum ImlValue {
         args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
         nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
         severity: Option<u8>,                                // optional desired severity
+        generated: bool,
     },
 }
 
@@ -64,6 +65,7 @@ impl ImlValue {
             args: vec![(None, self)],
             nargs: IndexMap::new(),
             severity,
+            generated: true,
         }
     }
 
@@ -89,6 +91,7 @@ impl ImlValue {
                 args,
                 nargs,
                 severity,
+                generated,
             } => {
                 let mut is_resolved = target.resolve(compiler);
 
@@ -191,7 +194,7 @@ impl ImlValue {
 
                             // Make a parselet derivation from the instance definition;
                             // This can be the final parselet definition, but constants
-                            // might contain Generic references as well, which are being
+                            // might contain generic references as well, which are being
                             // resolved during compilation.
                             Some(ImlValue::from(ImlParseletConfig {
                                 model: parselet.model.clone(),
@@ -199,6 +202,7 @@ impl ImlValue {
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
                                 severity: severity.unwrap_or(parselet.severity),
+                                generated: *generated,
                             }))
                         }
                         target => {

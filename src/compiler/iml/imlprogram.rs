@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 pub(in crate::compiler) struct ImlProgram {
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
     pub errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
+    pub debug: bool,        // Debug
 }
 
 impl ImlProgram {
@@ -19,6 +20,7 @@ impl ImlProgram {
         ImlProgram {
             statics: indexmap!(main => None),
             errors: Vec::new(),
+            debug: false,
         }
     }
 
@@ -74,6 +76,14 @@ impl ImlProgram {
             *self.statics.get_index_mut(idx).unwrap().1 = Some(parselet.compile(&mut self, idx));
 
             idx += 1;
+        }
+
+        if self.debug {
+            println!("--- Parselets to finalize ---");
+
+            for (i, parselet) in finalize.iter().enumerate() {
+                println!("{:?} => {:#?}", i, parselet);
+            }
         }
 
         let leftrec = self.finalize(finalize);
@@ -302,10 +312,18 @@ impl ImlProgram {
                 return None;
             }
 
+            //println!("- {}{}", ".".repeat(visited.len()), current);
+
             if let Some(idx) = visited.get_index_of(current) {
                 // When in visited, this is a recursion
                 Some(Consumable {
-                    leftrec: idx == 0, // If the idx is 0, current is the seeked parselet, and is left-recursive
+                    // If the idx is 0, current is the seeked parselet, so it is left-recursive
+                    leftrec: if idx == 0 && !current.borrow().generated {
+                        configs.get_mut(current).unwrap().leftrec = true;
+                        true
+                    } else {
+                        false
+                    },
                     nullable: configs[current].nullable,
                 })
             } else {
@@ -313,11 +331,7 @@ impl ImlProgram {
                 visited.insert(current.clone());
 
                 for part in [&model.begin, &model.body, &model.end] {
-                    if let Some(result) = finalize_op(part, current, visited, configs) {
-                        if configs[current] < result {
-                            configs.insert(current.clone(), result);
-                        }
-                    }
+                    finalize_op(part, current, visited, configs);
                 }
 
                 visited.remove(current);
