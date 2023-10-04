@@ -85,10 +85,7 @@ impl ImlOp {
 
     /// Load value
     pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, target: ImlValue) -> ImlOp {
-        ImlOp::Load {
-            offset,
-            target,
-        }
+        ImlOp::Load { offset, target }
     }
 
     /// Load unknown value by name
