@@ -20,15 +20,15 @@ pub(crate) enum Op {
 
     // Capture frames
     Frame(usize), // Start new frame with optional relative forward address fuse
-    Capture,      // Reset frame capture to current stack size, saving captures
+    // Capture,      // Reset frame capture to current stack size, saving captures
     Extend,       // Extend frame's reader to current position
     Reset,        // Reset frame, stack+reader
     ResetReader,  // Reset reader
     ResetCapture, // Reset captures
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
-    InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
-    Fuse(usize),  // Set frame fuse to relative forward address
+    // InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
+    Fuse(usize), // Set frame fuse to relative forward address
 
     // Loop frames
     Loop(usize), // Loop frame
@@ -43,8 +43,8 @@ pub(crate) enum Op {
     ForwardIfConsumed(usize), // Jump forward when frame consumed input
 
     // Direct jumps
-    Forward(usize),  // Jump forward
-    Backward(usize), // Jump backward
+    Forward(usize), // Jump forward
+    // Backward(usize), // Jump backward
 
     // Interrupts
     Next,       // Err(Reject::Next)
@@ -206,11 +206,12 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                /*
                 Op::Capture => {
                     context.frame.capture_start = context.stack.len();
                     Ok(Accept::Next)
                 }
-
+                */
                 Op::Extend => {
                     context.frame.reader_start = context.thread.reader.tell();
                     Ok(Accept::Next)
@@ -243,6 +244,7 @@ impl Op {
                     context.debug > 5,
                 ))),
 
+                /*
                 Op::InCollect => {
                     let mut capture =
                         context.collect(context.frame.capture_start, false, context.debug > 5);
@@ -253,7 +255,7 @@ impl Op {
 
                     Ok(Accept::Push(capture))
                 }
-
+                */
                 Op::Fuse(addr) => {
                     context.frame.fuse = Some(ip + *addr);
                     Ok(Accept::Next)
@@ -362,11 +364,12 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
+                /*
                 Op::Backward(goto) => {
                     ip -= goto;
                     Ok(Accept::Hold)
                 }
-
+                */
                 // Interrupts
                 Op::Next => Err(Reject::Next),
 

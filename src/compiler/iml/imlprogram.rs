@@ -277,22 +277,6 @@ impl ImlProgram {
                     ret
                 }
 
-                // DEPRECATED BELOW!!!
-                ImlOp::Repeat { body, min, .. } => {
-                    if let Some(consumable) = finalize_op(body, current, visited, configs) {
-                        if *min == 0 {
-                            Some(Consumable {
-                                leftrec: consumable.leftrec,
-                                nullable: true,
-                            })
-                        } else {
-                            Some(consumable)
-                        }
-                    } else {
-                        None
-                    }
-                }
-
                 // default case
                 _ => None,
             }

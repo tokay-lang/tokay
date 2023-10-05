@@ -49,15 +49,6 @@ pub(in crate::compiler) enum ImlOp {
         condition: Box<ImlOp>, // Abort condition
         body: Box<ImlOp>,      // Iterating body
     },
-
-    // v--- below variants are being replaced by Tokay generics as soon as they are implemented ---v //
-
-    // Repeat (deprecated!)
-    Repeat {
-        body: Box<ImlOp>,
-        min: usize,
-        max: usize,
-    },
 }
 
 impl ImlOp {
@@ -319,64 +310,6 @@ impl ImlOp {
                     ops.push(Op::Break);
                 }
             }
-            // DEPRECATED BELOW!!!
-            ImlOp::Repeat { body, min, max } => {
-                let mut body_ops = Vec::new();
-                let body_len = body.compile(program, current, &mut body_ops);
-
-                match (min, max) {
-                    (0, 0) => {
-                        // Kleene
-                        ops.extend(vec![
-                            Op::Frame(0),            // The overall capture
-                            Op::Frame(body_len + 6), // The fused capture for repetition
-                        ]);
-                        ops.extend(body_ops); // here comes the body
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(4),           // otherwise leave the loop
-                            Op::Capture,
-                            Op::Extend,
-                            Op::Backward(body_len + 4), // repeat the body
-                            Op::Close,
-                            Op::InCollect,
-                            Op::Close,
-                        ]);
-                    }
-                    (1, 0) => {
-                        // Positive
-                        ops.push(Op::Frame(0)); // The overall capture
-                        ops.extend(body_ops.clone()); // here comes the body for the first time
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // If nothing was consumed, then...
-                            Op::Next,                 //...reject
-                            Op::Frame(body_len + 6),  // The fused capture for repetition
-                        ]);
-                        ops.extend(body_ops); // here comes the body again inside the repetition
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(4),           // otherwise leave the loop
-                            Op::Capture,
-                            Op::Extend,
-                            Op::Backward(body_len + 4), // repeat the body
-                            Op::Close,
-                            Op::InCollect,
-                            Op::Close,
-                        ]);
-                    }
-                    (0, 1) => {
-                        // Optional
-                        ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
-                        ops.extend(body_ops);
-                        ops.push(Op::InCollect);
-                        ops.push(Op::Close);
-                    }
-                    (1, 1) => {}
-                    (_, _) => unimplemented!(
-                        "ImlOp::Repeat construct with min/max configuration > 1 not implemented yet"
-                    ),
-                };
-            }
         }
 
         ops.len() - start
@@ -417,8 +350,6 @@ impl ImlOp {
 
                     None
                 }
-                // DEPRECATED BELOW!!!
-                ImlOp::Repeat { body, .. } => walk(body),
 
                 _ => None,
             }
