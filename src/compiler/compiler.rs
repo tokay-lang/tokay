@@ -487,13 +487,19 @@ impl Compiler {
                     // Check for global variable
                     if i + 1 == self.scopes.len() {
                         if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Global(*addr));
+                            return Some(ImlValue::Global {
+                                name: name.to_string(),
+                                addr: *addr,
+                            });
                         }
                     }
                     // Check for local variable
                     else if top_parselet {
                         if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Local(*addr));
+                            return Some(ImlValue::Local {
+                                name: name.to_string(),
+                                addr: *addr,
+                            });
                         }
                     }
 

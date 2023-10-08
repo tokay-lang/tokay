@@ -28,9 +28,17 @@ pub(in crate::compiler) enum ImlValue {
     Parselet(ImlParselet), // Parselet instance
 
     // Resolved: dynamic
-    This(bool),    // self-reference function (false) or parselet (true)
-    Local(usize),  // Runtime local variable
-    Global(usize), // Runtime global variable
+    This(bool), // self-reference function (false) or parselet (true)
+    Local {
+        // Runtime local variable
+        name: String,
+        addr: usize,
+    },
+    Global {
+        // Runtime global variable
+        name: String,
+        addr: usize,
+    },
 
     // Unresolved
     Name {
@@ -309,8 +317,8 @@ impl ImlValue {
                 },
                 _ => {}
             },
-            ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
-            ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
+            ImlValue::Local { addr, .. } => ops.push(Op::LoadFast(*addr)),
+            ImlValue::Global { addr, .. } => ops.push(Op::LoadGlobal(*addr)),
             ImlValue::Generic { name, .. } => {
                 return current.0.borrow().constants[name]
                     .compile(program, current, offset, call, ops)
@@ -424,10 +432,10 @@ impl std::fmt::Display for ImlValue {
                     .as_deref()
                     .unwrap_or("<anonymous parselet>")
             ),
-            Self::Global(var) => write!(f, "global({})", var),
-            Self::Local(var) => write!(f, "local({})", var),
-            Self::Name { name, .. } => write!(f, "{}", name),
-            Self::Generic { name, .. } => write!(f, "{}!", name),
+            Self::Local { name, .. } => write!(f, "local '{}'", name),
+            Self::Global { name, .. } => write!(f, "global '{}'", name),
+            Self::Name { name, .. } => write!(f, "name '{}'", name),
+            Self::Generic { name, .. } => write!(f, "generic '{}'", name),
             Self::Instance {
                 target,
                 args,

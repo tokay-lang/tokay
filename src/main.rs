@@ -287,7 +287,7 @@ fn main() {
                         }
                         // otherwise just work on an empty input
                         else {
-                            Reader::new(None, Box::new(io::Cursor::new("".clone())))
+                            Reader::new(None, Box::new(io::Cursor::new("")))
                         },
                     );
                 }

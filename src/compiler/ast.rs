@@ -496,7 +496,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 'load: loop {
                     match compiler.get(name) {
                         // Known local
-                        Some(ImlValue::Local(addr)) => {
+                        Some(ImlValue::Local { addr, .. }) => {
                             if store {
                                 if hold {
                                     ops.push(Op::StoreFastHold(addr).into())
@@ -510,7 +510,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                             break;
                         }
                         // Known global
-                        Some(ImlValue::Global(addr)) => {
+                        Some(ImlValue::Global { addr, .. }) => {
                             if store {
                                 if hold {
                                     ops.push(Op::StoreGlobalHold(addr).into())
