@@ -1,5 +1,5 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -168,10 +168,11 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         // Parselets
         "value_parselet" => {
-            compiler.parselet_push();
-
             let mut constants: IndexMap<String, ImlValue> = IndexMap::new();
             let mut signature: IndexMap<String, ImlValue> = IndexMap::new();
+
+            let mut locals = IndexSet::new();
+            let mut generics = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -185,48 +186,55 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 let emit = emit.object::<Str>().unwrap().as_str();
 
                 let children = List::from(node["children"].clone());
-                let ident = children[0].borrow().object::<Dict>().unwrap()["value"].to_string();
+                let name = children[0].borrow().object::<Dict>().unwrap()["value"].to_string();
 
                 match emit {
                     "gen" => {
                         let offset = traverse_node_offset(node);
 
-                        // check if identifier was not provided twice
-                        if constants.contains_key(&ident) {
-                            compiler.errors.push(Error::new(
-                                offset,
-                                format!("Generic '{}' already given in signature before", ident),
-                            ));
-
-                            continue;
-                        }
-
-                        compiler.set_constant(
-                            &ident,
-                            ImlValue::Generic {
-                                offset,
-                                name: ident.to_string(),
-                            },
-                        );
-
                         assert!(children.len() <= 2);
 
-                        constants.insert(
-                            ident.to_string(),
-                            if children.len() == 2 {
-                                let default = children[1].borrow();
-                                traverse_node_static(
-                                    compiler,
-                                    Some(&ident),
-                                    default.object::<Dict>().unwrap(),
-                                )
-                            } else {
-                                ImlValue::Void
-                            },
-                        );
+                        // Evaluate default parameter
+                        let mut default = ImlValue::Void;
+
+                        if children.len() == 2 {
+                            default = traverse_node_static(
+                                compiler,
+                                Some(&name),
+                                children[1].borrow().object::<Dict>().unwrap(),
+                            );
+
+                            if utils::identifier_is_consumable(&name) && !default.is_consuming() {
+                                compiler.errors.push(Error::new(
+                                    offset,
+                                    format!(
+                                        "Generic '{}' defines consumable, but {} is not consuming",
+                                        name, default
+                                    ),
+                                ));
+                            }
+                        }
+
+                        if generics
+                            .insert(
+                                name.to_string(),
+                                ImlValue::Generic {
+                                    offset,
+                                    name: name.to_string(),
+                                },
+                            )
+                            .is_some()
+                        {
+                            compiler.errors.push(Error::new(
+                                offset,
+                                format!("Generic '{}' already defined in signature before", name),
+                            ));
+                        }
+
+                        constants.insert(name.to_string(), default);
                     }
                     "arg" => {
-                        let first = ident.chars().nth(0).unwrap();
+                        let first = name.chars().nth(0).unwrap();
 
                         // Check for correct identifier semantics
                         if !first.is_lowercase() {
@@ -236,40 +244,36 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                                     if first == '_' {
                                         format!(
                                             "Argument named '{}' invalid; May not start with '{}'",
-                                            ident, first
+                                            name, first
                                         )
                                     }
                                     else {
                                         format!(
                                             "Argument named '{}' invalid; Use a name starting in lower-case, e.g. '{}{}'",
-                                            ident, &ident[0..1].to_lowercase(), &ident[1..]
+                                            name, &name[0..1].to_lowercase(), &name[1..]
                                         )
                                     }
                                 )
                             );
                         }
 
-                        // check if identifier was not provided twice
-                        if signature.contains_key(&ident) {
+                        // insert and check if identifier was not defined twice
+                        if !locals.insert(name.to_string()) {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
-                                format!("Argument '{}' already given in signature before", ident),
+                                format!("Argument '{}' already given in signature before", name),
                             ));
-
-                            continue;
                         }
-
-                        compiler.new_local(&ident);
 
                         assert!(children.len() <= 2);
 
                         signature.insert(
-                            ident.to_string(),
+                            name.to_string(),
                             if children.len() == 2 {
                                 let default = children[1].borrow();
                                 traverse_node_static(
                                     compiler,
-                                    Some(&ident),
+                                    Some(&name),
                                     default.object::<Dict>().unwrap(),
                                 )
                             } else {
@@ -280,6 +284,19 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                     }
                     _ => unreachable!(),
                 }
+            }
+
+            // Push new parselet scope
+            compiler.parselet_push();
+
+            // Create previously collected constants
+            for (name, generic) in generics {
+                compiler.set_constant(&name, generic);
+            }
+
+            // Create previously collected locals
+            for local in locals {
+                compiler.new_local(&local);
             }
 
             let body = body.borrow();
@@ -494,7 +511,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                 // This loop is only iterated in case a variable isn't known!
                 'load: loop {
-                    match compiler.get(name) {
+                    match compiler.get(traverse_node_offset(item), name) {
                         // Known local
                         Some(ImlValue::Local { addr, .. }) => {
                             if store {
@@ -613,6 +630,7 @@ Rvalue::Load generates code to just load the value,
 Rvalue::CallOrLoad generates code to either call the value without parameters or load it
 Rvalue::Call(args, nargs) generates code for a full-qualified value call
 */
+#[derive(Debug)]
 enum Rvalue {
     Load,              // Generate code to just load the value
     CallOrLoad,        // Generate code for a call without parameters, or load otherwise
@@ -654,6 +672,8 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
                     format!("Expected identifier, found reserved word '{}'", name),
                 ));
             }
+
+            //println!("identifier = {:?}, mode = {:?}", name, mode);
 
             return match mode {
                 Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),

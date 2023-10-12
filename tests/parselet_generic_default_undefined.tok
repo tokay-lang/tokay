@@ -1,0 +1,8 @@
+P : @<X: y> { X print("Doesn't work!") }
+P : @<X: Y> { X print("Doesn't work as well!") }
+#---
+#x
+#---
+#ERR:Line 1, column 7: Generic 'X' defines consumable, but name 'y' is not consuming
+#ERR:Line 1, column 10: Use of undefined name 'y'
+#ERR:Line 2, column 10: Use of undefined name 'Y'

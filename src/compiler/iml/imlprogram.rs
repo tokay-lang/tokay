@@ -30,15 +30,30 @@ impl ImlProgram {
 
     In case *value* already exists inside of the current statics, the existing index will be returned,
     otherwiese the value is cloned and put into the statics table. */
-    pub fn register(&mut self, value: &ImlValue) -> Result<usize, ()> {
+    pub fn register(&mut self, value: &ImlValue) -> usize {
         match value {
-            ImlValue::Shared(value) => self.register(&*value.borrow()),
+            ImlValue::Shared(value) => return self.register(&*value.borrow()),
             ImlValue::Parselet(_) | ImlValue::Value(_) => match self.statics.get_index_of(value) {
-                None => Ok(self.statics.insert_full(value.clone(), None).0),
-                Some(idx) => Ok(idx),
+                None => return self.statics.insert_full(value.clone(), None).0,
+                Some(idx) => return idx,
             },
-            _ => Err(()), // Cannot register this kind of value
+            ImlValue::This(_) | ImlValue::Void => unreachable!(),
+            ImlValue::Local { offset, name, .. } | ImlValue::Global { offset, name, .. } => {
+                self.errors.push(Error::new(
+                    offset.clone(),
+                    format!("Variable '{}' used in static context", name),
+                ))
+            }
+            ImlValue::Name { offset, .. } | ImlValue::Generic { offset, .. } => {
+                self.errors
+                    .push(Error::new(offset.clone(), format!("Unresolved {}", value)));
+            }
+            ImlValue::Instance { offset, .. } => self
+                .errors
+                .push(Error::new(offset.clone(), format!("Unresolved {}", value))),
         }
+
+        0
     }
 
     /** Turns the ImlProgram and its intermediate values into a final VM program ready for execution.

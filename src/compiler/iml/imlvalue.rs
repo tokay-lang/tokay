@@ -21,7 +21,7 @@ still pending.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
     Void,
-    Shared(Rc<RefCell<ImlValue>>),
+    Shared(Rc<RefCell<ImlValue>>), // TODO: BAD SOLUTION, HAS TO BE REWORKED TO ImlRefValue OR SO...
 
     // Resolved: static
     Value(RefValue),       // Compile-time static value
@@ -31,11 +31,13 @@ pub(in crate::compiler) enum ImlValue {
     This(bool), // self-reference function (false) or parselet (true)
     Local {
         // Runtime local variable
+        offset: Option<Offset>, // Source offset
         name: String,
         addr: usize,
     },
     Global {
         // Runtime global variable
+        offset: Option<Offset>, // Source offset
         name: String,
         addr: usize,
     },
@@ -92,7 +94,7 @@ impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
             Self::Shared(value) => return value.borrow_mut().resolve(compiler),
-            Self::Name { name, .. } => compiler.get(&name),
+            Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
             Self::Instance {
                 offset,
                 target,
@@ -117,7 +119,7 @@ impl ImlValue {
                     }
                 }
 
-                // When everything is resolved, turn the instance definition into a parselet
+                // When all instance members are resolved, try to turn the instance definition into a parselet
                 if is_resolved {
                     match &**target {
                         ImlValue::Parselet(parselet) => {
@@ -204,14 +206,16 @@ impl ImlValue {
                             // This can be the final parselet definition, but constants
                             // might contain generic references as well, which are being
                             // resolved during compilation.
-                            Some(ImlValue::from(ImlParseletConfig {
+                            let derivation = ImlValue::from(ImlParseletConfig {
                                 model: parselet.model.clone(),
                                 constants,
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
                                 severity: severity.unwrap_or(parselet.severity),
                                 generated: *generated,
-                            }))
+                            });
+
+                            Some(derivation)
                         }
                         target => {
                             compiler.errors.push(Error::new(
@@ -375,13 +379,13 @@ impl ImlValue {
                     if parselet.is_generic() {
                         // Otherwise, this is a generic, so create a derivation
                         let derive = ImlValue::Parselet(parselet.derive(current.0));
-                        program.register(&derive).unwrap()
+                        program.register(&derive)
                     } else {
                         // If target is resolved, just register
-                        program.register(self).unwrap()
+                        program.register(self)
                     }
                 }
-                resolved => program.register(resolved).unwrap(),
+                resolved => program.register(resolved),
             };
 
             match call {
@@ -487,7 +491,7 @@ impl std::hash::Hash for ImlValue {
                 consumable.hash(state);
             }
             */
-            other => unreachable!("{:?} is unhashable", other),
+            other => unreachable!("{} is unhashable", other),
         }
     }
 }

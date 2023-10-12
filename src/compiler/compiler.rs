@@ -76,6 +76,7 @@ impl Compiler {
             errors: Vec::new(),
         };
 
+        // Preload oftenly used static constants
         for value in [
             value!(void),
             value!(null),
@@ -101,14 +102,32 @@ impl Compiler {
     }
 
     /** Compile a Tokay program from an existing AST into the compiler. */
-    pub fn compile_from_ast(&mut self, ast: &RefValue) -> Result<Option<Program>, Vec<Error>> {
+    pub(super) fn compile_from_ast(
+        &mut self,
+        ast: &RefValue,
+    ) -> Result<Option<Program>, Vec<Error>> {
         let ret = ast::traverse(self, &ast);
+
+        assert!(self.scopes.len() == 1);
+
+        // TODO: This is only a short hack to report still unresolved symbols again.
+        // TODO: ImlValue, and especially ImlValue::Shared is a conceptual problem that generally must be revised.
+        // println!("self.usages = {:?}", self.usages);
+        for usage in self.usages.drain(..) {
+            if let ImlValue::Shared(usage) = usage {
+                let usage = usage.borrow();
+                if let ImlValue::Name { offset, name } = &*usage {
+                    self.errors.push(Error::new(
+                        offset.clone(),
+                        format!("Use of undefined name '{}'", name),
+                    ));
+                }
+            }
+        }
 
         if !self.errors.is_empty() {
             return Err(self.errors.drain(..).collect());
         }
-
-        assert!(self.scopes.len() == 1);
 
         if self.debug > 1 {
             println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
@@ -249,11 +268,6 @@ impl Compiler {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
-
-        // Clear any unresolved usages when reaching global scope
-        if self.scopes.len() == 1 {
-            self.usages.clear();
-        }
 
         let mut scope = self.scopes.remove(0);
 
@@ -465,7 +479,7 @@ impl Compiler {
     }
 
     /** Get named value, either from current or preceding scope, a builtin or special. */
-    pub(super) fn get(&mut self, name: &str) -> Option<ImlValue> {
+    pub(super) fn get(&mut self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
         let mut top_parselet = true;
 
         for (i, scope) in self.scopes.iter().enumerate() {
@@ -488,6 +502,7 @@ impl Compiler {
                     if i + 1 == self.scopes.len() {
                         if let Some(addr) = variables.get(name) {
                             return Some(ImlValue::Global {
+                                offset,
                                 name: name.to_string(),
                                 addr: *addr,
                             });
@@ -497,6 +512,7 @@ impl Compiler {
                     else if top_parselet {
                         if let Some(addr) = variables.get(name) {
                             return Some(ImlValue::Local {
+                                offset,
                                 name: name.to_string(),
                                 addr: *addr,
                             });
@@ -527,7 +543,7 @@ impl Compiler {
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
-            return Some(self.get(name).unwrap());
+            return Some(self.get(None, name).unwrap());
         }
 
         // Check for built-in token

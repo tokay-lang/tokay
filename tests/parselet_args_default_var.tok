@@ -1,0 +1,5 @@
+f : @x=y { print("Doesn't work!", x); }
+y = 42
+f
+#---
+#ERR:Line 1, column 8: Variable 'y' used in static context

@@ -219,7 +219,7 @@ impl ImlParselet {
                         // Register default value, if any
                         match &var_value.1 {
                             ImlValue::Void => None,
-                            value => Some(program.register(value).expect("Cannot register value")),
+                            value => Some(program.register(value)),
                         },
                     )
                 })
