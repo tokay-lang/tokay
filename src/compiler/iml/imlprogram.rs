@@ -93,6 +93,12 @@ impl ImlProgram {
             idx += 1;
         }
 
+        // Stop on any raised error
+        if !self.errors.is_empty() {
+            return Err(self.errors);
+        }
+
+        // Finalize parselets
         if self.debug {
             println!("--- Parselets to finalize ---");
 
@@ -102,11 +108,6 @@ impl ImlProgram {
         }
 
         let leftrec = self.finalize(finalize);
-
-        // Stop on any raised error
-        if !self.errors.is_empty() {
-            return Err(self.errors);
-        }
 
         // Assemble all statics to be transferred into a Program
         let statics: Vec<RefValue> = self
