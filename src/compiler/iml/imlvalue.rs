@@ -20,8 +20,8 @@ still pending.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Void,
-    Shared(Rc<RefCell<ImlValue>>), // TODO: BAD SOLUTION, HAS TO BE REWORKED TO ImlRefValue OR SO...
+    Unset,
+    Shared(Rc<RefCell<ImlValue>>),
 
     // Resolved: static
     Value(RefValue),       // Compile-time static value
@@ -141,7 +141,7 @@ impl ImlValue {
                                 };
 
                                 // Check integrity of constant names
-                                if let Self::Void = arg.1 {
+                                if let Self::Unset = arg.1 {
                                     compiler.errors.push(Error::new(
                                         arg.0,
                                         format!("Expecting argument for generic '{}'", name),
@@ -264,7 +264,7 @@ impl ImlValue {
                         || parselet
                             .signature
                             .iter()
-                            .all(|arg| !matches!(arg.1, Self::Void))
+                            .all(|arg| !matches!(arg.1, Self::Unset))
                 } else {
                     true
                 }
@@ -350,7 +350,7 @@ impl ImlValue {
 
                 for (name, value) in &parselet.constants {
                     match value {
-                        ImlValue::Void => required.push(name.to_string()),
+                        ImlValue::Unset => required.push(name.to_string()),
                         _ => {}
                     }
                 }
@@ -422,7 +422,7 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Void => write!(f, "void"),
+            Self::Unset => write!(f, "void"),
             Self::Shared(value) => value.borrow().fmt(f),
             Self::This(true) => write!(f, "Self"),
             Self::This(false) => write!(f, "self"),

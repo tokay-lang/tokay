@@ -85,7 +85,7 @@ impl std::fmt::Display for ImlParseletConfig {
         if !self.constants.is_empty() {
             write!(f, "<")?;
             for (i, (name, value)) in self.constants.iter().enumerate() {
-                if matches!(value, ImlValue::Void) {
+                if matches!(value, ImlValue::Unset) {
                     write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
                 } else {
                     write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
@@ -218,7 +218,7 @@ impl ImlParselet {
                         var_value.0.clone(),
                         // Register default value, if any
                         match &var_value.1 {
-                            ImlValue::Void => None,
+                            ImlValue::Unset => None,
                             value => Some(program.register(value)),
                         },
                     )

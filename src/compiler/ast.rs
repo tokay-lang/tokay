@@ -195,7 +195,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         assert!(children.len() <= 2);
 
                         // Evaluate default parameter
-                        let mut default = ImlValue::Void;
+                        let mut default = ImlValue::Unset;
 
                         if children.len() == 2 {
                             default = traverse_node_static(
@@ -277,7 +277,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                                     default.object::<Dict>().unwrap(),
                                 )
                             } else {
-                                ImlValue::Void
+                                ImlValue::Unset
                             },
                         );
                         //println!("{} {} {:?}", emit.to_string(), ident, default);

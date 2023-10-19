@@ -37,7 +37,7 @@ impl ImlProgram {
                 None => return self.statics.insert_full(value.clone(), None).0,
                 Some(idx) => return idx,
             },
-            ImlValue::This(_) | ImlValue::Void => unreachable!(),
+            ImlValue::This(_) | ImlValue::Unset => unreachable!(),
             ImlValue::Local { offset, name, .. } | ImlValue::Global { offset, name, .. } => {
                 self.errors.push(Error::new(
                     offset.clone(),
