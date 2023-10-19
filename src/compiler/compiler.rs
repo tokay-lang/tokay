@@ -110,11 +110,8 @@ impl Compiler {
 
         assert!(self.scopes.len() == 1);
 
-        // TODO: This is only a short hack to report still unresolved symbols again.
-        // TODO: ImlValue, and especially ImlValue::Shared is a conceptual problem that generally must be revised.
-        // println!("self.usages = {:?}", self.usages);
         for usage in self.usages.drain(..) {
-            if let ImlValue::Shared(usage) = usage {
+            if let ImlValue::Unresolved(usage) = usage {
                 let usage = usage.borrow();
                 if let ImlValue::Name { offset, name } = &*usage {
                     self.errors.push(Error::new(

@@ -131,7 +131,7 @@ impl From<ImlParseletConfig> for ImlValue {
 // ImlParselet
 // ----------------------------------------------------------------------------
 
-/// Shared ImlParseletConfig
+/// Unresolved ImlParseletConfig
 #[derive(Clone, Eq, PartialEq)]
 pub(in crate::compiler) struct ImlParselet(Rc<RefCell<ImlParseletConfig>>);
 

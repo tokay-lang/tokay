@@ -20,15 +20,11 @@ still pending.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Unset,
-    Shared(Rc<RefCell<ImlValue>>),
-
-    // Resolved: static
-    Value(RefValue),       // Compile-time static value
-    Parselet(ImlParselet), // Parselet instance
-
-    // Resolved: dynamic
-    This(bool), // self-reference function (false) or parselet (true)
+    Unset,                             // Unset
+    Unresolved(Rc<RefCell<ImlValue>>), // Unresolved ImlValues are shared
+    Value(RefValue),                   // Static value
+    Parselet(ImlParselet),             // Parselet
+    This(bool),                        // self-reference to function (false) or parselet (true)
     Local {
         // Runtime local variable
         offset: Option<Offset>, // Source offset
@@ -41,15 +37,13 @@ pub(in crate::compiler) enum ImlValue {
         name: String,
         addr: usize,
     },
-
-    // Unresolved
-    Name {
-        // Unresolved name
+    Generic {
+        // Known generic placeholder
         offset: Option<Offset>, // Source offset
         name: String,           // Identifier
     },
-    Generic {
-        // Unresolved generic
+    Name {
+        // Unresolved name
         offset: Option<Offset>, // Source offset
         name: String,           // Identifier
     },
@@ -85,7 +79,7 @@ impl ImlValue {
             return self;
         }
 
-        let shared = Self::Shared(Rc::new(RefCell::new(self)));
+        let shared = Self::Unresolved(Rc::new(RefCell::new(self)));
         compiler.usages.push(shared.clone());
         shared
     }
@@ -93,7 +87,7 @@ impl ImlValue {
     /// Resolve unresolved ImlValue. Returns true in case the provided value is (already) resolved.
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
-            Self::Shared(value) => return value.borrow_mut().resolve(compiler),
+            Self::Unresolved(value) => return value.borrow_mut().resolve(compiler),
             Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
             Self::Instance {
                 offset,
@@ -252,7 +246,7 @@ impl ImlValue {
     /// and when its callable if with or without arguments.
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
-            Self::Shared(value) => value.borrow().is_callable(without_arguments),
+            Self::Unresolved(value) => value.borrow().is_callable(without_arguments),
             Self::This(_) => true, // fixme?
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
@@ -277,7 +271,7 @@ impl ImlValue {
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Shared(value) => value.borrow().is_consuming(),
+            Self::Unresolved(value) => value.borrow().is_consuming(),
             Self::This(consuming) => *consuming,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
@@ -306,7 +300,7 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
-            ImlValue::Shared(value) => {
+            ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
             ImlValue::Value(value) => match &*value.borrow() {
@@ -423,7 +417,7 @@ impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unset => write!(f, "void"),
-            Self::Shared(value) => value.borrow().fmt(f),
+            Self::Unresolved(value) => value.borrow().fmt(f),
             Self::This(true) => write!(f, "Self"),
             Self::This(false) => write!(f, "self"),
             Self::Value(value) => write!(f, "{}", value.repr()),
@@ -476,7 +470,7 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Shared(value) => value.borrow().hash(state),
+            Self::Unresolved(value) => value.borrow().hash(state),
             Self::Value(value) => {
                 state.write_u8('v' as u8);
                 value.hash(state)
