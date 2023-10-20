@@ -37,12 +37,10 @@ impl ImlProgram {
                 None => return self.statics.insert_full(value.clone(), None).0,
                 Some(idx) => return idx,
             },
-            ImlValue::Local { offset, name, .. } | ImlValue::Global { offset, name, .. } => {
-                self.errors.push(Error::new(
-                    offset.clone(),
-                    format!("Variable '{}' used in static context", name),
-                ))
-            }
+            ImlValue::Variable { offset, name, .. } => self.errors.push(Error::new(
+                offset.clone(),
+                format!("Variable '{}' used in static context", name),
+            )),
             ImlValue::Generic { offset, .. } | ImlValue::Instance { offset, .. } => {
                 self.errors
                     .push(Error::new(offset.clone(), format!("Unresolved {}", value)));

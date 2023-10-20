@@ -25,17 +25,12 @@ pub(in crate::compiler) enum ImlValue {
     Value(RefValue),                   // Static value
     Parselet(ImlParselet),             // Parselet
     This(bool),                        // self-reference to function (false) or parselet (true)
-    Local {
-        // Runtime local variable
+    Variable {
+        // Runtime variable
         offset: Option<Offset>, // Source offset
-        name: String,
-        addr: usize,
-    },
-    Global {
-        // Runtime global variable
-        offset: Option<Offset>, // Source offset
-        name: String,
-        addr: usize,
+        name: String,           // Name
+        is_global: bool,        // Global
+        addr: usize,            // Address
     },
     Generic {
         // Known generic placeholder
@@ -315,8 +310,15 @@ impl ImlValue {
                 },
                 _ => {}
             },
-            ImlValue::Local { addr, .. } => ops.push(Op::LoadFast(*addr)),
-            ImlValue::Global { addr, .. } => ops.push(Op::LoadGlobal(*addr)),
+            ImlValue::Variable {
+                addr, is_global, ..
+            } => {
+                if *is_global {
+                    ops.push(Op::LoadGlobal(*addr))
+                } else {
+                    ops.push(Op::LoadFast(*addr))
+                }
+            }
             ImlValue::Generic { name, .. } => {
                 return current.0.borrow().constants[name]
                     .compile(program, current, offset, call, ops)
@@ -418,8 +420,10 @@ impl std::fmt::Display for ImlValue {
                     .as_deref()
                     .unwrap_or("<anonymous parselet>")
             ),
-            Self::Local { name, .. } => write!(f, "local '{}'", name),
-            Self::Global { name, .. } => write!(f, "global '{}'", name),
+            Self::Variable {
+                name, is_global, ..
+            } if *is_global => write!(f, "global '{}'", name),
+            Self::Variable { name, .. } => write!(f, "local '{}'", name),
             Self::Name { name, .. } => write!(f, "name '{}'", name),
             Self::Generic { name, .. } => write!(f, "generic '{}'", name),
             Self::Instance {

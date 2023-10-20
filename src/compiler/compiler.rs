@@ -495,22 +495,15 @@ impl Compiler {
                         return Some(value.clone());
                     }
 
-                    // Check for global variable
-                    if i + 1 == self.scopes.len() {
+                    // Check for variable
+                    let is_global = i + 1 == self.scopes.len();
+
+                    if is_global || top_parselet {
                         if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Global {
+                            return Some(ImlValue::Variable {
                                 offset,
                                 name: name.to_string(),
-                                addr: *addr,
-                            });
-                        }
-                    }
-                    // Check for local variable
-                    else if top_parselet {
-                        if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Local {
-                                offset,
-                                name: name.to_string(),
+                                is_global,
                                 addr: *addr,
                             });
                         }

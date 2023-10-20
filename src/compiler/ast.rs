@@ -513,29 +513,25 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 'load: loop {
                     match compiler.get(traverse_node_offset(item), name) {
                         // Known local
-                        Some(ImlValue::Local { addr, .. }) => {
+                        Some(ImlValue::Variable {
+                            addr, is_global, ..
+                        }) => {
                             if store {
                                 if hold {
-                                    ops.push(Op::StoreFastHold(addr).into())
+                                    if is_global {
+                                        ops.push(Op::StoreGlobalHold(addr).into())
+                                    } else {
+                                        ops.push(Op::StoreFastHold(addr).into())
+                                    }
+                                } else if is_global {
+                                    ops.push(Op::StoreGlobal(addr).into())
                                 } else {
                                     ops.push(Op::StoreFast(addr).into())
                                 }
+                            } else if is_global {
+                                ops.push(Op::LoadGlobal(addr).into())
                             } else {
                                 ops.push(Op::LoadFast(addr).into())
-                            }
-
-                            break;
-                        }
-                        // Known global
-                        Some(ImlValue::Global { addr, .. }) => {
-                            if store {
-                                if hold {
-                                    ops.push(Op::StoreGlobalHold(addr).into())
-                                } else {
-                                    ops.push(Op::StoreGlobal(addr).into())
-                                }
-                            } else {
-                                ops.push(Op::LoadGlobal(addr).into())
                             }
 
                             break;
