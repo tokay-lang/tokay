@@ -321,18 +321,6 @@ impl ImlValue {
                 return current.0.borrow().constants[name]
                     .compile(program, current, offset, call, ops)
             }
-            ImlValue::Name { name, .. } => {
-                program.errors.push(Error::new(
-                    offset.clone(),
-                    if call.is_some() {
-                        format!("Call to unresolved symbol '{}'", name)
-                    } else {
-                        format!("Use of unresolved symbol '{}'", name)
-                    },
-                ));
-
-                return;
-            }
             ImlValue::This(_) => {}
             ImlValue::Parselet(parselet) => {
                 let parselet = parselet.borrow();
