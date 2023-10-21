@@ -1524,7 +1524,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     compiler.push_temp(temp); // Give temp variable back for possible reuse.
 
                     ImlOp::Loop {
-                        iterator: true,
+                        use_iterator: true,
                         initial: Box::new(initial),
                         condition: Box::new(condition),
                         body: Box::new(body),
@@ -1541,7 +1541,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             let body = &children[0].borrow();
 
                             ImlOp::Loop {
-                                iterator: false,
+                                use_iterator: false,
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
@@ -1555,7 +1555,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             let (condition, body) = (&children[0].borrow(), &children[1].borrow());
 
                             ImlOp::Loop {
-                                iterator: false,
+                                use_iterator: false,
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(traverse_node_rvalue(
                                     compiler,

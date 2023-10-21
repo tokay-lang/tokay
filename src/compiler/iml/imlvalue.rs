@@ -12,11 +12,12 @@ use std::rc::Rc;
 
 /** Intermediate value
 
-Intermediate values are values that result during the compile process based on current information
-from the syntax tree and symbol table information.
+Intermediate values are value descriptors that result during the compile process based on current
+information from the syntax tree and symbol table information..
 
-These can be memory locations of variables, static values, functions or values whose definition is
-still pending.
+These can be memory locations of variables, static values, parselets or values whose definition is
+still pending. As some intermediate values consist of other intermediate values, they are being
+modified and resolved during the compilation process.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {

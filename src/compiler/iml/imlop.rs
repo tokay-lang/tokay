@@ -44,7 +44,7 @@ pub(in crate::compiler) enum ImlOp {
 
     // Loop construct
     Loop {
-        iterator: bool,        // Test condition either for void (=true) or bool (=false)
+        use_iterator: bool,    // Test condition either for void (=true) or bool (=false)
         initial: Box<ImlOp>,   // Initialization
         condition: Box<ImlOp>, // Abort condition
         body: Box<ImlOp>,      // Iterating body
@@ -74,7 +74,7 @@ impl ImlOp {
         }
     }
 
-    /// Load value
+    /// Load value; This is only a shortcut for creating an ImlOp::Load{}
     pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, target: ImlValue) -> ImlOp {
         ImlOp::Load { offset, target }
     }
@@ -273,7 +273,7 @@ impl ImlOp {
                 }
             }
             ImlOp::Loop {
-                iterator,
+                use_iterator,
                 initial,
                 condition,
                 body,
@@ -284,7 +284,7 @@ impl ImlOp {
                 initial.compile(program, current, ops);
 
                 if condition.compile(program, current, &mut repeat) > 0 {
-                    if *iterator {
+                    if *use_iterator {
                         repeat.push(Op::ForwardIfNotVoid(2));
                     } else {
                         repeat.push(Op::ForwardIfTrue(2));

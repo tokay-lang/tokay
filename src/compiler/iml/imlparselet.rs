@@ -160,8 +160,8 @@ impl ImlParselet {
     B<'m'> B<'n'>     # parselet instances, construct the final parselets: B<'m'>, A<'m'>, B<'n'> A<'n'>
     ```
 
-    The function either returns a derived parselet in case it was derive,
-    otherwise it returns a clone of self.
+    The function either returns a derived parselet in case it was derived, otherwise it returns
+    a clone of itself.
     */
     pub fn derive(&self, from: &ImlParselet) -> Self {
         let mut constants = self.borrow().constants.clone();
