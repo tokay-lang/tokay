@@ -27,7 +27,7 @@ pub(in crate::compiler) enum ImlValue {
     Parselet(ImlParselet),             // Parselet
     This(bool),                        // self-reference to function (false) or parselet (true)
     Variable {
-        // Runtime variable
+        // Resolved variable
         offset: Option<Offset>, // Source offset
         name: String,           // Name
         is_global: bool,        // Global
@@ -55,6 +55,13 @@ pub(in crate::compiler) enum ImlValue {
 }
 
 impl ImlValue {
+    /**
+    Helper function, which creates an instance definition from self,
+    by turning self into name<self>.
+
+    This is used internally to implement `Kle<P>` from `P*` syntax
+    during the AST traversal.
+    */
     pub fn into_generic(self, name: &str, severity: Option<u8>) -> Self {
         Self::Instance {
             offset: None,
@@ -80,7 +87,14 @@ impl ImlValue {
         shared
     }
 
-    /// Resolve unresolved ImlValue. Returns true in case the provided value is (already) resolved.
+    /**
+    In-place resolve unresolved ImlValue.
+
+    - ImlValue::Name are being resolved by the compiler's symbol table
+    - ImlValue::Instance are being recursively resolved to produce an ImlValue::Parselet
+
+    Returns true in case the provided value is (already) resolved.
+    */
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
             Self::Unresolved(value) => return value.borrow_mut().resolve(compiler),
@@ -192,11 +206,11 @@ impl ImlValue {
                                 }
                             }
 
-                            // Make a parselet derivation from the instance definition;
-                            // This can be the final parselet definition, but constants
+                            // Make a parselet instance from the instance definition;
+                            // This can be the final parselet instance, but constants
                             // might contain generic references as well, which are being
-                            // resolved during compilation.
-                            let derivation = ImlValue::from(ImlParseletInstance {
+                            // resolved during further compilation and derivation.
+                            let instance = ImlValue::from(ImlParseletInstance {
                                 model: parselet.model.clone(),
                                 constants,
                                 offset: parselet.offset.clone(),
@@ -205,7 +219,7 @@ impl ImlValue {
                                 generated: *generated,
                             });
 
-                            Some(derivation)
+                            Some(instance)
                         }
                         target => {
                             compiler.errors.push(Error::new(
@@ -230,7 +244,7 @@ impl ImlValue {
         false
     }
 
-    /// Turn ImlValue into RefValue
+    /// Conert ImlValue into RefValue
     pub fn unwrap(self) -> RefValue {
         match self {
             Self::Value(value) => value,
@@ -279,7 +293,10 @@ impl ImlValue {
         }
     }
 
-    /// Compile a resolved intermediate value into VM code or register it as a static
+    /** Compile a resolved intermediate value into VM code or register it as a static.
+
+    The function will panic when the value is not resolved.
+    */
     pub fn compile(
         &self,
         program: &mut ImlProgram,

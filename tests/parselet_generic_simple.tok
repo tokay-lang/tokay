@@ -5,10 +5,9 @@ T: @<P, t: "yeah"> {
 #T
 print("Start")
 T<'a'>
-T<'b'>
-T<'a'>
+T<'b', "jeppie">
 '\n'
-Char print("Nee" $1)
+Char print("Other" $1)
 #T<'a', "yo">
 #T<t:"yes">
 #T<z:"x">
@@ -16,3 +15,14 @@ Char print("Nee" $1)
 #T<P:'x', p:'y'>
 #T<1,2,3>
 #T<'x'>("y")
+#---
+#axaxaxabxb
+#---
+#Start
+#yeah axa
+#Start
+#Other x
+#Start
+#yeah axa
+#Start
+#jeppie bxb
