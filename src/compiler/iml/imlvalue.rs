@@ -196,7 +196,7 @@ impl ImlValue {
                             // This can be the final parselet definition, but constants
                             // might contain generic references as well, which are being
                             // resolved during compilation.
-                            let derivation = ImlValue::from(ImlParseletConfig {
+                            let derivation = ImlValue::from(ImlParseletInstance {
                                 model: parselet.model.clone(),
                                 constants,
                                 offset: parselet.offset.clone(),
@@ -296,6 +296,7 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
+            ImlValue::Unset => return,
             ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
@@ -324,35 +325,7 @@ impl ImlValue {
                 return current.0.borrow().constants[name]
                     .compile(program, current, offset, call, ops)
             }
-            ImlValue::This(_) => {}
-            ImlValue::Parselet(parselet) => {
-                let parselet = parselet.borrow();
-
-                // Check for accepted constant configuration;
-                // This has to be checked here, because a parselet is not always the result
-                // of an ImlValue::Instance, and therefore this can only be checked up here.
-                let mut required = Vec::new();
-
-                for (name, value) in &parselet.constants {
-                    match value {
-                        ImlValue::Unset => required.push(name.to_string()),
-                        _ => {}
-                    }
-                }
-
-                if !required.is_empty() {
-                    program.errors.push(Error::new(
-                        offset.clone(),
-                        format!(
-                            "{} requires assignment of generic argument {}",
-                            self,
-                            required.join(", ")
-                        ),
-                    ));
-
-                    return;
-                }
-            }
+            ImlValue::This(_) | ImlValue::Parselet(_) => {}
             _ => unreachable!("{}", self),
         }
 
@@ -360,16 +333,13 @@ impl ImlValue {
         if start == ops.len() {
             let idx = match self {
                 ImlValue::This(_) => current.1, // use current index
-                ImlValue::Parselet(parselet) => {
-                    if parselet.is_generic() {
-                        // Otherwise, this is a generic, so create a derivation
-                        let derive = ImlValue::Parselet(parselet.derive(current.0));
-                        program.register(&derive)
-                    } else {
-                        // If target is resolved, just register
-                        program.register(self)
+                ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
+                    Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
+                    Err(msg) => {
+                        program.errors.push(Error::new(offset.clone(), msg));
+                        return;
                     }
-                }
+                },
                 resolved => program.register(resolved),
             };
 
@@ -407,7 +377,7 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unset => write!(f, "void"),
+            Self::Unset => write!(f, "unset"),
             Self::Unresolved(value) => value.borrow().fmt(f),
             Self::This(true) => write!(f, "Self"),
             Self::This(false) => write!(f, "self"),
@@ -463,6 +433,7 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
+            Self::Unset => state.write_u8('u' as u8),
             Self::Unresolved(value) => value.borrow().hash(state),
             Self::Value(value) => {
                 state.write_u8('v' as u8);

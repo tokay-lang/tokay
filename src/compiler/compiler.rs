@@ -328,7 +328,7 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::from(ImlParseletConfig::new(
+            ImlValue::from(ImlParseletInstance::new(
                 model,
                 constants,
                 offset,

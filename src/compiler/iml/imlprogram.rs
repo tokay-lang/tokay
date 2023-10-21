@@ -1,4 +1,4 @@
-//! ImlProgram glues ImlParseletConfig, ImlOp and ImlValue together to produce a VM program.
+//! ImlProgram glues ImlParselet, ImlOp and ImlValue together to produce a VM program.
 
 use super::*;
 use crate::value::Parselet;
@@ -169,7 +169,7 @@ impl ImlProgram {
                 }),
                 ImlValue::Parselet(parselet) => {
                     // Try to derive the parselet with current constants
-                    let derived = parselet.derive(current);
+                    let derived = parselet.derive(current).unwrap();
 
                     // The derived parselet's original must be in the configs!
                     let parselet = configs.get_key_value(&derived).unwrap().0.clone();
@@ -293,7 +293,7 @@ impl ImlProgram {
             }
         }
 
-        // Finalize ImlParseletConfig
+        // Finalize ImlParselet
         fn finalize_parselet(
             current: &ImlParselet,
             visited: &mut IndexSet<ImlParselet>,
