@@ -11,7 +11,7 @@ Peek : @<P> {
 
 Expect : @<P> msg=void {
     accept P
-    error(msg || "Expecting " + *P + ", but got " + repr((Token | Char | "end-of-file")))
+    error(msg || "Expecting " + *P + ", but got " + repr(Peek<(Char | Token | "end-of-file")>))
 }
 
 Repeat : @<

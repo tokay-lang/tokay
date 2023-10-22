@@ -4,6 +4,7 @@ Main : @{
 }
 
 Expr : @{
+    Expr '+' Int    $1 + $3
     Int
 }
 

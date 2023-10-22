@@ -51,7 +51,7 @@ impl Compiler {
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "op_reject",
-                                                                            "value" => "reject"
+                                                                            "value" => void
                                                                         ]))
                                                                     ]))
                                                             ])),
@@ -98,7 +98,7 @@ impl Compiler {
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "op_reset",
-                                                                        "value" => "reset"
+                                                                        "value" => void
                                                                     ]))
                                                                 ]))
                                                         ]))
@@ -137,7 +137,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_void",
-                                                                "value" => "void"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -216,31 +216,45 @@ impl Compiler {
                                                                                                                         "emit" => "callarg",
                                                                                                                         "children" =>
                                                                                                                             (value!([
-                                                                                                                                "emit" => "block",
+                                                                                                                                "emit" => "value_generic",
                                                                                                                                 "children" =>
                                                                                                                                     (value!([
                                                                                                                                         (value!([
-                                                                                                                                            "emit" => "inline_sequence",
-                                                                                                                                            "children" =>
-                                                                                                                                                (value!([
-                                                                                                                                                    "emit" => "identifier",
-                                                                                                                                                    "value" => "Token"
-                                                                                                                                                ]))
+                                                                                                                                            "emit" => "identifier",
+                                                                                                                                            "value" => "Peek"
                                                                                                                                         ])),
                                                                                                                                         (value!([
-                                                                                                                                            "emit" => "inline_sequence",
+                                                                                                                                            "emit" => "genarg",
                                                                                                                                             "children" =>
                                                                                                                                                 (value!([
-                                                                                                                                                    "emit" => "value_token_any",
-                                                                                                                                                    "value" => "Char"
-                                                                                                                                                ]))
-                                                                                                                                        ])),
-                                                                                                                                        (value!([
-                                                                                                                                            "emit" => "inline_sequence",
-                                                                                                                                            "children" =>
-                                                                                                                                                (value!([
-                                                                                                                                                    "emit" => "value_string",
-                                                                                                                                                    "value" => "end-of-file"
+                                                                                                                                                    "emit" => "block",
+                                                                                                                                                    "children" =>
+                                                                                                                                                        (value!([
+                                                                                                                                                            (value!([
+                                                                                                                                                                "emit" => "inline_sequence",
+                                                                                                                                                                "children" =>
+                                                                                                                                                                    (value!([
+                                                                                                                                                                        "emit" => "value_token_any",
+                                                                                                                                                                        "value" => void
+                                                                                                                                                                    ]))
+                                                                                                                                                            ])),
+                                                                                                                                                            (value!([
+                                                                                                                                                                "emit" => "inline_sequence",
+                                                                                                                                                                "children" =>
+                                                                                                                                                                    (value!([
+                                                                                                                                                                        "emit" => "identifier",
+                                                                                                                                                                        "value" => "Token"
+                                                                                                                                                                    ]))
+                                                                                                                                                            ])),
+                                                                                                                                                            (value!([
+                                                                                                                                                                "emit" => "inline_sequence",
+                                                                                                                                                                "children" =>
+                                                                                                                                                                    (value!([
+                                                                                                                                                                        "emit" => "value_string",
+                                                                                                                                                                        "value" => "end-of-file"
+                                                                                                                                                                    ]))
+                                                                                                                                                            ]))
+                                                                                                                                                        ]))
                                                                                                                                                 ]))
                                                                                                                                         ]))
                                                                                                                                     ]))
@@ -305,7 +319,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_void",
-                                                                "value" => "void"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -319,7 +333,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_true",
-                                                                "value" => "true"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -448,7 +462,7 @@ impl Compiler {
                                                                                                                     ])),
                                                                                                                     (value!([
                                                                                                                         "emit" => "op_break",
-                                                                                                                        "value" => "break"
+                                                                                                                        "value" => void
                                                                                                                     ]))
                                                                                                                 ]))
                                                                                                         ]))
@@ -494,13 +508,13 @@ impl Compiler {
                                                                                             ])),
                                                                                             (value!([
                                                                                                 "emit" => "op_reject",
-                                                                                                "value" => "reject"
+                                                                                                "value" => void
                                                                                             ]))
                                                                                         ]))
                                                                                 ])),
                                                                                 (value!([
                                                                                     "emit" => "op_break",
-                                                                                    "value" => "break"
+                                                                                    "value" => void
                                                                                 ]))
                                                                             ]))
                                                                     ]))
@@ -560,7 +574,7 @@ impl Compiler {
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "value_void",
-                                                                                                                "value" => "void"
+                                                                                                                "value" => void
                                                                                                             ]))
                                                                                                     ]))
                                                                                             ])),
@@ -673,7 +687,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_true",
-                                                                "value" => "true"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -747,7 +761,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_true",
-                                                                "value" => "true"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -806,7 +820,7 @@ impl Compiler {
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "value_void",
-                                                                        "value" => "void"
+                                                                        "value" => void
                                                                     ]))
                                                                 ]))
                                                         ]))
@@ -919,7 +933,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "value_true",
-                                                                "value" => "true"
+                                                                "value" => void
                                                             ]))
                                                         ]))
                                                 ])),
@@ -933,7 +947,7 @@ impl Compiler {
                                                                     (value!([
                                                                         (value!([
                                                                             "emit" => "value_token_self",
-                                                                            "value" => "Self"
+                                                                            "value" => void
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "identifier",
@@ -981,7 +995,7 @@ impl Compiler {
                                                                                 (value!([
                                                                                     (value!([
                                                                                         "emit" => "value_token_self",
-                                                                                        "value" => "Self"
+                                                                                        "value" => void
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",

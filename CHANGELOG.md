@@ -4,6 +4,18 @@
 
 Current main branch.
 
+- Implementation of generic parselets
+  - Syntax changes
+  - Handle parselet instances
+  - Handle generic values in intermediate structures
+  - System-defined parselets in prelude
+    - `Repeat<P, min: 1, max: void>`
+      - Implement `Pos<P>`, `Opt<P>`, `Kle<P>`
+      - Compile `P+` into `Pos<P>`, `P?` into `Opt<P>`, `P*` into `Kle<P>`
+    - `List<P, Sep: (',' _), empty: true>`
+    - `Peek<P>`, replaced `peek P` by `Peek<P>`
+    - `Not<P>`, replaced `not P` by `Not<P>`
+    - `Expect<P> msg=void`, replaced `expect P` by `Expect<P>`
 - v0.6.4:
   - Main parselet operates on multiple inputs (Readers) now
   - Restructuring parts of VM, `Runtime` renamed into `Thread`
