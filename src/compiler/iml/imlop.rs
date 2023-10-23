@@ -44,35 +44,10 @@ pub(in crate::compiler) enum ImlOp {
 
     // Loop construct
     Loop {
-        iterator: bool,        // Test condition either for void (=true) or bool (=false)
+        use_iterator: bool,    // Test condition either for void (=true) or bool (=false)
         initial: Box<ImlOp>,   // Initialization
         condition: Box<ImlOp>, // Abort condition
         body: Box<ImlOp>,      // Iterating body
-    },
-
-    // v--- below variants are being replaced by Tokay generics as soon as they are implemented ---v //
-
-    // Expect (deprecated!)
-    Expect {
-        body: Box<ImlOp>,
-        msg: Option<String>,
-    },
-
-    // Not (deprecated!)
-    Not {
-        body: Box<ImlOp>,
-    },
-
-    // Peek (deprecated!)
-    Peek {
-        body: Box<ImlOp>,
-    },
-
-    // Repeat (deprecated!)
-    Repeat {
-        body: Box<ImlOp>,
-        min: usize,
-        max: usize,
     },
 }
 
@@ -99,45 +74,41 @@ impl ImlOp {
         }
     }
 
-    /// Load value
-    pub fn load(offset: Option<Offset>, value: ImlValue) -> ImlOp {
-        ImlOp::Load {
-            offset,
-            target: value,
-        }
+    /// Load value; This is only a shortcut for creating an ImlOp::Load{}
+    pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, target: ImlValue) -> ImlOp {
+        ImlOp::Load { offset, target }
     }
 
     /// Load unknown value by name
     pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        Self::load(
-            offset.clone(),
-            ImlValue::Name {
-                offset,
-                name,
-                generic: false,
-            }
-            .try_resolve(compiler),
-        )
+        let value = ImlValue::Name { offset, name }.try_resolve(compiler);
+
+        Self::load(compiler, offset.clone(), value)
     }
 
     /// Call known value
-    pub fn call(offset: Option<Offset>, value: ImlValue, args: Option<(usize, bool)>) -> ImlOp {
+    pub fn call(
+        compiler: &mut Compiler,
+        offset: Option<Offset>,
+        target: ImlValue,
+        args: Option<(usize, bool)>,
+    ) -> ImlOp {
+        let target = target.try_resolve(compiler);
+
         // When args is unset, and the value is not callable without arguments,
-        // consider this call as a load.
-        if args.is_none() && !value.is_callable(true) {
+        // consider this call is a load.
+        if args.is_none() && !target.is_callable(true) {
             // Currently not planned as final
-            return Self::load(offset, value);
+            return Self::load(compiler, offset, target);
         }
 
-        // Early recognize call to value which is generally not call-able
-        if !value.is_callable(true) && !value.is_callable(false) {
-            // Currently not planned as final
-            todo!("The value {:?} is generally not callable!", value);
+        if target.is_consuming() {
+            compiler.parselet_mark_consuming();
         }
 
         ImlOp::Call {
             offset,
-            target: value,
+            target,
             args,
         }
     }
@@ -156,159 +127,43 @@ impl ImlOp {
 
         ImlOp::Call {
             offset: offset.clone(),
-            target: ImlValue::Name {
-                offset,
-                name,
-                generic: false,
-            }
-            .try_resolve(compiler),
+            target: ImlValue::Name { offset, name }.try_resolve(compiler),
             args,
         }
     }
 
-    /// Turns ImlOp construct into a kleene (none-or-many) occurence.
-    pub fn into_kleene(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 0,
-            max: 0,
-        }
-    }
-
-    /// Turns ImlOp construct into a positive (one-or-many) occurence.
-    pub fn into_positive(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 1,
-            max: 0,
-        }
-    }
-
-    /// Turns ImlOp construct into an optional (none-or-one) occurence.
-    pub fn into_optional(self) -> Self {
-        Self::Repeat {
-            body: Box::new(self),
-            min: 0,
-            max: 1,
-        }
-    }
-
-    /// Turns ImlOp construct into a peeked parser
-    pub fn into_peek(self) -> Self {
-        Self::Peek {
-            body: Box::new(self),
-        }
-    }
-
-    /// Turns ImlOp construct into a negated parser
-    pub fn into_not(self) -> Self {
-        Self::Not {
-            body: Box::new(self),
-        }
-    }
-
-    /// Turns ImlOp construct into an expecting parser
-    pub fn into_expect(self, mut msg: Option<String>) -> Self {
-        // When no msg is provided, generate a message from the next consumables in range!
-        // This got a bit out of hand, and should be done later via something like a FIRST() attribute on parselet.
-        // Generally, this code becomes unnecessary when the Expect<P> generic is made available (see #10 for details)
-        if msg.is_none() {
-            fn get_expect(op: &ImlOp) -> Option<String> {
-                match op {
-                    ImlOp::Call { target, .. } | ImlOp::Load { target, .. }
-                        if target.is_consuming() =>
-                    {
-                        Some(format!("{:?}", target).to_string())
-                    }
-                    ImlOp::Seq { seq, .. } => {
-                        let mut txt = None;
-
-                        for item in seq {
-                            item.walk(&mut |op| {
-                                txt = get_expect(op);
-                                !txt.is_some()
-                            });
-
-                            if txt.is_some() {
-                                break;
-                            }
-                        }
-
-                        txt
-                    }
-                    ImlOp::Alt { alts, .. } => {
-                        let mut all_txt = Vec::new();
-
-                        for item in alts {
-                            let mut txt = None;
-
-                            item.walk(&mut |op| {
-                                txt = get_expect(op);
-                                !txt.is_some()
-                            });
-
-                            if let Some(txt) = txt {
-                                all_txt.push(txt);
-                            }
-                        }
-
-                        if all_txt.is_empty() {
-                            None
-                        } else {
-                            Some(all_txt.join(" or "))
-                        }
-                    }
-                    _ => None,
-                }
-            }
-
-            self.walk(&mut |op| {
-                msg = get_expect(op);
-                !msg.is_some()
-            });
-
-            if let Some(txt) = msg {
-                msg = Some(format!("Expecting {}", txt).to_string())
-            }
-        }
-
-        Self::Expect {
-            body: Box::new(self),
-            msg,
-        }
-    }
-
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
-    pub fn compile_to_vec(&self, program: &mut ImlProgram) -> Vec<Op> {
+    pub fn compile_to_vec(
+        &self,
+        program: &mut ImlProgram,
+        current: (&ImlParselet, usize),
+    ) -> Vec<Op> {
         let mut ops = Vec::new();
-        self.compile(program, &mut ops);
+        self.compile(program, current, &mut ops);
         ops
     }
 
     /// Compile ImlOp construct into Op instructions of the resulting Tokay VM program
-    pub fn compile(&self, program: &mut ImlProgram, ops: &mut Vec<Op>) -> usize {
+    pub fn compile(
+        &self,
+        program: &mut ImlProgram,
+        current: (&ImlParselet, usize),
+        ops: &mut Vec<Op>,
+    ) -> usize {
         let start = ops.len();
 
         match self {
             ImlOp::Nop => {}
             ImlOp::Op(op) => ops.push(op.clone()),
             ImlOp::Load { offset, target } => {
-                if let Some(offset) = offset {
-                    ops.push(Op::Offset(Box::new(*offset)));
-                }
-
-                target.compile_load(program, ops);
+                target.compile(program, current, &offset, None, ops);
             }
             ImlOp::Call {
                 offset,
                 target,
                 args,
             } => {
-                if let Some(offset) = offset {
-                    ops.push(Op::Offset(Box::new(*offset)));
-                }
-
-                target.compile_call(program, *args, ops);
+                target.compile(program, current, &offset, Some(*args), ops);
             }
             ImlOp::Alt { alts } => {
                 let mut ret = Vec::new();
@@ -317,12 +172,12 @@ impl ImlOp {
                 let mut initial_fuse = None;
 
                 while let Some(item) = iter.next() {
-                    let mut alt = Vec::new();
-                    item.compile(program, &mut alt);
+                    let alt = item.compile_to_vec(program, current);
 
                     // When branch has more than one item, Frame it.
                     if iter.len() > 0 {
-                        let fuse = alt.len() + if item.is_consuming() { 3 } else { 2 };
+                        let consuming = item.is_consuming();
+                        let fuse = alt.len() + if consuming { 3 } else { 2 };
 
                         if initial_fuse.is_none() {
                             initial_fuse = Some(fuse) // this is used for the initial frame
@@ -332,13 +187,14 @@ impl ImlOp {
 
                         ret.extend(alt);
 
-                        if item.is_consuming() {
+                        if consuming {
                             // Insert Nop as location for later jump backpatch
                             ret.push(Op::Nop);
                             jumps.push(ret.len() - 1);
+                            ret.push(Op::Reset);
+                        } else {
+                            ret.push(Op::ResetCapture);
                         }
-
-                        ret.push(Op::Reset);
                     } else {
                         ret.extend(alt);
                     }
@@ -359,7 +215,7 @@ impl ImlOp {
             }
             ImlOp::Seq { seq, collection } => {
                 for item in seq.iter() {
-                    item.compile(program, ops);
+                    item.compile(program, current, ops);
                 }
 
                 // Check if the sequence exists of more than one operational instruction
@@ -394,13 +250,13 @@ impl ImlOp {
                 }
 
                 // Then-part
-                let mut jump = then_part.compile(program, ops) + 1;
+                let mut jump = then_part.compile(program, current, ops) + 1;
 
                 if !*peek {
                     let mut else_ops = Vec::new();
 
                     // Else-part
-                    if else_part.compile(program, &mut else_ops) > 0 {
+                    if else_part.compile(program, current, &mut else_ops) > 0 {
                         ops.push(Op::Forward(else_ops.len() + 1));
                         jump += 1;
                         ops.extend(else_ops);
@@ -417,7 +273,7 @@ impl ImlOp {
                 }
             }
             ImlOp::Loop {
-                iterator,
+                use_iterator,
                 initial,
                 condition,
                 body,
@@ -425,10 +281,10 @@ impl ImlOp {
                 let consuming: Option<bool> = None; // fixme: Currently not sure if this is an issue.
                 let mut repeat = Vec::new();
 
-                initial.compile(program, ops);
+                initial.compile(program, current, ops);
 
-                if condition.compile(program, &mut repeat) > 0 {
-                    if *iterator {
+                if condition.compile(program, current, &mut repeat) > 0 {
+                    if *use_iterator {
                         repeat.push(Op::ForwardIfNotVoid(2));
                     } else {
                         repeat.push(Op::ForwardIfTrue(2));
@@ -437,7 +293,7 @@ impl ImlOp {
                     repeat.push(Op::Break);
                 }
 
-                body.compile(program, &mut repeat);
+                body.compile(program, current, &mut repeat);
                 let len = repeat.len() + if consuming.is_some() { 3 } else { 2 };
 
                 ops.push(Op::Loop(len));
@@ -454,174 +310,52 @@ impl ImlOp {
                     ops.push(Op::Break);
                 }
             }
-            // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, msg } => {
-                let mut expect = Vec::new();
-                body.compile(program, &mut expect);
-
-                ops.push(Op::Frame(expect.len() + 2));
-
-                ops.extend(expect);
-                ops.extend(vec![
-                    Op::Forward(2),
-                    Op::Error(Some(if let Some(msg) = msg {
-                        msg.clone()
-                    } else {
-                        format!("Expecting {:?}", body)
-                    })),
-                    Op::Close,
-                ]);
-            }
-            ImlOp::Not { body } => {
-                let mut body_ops = Vec::new();
-                let body_len = body.compile(program, &mut body_ops);
-                ops.push(Op::Frame(body_len + 3));
-                ops.extend(body_ops);
-                ops.push(Op::Close);
-                ops.push(Op::Next);
-                ops.push(Op::Close);
-            }
-            ImlOp::Peek { body } => {
-                ops.push(Op::Frame(0));
-                body.compile(program, ops);
-                ops.push(Op::Reset);
-                ops.push(Op::Close);
-            }
-            ImlOp::Repeat { body, min, max } => {
-                let mut body_ops = Vec::new();
-                let body_len = body.compile(program, &mut body_ops);
-
-                match (min, max) {
-                    (0, 0) => {
-                        // Kleene
-                        ops.extend(vec![
-                            Op::Frame(0),            // The overall capture
-                            Op::Frame(body_len + 6), // The fused capture for repetition
-                        ]);
-                        ops.extend(body_ops); // here comes the body
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(4),           // otherwise leave the loop
-                            Op::Capture,
-                            Op::Extend,
-                            Op::Backward(body_len + 4), // repeat the body
-                            Op::Close,
-                            Op::InCollect,
-                            Op::Close,
-                        ]);
-                    }
-                    (1, 0) => {
-                        // Positive
-                        ops.push(Op::Frame(0)); // The overall capture
-                        ops.extend(body_ops.clone()); // here comes the body for the first time
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // If nothing was consumed, then...
-                            Op::Next,                 //...reject
-                            Op::Frame(body_len + 6),  // The fused capture for repetition
-                        ]);
-                        ops.extend(body_ops); // here comes the body again inside the repetition
-                        ops.extend(vec![
-                            Op::ForwardIfConsumed(2), // When consumed we can commit and jump backward
-                            Op::Forward(4),           // otherwise leave the loop
-                            Op::Capture,
-                            Op::Extend,
-                            Op::Backward(body_len + 4), // repeat the body
-                            Op::Close,
-                            Op::InCollect,
-                            Op::Close,
-                        ]);
-                    }
-                    (0, 1) => {
-                        // Optional
-                        ops.push(Op::Frame(body_len + 1)); // on error, jump to the collect
-                        ops.extend(body_ops);
-                        ops.push(Op::InCollect);
-                        ops.push(Op::Close);
-                    }
-                    (1, 1) => {}
-                    (_, _) => unimplemented!(
-                        "ImlOp::Repeat construct with min/max configuration > 1 not implemented yet"
-                    ),
-                };
-            }
         }
 
         ops.len() - start
     }
 
-    /// Generic querying function taking a closure that either walks on the tree or stops.
-    pub fn walk(&self, func: &mut dyn FnMut(&Self) -> bool) -> bool {
-        // Call closure on current ImlOp, break on false return
-        if !func(self) {
-            return false;
-        }
-
-        // Query along ImlOp structure
-        match self {
-            ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
-                for item in items {
-                    if !item.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            ImlOp::If { then, else_, .. } => {
-                for i in [&then, &else_] {
-                    if !i.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            ImlOp::Loop {
-                initial,
-                condition,
-                body,
-                ..
-            } => {
-                for i in [&initial, &condition, &body] {
-                    if !i.walk(func) {
-                        return false;
-                    }
-                }
-
-                true
-            }
-            // DEPRECATED BELOW!!!
-            ImlOp::Expect { body, .. }
-            | ImlOp::Not { body }
-            | ImlOp::Peek { body }
-            | ImlOp::Repeat { body, .. } => body.walk(func),
-
-            _ => true,
-        }
-    }
-
+    // Defines the ImlOp's consuming state from point of view as an ImlOp.
+    // The ImlOp deeply can still consume, but this is a semantic issue.
+    // During code-generation, this function is useful to determine whether
+    // the ImlOp is directly consuming or not.
     pub fn is_consuming(&self) -> bool {
-        let mut consuming = false;
-
-        self.walk(&mut |op| {
+        fn walk(op: &ImlOp) -> Option<bool> {
+            // Query along ImlOp structure
             match op {
                 ImlOp::Call { target, .. } => {
                     if target.is_consuming() {
-                        consuming = true;
-                        return false; // stop further examination
+                        return Some(true);
                     }
+
+                    None
                 }
-                ImlOp::Op(Op::Next) => {
-                    consuming = true;
-                    return false; // stop further examination
+                ImlOp::Op(Op::Next) => Some(true),
+                ImlOp::Loop { .. } | ImlOp::If { peek: false, .. } => Some(false),
+                ImlOp::Alt { alts: items } | ImlOp::Seq { seq: items, .. } => {
+                    for item in items {
+                        if let Some(res) = walk(item) {
+                            return Some(res);
+                        }
+                    }
+
+                    None
                 }
-                _ => {}
+                ImlOp::If { then, else_, .. } => {
+                    for item in [&then, &else_] {
+                        if let Some(res) = walk(item) {
+                            return Some(res);
+                        }
+                    }
+
+                    None
+                }
+
+                _ => None,
             }
+        }
 
-            true
-        });
-
-        consuming
+        walk(self).unwrap_or(false)
     }
 
     /** Returns a value to operate with or evaluate during compile-time.

@@ -1,0 +1,7 @@
+P : @<X> { 'x' print("Works!") }
+#P<'z'>
+P
+#---
+#xxx
+#---
+#ERR:Line 3, column 1: P requires assignment of generic argument X

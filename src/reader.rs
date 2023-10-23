@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 
 /// Position inside a reader, with row and column counting.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Offset {
     // todo: Hold source filename information as well in the future?
     pub offset: usize,
@@ -22,7 +22,7 @@ pub struct Reader {
     peeked: char,                 // Currently peeked char
     offset: Offset,               // Current offset
     start: Offset,                // Offset of last commit
-    eof: bool,                    // EOF marker
+    pub eof: bool,                // EOF marker
 }
 
 impl Reader {

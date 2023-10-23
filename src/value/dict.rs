@@ -41,9 +41,10 @@ impl Object for Dict {
             }
 
             if let Some(key) = key.object::<Str>() {
-                // todo: Put this into a utility function...
+                // check if identifier is allowed, otherwise put in "quotation marks"
                 if !key.chars().all(|ch| ch.is_alphabetic() || ch == '_')
-                    || crate::compiler::identifier_is_valid(key).is_err()
+                    || crate::compiler::RESERVED_KEYWORDS.contains(&key.as_str())
+                    || crate::compiler::RESERVED_TOKENS.contains(&key.as_str())
                 {
                     ret.push('"');
                     for ch in key.chars() {

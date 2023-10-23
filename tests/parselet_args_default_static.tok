@@ -1,0 +1,5 @@
+f : @x=y { print("Works!", x); }
+y : 42
+f
+#---
+#Works! 42

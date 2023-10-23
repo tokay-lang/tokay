@@ -1,5 +1,4 @@
 use super::*;
-use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
 use crate::value::{Dict, List, Object, RefValue, Str, Value};
@@ -14,20 +13,22 @@ Atomic operations.
 
 Specifies all atomic level VM code operations to run the Tokay VM.
 */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub(crate) enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging
 
     // Capture frames
     Frame(usize), // Start new frame with optional relative forward address fuse
-    Capture,      // Reset frame capture to current stack size, saving captures
+    // Capture,      // Reset frame capture to current stack size, saving captures
     Extend,       // Extend frame's reader to current position
-    Reset,        // Reset frame
+    Reset,        // Reset frame, stack+reader
+    ResetReader,  // Reset reader
+    ResetCapture, // Reset captures
     Close,        // Close frame
     Collect,      // Collect stack values from current frame
-    InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
-    Fuse(usize),  // Set frame fuse to relative forward address
+    // InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
+    Fuse(usize), // Set frame fuse to relative forward address
 
     // Loop frames
     Loop(usize), // Loop frame
@@ -42,22 +43,19 @@ pub(crate) enum Op {
     ForwardIfConsumed(usize), // Jump forward when frame consumed input
 
     // Direct jumps
-    Forward(usize),  // Jump forward
-    Backward(usize), // Jump backward
+    Forward(usize), // Jump forward
+    // Backward(usize), // Jump backward
 
     // Interrupts
-    Skip,                  // Err(Reject::Skip)
-    Next,                  // Err(Reject::Next)
-    Push,                  // Ok(Accept::Push)
-    LoadPush,              // Ok(Accept::Push) with value
-    Accept,                // Ok(Accept::Return)
-    LoadAccept,            // Ok(Accept::Return) with value
-    Repeat,                // Ok(Accept::Repeat)
-    LoadRepeat,            // Ok(Accept::Repeat) with value
-    Reject,                // Ok(Err::Reject)
-    LoadExit,              // Exit with errorcode
-    Exit,                  // Exit with 0
-    Error(Option<String>), // Error with optional error message (otherwise its expected on stack)
+    Next,       // Err(Reject::Next)
+    Push,       // Ok(Accept::Push)
+    LoadPush,   // Ok(Accept::Push) with value
+    Accept,     // Ok(Accept::Return)
+    LoadAccept, // Ok(Accept::Return) with value
+    Repeat,     // Ok(Accept::Repeat)
+    Reject,     // Ok(Err::Reject)
+    LoadExit,   // Exit with errorcode
+    Exit,       // Exit with 0
 
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
@@ -124,17 +122,6 @@ impl Op {
             return Ok(Accept::Next);
         }
 
-        fn dump(ops: &[Op], context: &Context, ip: usize) {
-            for (i, op) in ops.iter().enumerate() {
-                context.log(&format!(
-                    "{}{:03} {:?}",
-                    if i == ip { ">" } else { " " },
-                    i,
-                    op
-                ));
-            }
-        }
-
         assert!(context.frames.len() == 0);
 
         // ---------------------------------------------------------------------
@@ -146,10 +133,10 @@ impl Op {
             let op = &ops[ip];
 
             // Debug
-            if context.thread.debug == 3 {
+            if context.debug == 3 {
                 context.log(&format!("{:03}:{:?}", ip, op));
-            } else if context.thread.debug > 3 {
-                if context.thread.debug > 5 {
+            } else if context.debug > 3 {
+                if context.debug > 5 {
                     // Skip any Nop-Operations
                     if matches!(op, Op::Nop | Op::Offset(_)) {
                         ip += 1;
@@ -159,10 +146,26 @@ impl Op {
 
                 // Dump entire code
                 context.log("--- Code ---");
+
+                fn dump(ops: &[Op], context: &Context, ip: usize) {
+                    for (i, op) in ops.iter().enumerate() {
+                        context.log(&format!(
+                            "{}{:03} {:?}",
+                            if i == ip { ">" } else { " " },
+                            i,
+                            op
+                        ));
+                    }
+                }
+
                 dump(ops, context, ip);
 
                 // Dump stack and frames
-                if context.thread.debug > 4 {
+                if context.debug > 4 {
+                    context.log("--- Reader ---");
+                    context.log(&format!(" offset={:?}", context.thread.reader.tell()));
+                    context.log(&format!(" eof={:?}", context.thread.reader.eof));
+
                     context.log("--- Stack ---");
                     for i in 0..context.stack.len() {
                         context.log(&format!(" {:03} {:?}", i, context.stack[i]));
@@ -177,7 +180,7 @@ impl Op {
                 }
 
                 // Step-by-step
-                if context.thread.debug > 5 {
+                if context.debug > 5 {
                     let _ = io::stdin().read(&mut [0u8]).unwrap();
                 }
             }
@@ -203,11 +206,12 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                /*
                 Op::Capture => {
                     context.frame.capture_start = context.stack.len();
                     Ok(Accept::Next)
                 }
-
+                */
                 Op::Extend => {
                     context.frame.reader_start = context.thread.reader.tell();
                     Ok(Accept::Next)
@@ -219,6 +223,16 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
+                Op::ResetReader => {
+                    context.thread.reader.reset(context.frame.reader_start);
+                    Ok(Accept::Next)
+                }
+
+                Op::ResetCapture => {
+                    context.stack.truncate(context.frame.capture_start);
+                    Ok(Accept::Next)
+                }
+
                 Op::Close => {
                     context.frame = context.frames.pop().unwrap();
                     Ok(Accept::Next)
@@ -227,15 +241,13 @@ impl Op {
                 Op::Collect => Ok(Accept::Push(context.collect(
                     context.frame.capture_start,
                     false,
-                    context.thread.debug > 5,
+                    context.debug > 5,
                 ))),
 
+                /*
                 Op::InCollect => {
-                    let mut capture = context.collect(
-                        context.frame.capture_start,
-                        false,
-                        context.thread.debug > 5,
-                    );
+                    let mut capture =
+                        context.collect(context.frame.capture_start, false, context.debug > 5);
 
                     if capture.get_severity() > 5 {
                         capture.set_severity(5);
@@ -243,7 +255,7 @@ impl Op {
 
                     Ok(Accept::Push(capture))
                 }
-
+                */
                 Op::Fuse(addr) => {
                     context.frame.fuse = Some(ip + *addr);
                     Ok(Accept::Next)
@@ -352,13 +364,13 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
+                /*
                 Op::Backward(goto) => {
                     ip -= goto;
                     Ok(Accept::Hold)
                 }
-
+                */
                 // Interrupts
-                Op::Skip => Err(Reject::Skip), // currently not used.
                 Op::Next => Err(Reject::Next),
 
                 Op::Push => Ok(Accept::Push(Capture::Empty)),
@@ -366,37 +378,23 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
                 }
-
-                Op::Accept => Ok(Accept::Return(None)),
-                Op::LoadAccept => {
-                    let value = context.pop();
-                    Ok(Accept::Return(Some(value)))
+                Op::Accept => Ok(Accept::Return(Capture::Empty)),
+                Op::LoadAccept => Ok(Accept::Return(context.stack.pop().unwrap())),
+                Op::Repeat => Ok(Accept::Repeat),
+                Op::Reject => {
+                    state = Err(Reject::Next);
+                    break;
                 }
-                Op::Repeat => Ok(Accept::Repeat(None)),
-                Op::LoadRepeat => {
-                    let value = context.pop();
-                    Ok(Accept::Repeat(Some(value)))
-                }
-                Op::Reject => Err(Reject::Return),
                 Op::LoadExit => {
                     std::process::exit(context.pop().to_i64()? as i32);
                 }
                 Op::Exit => std::process::exit(0),
 
-                Op::Error(msg) => {
-                    if let Some(msg) = msg {
-                        Error::new(Some(context.frame.reader_start), msg.clone()).into()
-                    } else {
-                        Error::new(Some(context.frame.reader_start), context.pop().to_string())
-                            .into()
-                    }
-                }
-
                 // Calls
                 Op::CallOrCopy => {
                     let value = context.pop();
 
-                    if false && context.thread.debug > 3 {
+                    if false && context.debug > 3 {
                         println!(
                             "CallOrCopy is_callable={:?} is_mutable={:?}",
                             value.is_callable(true),
@@ -663,6 +661,7 @@ impl Op {
                 Op::Sep => {
                     let mut value = context.pop();
 
+                    // fixme: Replace by https://doc.rust-lang.org/std/rc/struct.Rc.html#method.unwrap_or_clone ?
                     if Rc::strong_count(&value) > 1 {
                         value = RefValue::from({
                             let inner = value.borrow();
@@ -713,7 +712,7 @@ impl Op {
             };
 
             // Debug
-            if context.thread.debug > 3 {
+            if context.debug > 3 {
                 context.log(&format!("ip = {} state = {:?}", ip, state));
             }
 
@@ -752,7 +751,7 @@ impl Op {
             context.frame = context.frames.pop().unwrap();
         }
 
-        if context.thread.debug > 3 {
+        if context.debug > 3 {
             context.log(&format!("exit state = {:?}", state));
         }
 

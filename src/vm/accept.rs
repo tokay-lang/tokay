@@ -6,11 +6,11 @@ extern crate self as tokay;
 /// Representing an accepting state within the Tokay VM.
 #[derive(Debug, Clone)]
 pub enum Accept {
-    Next,                     // soft-accept, run next instructions at incremented ip
-    Hold,                     // soft-accept, run next instruction at current ip
-    Push(Capture),            // soft-accept, push a capture (also 'push'-keyword)
-    Repeat(Option<RefValue>), // hard-accept, repeat entire parselet ('repeat'-keyword)
-    Return(Option<RefValue>), // hard-accept, return/accept entire parselet ('return/accept'-keyword)
+    Next,            // soft-accept, run next instructions at incremented ip
+    Hold,            // soft-accept, run next instruction at current ip
+    Repeat,          // hard-accept, repeat parselet on current position ('repeat'-keyword)
+    Push(Capture),   // soft-accept, push a capture (also 'push'-keyword)
+    Return(Capture), // hard-accept, return parselet ('return/accept'-keywords)
 }
 
 impl Accept {
@@ -18,27 +18,20 @@ impl Accept {
     pub fn into_push(self, severity: u8) -> Accept {
         match self {
             Self::Next | Self::Hold => Self::Push(Capture::Empty),
-            Self::Push(mut capture) => {
+            Self::Push(mut capture) | Self::Return(mut capture) => {
                 if capture.get_severity() > severity {
                     capture.set_severity(severity);
                 }
                 Self::Push(capture)
             }
-            Self::Repeat(value) | Self::Return(value) => {
-                if let Some(value) = value {
-                    Self::Push(Capture::Value(value, None, severity))
-                } else {
-                    Self::Push(Capture::Empty)
-                }
-            }
+            Self::Repeat => Self::Push(Capture::Empty),
         }
     }
 
     // Helper function, extracts a contained RefValue from the Accept.
     pub fn into_refvalue(self) -> RefValue {
         match self {
-            Self::Push(capture) => capture.get_value(),
-            Self::Repeat(Some(value)) | Self::Return(Some(value)) => value,
+            Self::Push(capture) | Self::Return(capture) => capture.get_value(),
             _ => tokay::value!(void),
         }
     }

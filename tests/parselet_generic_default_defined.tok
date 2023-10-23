@@ -1,0 +1,9 @@
+P : @<X: Y> { X print("Works!") }
+Y : 'x'
+P
+#---
+#xxx
+#---
+#Works!
+#Works!
+#Works!
