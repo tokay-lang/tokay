@@ -556,7 +556,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         match self.execute("main begin", &self.parselet.begin) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                results.push(capture.extract(&self.thread.reader));
+                let res = capture.extract(&self.thread.reader);
+                if !res.is_void() {
+                    results.push(res);
+                }
             }
             Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
@@ -574,7 +577,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                     | Ok(Accept::Next)
                     | Ok(Accept::Push(Capture::Empty)) => {}
                     Ok(Accept::Push(mut capture)) => {
-                        results.push(capture.extract(&self.thread.reader));
+                        let res = capture.extract(&self.thread.reader);
+                        if !res.is_void() {
+                            results.push(res);
+                        }
                     }
                     Ok(Accept::Repeat) => {}
                     Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
@@ -613,7 +619,10 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         match self.execute("main end", &self.parselet.end) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                results.push(capture.extract(&self.thread.reader));
+                let res = capture.extract(&self.thread.reader);
+                if !res.is_void() {
+                    results.push(res);
+                }
             }
             Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
