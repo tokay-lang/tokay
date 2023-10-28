@@ -12,13 +12,6 @@ _ : @{  # true whitespace is made of comments and escaped line-breaks as well
 
 ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 
-_standalone_ : @{
-    # helper parselet to ensure that identifiers stand alone
-    # fixme: When generic parselets are available, this can be replaced by a Keyword<P> invocation
-    Peek<Not<Char<A-Z_a-z>>> _
-    _
-}
-
 T_EOL : @{
     '\n' _
     '\r' '\n'? _
@@ -234,11 +227,11 @@ CallArguments : @{
 TokenLiteral : @{
     '\'' T_Touch '\''  ast("value_token_match")
     T_Touch  ast("value_token_touch")
-    'Chars' '<' Ccl '>'  ast("value_token_ccls")
-    'Chars'  ast("value_token_anys")
-    'Char' '<' Ccl '>'  ast("value_token_ccl")
-    'Char'  ast("value_token_any")
-    'Self'  ast("value_token_self")
+    Keyword<'Chars'> '<' Ccl '>'  ast("value_token_ccls")
+    Keyword<'Chars'>  ast("value_token_anys")
+    Keyword<'Char'> '<' Ccl '>'  ast("value_token_ccl")
+    Keyword<'Char'>  ast("value_token_any")
+    Keyword<'Self'>  ast("value_token_self")
 }
 
 TokenAtom : @{
@@ -262,11 +255,11 @@ Token : @{
 ## Literals
 
 Literal : @{
-    'true' _standalone_  ast("value_true")
-    'false' _standalone_  ast("value_false")
-    'void' _standalone_  ast("value_void")
-    'null' _standalone_  ast("value_null")
-    'self' _standalone_  ast("value_self")
+    Keyword<'true'> _  ast("value_true")
+    Keyword<'false'> _  ast("value_false")
+    Keyword<'void'> _  ast("value_void")
+    Keyword<'null'> _  ast("value_null")
+    Keyword<'self'> _  ast("value_self")
     T_String  ast("value_string")
     T_Float
     T_Integer
@@ -278,10 +271,12 @@ Atomic : @{
     '(' _ ___ HoldExpression ___ ')'
     Literal
     Token
-    'if' _standalone_ Expect<HoldExpression> ___ Expect<Statement> (___ 'else' _standalone_ ___ Expect<Statement>)?  ast("op_if")
-    'for' _standalone_ Expect<Lvalue> _ Expect<'in'> _standalone_ Expect<Expression> ___ Expect<Statement>  ast("op_for")
-    'loop' _standalone_ HoldExpression ___ Block  ast("op_loop")
-    'loop' _standalone_ Expect<Block>  ast("op_loop")
+    Keyword<'if'> _ Expect<HoldExpression> ___ Expect<Statement> \
+        (___ Keyword<'else'> _ ___ Expect<Statement>)?  ast("op_if")
+    Keyword<'for'> _ Expect<Lvalue> Keyword<Expect<'in'>> _ Expect<Expression> \
+         ___ Expect<Statement>  ast("op_for")
+    Keyword<'loop'> _ HoldExpression ___ Block  ast("op_loop")
+    Keyword<'loop'> _ Expect<Block>  ast("op_loop")
     Load
 }
 
@@ -361,16 +356,16 @@ Expression : @{
 # Statement and Assignment
 
 Statement : @{
-    'accept' _standalone_ Expression?  ast("op_accept")
-    'break' _standalone_ Expression?  ast("op_break")
-    'continue' _standalone_ Expression?  ast("op_continue")
-    'exit' _standalone_ Expression?  ast("op_exit")
-    'next' _standalone_  ast("op_next")
-    'push' _standalone_ Expression?  ast("op_push")
-    'reject' _standalone_  ast("op_reject")
-    'repeat' _standalone_  ast("op_repeat")
-    'reset' _standalone_  ast("op_reset")
-    'return' _standalone_ Expression?  ast("op_accept")
+    Keyword<'accept'> _ Expression?  ast("op_accept")
+    Keyword<'break'> _ Expression?  ast("op_break")
+    Keyword<'continue'> _ Expression?  ast("op_continue")
+    Keyword<'exit'> _ Expression?  ast("op_exit")
+    Keyword<'next'> _  ast("op_next")
+    Keyword<'push'> _ Expression?  ast("op_push")
+    Keyword<'reject'> _  ast("op_reject")
+    Keyword<'repeat'> _  ast("op_repeat")
+    Keyword<'reset'> _  ast("op_reset")
+    Keyword<'return'> _ Expression?  ast("op_accept")
     Expression
 }
 
@@ -397,8 +392,8 @@ Sequences : @{
 }
 
 Instruction : @{
-    'begin' _standalone_ Sequences Expect<T_EOL>  ast("begin")
-    'end' _standalone_ Sequences Expect<T_EOL>  ast("end")
+    Keyword<'begin'> _ Sequences Expect<T_EOL>  ast("begin")
+    Keyword<'end'> _ Sequences Expect<T_EOL>  ast("end")
     T_Identifier _ ':' _ {
         Literal _ Peek<T_EOL>
         Token _ Peek<T_EOL>
