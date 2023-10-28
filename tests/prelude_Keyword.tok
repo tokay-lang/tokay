@@ -1,0 +1,14 @@
+Keyword<'kw'> print("keyword!")
+print("skip '" + Ident + "'")
+#---
+#kwa kw1 kw a kw() akw a akwa kw
+#---
+#skip 'kwa'
+#skip 'kw1'
+#keyword!
+#skip 'a'
+#keyword!
+#skip 'akw'
+#skip 'a'
+#skip 'akwa'
+#keyword!

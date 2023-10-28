@@ -1047,6 +1047,62 @@ impl Compiler {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
+                                        "value" => "Keyword"
+                                    ])),
+                                    (value!([
+                                        "emit" => "value_parselet",
+                                        "children" =>
+                                            (value!([
+                                                (value!([
+                                                    "emit" => "gen",
+                                                    "children" =>
+                                                        (value!([
+                                                            "emit" => "identifier",
+                                                            "value" => "P"
+                                                        ]))
+                                                ])),
+                                                (value!([
+                                                    "emit" => "body",
+                                                    "children" =>
+                                                        (value!([
+                                                            "emit" => "sequence",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "P"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "value_generic",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "Not"
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "genarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "identifier",
+                                                                                            "value" => "Alphanumeric"
+                                                                                        ]))
+                                                                                ]))
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
+                                                        ]))
+                                                ]))
+                                            ]))
+                                    ]))
+                                ]))
+                        ])),
+                        (value!([
+                            "emit" => "constant",
+                            "children" =>
+                                (value!([
+                                    (value!([
+                                        "emit" => "identifier",
                                         "value" => "Number"
                                     ])),
                                     (value!([

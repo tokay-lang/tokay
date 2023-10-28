@@ -90,6 +90,11 @@ List : @<P, Separator: (',' _), empty: true> {
     P  ($1, )
 }
 
+# Parse keywords, which may not be the prefix of another identifier.
+Keyword : @<P> {
+    P Not<Alphanumeric>
+}
+
 # Parses any number, either Float or Int.
 Number : Float | Int
 
