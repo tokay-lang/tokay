@@ -133,7 +133,7 @@ impl Parser {
                                         "emit" => "op_mod_kle",
                                         "children" =>
                                             (value!([
-                                                "emit" => "sequence",
+                                                "emit" => "inline_sequence",
                                                 "children" =>
                                                     (value!([
                                                         (value!([
@@ -2551,7 +2551,7 @@ impl Parser {
                                                                     "emit" => "op_mod_opt",
                                                                     "children" =>
                                                                         (value!([
-                                                                            "emit" => "sequence",
+                                                                            "emit" => "inline_sequence",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -2641,7 +2641,7 @@ impl Parser {
                                                                     "emit" => "op_mod_kle",
                                                                     "children" =>
                                                                         (value!([
-                                                                            "emit" => "sequence",
+                                                                            "emit" => "inline_sequence",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -2656,7 +2656,7 @@ impl Parser {
                                                                                         "emit" => "op_mod_opt",
                                                                                         "children" =>
                                                                                             (value!([
-                                                                                                "emit" => "sequence",
+                                                                                                "emit" => "inline_sequence",
                                                                                                 "children" =>
                                                                                                     (value!([
                                                                                                         (value!([
@@ -2743,7 +2743,7 @@ impl Parser {
                                                                     "emit" => "op_mod_opt",
                                                                     "children" =>
                                                                         (value!([
-                                                                            "emit" => "sequence",
+                                                                            "emit" => "inline_sequence",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -2817,7 +2817,7 @@ impl Parser {
                                                         "emit" => "op_mod_pos",
                                                         "children" =>
                                                             (value!([
-                                                                "emit" => "sequence",
+                                                                "emit" => "inline_sequence",
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
@@ -2828,7 +2828,7 @@ impl Parser {
                                                                             "emit" => "op_mod_opt",
                                                                             "children" =>
                                                                                 (value!([
-                                                                                    "emit" => "sequence",
+                                                                                    "emit" => "inline_sequence",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             (value!([
@@ -3030,7 +3030,7 @@ impl Parser {
                                                                         "emit" => "op_mod_pos",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "sequence",
+                                                                                "emit" => "inline_sequence",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         (value!([
@@ -3041,7 +3041,7 @@ impl Parser {
                                                                                             "emit" => "op_mod_opt",
                                                                                             "children" =>
                                                                                                 (value!([
-                                                                                                    "emit" => "sequence",
+                                                                                                    "emit" => "inline_sequence",
                                                                                                     "children" =>
                                                                                                         (value!([
                                                                                                             (value!([
@@ -3115,7 +3115,7 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "DictItem"
+                                        "value" => "InlineSequenceItem"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
@@ -3251,7 +3251,7 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "Dict"
+                                        "value" => "InlineSequence"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
@@ -3315,7 +3315,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "dict"
+                                                                                            "value" => "list"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -3330,12 +3330,12 @@ impl Parser {
                                                                         "emit" => "op_mod_pos",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "sequence",
+                                                                                "emit" => "inline_sequence",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "value" => "DictItem"
+                                                                                            "value" => "InlineSequenceItem"
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -3345,7 +3345,7 @@ impl Parser {
                                                                                             "emit" => "op_mod_opt",
                                                                                             "children" =>
                                                                                                 (value!([
-                                                                                                    "emit" => "sequence",
+                                                                                                    "emit" => "inline_sequence",
                                                                                                     "children" =>
                                                                                                         (value!([
                                                                                                             (value!([
@@ -3379,7 +3379,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "sequence"
+                                                                                            "value" => "inline_sequence"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -3407,95 +3407,13 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "dict"
+                                                                                            "value" => "list"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
                                                                     ]))
                                                                 ]))
                                                         ]))
-                                                    ]))
-                                            ]))
-                                    ]))
-                                ]))
-                        ])),
-                        (value!([
-                            "emit" => "constant",
-                            "children" =>
-                                (value!([
-                                    (value!([
-                                        "emit" => "identifier",
-                                        "value" => "List"
-                                    ])),
-                                    (value!([
-                                        "emit" => "value_parselet",
-                                        "children" =>
-                                            (value!([
-                                                "emit" => "body",
-                                                "children" =>
-                                                    (value!([
-                                                        "emit" => "sequence",
-                                                        "children" =>
-                                                            (value!([
-                                                                (value!([
-                                                                    "emit" => "op_mod_kle",
-                                                                    "children" =>
-                                                                        (value!([
-                                                                            "emit" => "sequence",
-                                                                            "children" =>
-                                                                                (value!([
-                                                                                    (value!([
-                                                                                        "emit" => "identifier",
-                                                                                        "value" => "Expression"
-                                                                                    ])),
-                                                                                    (value!([
-                                                                                        "emit" => "identifier",
-                                                                                        "value" => "___"
-                                                                                    ])),
-                                                                                    (value!([
-                                                                                        "emit" => "op_mod_opt",
-                                                                                        "children" =>
-                                                                                            (value!([
-                                                                                                "emit" => "sequence",
-                                                                                                "children" =>
-                                                                                                    (value!([
-                                                                                                        (value!([
-                                                                                                            "emit" => "value_token_touch",
-                                                                                                            "value" => ","
-                                                                                                        ])),
-                                                                                                        (value!([
-                                                                                                            "emit" => "identifier",
-                                                                                                            "value" => "_"
-                                                                                                        ]))
-                                                                                                    ]))
-                                                                                            ]))
-                                                                                    ])),
-                                                                                    (value!([
-                                                                                        "emit" => "identifier",
-                                                                                        "value" => "___"
-                                                                                    ]))
-                                                                                ]))
-                                                                        ]))
-                                                                ])),
-                                                                (value!([
-                                                                    "emit" => "call",
-                                                                    "children" =>
-                                                                        (value!([
-                                                                            (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "ast"
-                                                                            ])),
-                                                                            (value!([
-                                                                                "emit" => "callarg",
-                                                                                "children" =>
-                                                                                    (value!([
-                                                                                        "emit" => "value_string",
-                                                                                        "value" => "list"
-                                                                                    ]))
-                                                                            ]))
-                                                                        ]))
-                                                                ]))
-                                                            ]))
                                                     ]))
                                             ]))
                                     ]))
@@ -3534,35 +3452,39 @@ impl Parser {
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "value" => "Dict"
+                                                                        "value" => "InlineSequence"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "op_mod_pos",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "sequence",
+                                                                                "emit" => "block",
                                                                                 "children" =>
                                                                                     (value!([
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "___"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_touch",
-                                                                                            "value" => "|"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "_"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "___"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "Dict"
-                                                                                        ]))
+                                                                                        "emit" => "sequence",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                (value!([
+                                                                                                    "emit" => "identifier",
+                                                                                                    "value" => "___"
+                                                                                                ])),
+                                                                                                (value!([
+                                                                                                    "emit" => "value_token_touch",
+                                                                                                    "value" => "|"
+                                                                                                ])),
+                                                                                                (value!([
+                                                                                                    "emit" => "identifier",
+                                                                                                    "value" => "_"
+                                                                                                ])),
+                                                                                                (value!([
+                                                                                                    "emit" => "identifier",
+                                                                                                    "value" => "___"
+                                                                                                ])),
+                                                                                                (value!([
+                                                                                                    "emit" => "identifier",
+                                                                                                    "value" => "InlineSequence"
+                                                                                                ]))
+                                                                                            ]))
                                                                                     ]))
                                                                             ]))
                                                                     ])),
@@ -3626,7 +3548,7 @@ impl Parser {
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "value" => "Dict"
+                                                                        "value" => "InlineSequence"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
@@ -3648,122 +3570,6 @@ impl Parser {
                                                                                             "value" => ")"
                                                                                         ]))
                                                                                 ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "["
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "___"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "List"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "op_mod_pos",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "sequence",
-                                                                                "children" =>
-                                                                                    (value!([
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "___"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_touch",
-                                                                                            "value" => "|"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "_"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "___"
-                                                                                        ])),
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "List"
-                                                                                        ]))
-                                                                                    ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "___"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "op_mod_expect",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "value_token_touch",
-                                                                                "value" => "]"
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "block"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "["
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "___"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "List"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "___"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "op_mod_expect",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                "emit" => "value_token_touch",
-                                                                                "value" => "]"
                                                                             ]))
                                                                     ]))
                                                                 ]))
@@ -3897,7 +3703,7 @@ impl Parser {
                                                         "emit" => "op_mod_pos",
                                                         "children" =>
                                                             (value!([
-                                                                "emit" => "sequence",
+                                                                "emit" => "inline_sequence",
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
@@ -3908,7 +3714,7 @@ impl Parser {
                                                                             "emit" => "op_mod_opt",
                                                                             "children" =>
                                                                                 (value!([
-                                                                                    "emit" => "sequence",
+                                                                                    "emit" => "inline_sequence",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             (value!([
@@ -4768,7 +4574,7 @@ impl Parser {
                                                                         "emit" => "op_mod_opt",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "sequence",
+                                                                                "emit" => "inline_sequence",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         (value!([
@@ -5144,7 +4950,7 @@ impl Parser {
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         (value!([
-                                                                                            "emit" => "sequence",
+                                                                                            "emit" => "inline_sequence",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     "emit" => "identifier",
@@ -5152,7 +4958,7 @@ impl Parser {
                                                                                                 ]))
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "sequence",
+                                                                                            "emit" => "inline_sequence",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     "emit" => "identifier",
@@ -7889,7 +7695,7 @@ impl Parser {
                                                                     "emit" => "op_mod_pos",
                                                                     "children" =>
                                                                         (value!([
-                                                                            "emit" => "sequence",
+                                                                            "emit" => "inline_sequence",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7900,7 +7706,7 @@ impl Parser {
                                                                                         "emit" => "op_mod_opt",
                                                                                         "children" =>
                                                                                             (value!([
-                                                                                                "emit" => "sequence",
+                                                                                                "emit" => "inline_sequence",
                                                                                                 "children" =>
                                                                                                     (value!([
                                                                                                         (value!([
