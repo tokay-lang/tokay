@@ -68,15 +68,14 @@ impl Parselet {
         ret
     }
 
-    /** Run parselet on a given runtime.
+    /** Run parselet on a given thread.
 
     The main-parameter defines if the parselet behaves like a main loop or
     like subsequent parselet. */
     pub fn run(
         &self,
-        program: &Program,
-        runtime: &mut Runtime,
-        args: usize,
+        thread: &mut Thread,
+        mut args: Vec<Capture>,
         mut nargs: Option<Dict>,
         main: bool,
         depth: usize,
@@ -86,114 +85,105 @@ impl Parselet {
 
         // When parselet is consuming, try to read previous result from cache.
         if self.consuming.is_some() {
-            let reader_start = runtime.reader.tell();
+            let reader_start = thread.reader.tell();
 
-            // Check for a previously memoized result in memo table
-            if let Some((reader_end, result)) = runtime.memo.get(&(reader_start.offset, id)) {
-                runtime.reader.reset(*reader_end);
+            // Check for a previously memoized result
+            // fixme: This doesn't recognize calls to the same parselet with same parameters,
+            //        which might lead in unwanted results. This must be checked! It might become
+            //        a problem when the Repeat<P>(min=0, max=void) generic parselet becomes available.
+            if let Some((reader_end, result)) = thread.memo.get(&(reader_start.offset, id)) {
+                thread.reader.reset(*reader_end);
                 return result.clone();
             }
         }
 
-        // If not, open a new context.
-        let mut context = Context::new(
-            program,
-            self,
-            runtime,
-            self.locals,
-            args,
-            if main { self.locals } else { 0 }, // Hold runtime globals when this is main!
-            depth,
-        );
+        if main {
+            assert!(self.signature.is_empty());
+            thread.globals.resize(self.locals, crate::value!(void));
+        }
 
-        if !main {
-            // Check for provided argument count bounds first
-            // todo: Not executed when *args-catchall is implemented
-            if args > self.signature.len() {
-                return Err(match self.signature.len() {
+        let args_len = args.len();
+
+        // Check for provided argument count bounds first
+        // todo: Not executed when *args-catchall is implemented
+        if args_len > self.signature.len() {
+            return Err(match self.signature.len() {
+                0 => format!(
+                    "{}() doesn't accept any arguments ({} given)",
+                    self.name, args_len
+                ),
+                1 => format!(
+                    "{}() takes exactly one argument ({} given)",
+                    self.name, args_len
+                ),
+                _ => format!(
+                    "{}() expected at most {} arguments ({} given)",
+                    self.name,
+                    self.signature.len(),
+                    args_len
+                ),
+            }
+            .into())
+            .into();
+        }
+
+        // Initialize local variables
+        args.resize(self.locals, Capture::Empty);
+
+        // Set remaining parameters to their defaults
+        for (i, arg) in (&self.signature[args_len..]).iter().enumerate() {
+            // args parameters are previously pushed onto the stack.
+            let var = &mut args[args_len + i];
+
+            //println!("{} {:?} {:?}", i, arg, var);
+            if matches!(var, Capture::Empty) {
+                // In case the parameter is empty, try to get it from nargs...
+                if let Some(ref mut nargs) = nargs {
+                    if let Some(value) = nargs.remove_str(&arg.0) {
+                        *var = Capture::Value(value, None, 0);
+                        continue;
+                    }
+                }
+
+                // Otherwise, use default value if available.
+                if let Some(addr) = arg.1 {
+                    // fixme: This might leak the immutable static value to something mutable...
+                    *var = Capture::Value(thread.program.statics[addr].clone(), None, 0);
+                    //println!("{} receives default {:?}", arg.0, var);
+                    continue;
+                }
+
+                return Error::new(
+                    None,
+                    format!("{}() expected argument '{}'", self.name, arg.0),
+                )
+                .into();
+            }
+        }
+
+        // Check for remaining nargs
+        // todo: Not executed when **nargs-catchall is implemented
+        if let Some(mut nargs) = nargs {
+            if let Some((name, _)) = nargs.pop() {
+                return Err(match nargs.len() {
                     0 => format!(
-                        "{}() doesn't accept any arguments ({} given)",
-                        self.name, args
-                    ),
-                    1 => format!(
-                        "{}() takes exactly one argument ({} given)",
-                        self.name, args
-                    ),
-                    _ => format!(
-                        "{}() expected at most {} arguments ({} given)",
+                        "{}() doesn't accept named argument '{}'",
                         self.name,
-                        self.signature.len(),
-                        args
+                        name.to_string()
+                    ),
+                    n => format!(
+                        "{}() doesn't accept named arguments ({} given)",
+                        self.name,
+                        n + 1
                     ),
                 }
                 .into())
                 .into();
             }
-
-            // Set remaining parameters to their defaults
-            for (i, arg) in (&self.signature[args..]).iter().enumerate() {
-                // args parameters are previously pushed onto the stack.
-                let var = &mut context.runtime.stack[context.stack_start + args + i];
-
-                //println!("{} {:?} {:?}", i, arg, var);
-                if matches!(var, Capture::Empty) {
-                    // In case the parameter is empty, try to get it from nargs...
-                    if let Some(ref mut nargs) = nargs {
-                        if let Some(value) = nargs.remove_str(&arg.0) {
-                            *var = Capture::Value(value, None, 0);
-                            continue;
-                        }
-                    }
-
-                    // Otherwise, use default value if available.
-                    if let Some(addr) = arg.1 {
-                        // fixme: This might leak the immutable static value to something mutable...
-                        *var = Capture::Value(context.program.statics[addr].clone(), None, 0);
-                        //println!("{} receives default {:?}", arg.0, var);
-                        continue;
-                    }
-
-                    return Error::new(
-                        None,
-                        format!("{}() expected argument '{}'", self.name, arg.0),
-                    )
-                    .into();
-                }
-            }
-
-            // Check for remaining nargs
-            // todo: Not executed when **nargs-catchall is implemented
-            if let Some(mut nargs) = nargs {
-                if let Some((name, _)) = nargs.pop() {
-                    return Err(match nargs.len() {
-                        0 => format!(
-                            "{}() doesn't accept named argument '{}'",
-                            self.name,
-                            name.to_string()
-                        ),
-                        n => format!(
-                            "{}() doesn't accept named arguments ({} given)",
-                            self.name,
-                            n + 1
-                        ),
-                    }
-                    .into())
-                    .into();
-                }
-            }
-        } else
-        /* main */
-        {
-            assert!(self.signature.len() == 0)
         }
 
-        // Initialize locals
-        for i in 0..self.locals {
-            if let Capture::Empty = context.runtime.stack[context.stack_start + i] {
-                context.runtime.stack[context.stack_start + i] =
-                    Capture::Value(crate::value!(void), None, 0);
-            }
-        }
+        // Create a new conrext
+        let mut context = Context::new(thread, self, depth, args);
 
         //println!("remaining {:?}", nargs);
         let reader_start = context.frame0().reader_start;
@@ -214,7 +204,7 @@ impl Parselet {
 
             // Insert a fake memo entry to avoid endless recursion
             context
-                .runtime
+                .thread
                 .memo
                 .insert((reader_start.offset, id), (reader_end, result.clone()));
 
@@ -234,7 +224,7 @@ impl Parselet {
                     _ => {}
                 }
 
-                let loop_end = context.runtime.reader.tell();
+                let loop_end = context.thread.reader.tell();
 
                 // Stop when no more input was consumed
                 if loop_end.offset <= reader_end.offset {
@@ -246,29 +236,28 @@ impl Parselet {
 
                 // Save intermediate result in memo table
                 context
-                    .runtime
+                    .thread
                     .memo
                     .insert((reader_start.offset, id), (reader_end, result.clone()));
 
                 // Reset reader & stack
-                context.runtime.reader.reset(reader_start);
-                context.runtime.stack.truncate(context.stack_start); //fixme: context.frame0()?
+                context.thread.reader.reset(reader_start);
+                context.stack.clear();
                 context
-                    .runtime
                     .stack
                     .resize(context.frame0().capture_start, Capture::Empty);
             }
 
-            context.runtime.reader.reset(reader_end);
+            context.thread.reader.reset(reader_end);
 
             result
         } else {
             let result = context.run(main);
 
             if self.consuming.is_some() {
-                context.runtime.memo.insert(
+                context.thread.memo.insert(
                     (reader_start.offset, id),
-                    (context.runtime.reader.tell(), result.clone()),
+                    (context.thread.reader.tell(), result.clone()),
                 );
             }
 
@@ -278,7 +267,7 @@ impl Parselet {
         /*
         // Dump AST when parselet returns an AST for debugging purposes.
         // fixme: Disabled for now, can be enabled on demand.
-        if context.runtime.debug > 1 {
+        if context.thread.debug > 1 {
             loop {
                 if let Ok(Accept::Push(Capture::Value(ref value, ..))) = result {
                     let value = value.borrow();
@@ -344,22 +333,15 @@ impl Object for ParseletRef {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         match context {
-            Some(context) => {
-                let len = args.len();
-                for arg in args {
-                    //context.push(arg)?;  //yeah...doesn't work...GRRR
-                    context.runtime.stack.push(Capture::Value(arg, None, 0));
-                }
-
-                self.0.borrow().run(
-                    context.program,
-                    context.runtime,
-                    len,
-                    nargs,
-                    false,
-                    context.depth + 1,
-                )
-            }
+            Some(context) => self.0.borrow().run(
+                context.thread,
+                args.into_iter()
+                    .map(|arg| Capture::Value(arg, None, 0))
+                    .collect(),
+                nargs,
+                false,
+                context.depth + 1,
+            ),
             None => panic!("{} needs a context to operate", self.repr()),
         }
     }
@@ -371,9 +353,8 @@ impl Object for ParseletRef {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         self.0.borrow().run(
-            context.program,
-            context.runtime,
-            args,
+            context.thread,
+            context.stack.split_off(context.stack.len() - args),
             nargs,
             false,
             context.depth + 1,

@@ -16,18 +16,20 @@ pub type Range = std::ops::Range<usize>;
 
 // Abstraction of a buffered Reader with internal buffering, offset counting and clean-up.
 pub struct Reader {
-    reader: Box<dyn BufRead>, // Reader object to read from
-    buffer: String,           // Internal buffer
-    peeked: char,             // Currently peeked char
-    offset: Offset,           // Current offset
-    start: Offset,            // Offset of last commit
-    eof: bool,                // EOF marker
+    pub filename: Option<String>, // Source filename
+    reader: Box<dyn BufRead>,     // Reader object to read from
+    buffer: String,               // Internal buffer
+    peeked: char,                 // Currently peeked char
+    offset: Offset,               // Current offset
+    start: Offset,                // Offset of last commit
+    pub eof: bool,                // EOF marker
 }
 
 impl Reader {
     /// Creates a new reader on buffer read.
-    pub fn new(read: Box<dyn Read>) -> Self {
+    pub fn new(filename: Option<String>, read: Box<dyn Read>) -> Self {
         Self {
+            filename,
             reader: Box::new(BufReader::new(read)),
             buffer: String::with_capacity(1024), //fixme: Modifyable capacity?
             peeked: ' ',

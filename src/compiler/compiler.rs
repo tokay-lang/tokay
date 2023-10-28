@@ -1,4 +1,4 @@
-//! Tokay compiler interface
+//! Tokay compiler
 
 use super::*;
 use crate::builtin::Builtin;
@@ -16,7 +16,7 @@ Parselets introduce new variable scopes.
 Loops introduce a new loop scope.
 */
 #[derive(Debug)]
-pub(in crate::compiler) enum Scope {
+pub(super) enum Scope {
     Parselet {
         // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
@@ -44,35 +44,39 @@ The compiler works in a mode so that statics, variables and constants once built
 won't be removed and can be accessed on later calls.
 */
 pub struct Compiler {
-    parser: Option<parser::Parser>, // Internal Tokay parser
-    pub debug: u8,                  // Compiler debug mode
-    pub(in crate::compiler) statics: IndexSet<RefValue>, // Static values collected during compilation
-    pub(in crate::compiler) scopes: Vec<Scope>,          // Current compilation scopes
-    pub(in crate::compiler) usages: Vec<ImlValue>,       // Unresolved values
-    pub(in crate::compiler) errors: Vec<Error>,          // Collected errors during compilation
+    parser: Option<parser::Parser>,         // Internal Tokay parser
+    pub debug: u8,                          // Compiler debug mode
+    pub(super) restrict: bool,              // Restrict assignment of reserved identifiers
+    pub(super) statics: IndexSet<RefValue>, // Static values collected during compilation
+    pub(super) scopes: Vec<Scope>,          // Current compilation scopes
+    pub(super) usages: Vec<ImlValue>,       // Unresolved values
+    pub(super) errors: Vec<Error>,          // Collected errors during compilation
 }
 
 impl Compiler {
     /** Initialize a new compiler.
 
+    The compiler serves functions to compile Tokay source code into programs executable by
+    the Tokay VM. It uses an intermediate language representation to implement derives of
+    generics, statics, etc.
+
     The compiler struct serves as some kind of helper that should be used during traversal of a
     Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
     in different levels. Parselets are created by using the parselet_pop() function with provided
     parameters.
-
-    By default, the prelude should be loaded, otherwise several standard parselets are not available.
-    Ignoring the prelude is only useful on bootstrap currently.
     */
-    pub fn new(with_prelude: bool) -> Self {
+    pub fn new() -> Self {
         let mut compiler = Self {
             parser: None,
             debug: 0,
+            restrict: true,
             statics: IndexSet::new(),
             scopes: Vec::new(),
             usages: Vec::new(),
             errors: Vec::new(),
         };
 
+        // Preload oftenly used static constants
         for value in [
             value!(void),
             value!(null),
@@ -85,11 +89,7 @@ impl Compiler {
         }
 
         // Compile with the default prelude
-        if with_prelude {
-            compiler
-                .compile_from_str(include_str!("../prelude.tok"))
-                .unwrap(); // this should panic in case of an error!
-        }
+        compiler.load_prelude();
 
         // Set compiler debug level afterwards
         compiler.debug = if let Ok(level) = std::env::var("TOKAY_DEBUG") {
@@ -102,15 +102,31 @@ impl Compiler {
     }
 
     /** Compile a Tokay program from an existing AST into the compiler. */
-    pub fn compile_from_ast(&mut self, ast: &RefValue) -> Result<Option<Program>, Vec<Error>> {
+    pub(super) fn compile_from_ast(
+        &mut self,
+        ast: &RefValue,
+    ) -> Result<Option<Program>, Vec<Error>> {
         let ret = ast::traverse(self, &ast);
+
+        assert!(self.scopes.len() == 1);
+
+        for usage in self.usages.drain(..) {
+            if let ImlValue::Unresolved(usage) = usage {
+                let usage = usage.borrow();
+                if let ImlValue::Name { offset, name } = &*usage {
+                    self.errors.push(Error::new(
+                        offset.clone(),
+                        format!("Use of undefined name '{}'", name),
+                    ));
+                }
+            }
+        }
 
         if !self.errors.is_empty() {
             return Err(self.errors.drain(..).collect());
         }
 
         if self.debug > 1 {
-            assert!(self.scopes.len() == 1);
             println!("--- Global scope ---\n{:#?}", self.scopes.last().unwrap())
         }
 
@@ -119,7 +135,10 @@ impl Compiler {
                 println!("--- Intermediate main ---\n{:#?}", main);
             }
 
-            match ImlProgram::new(main).compile() {
+            let mut program = ImlProgram::new(main);
+            program.debug = self.debug > 1;
+
+            match program.compile() {
                 Ok(program) => {
                     if self.debug > 1 {
                         println!("--- Finalized program ---");
@@ -151,7 +170,9 @@ impl Compiler {
         };
 
         if self.debug > 0 {
+            println!("--- Abstract Syntax Tree ---");
             ast::print(&ast);
+            //println!("###\n{:#?}\n###", ast);
         }
 
         self.compile_from_ast(&ast)
@@ -159,7 +180,10 @@ impl Compiler {
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
     pub fn compile_from_str(&mut self, src: &str) -> Result<Option<Program>, Vec<Error>> {
-        self.compile(Reader::new(Box::new(std::io::Cursor::new(src.to_owned()))))
+        self.compile(Reader::new(
+            None,
+            Box::new(std::io::Cursor::new(src.to_owned())),
+        ))
     }
 
     /** Register a static value within a compiler instance.
@@ -167,7 +191,7 @@ impl Compiler {
     This avoids that the compiler produces multiple results pointing to effectively the same values
     (althought they are different objects, but  the same value)
     */
-    pub(in crate::compiler) fn register_static(&mut self, value: RefValue) -> ImlValue {
+    pub(super) fn register_static(&mut self, value: RefValue) -> ImlValue {
         if let Some(value) = self.statics.get(&value) {
             ImlValue::Value(value.clone())
         } else {
@@ -177,7 +201,7 @@ impl Compiler {
     }
 
     /// Tries to resolves open usages from the current scope
-    pub(in crate::compiler) fn resolve(&mut self) {
+    pub(super) fn resolve(&mut self) {
         if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
             &self.scopes[0]
         {
@@ -196,7 +220,7 @@ impl Compiler {
     }
 
     /// Push a parselet scope
-    pub(in crate::compiler) fn parselet_push(&mut self) {
+    pub(super) fn parselet_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Parselet {
@@ -213,7 +237,7 @@ impl Compiler {
     }
 
     /// Push a block scope
-    pub(in crate::compiler) fn block_push(&mut self) {
+    pub(super) fn block_push(&mut self) {
         self.scopes.insert(
             0,
             Scope::Block {
@@ -224,12 +248,12 @@ impl Compiler {
     }
 
     /// Push a loop scope
-    pub(in crate::compiler) fn loop_push(&mut self) {
+    pub(super) fn loop_push(&mut self) {
         self.scopes.insert(0, Scope::Loop);
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(in crate::compiler) fn parselet_pop(
+    pub(super) fn parselet_pop(
         &mut self,
         offset: Option<Offset>,
         name: Option<String>,
@@ -241,11 +265,6 @@ impl Compiler {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
-
-        // Clear any unresolved usages when reaching global scope
-        if self.scopes.len() == 1 {
-            self.usages.clear();
-        }
 
         let mut scope = self.scopes.remove(0);
 
@@ -309,12 +328,13 @@ impl Compiler {
                 self.scopes.push(scope);
             }
 
-            ImlValue::from(ImlParselet::new(
+            ImlValue::from(ImlParseletInstance::new(
                 model,
                 constants,
                 offset,
                 name,
                 severity.unwrap_or(5),
+                false,
             ))
         } else {
             unreachable!();
@@ -322,20 +342,20 @@ impl Compiler {
     }
 
     /// Drops a block scope.
-    pub(in crate::compiler) fn block_pop(&mut self) {
+    pub(super) fn block_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
         self.resolve();
         self.scopes.remove(0);
     }
 
     /// Drops a loop scope.
-    pub(in crate::compiler) fn loop_pop(&mut self) {
+    pub(super) fn loop_pop(&mut self) {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
         self.scopes.remove(0);
     }
 
     /// Marks the nearest parselet scope as consuming
-    pub(in crate::compiler) fn parselet_mark_consuming(&mut self) {
+    pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
             if let Scope::Parselet { is_consuming, .. } = scope {
                 *is_consuming = true;
@@ -347,7 +367,7 @@ impl Compiler {
     }
 
     /// Check if there's a loop
-    pub(in crate::compiler) fn loop_check(&mut self) -> bool {
+    pub(super) fn loop_check(&mut self) -> bool {
         for i in 0..self.scopes.len() {
             match &self.scopes[i] {
                 Scope::Parselet { .. } => return false,
@@ -360,7 +380,7 @@ impl Compiler {
     }
 
     /** Insert new local variable under given name in current scope. */
-    pub(in crate::compiler) fn new_local(&mut self, name: &str) -> usize {
+    pub(super) fn new_local(&mut self, name: &str) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
@@ -382,7 +402,7 @@ impl Compiler {
     }
 
     /** Pop unused or create new temporary variable */
-    pub(in crate::compiler) fn pop_temp(&mut self) -> usize {
+    pub(super) fn pop_temp(&mut self) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
@@ -404,7 +424,7 @@ impl Compiler {
     }
 
     /** Release temporary variable for later re-use */
-    pub(in crate::compiler) fn push_temp(&mut self, addr: usize) {
+    pub(super) fn push_temp(&mut self, addr: usize) {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet { temporaries, .. } = scope {
@@ -417,7 +437,7 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub(in crate::compiler) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
+    pub(super) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
         /*
             Special meaning for whitespace constants names "_" and "__".
 
@@ -432,35 +452,12 @@ impl Compiler {
         let mut secondary = None;
 
         if name == "_" || name == "__" {
-            self.parselet_push();
-            self.parselet_mark_consuming();
-            value = self.parselet_pop(
-                None,
-                Some("__".to_string()),
-                Some(0), // Zero severity
-                None,
-                None,
-                // becomes `Value+`
-                ImlOp::call(None, value, None).into_positive(),
-            );
-
-            // Remind "__" as new constant
+            // `__` becomes `Value+`
+            value = value.into_generic("Pos", Some(0)).try_resolve(self);
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            self.parselet_push();
-            self.parselet_mark_consuming();
-            value = self.parselet_pop(
-                None,
-                Some(name.to_string()),
-                Some(0), // Zero severity
-                None,
-                None,
-                // becomes `Value?`
-                ImlOp::call(None, value, None).into_optional(),
-            );
-
-            // Insert "_" afterwards
+            value = value.into_generic("Opt", Some(0)).try_resolve(self);
         }
 
         // Insert constant into next constant-holding scope
@@ -479,7 +476,7 @@ impl Compiler {
     }
 
     /** Get named value, either from current or preceding scope, a builtin or special. */
-    pub(in crate::compiler) fn get(&mut self, name: &str) -> Option<ImlValue> {
+    pub(super) fn get(&mut self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
         let mut top_parselet = true;
 
         for (i, scope) in self.scopes.iter().enumerate() {
@@ -495,23 +492,20 @@ impl Compiler {
                     ..
                 } => {
                     if let Some(value) = constants.get(name) {
-                        if !top_parselet && matches!(value, ImlValue::Name { generic: true, .. }) {
-                            continue;
-                        }
-
                         return Some(value.clone());
                     }
 
-                    // Check for global variable
-                    if i + 1 == self.scopes.len() {
+                    // Check for variable
+                    let is_global = i + 1 == self.scopes.len();
+
+                    if is_global || top_parselet {
                         if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Global(*addr));
-                        }
-                    }
-                    // Check for local variable
-                    else if top_parselet {
-                        if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Local(*addr));
+                            return Some(ImlValue::Variable {
+                                offset,
+                                name: name.to_string(),
+                                is_global,
+                                addr: *addr,
+                            });
                         }
                     }
 
@@ -525,7 +519,7 @@ impl Compiler {
     }
 
     /** Get defined builtin. */
-    pub(in crate::compiler) fn get_builtin(&mut self, name: &str) -> Option<ImlValue> {
+    pub(super) fn get_builtin(&mut self, name: &str) -> Option<ImlValue> {
         // Check for a builtin function
         if let Some(builtin) = Builtin::get(name) {
             return Some(RefValue::from(builtin).into()); // fixme: Makes a Value into a RefValue into a Value...
@@ -539,7 +533,7 @@ impl Compiler {
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
-            return Some(self.get(name).unwrap());
+            return Some(self.get(None, name).unwrap());
         }
 
         // Check for built-in token

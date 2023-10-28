@@ -1,0 +1,45 @@
+# Builtin registry generator
+begin {
+    registry = dict()
+}
+
+'impl' _ Ident _ '{' {
+    impl = "::" + $3
+}
+
+_ 'tokay_' kind => {
+    ''function''
+    ''method''
+    ''token''
+} '!' _ '(' _ '"' _ name => Ident {
+    #kind => $kind, name => $name, impl => impl
+    #accept "register(\"" + $name + "\", tokay_" + $kind + "_" + $name.lower() + ")"
+    #print(offset()["filename"], $kind, $name)
+
+    mod = offset()["filename"].split("/")
+    last = mod.len - 1
+    mod[last] = mod[last].replace(".rs")
+    if mod[last] == "mod" mod.pop()
+    if mod[0] == "." mod.pop(0)
+
+    path = "crate::" + "::".join(mod)
+    if $kind == "method" path += impl
+
+    registry[$name] = \
+          "    Builtin {\n" \
+        + "    " * 2 + "name: \"" + $name + "\",\n"  \
+        + "    " * 2 + "func: " + path + "::tokay_" + $kind + "_" + $name.lower() + ",\n"  \
+        + "    },"
+}
+
+Char<^\n>+ '\n'  # ignore any other lines entirely
+
+end {
+    print("pub static BUILTINS: [Builtin; " + registry.len() + "] = [")
+
+    for k in registry.keys().collect().sort() {
+        print(registry[k])
+    }
+
+    print("];")
+}

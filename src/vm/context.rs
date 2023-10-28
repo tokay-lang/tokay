@@ -1,7 +1,7 @@
 //! Contexts and stack frames for parselet calls.
 use super::*;
 use crate::reader::Offset;
-use crate::value::{Dict, List, Object, Parselet, RefValue};
+use crate::value::{Dict, List, Object, Parselet, RefValue, Value};
 use std::iter::FromIterator;
 
 /** Representation of a stack-frame based on current context. */
@@ -32,23 +32,20 @@ pub struct Loop {
 
 /** Contexts represent stack frames for parselet calls.
 
-Via the context, most operations regarding capture storing and loading is performed. */
-pub struct Context<'program, 'parselet, 'runtime> {
+Within the context, most operations regarding capture storing and loading is performed. */
+pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
-    pub program: &'program Program,     // Program
-    pub parselet: &'parselet Parselet,  // Current parselet that is executed
-    pub runtime: &'runtime mut Runtime, // Overall runtime
+    pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
+    pub parselet: &'parselet Parselet,                  // Current parselet
 
     pub depth: usize, // Recursion depth
     pub debug: u8,    // Debug level
 
-    // Positions
-    pub stack_start: usize, // Stack start (including locals and parameters)
-    hold: usize,            // Defines number of stack items to hold on context drop
-
     // Virtual machine
-    pub frames: Vec<Frame>, // Frame stack
-    pub frame: Frame,       // Current frame
+    var: Capture,            // Context variable ($0)
+    pub stack: Vec<Capture>, // Capture stack
+    pub frames: Vec<Frame>,  // Frame stack
+    pub frame: Frame,        // Current frame
 
     pub loops: Vec<Loop>, // Loop stack
 
@@ -56,48 +53,29 @@ pub struct Context<'program, 'parselet, 'runtime> {
     pub source_offset: Option<Offset>, // Tokay source offset needed for error reporting
 }
 
-impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
+impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 'parselet> {
     pub fn new(
-        program: &'program Program,
+        thread: &'thread mut Thread<'program, 'reader>,
         parselet: &'parselet Parselet,
-        runtime: &'runtime mut Runtime,
-        locals: usize,
-        take: usize,
-        hold: usize,
         depth: usize,
+        stack: Vec<Capture>,
     ) -> Self {
-        let stack_start = runtime.stack.len() - take;
-
-        /*
-        println!("--- {:?} ---", parselet.name);
-        println!("stack = {:#?}", runtime.stack);
-        println!("stack = {:?}", runtime.stack.len());
-        println!("start = {:?}", stack_start);
-        println!("resize = {:?}", stack_start + locals + 1);
-        */
-
-        // Initialize local variables and $0
-        runtime
-            .stack
-            .resize(stack_start + locals + 1, Capture::Empty);
-
-        // Create context frame0
         let frame = Frame {
             fuse: None,
-            capture_start: stack_start + locals + 1,
-            reader_start: runtime.reader.tell(),
+            capture_start: parselet.locals,
+            reader_start: thread.reader.tell(),
         };
 
         // Create Context
         Self {
-            debug: runtime.debug,
-            program,
+            debug: thread.debug,
+            thread,
             parselet,
-            runtime,
             depth,
-            stack_start,
-            hold,
+            var: Capture::Empty,
+            stack,
             frames: Vec::new(),
+            // Create context frame0
             frame,
             loops: Vec::new(),
             source_offset: None,
@@ -114,7 +92,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             self.parselet.name,
             //if self.parselet.consuming.is_some() {
             if self.parselet.consuming.is_some() {
-                format!("@{: <4}", self.runtime.reader.tell().offset)
+                format!("@{: <4}", self.thread.reader.tell().offset)
             } else {
                 "".to_string()
             },
@@ -123,7 +101,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     }
 
     /// Shortcut for an Ok(Accept::Push) with the given value.
-    /// To push a value immediatelly, use context.runtime.stack.push().
+    /// To push a value immediatelly, use context.thread.stack.push().
     #[inline]
     pub fn push(&self, value: RefValue) -> Result<Accept, Reject> {
         Ok(Accept::Push(Capture::Value(value, None, 10)))
@@ -133,31 +111,31 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     #[inline]
     pub fn pop(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let mut capture = self.runtime.stack.pop().unwrap();
-        capture.extract(&mut self.runtime.reader)
+        let mut capture = self.stack.pop().unwrap();
+        capture.extract(&mut self.thread.reader)
     }
 
     /// Peek top value of stack.
     #[inline]
     pub fn peek(&mut self) -> RefValue {
         // todo: check for context limitations on the stack?
-        let capture = self.runtime.stack.last_mut().unwrap();
-        capture.extract(&mut self.runtime.reader)
+        let capture = self.stack.last_mut().unwrap();
+        capture.extract(&mut self.thread.reader)
     }
 
     // Push a value onto the stack
     #[inline]
     pub fn load(&mut self, index: usize) -> Result<Accept, Reject> {
-        let capture = &mut self.runtime.stack[index];
-        let value = capture.extract(&self.runtime.reader);
+        let capture = &mut self.stack[index];
+        let value = capture.extract(&self.thread.reader);
         self.push(value)
     }
 
     // Reset context stack state
     #[inline]
     fn reset(&mut self, offset: Option<Offset>) {
-        self.runtime.stack.truncate(self.frame.capture_start - 1); // Truncate stack including $0
-        self.runtime.stack.push(Capture::Empty); // re-initialize $0
+        self.stack.truncate(self.frame.capture_start); // Truncate stack
+        self.var = Capture::Empty; // Reset $0
 
         if let Some(offset) = offset {
             self.frame.reader_start = offset; // Set reader start to provided position
@@ -185,45 +163,47 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<RefValue> {
         let frame0 = self.frame0();
-        let capture_start = frame0.capture_start;
         let reader_start = frame0.reader_start;
 
-        let pos = capture_start + pos - 1;
-
-        if pos >= self.runtime.stack.len() {
-            None
-        }
-        // This is $0?
-        else if pos < capture_start {
+        if pos == 0 {
             // Capture 0 either returns an already set value or ...
-            if let Capture::Value(value, ..) = &self.runtime.stack[pos] {
+            if let Capture::Value(value, ..) = &self.var {
                 return Some(value.clone());
             }
 
             // ...returns the current range read so far.
-            Some(RefValue::from(
-                self.runtime
+            return Some(RefValue::from(
+                self.thread
                     .reader
-                    .get(&self.runtime.reader.capture_from(&reader_start)),
-            ))
-        // Any other index.
-        } else {
-            self.runtime.stack[pos].degrade();
-            Some(self.runtime.stack[pos].extract(&self.runtime.reader))
+                    .get(&self.thread.reader.capture_from(&reader_start)),
+            ));
         }
+
+        let capture_start = frame0.capture_start;
+
+        let pos = capture_start + pos - 1;
+
+        if pos >= self.stack.len() {
+            return None;
+        }
+
+        let capture = &mut self.stack[pos];
+
+        capture.degrade(); // fixme: Can't extract do the degration?
+        Some(capture.extract(&self.thread.reader))
     }
 
     /** Return a capture by name as RefValue. */
     pub fn get_capture_by_name(&mut self, name: &str) -> Option<RefValue> {
         let capture_start = self.frame0().capture_start;
-        let tos = self.runtime.stack.len();
+        let tos = self.stack.len();
 
         for i in (0..tos - capture_start).rev() {
-            let capture = &mut self.runtime.stack[capture_start + i];
+            let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
-                capture.degrade();
-                return Some(capture.extract(&self.runtime.reader));
+                capture.degrade(); // fixme: Can't extract do the degration?
+                return Some(capture.extract(&self.thread.reader));
             }
         }
 
@@ -232,36 +212,34 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
     /** Set a capture to a RefValue by index. */
     pub fn set_capture(&mut self, pos: usize, value: RefValue) {
-        let capture_start = self.frame0().capture_start;
-        let pos = capture_start + pos - 1;
-
-        if pos >= self.runtime.stack.len() {
+        if pos == 0 {
+            self.var = Capture::from(value);
             return;
         }
 
-        let capture = &mut self.runtime.stack[pos];
+        let capture_start = self.frame0().capture_start;
+        let pos = capture_start + pos - 1;
 
-        // $0 gets a higher severity than normal captures.
-        let severity = if pos < capture_start { 10 } else { 5 };
+        if pos >= self.stack.len() {
+            return;
+        }
+
+        let capture = &mut self.stack[pos];
 
         match capture {
-            Capture::Empty => *capture = Capture::Value(value, None, severity),
-            Capture::Range(_, alias, _) => {
-                *capture = Capture::Value(value, alias.clone(), severity)
-            }
-            Capture::Value(capture_value, ..) => {
-                *capture_value = value;
-            }
+            Capture::Empty => *capture = Capture::Value(value, None, 5),
+            Capture::Range(_, alias, _) => *capture = Capture::Value(value, alias.clone(), 5),
+            Capture::Value(capture_value, ..) => *capture_value = value,
         }
     }
 
     /** Set a capture to a RefValue by name. */
     pub fn set_capture_by_name(&mut self, name: &str, value: RefValue) {
         let capture_start = self.frame0().capture_start;
-        let tos = self.runtime.stack.len();
+        let tos = self.stack.len();
 
         for i in (0..tos - capture_start).rev() {
-            let capture = &mut self.runtime.stack[capture_start + i];
+            let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
                 match capture {
@@ -269,9 +247,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                     Capture::Range(_, alias, _) => {
                         *capture = Capture::Value(value, alias.clone(), 5)
                     }
-                    Capture::Value(capture_value, ..) => {
-                        *capture_value = value;
-                    }
+                    Capture::Value(capture_value, ..) => *capture_value = value,
                 }
                 break;
             }
@@ -299,7 +275,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         debug: bool,    // Print debug information
     ) -> Capture {
         // Early abort when capture_start is behind stack len
-        if capture_start > self.runtime.stack.len() {
+        if capture_start > self.stack.len() {
             return Capture::Empty;
         }
 
@@ -309,14 +285,13 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         let captures: Vec<Capture> = if copy {
             // fixme: copy feature isn't used...
             Vec::from_iter(
-                self.runtime.stack[capture_start..]
+                self.stack[capture_start..]
                     .iter()
                     .filter(|item| !(matches!(item, Capture::Empty)))
                     .cloned(),
             )
         } else {
-            self.runtime
-                .stack
+            self.stack
                 .drain(capture_start..)
                 .filter(|item| !(matches!(item, Capture::Empty)))
                 .collect()
@@ -338,7 +313,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         // Capture inheritance is only possible when there is only one capture available
         let mut list = List::new(); // List collector
         let mut dict = Dict::new(); // Dict collector
-        let mut max = 0; // Maximum severity
+        let mut max = self.parselet.severity; // Require at least parselet severity level
         let mut idx = 0; // Keep the order for dicts
 
         // Collect any significant captures and values
@@ -354,7 +329,9 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
                         dict.clear();
                     }
 
-                    let value = RefValue::from(self.runtime.reader.get(&range));
+                    // fixme: This line is the only difference between the Capture::Range and Capture::Value branch.
+                    //        This is totally ugly and should be reworked.
+                    let value = RefValue::from(self.thread.reader.get(&range));
 
                     if let Some(alias) = alias {
                         // Move list items into dict when this is the first entry
@@ -437,11 +414,10 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
     /// Drains n items off the stack into a vector of values
     pub fn drain(&mut self, n: usize) -> Vec<RefValue> {
-        let tos = self.runtime.stack.len();
+        let tos = self.stack.len();
         assert!(n <= tos - self.frame0().capture_start);
 
         let captures: Vec<Capture> = self
-            .runtime
             .stack
             .drain(tos - n..)
             .filter(|capture| !matches!(capture, Capture::Empty))
@@ -449,31 +425,30 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
 
         captures
             .into_iter()
-            .map(|mut capture| capture.extract(&self.runtime.reader))
+            .map(|mut capture| capture.extract(&self.thread.reader))
             .collect()
     }
 
     // Execute VM opcodes in a context.
-    // This function is a wrapper for Op::execute() which post-processes the result.
-    fn execute(&mut self, ops: &[Op]) -> Result<Accept, Reject> {
-        let mut state = Op::execute(ops, self);
+    // This function is a wrapper for Op::run() which post-processes the result.
+    fn execute(&mut self, name: &str, ops: &[Op]) -> Result<Accept, Reject> {
+        let mut state = Op::run(ops, self);
 
         match state {
             // In case state is Accept::Next, try to return a capture
             Ok(Accept::Next) => {
                 // Either take $0 when set
-                if let Capture::Value(value, ..) =
-                    &mut self.runtime.stack[self.frame.capture_start - 1]
-                {
+                if let Capture::Value(value, ..) = &mut self.var {
                     state = Ok(Accept::Push(Capture::Value(
                         value.clone(),
                         None,
                         self.parselet.severity,
                     )));
                 // Otherwise, push last value
-                } else if self.runtime.stack.len() > self.frame.capture_start {
-                    state = Ok(Accept::Push(self.runtime.stack.pop().unwrap())
-                        .into_push(self.parselet.severity));
+                } else if self.stack.len() > self.frame.capture_start {
+                    state =
+                        Ok(Accept::Push(self.stack.pop().unwrap())
+                            .into_push(self.parselet.severity));
                 }
             }
 
@@ -487,8 +462,8 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
             _ => {}
         }
 
-        if self.runtime.debug > 3 {
-            self.log(&format!("final state = {:?}", state));
+        if self.thread.debug > 3 {
+            self.log(&format!("{} final state = {:?}", name, state));
         }
 
         state
@@ -498,6 +473,7 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
     pub fn run(&mut self, main: bool) -> Result<Accept, Reject> {
         // Debugging
         if self.debug < 3 {
+            //println!("{:?}", self.parselet.name);
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
                 for name in inspect.split(" ") {
                     if name == self.parselet.name {
@@ -513,14 +489,14 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         }
 
         // Begin
-        let mut ret = match self.execute(&self.parselet.begin) {
+        let mut ret = match self.execute("begin", &self.parselet.begin) {
             Ok(Accept::Next) | Err(Reject::Skip) => Capture::Empty,
             Ok(Accept::Push(capture)) => {
-                self.reset(Some(self.runtime.reader.tell()));
+                self.reset(Some(self.thread.reader.tell()));
                 capture
             }
             Ok(Accept::Repeat) => {
-                self.reset(Some(self.runtime.reader.tell()));
+                self.reset(Some(self.thread.reader.tell()));
                 Capture::Empty
             }
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
@@ -530,88 +506,124 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         // Body
         let mut first = true;
         ret = loop {
-            match self.execute(&self.parselet.body) {
+            match self.execute("body", &self.parselet.body) {
                 Err(Reject::Skip) => {}
                 Ok(Accept::Next) => break ret,
                 Ok(Accept::Push(capture)) => break capture,
-                Ok(Accept::Repeat) => {}
+                Ok(Accept::Repeat) => {
+                    // break on eof
+                    if self.thread.reader.eof {
+                        break ret;
+                    }
+                }
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
                 Err(Reject::Next) if !first => break Capture::Empty,
                 other => return other,
             }
 
             // Reset capture stack for loop repeat
-            self.reset(Some(self.runtime.reader.tell()));
+            self.reset(Some(self.thread.reader.tell()));
             first = false;
         };
 
         // End
-        ret = match self.execute(&self.parselet.end) {
+        ret = match self.execute("end", &self.parselet.end) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Repeat) => ret,
             Ok(Accept::Push(capture)) => capture,
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
         };
 
-        Ok(Accept::Push(ret).into_push(self.parselet.severity))
+        let ret = Accept::Push(ret).into_push(self.parselet.severity);
+
+        if self.thread.debug > 3 {
+            self.log(&format!("ret = {:?}", ret));
+        }
+
+        Ok(ret)
     }
 
     /** Run the current context as a main parselet.
 
     __main__-parselets are executed differently, as they handle unrecognized input as whitespace or gap,
-    by skipping over it.
+    by skipping over it. __main__ parselets do also operate on multiple input Readers by sequence inside
+    of the Context's thread.
     */
     fn run_as_main(&mut self) -> Result<Accept, Reject> {
         // collected results
         let mut results = List::new();
 
         // Begin
-        match self.execute(&self.parselet.begin) {
+        match self.execute("main begin", &self.parselet.begin) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                results.push(capture.extract(&self.runtime.reader));
+                let res = capture.extract(&self.thread.reader);
+                if !res.is_void() {
+                    results.push(res);
+                }
             }
             Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
             other => return other,
         };
 
-        self.reset(Some(self.runtime.reader.tell()));
-
-        // Body
         loop {
-            match self.execute(&self.parselet.body) {
-                Err(Reject::Next)
-                | Err(Reject::Skip)
-                | Ok(Accept::Next)
-                | Ok(Accept::Push(Capture::Empty)) => {}
-                Ok(Accept::Push(mut capture)) => {
-                    results.push(capture.extract(&self.runtime.reader));
+            self.reset(Some(self.thread.reader.tell()));
+
+            // Body
+            loop {
+                match self.execute("main body", &self.parselet.body) {
+                    Err(Reject::Next)
+                    | Err(Reject::Skip)
+                    | Ok(Accept::Next)
+                    | Ok(Accept::Push(Capture::Empty)) => {}
+                    Ok(Accept::Push(mut capture)) => {
+                        let res = capture.extract(&self.thread.reader);
+                        if !res.is_void() {
+                            results.push(res);
+                        }
+                    }
+                    Ok(Accept::Repeat) => {}
+                    Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
+                    other => return other,
                 }
-                Ok(Accept::Repeat) => {}
-                Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                other => return other,
+
+                if self.frame.reader_start == self.thread.reader.tell() {
+                    // Skip one character if nothing was consumed
+                    self.thread.reader.next();
+
+                    // Drop all memoizations
+                    self.thread.memo.clear();
+                }
+
+                // Reset capture stack for loop repeat
+                self.reset(Some(self.thread.reader.tell()));
+
+                // Break on EOF
+                if self.thread.reader.eof() {
+                    break;
+                }
             }
 
-            // Skip one character if nothing was consumed
-            if self.frame.reader_start == self.runtime.reader.tell() {
-                self.runtime.reader.next();
-            }
-
-            // Reset capture stack for loop repeat
-            self.reset(Some(self.runtime.reader.tell()));
-
-            // Break on EOF
-            if self.runtime.reader.eof() {
+            if self.thread.readers.is_empty() {
                 break;
             }
+
+            // Change reader within thread, and continue
+            self.thread.reader = self.thread.readers.remove(0);
+
+            // Drop all memoizations
+            self.thread.memo.clear();
         }
 
         // End
-        match self.execute(&self.parselet.end) {
+        match self.execute("main end", &self.parselet.end) {
             Ok(Accept::Next) | Err(Reject::Skip) | Ok(Accept::Push(Capture::Empty)) => {}
             Ok(Accept::Push(mut capture)) => {
-                results.push(capture.extract(&self.runtime.reader));
+                let res = capture.extract(&self.thread.reader);
+                if !res.is_void() {
+                    results.push(res);
+                }
             }
             Ok(Accept::Repeat) => {}
             Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
@@ -632,11 +644,5 @@ impl<'program, 'parselet, 'runtime> Context<'program, 'parselet, 'runtime> {
         } else {
             Ok(Accept::Push(Capture::Empty))
         }
-    }
-}
-
-impl<'program, 'parselet, 'runtime> Drop for Context<'program, 'parselet, 'runtime> {
-    fn drop(&mut self) {
-        self.runtime.stack.truncate(self.stack_start + self.hold);
     }
 }

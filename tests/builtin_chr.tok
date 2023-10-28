@@ -1,0 +1,6 @@
+#testmode:repl
+chr(97)
+chr(8984)
+#---
+#"a"
+#"⌘"

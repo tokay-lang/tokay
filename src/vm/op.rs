@@ -1,8 +1,7 @@
 use super::*;
-use crate::error::Error;
 use crate::reader::Offset;
 use crate::value;
-use crate::value::{Dict, List, Object, Str, Value};
+use crate::value::{Dict, List, Object, RefValue, Str, Value};
 use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;
@@ -20,14 +19,16 @@ pub(crate) enum Op {
     Offset(Box<Offset>), // Source offset position for debugging
 
     // Capture frames
-    Frame(usize),    // Start new frame with optional relative forward address fuse
-    Capture,         // Reset frame capture to current stack size, saving captures
-    Extend,          // Extend frame's reader to current position
-    Reset,           // Reset frame
-    Close,           // Close frame
-    Collect(bool),   // Collect stack values from current frame
-    InCollect(bool), // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
-    Fuse(usize),     // Set frame fuse to relative forward address
+    Frame(usize), // Start new frame with optional relative forward address fuse
+    // Capture,      // Reset frame capture to current stack size, saving captures
+    Extend,        // Extend frame's reader to current position
+    Reset,         // Reset frame, stack+reader
+    ResetReader,   // Reset reader
+    ResetCapture,  // Reset captures
+    Close,         // Close frame
+    Collect(bool), // Collect stack values from current frame (true: sequence)
+    // InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
+    Fuse(usize), // Set frame fuse to relative forward address
 
     // Loop frames
     Loop(usize), // Loop frame
@@ -42,20 +43,19 @@ pub(crate) enum Op {
     ForwardIfConsumed(usize), // Jump forward when frame consumed input
 
     // Direct jumps
-    Forward(usize),  // Jump forward
-    Backward(usize), // Jump backward
+    Forward(usize), // Jump forward
+    // Backward(usize), // Jump backward
 
     // Interrupts
-    Next,                  // Err(Reject::Next)
-    Push,                  // Ok(Accept::Push)
-    LoadPush,              // Ok(Accept::Push) with value
-    Accept,                // Ok(Accept::Return)
-    LoadAccept,            // Ok(Accept::Return) with value
-    Repeat,                // Ok(Accept::Repeat)
-    Reject,                // Ok(Err::Reject)
-    LoadExit,              // Exit with errorcode
-    Exit,                  // Exit with 0
-    Error(Option<String>), // Error with optional error message (otherwise its expected on stack)
+    Next,       // Err(Reject::Next)
+    Push,       // Ok(Accept::Push)
+    LoadPush,   // Ok(Accept::Push) with value
+    Accept,     // Ok(Accept::Return)
+    LoadAccept, // Ok(Accept::Return) with value
+    Repeat,     // Ok(Accept::Repeat)
+    Reject,     // Ok(Err::Reject)
+    LoadExit,   // Exit with errorcode
+    Exit,       // Exit with 0
 
     // Call
     CallOrCopy,          // Load and eventually call stack element without parameters
@@ -110,21 +110,16 @@ pub(crate) enum Op {
 }
 
 impl Op {
-    pub fn execute(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
+    /** Runs a sequence of Ops on a given Context.
+
+    This function is the heart of the Tokay VM, and executes the individual instructions.
+
+    There are several frames managed within the context, which represent sub-sequences and
+    reader areas within the current thread.
+    */
+    pub(in crate::vm) fn run(ops: &[Op], context: &mut Context) -> Result<Accept, Reject> {
         if ops.len() == 0 {
             return Ok(Accept::Next);
-            //return Ok(Accept::Push(Capture::Empty));
-        }
-
-        fn dump(ops: &[Op], context: &Context, ip: usize) {
-            for (i, op) in ops.iter().enumerate() {
-                context.log(&format!(
-                    "{}{:03} {:?}",
-                    if i == ip { ">" } else { " " },
-                    i,
-                    op
-                ));
-            }
         }
 
         assert!(context.frames.len() == 0);
@@ -151,13 +146,29 @@ impl Op {
 
                 // Dump entire code
                 context.log("--- Code ---");
+
+                fn dump(ops: &[Op], context: &Context, ip: usize) {
+                    for (i, op) in ops.iter().enumerate() {
+                        context.log(&format!(
+                            "{}{:03} {:?}",
+                            if i == ip { ">" } else { " " },
+                            i,
+                            op
+                        ));
+                    }
+                }
+
                 dump(ops, context, ip);
 
                 // Dump stack and frames
                 if context.debug > 4 {
+                    context.log("--- Reader ---");
+                    context.log(&format!(" offset={:?}", context.thread.reader.tell()));
+                    context.log(&format!(" eof={:?}", context.thread.reader.eof));
+
                     context.log("--- Stack ---");
-                    for i in 0..context.runtime.stack.len() {
-                        context.log(&format!(" {:03} {:?}", i, context.runtime.stack[i]));
+                    for i in 0..context.stack.len() {
+                        context.log(&format!(" {:03} {:?}", i, context.stack[i]));
                     }
 
                     context.log("--- Frames ---");
@@ -188,26 +199,37 @@ impl Op {
                     context.frames.push(context.frame);
                     context.frame = Frame {
                         fuse: if *fuse > 0 { Some(ip + *fuse) } else { None },
-                        capture_start: context.runtime.stack.len(),
-                        reader_start: context.runtime.reader.tell(),
+                        capture_start: context.stack.len(),
+                        reader_start: context.thread.reader.tell(),
                     };
 
                     Ok(Accept::Next)
                 }
 
+                /*
                 Op::Capture => {
-                    context.frame.capture_start = context.runtime.stack.len();
+                    context.frame.capture_start = context.stack.len();
                     Ok(Accept::Next)
                 }
-
+                */
                 Op::Extend => {
-                    context.frame.reader_start = context.runtime.reader.tell();
+                    context.frame.reader_start = context.thread.reader.tell();
                     Ok(Accept::Next)
                 }
 
                 Op::Reset => {
-                    context.runtime.stack.truncate(context.frame.capture_start);
-                    context.runtime.reader.reset(context.frame.reader_start);
+                    context.stack.truncate(context.frame.capture_start);
+                    context.thread.reader.reset(context.frame.reader_start);
+                    Ok(Accept::Next)
+                }
+
+                Op::ResetReader => {
+                    context.thread.reader.reset(context.frame.reader_start);
+                    Ok(Accept::Next)
+                }
+
+                Op::ResetCapture => {
+                    context.stack.truncate(context.frame.capture_start);
                     Ok(Accept::Next)
                 }
 
@@ -220,16 +242,13 @@ impl Op {
                     context.frame.capture_start,
                     false,
                     *sequence,
-                    context.runtime.debug > 5,
+                    context.thread.debug > 5,
                 ))),
 
-                Op::InCollect(sequence) => {
-                    let mut capture = context.collect(
-                        context.frame.capture_start,
-                        false,
-                        *sequence,
-                        context.runtime.debug > 5,
-                    );
+                /*
+                Op::InCollect => {
+                    let mut capture =
+                        context.collect(context.frame.capture_start, false, context.debug > 5);
 
                     if capture.get_severity() > 5 {
                         capture.set_severity(5);
@@ -237,7 +256,7 @@ impl Op {
 
                     Ok(Accept::Push(capture))
                 }
-
+                */
                 Op::Fuse(addr) => {
                     context.frame.fuse = Some(ip + *addr);
                     Ok(Accept::Next)
@@ -268,7 +287,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
 
                     // Jump behind loop
                     ip = current.end;
@@ -277,7 +296,7 @@ impl Op {
                     Ok(if let Some(value) = value {
                         Accept::Push(Capture::Value(value, None, 10))
                     } else {
-                        context.runtime.stack.push(Capture::Empty);
+                        context.stack.push(Capture::Empty);
                         Accept::Hold
                     })
                 }
@@ -293,7 +312,7 @@ impl Op {
                         context.frame = context.frames.pop().unwrap();
                     }
 
-                    context.runtime.stack.truncate(context.frame.capture_start);
+                    context.stack.truncate(context.frame.capture_start);
 
                     // Jump to loop start.
                     ip = current.start;
@@ -333,7 +352,7 @@ impl Op {
                 }
 
                 Op::ForwardIfConsumed(goto) => {
-                    if context.frame.reader_start != context.runtime.reader.tell() {
+                    if context.frame.reader_start != context.thread.reader.tell() {
                         ip += goto;
                         Ok(Accept::Hold)
                     } else {
@@ -346,11 +365,12 @@ impl Op {
                     Ok(Accept::Hold)
                 }
 
+                /*
                 Op::Backward(goto) => {
                     ip -= goto;
                     Ok(Accept::Hold)
                 }
-
+                */
                 // Interrupts
                 Op::Next => Err(Reject::Next),
 
@@ -359,12 +379,8 @@ impl Op {
                     let value = context.pop();
                     Ok(Accept::Push(Capture::Value(value, None, 15))) // high severity for override required here
                 }
-
-                Op::Accept => Ok(Accept::Return(None)),
-                Op::LoadAccept => {
-                    let value = context.pop();
-                    Ok(Accept::Return(Some(value)))
-                }
+                Op::Accept => Ok(Accept::Return(Capture::Empty)),
+                Op::LoadAccept => Ok(Accept::Return(context.stack.pop().unwrap())),
                 Op::Repeat => Ok(Accept::Repeat),
                 Op::Reject => {
                     state = Err(Reject::Next);
@@ -374,15 +390,6 @@ impl Op {
                     std::process::exit(context.pop().to_i64()? as i32);
                 }
                 Op::Exit => std::process::exit(0),
-
-                Op::Error(msg) => {
-                    if let Some(msg) = msg {
-                        Error::new(Some(context.frame.reader_start), msg.clone()).into()
-                    } else {
-                        Error::new(Some(context.frame.reader_start), context.pop().to_string())
-                            .into()
-                    }
-                }
 
                 // Calls
                 Op::CallOrCopy => {
@@ -430,11 +437,15 @@ impl Op {
                 }
 
                 Op::CallStatic(addr) => {
-                    context.program.statics[*addr].call_direct(context, 0, None)
+                    context.thread.program.statics[*addr].call_direct(context, 0, None)
                 }
 
                 Op::CallStaticArg(addr_args) => {
-                    context.program.statics[addr_args.0].call_direct(context, addr_args.1, None)
+                    context.thread.program.statics[addr_args.0].call_direct(
+                        context,
+                        addr_args.1,
+                        None,
+                    )
                     //println!("CallStaticArg returns {:?}", ret);
                 }
 
@@ -442,7 +453,7 @@ impl Op {
                     let nargs = Value::from(context.pop());
 
                     if let Some(nargs) = nargs.into_object::<Dict>() {
-                        context.program.statics[addr_args.0].call_direct(
+                        context.thread.program.statics[addr_args.0].call_direct(
                             context,
                             addr_args.1,
                             Some(nargs),
@@ -454,7 +465,7 @@ impl Op {
 
                 // Variables and values
                 Op::LoadStatic(addr) => {
-                    let value = &context.program.statics[*addr];
+                    let value = &context.thread.program.statics[*addr];
                     context.push(value.borrow().clone().into())
                 }
                 Op::Push0 => context.push(value!(0i64)),
@@ -464,8 +475,8 @@ impl Op {
                 Op::PushTrue => context.push(value!(true)),
                 Op::PushFalse => context.push(value!(false)),
 
-                Op::LoadGlobal(addr) => context.load(*addr),
-                Op::LoadFast(addr) => context.load(context.stack_start + *addr),
+                Op::LoadGlobal(addr) => context.push(context.thread.globals[*addr].clone()),
+                Op::LoadFast(addr) => context.load(*addr),
 
                 Op::LoadFastCapture(index) => {
                     let value = context.get_capture(*index).unwrap_or(value!(void));
@@ -514,30 +525,28 @@ impl Op {
                 Op::StoreGlobal(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.runtime.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.globals[*addr] = value;
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreGlobalHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.runtime.stack[*addr] = Capture::Value(value, None, 0);
+                    context.thread.globals[*addr] = value;
                     Ok(Accept::Next)
                 }
 
                 Op::StoreFast(addr) => {
                     // todo: bounds checking?
                     let value = context.pop().ref_or_copy();
-                    context.runtime.stack[context.stack_start + *addr] =
-                        Capture::Value(value, None, 0);
+                    context.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Push(Capture::Empty))
                 }
 
                 Op::StoreFastHold(addr) => {
                     // todo: bounds checking?
                     let value = context.peek().ref_or_copy();
-                    context.runtime.stack[context.stack_start + *addr] =
-                        Capture::Value(value, None, 0);
+                    context.stack[*addr] = Capture::Value(value, None, 0);
                     Ok(Accept::Next)
                 }
 
@@ -604,7 +613,7 @@ impl Op {
                 Op::MakeAlias => {
                     let name = context.pop();
 
-                    match context.runtime.stack.last_mut().unwrap() {
+                    match context.stack.last_mut().unwrap() {
                         Capture::Range(_, alias, ..) | Capture::Value(_, alias, ..) => {
                             *alias = Some(name);
                         }
@@ -673,11 +682,8 @@ impl Op {
                 Op::Copy(index) => {
                     assert!(*index > 0);
 
-                    let index = context.runtime.stack.len() - index;
-                    context
-                        .runtime
-                        .stack
-                        .push(context.runtime.stack[index].clone());
+                    let index = context.stack.len() - index;
+                    context.stack.push(context.stack[index].clone());
 
                     Ok(Accept::Next)
                 }
@@ -685,14 +691,11 @@ impl Op {
                 Op::Swap(index) => {
                     assert!(*index > 1);
 
-                    let index = context.runtime.stack.len() - index;
-                    let tos = context.runtime.stack.pop().unwrap();
+                    let index = context.stack.len() - index;
+                    let tos = context.stack.pop().unwrap();
 
-                    context
-                        .runtime
-                        .stack
-                        .push(context.runtime.stack[index].clone());
-                    context.runtime.stack[index] = tos;
+                    context.stack.push(context.stack[index].clone());
+                    context.stack[index] = tos;
 
                     Ok(Accept::Next)
                 }
@@ -718,13 +721,13 @@ impl Op {
                 Ok(Accept::Hold) => state = Ok(Accept::Next),
                 Ok(Accept::Next) => ip += 1,
                 Ok(Accept::Push(capture)) if ip + 1 < ops.len() => {
-                    context.runtime.stack.push(capture);
+                    context.stack.push(capture);
                     state = Ok(Accept::Next);
                     ip += 1;
                 }
                 Err(Reject::Next) if context.frames.len() > 0 => loop {
-                    context.runtime.stack.truncate(context.frame.capture_start);
-                    context.runtime.reader.reset(context.frame.reader_start);
+                    context.stack.truncate(context.frame.capture_start);
+                    context.thread.reader.reset(context.frame.reader_start);
 
                     if let Some(fuse) = context.frame.fuse {
                         if fuse > ip {

@@ -30,3 +30,11 @@ This is how Tokay builtin values are converted during binary operations.
 | **str**   |   str    |   str    |   str    |   str   |   str     |   str    |   str   |   dict   |   list
 | **dict**  |   dict   |   dict   |   dict   |   dict  |   dict    |   dict   |   dict  |   dict   |   list
 | **list**  |   list   |   list   |   list   |   list  |   list    |   list   |   list  |   list   |   list
+
+# Token severity
+
+| Severity | Used by                                                                 |
+| -------- | ----------------------------------------------------------------------- |
+|        0 | `_`, `__`, `Touch`                                                      |
+|        5 | Any token (`Char`, `Match`, `Int`, `Float`, `Number`), parselet default |
+|       10 | Any explicitly pushed value                                             |

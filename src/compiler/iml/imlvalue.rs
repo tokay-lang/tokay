@@ -12,69 +12,100 @@ use std::rc::Rc;
 
 /** Intermediate value
 
-Intermediate values are values that result during the compile process based on current information
-from the syntax tree and symbol table information.
+Intermediate values are value descriptors that result during the compile process based on current
+information from the syntax tree and symbol table information..
 
-These can be memory locations of variables, static values, functions or values whose definition is
-still pending.
+These can be memory locations of variables, static values, parselets or values whose definition is
+still pending. As some intermediate values consist of other intermediate values, they are being
+modified and resolved during the compilation process.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Void,
-    Shared(Rc<RefCell<ImlValue>>),
-
-    // Resolved: static
-    This(bool),                  // current function (false) or parselet (true)
-    Value(RefValue),             // Compile-time static value
-    Parselet(ImlSharedParselet), // Parselet instance
-
-    // Resolved: dynamic
-    Local(usize),  // Runtime local variable
-    Global(usize), // Runtime global variable
-
-    // Unresolved
+    Unset,                             // Unset
+    Unresolved(Rc<RefCell<ImlValue>>), // Unresolved ImlValues are shared
+    Value(RefValue),                   // Static value
+    Parselet(ImlParselet),             // Parselet
+    This(bool),                        // self-reference to function (false) or parselet (true)
+    Variable {
+        // Resolved variable
+        offset: Option<Offset>, // Source offset
+        name: String,           // Name
+        is_global: bool,        // Global
+        addr: usize,            // Address
+    },
+    Generic {
+        // Known generic placeholder
+        offset: Option<Offset>, // Source offset
+        name: String,           // Identifier
+    },
     Name {
         // Unresolved name
         offset: Option<Offset>, // Source offset
-        generic: bool,          // Generic name, to be resolved during compilation
         name: String,           // Identifier
     },
     Instance {
-        // Parselet instance definition
+        // Unresolved parselet instance definition
         offset: Option<Offset>,                              // Source offset
         target: Box<ImlValue>,                               // Instance target
         args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
         nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
+        severity: Option<u8>,                                // optional desired severity
+        generated: bool,
     },
 }
 
 impl ImlValue {
+    /**
+    Helper function, which creates an instance definition from self,
+    by turning self into name<self>.
+
+    This is used internally to implement `Kle<P>` from `P*` syntax
+    during the AST traversal.
+    */
+    pub fn into_generic(self, name: &str, severity: Option<u8>) -> Self {
+        Self::Instance {
+            offset: None,
+            target: Box::new(ImlValue::Name {
+                offset: None,
+                name: name.to_string(),
+            }),
+            args: vec![(None, self)],
+            nargs: IndexMap::new(),
+            severity,
+            generated: true,
+        }
+    }
+
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
     pub fn try_resolve(mut self, compiler: &mut Compiler) -> Self {
         if self.resolve(compiler) {
             return self;
         }
 
-        let shared = Self::Shared(Rc::new(RefCell::new(self)));
+        let shared = Self::Unresolved(Rc::new(RefCell::new(self)));
         compiler.usages.push(shared.clone());
         shared
     }
 
-    /// Resolve unresolved ImlValue. Returns true in case the provided value is (already) resolved.
+    /**
+    In-place resolve unresolved ImlValue.
+
+    - ImlValue::Name are being resolved by the compiler's symbol table
+    - ImlValue::Instance are being recursively resolved to produce an ImlValue::Parselet
+
+    Returns true in case the provided value is (already) resolved.
+    */
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
-            Self::Shared(value) => return value.borrow_mut().resolve(compiler),
-            Self::Name {
-                name,
-                generic: false,
-                ..
-            } => compiler.get(&name),
-            Self::Name { generic: true, .. } => return false,
+            Self::Unresolved(value) => return value.borrow_mut().resolve(compiler),
+            Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
             Self::Instance {
                 offset,
                 target,
                 args,
                 nargs,
+                severity,
+                generated,
             } => {
                 let mut is_resolved = target.resolve(compiler);
 
@@ -92,12 +123,12 @@ impl ImlValue {
                     }
                 }
 
-                // When everything is resolved, turn the instance definition into a parselet
+                // When all instance members are resolved, try to turn the instance definition into a parselet
                 if is_resolved {
                     match &**target {
                         ImlValue::Parselet(parselet) => {
                             let parselet = parselet.borrow();
-                            let mut new_constants = IndexMap::new();
+                            let mut constants = IndexMap::new();
 
                             for (name, default) in parselet.constants.iter() {
                                 // Take arguments by sequence first
@@ -114,7 +145,7 @@ impl ImlValue {
                                 };
 
                                 // Check integrity of constant names
-                                if let Self::Void = arg.1 {
+                                if let Self::Unset = arg.1 {
                                     compiler.errors.push(Error::new(
                                         arg.0,
                                         format!("Expecting argument for generic '{}'", name),
@@ -139,7 +170,7 @@ impl ImlValue {
                                     ));
                                 }
 
-                                new_constants.insert(name.clone(), arg.1);
+                                constants.insert(name.clone(), arg.1);
                             }
 
                             // Report any errors for unconsumed generic arguments.
@@ -149,14 +180,14 @@ impl ImlValue {
                                     format!(
                                         "{} got too many generic arguments ({} in total, expected {})",
                                         target,
-                                        new_constants.len() + args.len(),
-                                        new_constants.len()
+                                        constants.len() + args.len(),
+                                        constants.len()
                                     ),
                                 ));
                             }
 
                             for (name, (offset, _)) in nargs {
-                                if new_constants.get(name).is_some() {
+                                if constants.get(name).is_some() {
                                     compiler.errors.push(Error::new(
                                         *offset,
                                         format!(
@@ -175,23 +206,34 @@ impl ImlValue {
                                 }
                             }
 
-                            Some(ImlValue::from(
-                                parselet.derive(new_constants, offset.clone()),
-                            ))
+                            // Make a parselet instance from the instance definition;
+                            // This can be the final parselet instance, but constants
+                            // might contain generic references as well, which are being
+                            // resolved during further compilation and derivation.
+                            let instance = ImlValue::from(ImlParseletInstance {
+                                model: parselet.model.clone(),
+                                constants,
+                                offset: parselet.offset.clone(),
+                                name: parselet.name.clone(),
+                                severity: severity.unwrap_or(parselet.severity),
+                                generated: *generated,
+                            });
+
+                            Some(instance)
                         }
                         target => {
                             compiler.errors.push(Error::new(
                                 *offset,
                                 format!("Cannot create instance from '{}'", target),
                             ));
-                            None
+                            return false;
                         }
                     }
                 } else {
-                    None
+                    return false;
                 }
             }
-            _ => return true,
+            _ => return true, // anything else is considered as resolved
         };
 
         if let Some(resolve) = resolve {
@@ -202,7 +244,7 @@ impl ImlValue {
         false
     }
 
-    /// Turn ImlValue into RefValue
+    /// Conert ImlValue into RefValue
     pub fn unwrap(self) -> RefValue {
         match self {
             Self::Value(value) => value,
@@ -214,7 +256,7 @@ impl ImlValue {
     /// and when its callable if with or without arguments.
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
-            Self::Shared(value) => value.borrow().is_callable(without_arguments),
+            Self::Unresolved(value) => value.borrow().is_callable(without_arguments),
             Self::This(_) => true, // fixme?
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
@@ -226,11 +268,12 @@ impl ImlValue {
                         || parselet
                             .signature
                             .iter()
-                            .all(|arg| !matches!(arg.1, Self::Void))
+                            .all(|arg| !matches!(arg.1, Self::Unset))
                 } else {
                     true
                 }
             }
+            Self::Instance { target, .. } => target.is_callable(without_arguments),
             _ => false,
         }
     }
@@ -238,22 +281,26 @@ impl ImlValue {
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Shared(value) => value.borrow().is_consuming(),
+            Self::Unresolved(value) => value.borrow().is_consuming(),
             Self::This(consuming) => *consuming,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
-            Self::Name { name, .. } => crate::utils::identifier_is_consumable(name),
+            Self::Name { name, .. } | Self::Generic { name, .. } => {
+                crate::utils::identifier_is_consumable(name)
+            }
             Self::Instance { target, .. } => target.is_consuming(),
             _ => false,
         }
     }
 
-    /// Compile a resolved intermediate value into VM code
+    /** Compile a resolved intermediate value into VM code or register it as a static.
+
+    The function will panic when the value is not resolved.
+    */
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        parselet: &ImlParselet,
-        this: usize,
+        current: (&ImlParselet, usize),
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,
@@ -266,10 +313,9 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
-            ImlValue::Shared(value) => {
-                return value
-                    .borrow()
-                    .compile(program, parselet, this, offset, call, ops)
+            ImlValue::Unset => return,
+            ImlValue::Unresolved(value) => {
+                return value.borrow().compile(program, current, offset, call, ops)
             }
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
@@ -283,64 +329,35 @@ impl ImlValue {
                 },
                 _ => {}
             },
-            ImlValue::Local(addr) => ops.push(Op::LoadFast(*addr)),
-            ImlValue::Global(addr) => ops.push(Op::LoadGlobal(*addr)),
-            ImlValue::Name {
-                name,
-                generic: true,
-                ..
+            ImlValue::Variable {
+                addr, is_global, ..
             } => {
-                return parselet.constants[name].compile(program, parselet, this, offset, call, ops)
-            }
-            ImlValue::Name {
-                name,
-                generic: false,
-                ..
-            } => {
-                program.errors.push(Error::new(
-                    offset.clone(),
-                    if call.is_some() {
-                        format!("Call to unresolved symbol '{}'", name)
-                    } else {
-                        format!("Use of unresolved symbol '{}'", name)
-                    },
-                ));
-
-                return;
-            }
-            ImlValue::This(_) => {}
-            ImlValue::Parselet(parselet) => {
-                // When value is a parselet, check for accepted constant configuration
-                let parselet = parselet.borrow();
-                let mut required = Vec::new();
-
-                for (name, default) in &parselet.constants {
-                    if matches!(default, ImlValue::Void) {
-                        required.push(name.to_string());
-                    }
-                }
-
-                if !required.is_empty() {
-                    program.errors.push(Error::new(
-                        offset.clone(),
-                        format!(
-                            "Call to '{}' requires generic argument {}",
-                            self,
-                            required.join(", ")
-                        ),
-                    ));
-
-                    return;
+                if *is_global {
+                    ops.push(Op::LoadGlobal(*addr))
+                } else {
+                    ops.push(Op::LoadFast(*addr))
                 }
             }
-            _ => unreachable!("{:?}", self),
+            ImlValue::Generic { name, .. } => {
+                return current.0.borrow().constants[name]
+                    .compile(program, current, offset, call, ops)
+            }
+            ImlValue::This(_) | ImlValue::Parselet(_) => {}
+            _ => unreachable!("{}", self),
         }
 
         // Check if something has been pushed before.
         if start == ops.len() {
             let idx = match self {
-                ImlValue::This(_) => this,
-                _ => program.register(self).unwrap(),
+                ImlValue::This(_) => current.1, // use current index
+                ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
+                    Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
+                    Err(msg) => {
+                        program.errors.push(Error::new(offset.clone(), msg));
+                        return;
+                    }
+                },
+                resolved => program.register(resolved),
             };
 
             match call {
@@ -377,97 +394,79 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Void => write!(f, "void"),
-            Self::Shared(value) => value.borrow().fmt(f),
+            Self::Unset => write!(f, "unset"),
+            Self::Unresolved(value) => value.borrow().fmt(f),
             Self::This(true) => write!(f, "Self"),
             Self::This(false) => write!(f, "self"),
             Self::Value(value) => write!(f, "{}", value.repr()),
-            Self::Parselet(parselet) => write!(f, "{}", parselet),
-            Self::Name { name, .. } => write!(f, "{}", name),
-            _ => todo!(),
-        }
-    }
-}
-
-/*
-impl std::fmt::Display for ImlValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Void => write!(f, "void"),
-            Self::Unknown(name) | Self::Undefined(name) => write!(f, "{}", name),
-            Self::Value(value) => write!(f, "{}", value.repr()),
-            Self::Parselet {
-                parselet,
-                constants,
-            } => {
-                write!(
-                    f,
-                    "{}",
-                    parselet
-                        .borrow()
-                        .name
-                        .as_deref()
-                        .unwrap_or("<anonymous parselet>")
-                )?;
-
-                if !constants.is_empty() {
-                    write!(f, "<")?;
-                    for (i, (name, value)) in constants.iter().enumerate() {
-                        if matches!(value, ImlValue::Void) {
-                            write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
-                        } else {
-                            write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
-                        }
-                    }
-                    write!(f, ">")?;
-                }
-
-                Ok(())
-            }
-            Self::Local(addr) => write!(f, "local@{}", addr),
-            Self::Global(addr) => write!(f, "global@{}", addr),
-            Self::Symbol {
-                name,
-                gen_by_seq,
-                gen_by_name,
+            Self::Parselet(parselet) => write!(
+                f,
+                "{}",
+                parselet
+                    .borrow()
+                    .name
+                    .as_deref()
+                    .unwrap_or("<anonymous parselet>")
+            ),
+            Self::Variable {
+                name, is_global, ..
+            } if *is_global => write!(f, "global '{}'", name),
+            Self::Variable { name, .. } => write!(f, "local '{}'", name),
+            Self::Name { name, .. } => write!(f, "name '{}'", name),
+            Self::Generic { name, .. } => write!(f, "generic '{}'", name),
+            Self::Instance {
+                target,
+                args,
+                nargs,
+                ..
             } => {
                 write!(f, "{}", target)?;
 
+                write!(f, "<")?;
                 let mut first = true;
 
-                for item in gen_by_seq {
-                    write!(f, "{}{}", if !first { ", " } else { "<" }, item)?;
+                for arg in args {
+                    write!(f, "{}{}", if !first { ", " } else { "" }, arg.1)?;
                     first = false;
                 }
 
-                for (name, item) in gen_by_name.iter() {
-                    write!(f, "{}{}:{}", if !first { ", " } else { "<" }, name, item)?;
+                for narg in nargs.keys() {
+                    write!(
+                        f,
+                        "{}{}:{}",
+                        if !first { ", " } else { "" },
+                        narg,
+                        nargs[narg].1
+                    )?;
                     first = false;
                 }
 
-                if !first {
-                    write!(f, ">")?;
-                }
-
-                Ok(())
+                write!(f, ">")
             }
         }
     }
 }
-*/
 
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
+            Self::Unset => state.write_u8('u' as u8),
+            Self::Unresolved(value) => value.borrow().hash(state),
             Self::Value(value) => {
                 state.write_u8('v' as u8);
                 value.hash(state)
             }
             Self::Parselet(parselet) => {
                 state.write_u8('p' as u8);
-                parselet.borrow().hash(state);
+                parselet.hash(state);
             }
-            other => unreachable!("{:?} is unhashable", other),
+            /*
+            Self::This(consumable) => {
+                state.write_u8('s' as u8);
+                consumable.hash(state);
+            }
+            */
+            other => unreachable!("{} is unhashable", other),
         }
     }
 }

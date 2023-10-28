@@ -1,27 +1,97 @@
 # Tokay default prelude
 
-Repeat : @<P> min=1, max=void {
-    P {
-        res += $1
-        if !max || res.len < max repeat
-    }
-
-    end {
-        if res.len < min reject
-        res
-    }
+# The `Not`-builtin runs its parser and returns its negated result,
+# so that `P` occurence becomes rejected.
+#
+# Everything else becomes accepted (Void).
+Not : @<P> {
+    P reject
+    Void
 }
 
+# The `Peek`-builtin runs `P` and returns its result, but resets the reading-context afterwards.
+#
+# It can be used to look ahead parsing constructs, but leaving the rest of the parser back to
+# its original position, to decide.
+#
+# Due to Tokays memorizing features, the parsing will only be done once, and is remembered.
+Peek : @<P> {
+    P reset
+}
+
+# The `Expect`-builtin either expects `P`, and otherwise raises a syntax error,
+# reporting a useful parse error message.
+Expect : @<P> msg=void {
+    accept P
+    error(msg || "Expecting " + *P + ", but got " + repr(Peek<(Char | Token | "end-of-file")>))
+}
+
+# This is a simple programmatic sequential repetition of `P`.
+#
+# It allows to specify a minimum (`min`) and maximum (`max`) count of allowed repetitions
+# Blurrying (`blur`) means, to turn empty list into void, and return single-item lists as the
+# item, which was the default with the built-in repeat construct in Tokay < 0.7
+#
+# For several reasons, repetitions can also be expressed on a specialized token-level or by
+# the grammar itself using left- and right-recursive structures, resulting in left- or
+# right-leaning parse trees.
+#
+# Used by the `Pos<P>` and `Kle<P>` modifiers.
+Repeat : @<
+    P,          # Parselet
+    min: 1,     # minimum occurence
+    max: void,  # maximum occurence, void for unlimited
+    blur: true  # result blurrying; empty list becomes void, one-item list becomes item
+> {
+    res = ()
+    cnt = 0
+
+    loop {
+        P {
+            res.push($1)
+            cnt += 1
+            if max && cnt == max break
+        }
+
+        if cnt < min reject
+        break
+    }
+
+    if blur {
+        if res.len == 0 {
+            accept void
+        }
+        else if res.len == 1 {
+            accept res[0]
+        }
+    }
+
+    res
+}
+
+# Repeats `P` one or multiple times.
+Pos : @<P, blur: true>{ Repeat<P, blur: blur> }
+
+# Repeats `P` none or multiple times.
+Kle : @<P, blur: true>{ Repeat<P, min: 0, blur: blur> || void }
+
+# Optionally accepts `P` or nothing.
+Opt : @<P>{ P | Void }
+
+# Implements a recursive, separated list.
+#
+# `P` is parsed as part of a list, which is separated by `Separator`.
+# `Separator` defaults to `(',' _)`.
+#
+# The `empty` config allows for a trailing `Separator` with no `P`.
 List : @<P, Separator: (',' _), empty: true> {
     Self Separator P   $1 + $3
     if empty (Self Separator)   # allows for trailing Separator
     P  ($1, )
 }
 
-Expect : @<P> msg=void {
-    P
-    error(msg || "Expecting " + *P)
-}
-
+# Parses any number, either Float or Int.
 Number : Float | Int
+
+# Parse any token, which is just no whitespace in default terms.
 Token : Word | Number | AsciiPunctuation

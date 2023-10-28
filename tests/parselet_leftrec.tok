@@ -1,28 +1,27 @@
-# direct1
+# direct
 D1: @{
-    D1? ''a''
+    D1 Char<b>
+    Char<a>
 }
 'D1' print(D1)
 
-# direct2
-D2: @{
-    D2 'b'
-    'a'
+# indirect 1: currently not working, see issue #95 for details
+I1: @{
+    I1? Char<a>
 }
-'D2' print(D2)
+'I1' print(I1)
 
-# indirect
-# currently not working, see issue #95 on this.
+# indirect 2: currently not working, see issue #95 for details
 X: Y 'c'
 Y: Z 'b'
 Z: X | Y | 'a'
-'I' print(Z)
+'I2' print(Z)
 
 #---
-#D1aaaa
-#D2abbb
-#Iabbcb
+#D1abbb
+#I1aaaa
+#I2abbcb
 #---
-#((("a", "a"), "a"), "a")
 #((("a", "b"), "b"), "b")
+#a
 #a

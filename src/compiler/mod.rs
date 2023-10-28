@@ -4,10 +4,11 @@ pub(crate) mod ast;
 mod compiler;
 mod iml;
 mod parser;
+mod prelude;
 
 use compiler::*;
 use iml::*;
 use parser::*;
 
-pub(crate) use ast::identifier_is_valid;
+pub(crate) use ast::{RESERVED_KEYWORDS, RESERVED_TOKENS};
 pub use compiler::Compiler;

@@ -1,6 +1,6 @@
 # Tokay grammar / parser
 # This program is used to generate Tokays own parser, and is written in Tokay itself.
-# Use the tooling in `gen_grammar/` for now.
+# See `build/README.md` for details.
 
 # Whitespace & EOL
 
@@ -15,7 +15,7 @@ ___ : (T_EOL _)*  # optional line-breaks followed by whitespace
 _standalone_ : @{
     # helper parselet to ensure that identifiers stand alone
     # fixme: When generic parselets are available, this can be replaced by a Keyword<P> invocation
-    peek not Char<A-Z_a-z> _
+    Peek<Not<Char<A-Z_a-z>>> _
     _
 }
 
@@ -23,8 +23,8 @@ T_EOL : @{
     '\n' _
     '\r' '\n'? _
     ';' _
-    peek EOF  accept  # accept is used to bypass bug #64 here
-    peek '}'
+    accept Peek<'}'>
+    accept Peek<EOF>
 }
 
 # Prime Tokens
@@ -83,7 +83,7 @@ T_String : @{
         '\\' T_EscapeSequence
         Char<^\\\">
         EOF  error("Unclosed string, expecting '\"'")
-    }*  str_join("", $2) expect '"'
+    }*  str_join("", $2) Expect<'"'>
 }
 
 T_Touch : @{
@@ -91,7 +91,7 @@ T_Touch : @{
         '\\' T_EscapeSequence
         Char<^\\\'>
         EOF  error("Unclosed match, expecting '\''")
-    }*  str_join("", $2) expect '\''
+    }*  str_join("", $2) Expect<'\''>
 }
 
 T_Integer : @{
@@ -149,31 +149,31 @@ Lvalue : @{
 Load : @{
     Lvalue '++'  ast("inplace_post_inc")
     Lvalue '--'  ast("inplace_post_dec")
-    '++' expect Lvalue  ast("inplace_pre_inc")
-    '--' expect Lvalue  ast("inplace_pre_dec")
+    '++' Expect<Lvalue>  ast("inplace_pre_inc")
+    '--' Expect<Lvalue>  ast("inplace_pre_dec")
     Variable
 }
 
 # Parselet
 
 Parselet : @{
-    '@' _ ParseletGenerics? _ ParseletArguments? expect Block("body")  ast("value_parselet")
+    '@' _ ParseletGenerics? _ ParseletArguments? Expect<Block("body")>  ast("value_parselet")
 }
 
 ## Parselet: Generics
 
 ParseletGeneric : @{
-    T_Identifier _ (':' _ expect Atomic)?  ast("gen")
+    T_Identifier _ (':' _ Expect<Atomic>)?  ast("gen")
 }
 
 ParseletGenerics : @{
-    '<' _ (ParseletGeneric (',' _)?)* _ expect '>' _
+    '<' _ ___ (ParseletGeneric ___ (',' _ ___)?)* ___ Expect<'>'> _ ___
 }
 
 ## Parselet: Arguments
 
 ParseletArgument : @{
-    T_Identifier _ ('=' _ expect Expression?)?  ast("arg")
+    T_Identifier _ ('=' _ Expect<Expression>)?  ast("arg")
 }
 
 ParseletArguments : @{
@@ -185,26 +185,26 @@ ParseletArguments : @{
 StaticParseletInstance : T_Consumable | Parselet
 
 ParseletInstanceArgument : @{
-    T_Identifier _ ':' _ expect Atomic _  ast("genarg_named")
+    T_Identifier _ ':' _ Expect<Atomic> _  ast("genarg_named")
     Atomic _  ast("genarg")
 }
 
 ParseletInstance : @{
-    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ expect '>' _  ast("value_generic")
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ Expect<'>'>  ast("value_generic")
     StaticParseletInstance
 }
 
 # Inline Blocks and Sequences
 
 DictItem : @{
-    T_Alias _ '=>' _ expect Expression  ast("alias")
-    Expression '=>' _ expect Expression  ast("alias")
+    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
+    Expression '=>' _ Expect<Expression>  ast("alias")
     Expression
 }
 
 Dict : @{
     # Special case: single Expression followed by "," is considered as a dict with a single item
-    Expression ___ ',' _ ___ peek ')'  ast("dict")
+    Expression ___ ',' _ ___ Peek<')'>  ast("dict")
 
     # A sequence is a list of items optionally separated by ","
     (DictItem ___ (',' _)? ___)+  ast("sequence")
@@ -218,16 +218,16 @@ List : @{
 }
 
 InlineBlock : @{
-    '(' _ ___ Dict (___ '|' _ ___ Dict)+ ___ expect ')'  ast("block")
-    '(' _ ___ Dict ___ expect ')'
-    '[' _ ___ List (___ '|' _ ___ List)+ ___ expect ']'  ast("block")
-    '[' _ ___ List ___ expect ']'
+    '(' _ ___ Dict (___ '|' _ ___ Dict)+ ___ Expect<')'>  ast("block")
+    '(' _ ___ Dict ___ Expect<')'>
+    '[' _ ___ List (___ '|' _ ___ List)+ ___ Expect<']'>  ast("block")
+    '[' _ ___ List ___ Expect<']'>
 }
 
 # Call parameters (used by calls and rvalues)
 
 CallArgument : @{
-    T_Identifier _ '=' _ expect Expression  ast("callarg_named")
+    T_Identifier _ '=' _ Expect<Expression>  ast("callarg_named")
     Expression  ast("callarg")
 }
 
@@ -252,7 +252,7 @@ TokenAtom : @{
     InlineBlock
     '@' _ InlineBlock  ast("area")
     Block
-    ParseletInstance '(' _ ___ CallArguments? ___ expect ')'  ast("call")
+    ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
     ParseletInstance
 }
 
@@ -261,9 +261,6 @@ Token : @{
     TokenAtom '*'  ast("op_mod_kle")
     TokenAtom '?'  ast("op_mod_opt")
     TokenAtom
-    'peek' _standalone_ expect Self  ast("op_mod_peek")
-    'not' _standalone_ expect Self  ast("op_mod_not")
-    'expect' _standalone_ expect Self  ast("op_mod_expect")
 }
 
 # Expression & Flow
@@ -287,83 +284,83 @@ Atomic : @{
     '(' _ ___ HoldExpression ___ ')'
     Literal
     Token
-    'if' _standalone_ expect HoldExpression ___ expect Statement (___ 'else' _standalone_ ___ expect Statement)?  ast("op_if")
-    'for' _standalone_ expect Lvalue _ expect 'in' _standalone_ expect Expression ___ expect Statement  ast("op_for")
+    'if' _standalone_ Expect<HoldExpression> ___ Expect<Statement> (___ 'else' _standalone_ ___ Expect<Statement>)?  ast("op_if")
+    'for' _standalone_ Expect<Lvalue> _ Expect<'in'> _standalone_ Expect<Expression> ___ Expect<Statement>  ast("op_for")
     'loop' _standalone_ HoldExpression ___ Block  ast("op_loop")
-    'loop' _standalone_ expect Block  ast("op_loop")
+    'loop' _standalone_ Expect<Block>  ast("op_loop")
     Load
 }
 
 # Rvalue can be a function call or value attribute/subscript
 
 Rvalue : @{
-    Rvalue '(' _ ___ CallArguments? expect ')'  ast("call")
+    Rvalue '(' _ ___ CallArguments? Expect<')'>  ast("call")
     Rvalue (Attribute | Subscript)*  ast("rvalue")
     Atomic
 }
 
 Unary : @{
-    '-' not '-' _ Unary  ast("op_unary_neg")
+    '-' Not<'-'> _ Unary  ast("op_unary_neg")
     '!' _ Unary  ast("op_unary_not")
     '*' _ Unary  ast("op_deref")
     Rvalue _
 }
 
 MulDiv : @{
-    MulDiv '*' _ expect Unary  ast("op_binary_mul")
-    MulDiv '//' _ expect Unary  ast("op_binary_divi")
-    MulDiv '/' _ expect Unary  ast("op_binary_div")
-    MulDiv '%' _ expect Unary  ast("op_binary_mod")
+    MulDiv '*' _ Expect<Unary>  ast("op_binary_mul")
+    MulDiv '//' _ Expect<Unary>  ast("op_binary_divi")
+    MulDiv '/' _ Expect<Unary>  ast("op_binary_div")
+    MulDiv '%' _ Expect<Unary>  ast("op_binary_mod")
     Unary
 }
 
 AddSub : @{
-    AddSub '+' not '+' _ expect MulDiv  ast("op_binary_add")
-    AddSub '-' not '-' _ expect MulDiv  ast("op_binary_sub")
+    AddSub '+' Not<'+'> _ Expect<MulDiv>  ast("op_binary_add")
+    AddSub '-' Not<'-'> _ Expect<MulDiv>  ast("op_binary_sub")
     MulDiv
 }
 
 Comparison : @{
     AddSub {
-        '==' _ expect AddSub  ast("cmp_eq")
-        '!=' _ expect AddSub  ast("cmp_neq")
-        '<=' _ expect AddSub  ast("cmp_lteq")
-        '>=' _ expect AddSub  ast("cmp_gteq")
-        '<' _ expect AddSub  ast("cmp_lt")
-        '>' _ expect AddSub  ast("cmp_gt")
+        '==' _ Expect<AddSub>  ast("cmp_eq")
+        '!=' _ Expect<AddSub>  ast("cmp_neq")
+        '<=' _ Expect<AddSub>  ast("cmp_lteq")
+        '>=' _ Expect<AddSub>  ast("cmp_gteq")
+        '<' _ Expect<AddSub>  ast("cmp_lt")
+        '>' _ Expect<AddSub>  ast("cmp_gt")
     }+  ast("comparison")
     AddSub
 }
 
 LogicalAnd : @{
-    LogicalAnd '&&' _ expect Comparison  ast("op_logical_and")
+    LogicalAnd '&&' _ Expect<Comparison>  ast("op_logical_and")
     Comparison
 }
 
 LogicalOr : @{
-    LogicalOr '||' _ expect LogicalAnd  ast("op_logical_or")
+    LogicalOr '||' _ Expect<LogicalAnd>  ast("op_logical_or")
     LogicalAnd
 }
 
 HoldExpression : @{
-    Lvalue _ '+=' _ expect HoldExpression  ast("assign_add_hold")
-    Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub_hold")
-    Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul_hold")
-    Lvalue _ '/=' _ expect HoldExpression  ast("assign_div_hold")
-    Lvalue _ '//=' _ expect HoldExpression  ast("assign_divi_hold")
-    Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod_hold")
-    Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign_hold")
+    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add_hold")
+    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub_hold")
+    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul_hold")
+    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div_hold")
+    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi_hold")
+    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod_hold")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign_hold")
     LogicalOr
 }
 
 Expression : @{
-    Lvalue _ '+=' _ expect HoldExpression  ast("assign_add")
-    Lvalue _ '-=' _ expect HoldExpression  ast("assign_sub")
-    Lvalue _ '*=' _ expect HoldExpression  ast("assign_mul")
-    Lvalue _ '/=' _ expect HoldExpression  ast("assign_div")
-    Lvalue _ '//=' _ expect HoldExpression  ast("assign_divi")
-    Lvalue _ '%=' _ expect HoldExpression  ast("assign_mod")
-    Lvalue _ '=' not ('>' | '=') _ expect HoldExpression  ast("assign")
+    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add")
+    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub")
+    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul")
+    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div")
+    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi")
+    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign")
     LogicalOr
 }
 
@@ -378,6 +375,7 @@ Statement : @{
     'push' _standalone_ Expression?  ast("op_push")
     'reject' _standalone_  ast("op_reject")
     'repeat' _standalone_  ast("op_repeat")
+    'reset' _standalone_  ast("op_reset")
     'return' _standalone_ Expression?  ast("op_accept")
     Expression
 }
@@ -386,12 +384,12 @@ Statement : @{
 
 Block : @ emit = "block" {
     '{' _ ___ '}'  ast("value_void")
-    '{' _ Instruction* _ expect '}'  ast(emit)
+    '{' _ Instruction* _ Expect<'}'>   ast(emit)
 }
 
 SequenceItem : @{
-    T_Alias _ '=>' _ expect Expression  ast("alias")
-    Expression '=>' _ expect Expression  ast("alias")
+    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
+    Expression '=>' _ Expect<Expression>  ast("alias")
     Statement
 }
 
@@ -405,15 +403,15 @@ Sequences : @{
 }
 
 Instruction : @{
-    'begin' _standalone_ Sequences expect T_EOL  ast("begin")
-    'end' _standalone_ Sequences expect T_EOL  ast("end")
+    'begin' _standalone_ Sequences Expect<T_EOL>  ast("begin")
+    'end' _standalone_ Sequences Expect<T_EOL>  ast("end")
     T_Identifier _ ':' _ {
-        Literal _ peek T_EOL
-        Token _ peek T_EOL
+        Literal _ Peek<T_EOL>
+        Token _ Peek<T_EOL>
         Sequences
-    } expect T_EOL  ast("constant")
+    } Expect<T_EOL>  ast("constant")
     Statement T_EOL
-    Sequences expect T_EOL
+    Sequences T_EOL
     T_EOL
 }
 
@@ -426,5 +424,6 @@ Tokay : @{
     Char  error("Parse error, unexpected token", true)
 }
 
-_ Tokay? expect EOF  ast("main")
-#_ Tokay? expect EOF  ast_print(ast("main"))
+_ Tokay? Expect<EOF>  ast("main")
+#_ Tokay? Expect<EOF>  ast2rust(ast("main"))
+#_ Tokay? Expect<EOF>  ast_print(ast("main"))

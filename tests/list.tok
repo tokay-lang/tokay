@@ -34,62 +34,7 @@ l = (1, 2, 3)
 l.get_item(0, 1337) l.get_item(3, 1337) l.set_item(0) l[1] = void
 l
 
-# iadd
-l = (1,)
-l += 2
-l += (3, 4)
-l
-
-# iadd to itself
-a = (1,2)
-b = (3,4)
-a + b
-a
-b
-a += b
-a
-b
-
-# add
-l = (1,)
-l + (2, 3)
-l
-
-# len
-list().len
-().len
-(1,).len
-(1, 2, 3).len
-list_len(5)
-
-# push
-l = (1,)
-l.push(2)
-l.push((3, 4))
-
-list_push((1,2,3), 99, 1)
-list_push((1,2,3), 99, 4)
-
-# pop
-l = (1,2,3,4); l.pop() l.pop(1)
-l = (1,2,3,4)
-l.pop(0)
-l.pop()
-l.pop(2)
-l
-
-list_pop(1)
-list_pop(1, 1)
-
-# repr
-l = ()
-l += 1
-repr(l)
-repr((1, 2, 3, 4))
-
-# flatten
-(1, 2, (3, 4)).flatten
-(1, 2, (3, 4, (5,))).flatten  # fixme: flatten() should be parametrizeable, and default to 1?
+# fixme: Missing tests for comparison, see dict.tok
 
 #---
 
@@ -106,41 +51,3 @@ repr((1, 2, 3, 4))
 
 #(1, 1337, 1)
 #(2, )
-
-
-#(1, 2, 3, 4)
-
-#(1, 2, 3, 4)
-#(1, 2)
-#(3, 4)
-#(1, 2, 3, 4)
-#(3, 4)
-
-#(1, 2, 3)
-#(1, )
-
-#0
-#0
-#1
-#3
-#1
-
-#(1, 2)
-#(1, 2, (3, 4))
-
-#(1, 99, 2, 3)
-#ERR:Line 1, column 1: list_push() provided index 4 out of range in list sized 3
-
-#(4, 2)
-#1
-#4
-#ERR:Line 1, column 3: list_pop() provided index 2 out of range of list sized 2
-#(2, 3)
-#1
-#ERR:Line 1, column 1: list_pop() provided index 1 out of range
-
-#"(1, )"
-#"(1, 2, 3, 4)"
-
-#(1, 2, 3, 4)
-#(1, 2, 3, 4, (5, ))

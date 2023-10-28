@@ -1,12 +1,13 @@
 //! Token callables represented by Value::Token
 use super::{BoxedObject, Dict, Object, RefValue};
-use crate::reader::Reader;
 use crate::vm::*;
 use charclass::{charclass, CharClass};
 use num_bigint::BigInt;
 use num_parse::*;
 use tokay_macros::tokay_token;
 extern crate self as tokay;
+
+// todo: The entire Token enum could be split into separate objects.
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd)]
 pub enum Token {
@@ -63,15 +64,61 @@ impl Token {
             ident => builtin_ccl(ident),
         }
     }
+}
 
-    pub fn read(&self, reader: &mut Reader) -> Result<Accept, Reject> {
+impl Object for Token {
+    fn name(&self) -> &'static str {
+        "token"
+    }
+
+    fn repr(&self) -> String {
         match self {
-            Token::Void => Ok(Accept::Push(Capture::Empty)),
+            Token::Void => "Void".to_string(),
+            Token::EOF => "EOF".to_string(),
+            Token::Char(ccl) => format!("{:?}", ccl),
+            Token::Chars(ccl) => format!("{:?}+", ccl),
+            Token::BuiltinChar(_) | Token::BuiltinChars(_) => "\"<token builtin fn>\n".to_string(),
+            Token::Touch(s) => format!("'{}'", s),
+            Token::Match(s) => format!("''{}''", s),
+        }
+    }
+
+    fn is_callable(&self, without_arguments: bool) -> bool {
+        without_arguments // Tokens don't support arguments
+    }
+
+    fn is_consuming(&self) -> bool {
+        true // Tokens always consume!
+    }
+
+    fn is_nullable(&self) -> bool {
+        match self {
+            Token::Void => true,
+            Token::EOF => false,
+            Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
+            Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
+            Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
+        }
+    }
+
+    fn call(
+        &self,
+        context: Option<&mut Context>,
+        args: Vec<RefValue>,
+        nargs: Option<Dict>,
+    ) -> Result<Accept, Reject> {
+        assert!(context.is_some() && args.len() == 0 && nargs.is_none());
+
+        let context = context.unwrap();
+        let reader = &mut context.thread.reader;
+
+        match self {
+            Token::Void => Ok(Accept::Next),
             Token::EOF => {
-                if let None = reader.peek() {
-                    Ok(Accept::Next)
-                } else {
+                if let Some(_) = reader.peek() {
                     Err(Reject::Next)
+                } else {
+                    Ok(Accept::Next)
                 }
             }
             Token::Char(ccl) => {
@@ -158,7 +205,7 @@ impl Token {
                         range,
                         None,
                         if matches!(self, Token::Touch(_)) {
-                            1
+                            0
                         } else {
                             5
                         },
@@ -172,52 +219,6 @@ impl Token {
     }
 }
 
-impl Object for Token {
-    fn name(&self) -> &'static str {
-        "token"
-    }
-
-    fn repr(&self) -> String {
-        match self {
-            Token::Void => "Void".to_string(),
-            Token::EOF => "EOF".to_string(),
-            Token::Char(ccl) => format!("{:?}", ccl),
-            Token::Chars(ccl) => format!("{:?}+", ccl),
-            Token::BuiltinChar(_) | Token::BuiltinChars(_) => "\"<token builtin fn>\n".to_string(),
-            Token::Touch(s) => format!("'{}'", s),
-            Token::Match(s) => format!("''{}''", s),
-        }
-    }
-
-    fn is_callable(&self, without_arguments: bool) -> bool {
-        without_arguments // Tokens don't support arguments
-    }
-
-    fn is_consuming(&self) -> bool {
-        true // Tokens always consume!
-    }
-
-    fn is_nullable(&self) -> bool {
-        match self {
-            Token::Void => true,
-            Token::EOF => false,
-            Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
-            Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
-            Token::Match(s) | Token::Touch(s) => s.len() == 0, //True shouldn't be possible here by definition!
-        }
-    }
-
-    fn call(
-        &self,
-        context: Option<&mut Context>,
-        args: Vec<RefValue>,
-        nargs: Option<Dict>,
-    ) -> Result<Accept, Reject> {
-        assert!(context.is_some() && args.len() == 0 && nargs.is_none());
-        self.read(&mut context.unwrap().runtime.reader)
-    }
-}
-
 impl From<Token> for RefValue {
     fn from(token: Token) -> Self {
         RefValue::from(Box::new(token) as BoxedObject)
@@ -228,7 +229,7 @@ impl From<Token> for RefValue {
 
 // Matching C-style identifiers
 tokay_token!("Ident", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     if reader.once(|ch| ch.is_alphabetic() || ch == '_').is_none() {
@@ -264,9 +265,9 @@ tokay_token!("Int : @base=void, with_signs=true", {
     };
 
     if let Some(int) = if with_signs.is_true() {
-        parse_int_from_iter_with_radix::<BigInt>(&mut context.runtime.reader, base, false)
+        parse_int_from_iter_with_radix::<BigInt>(context.thread.reader, base, false)
     } else {
-        parse_uint_from_iter_with_radix::<BigInt>(&mut context.runtime.reader, base, false)
+        parse_uint_from_iter_with_radix::<BigInt>(context.thread.reader, base, false)
     } {
         Ok(Accept::Push(Capture::Value(crate::value!(int), None, 5)))
     } else {
@@ -276,7 +277,7 @@ tokay_token!("Int : @base=void, with_signs=true", {
 
 // Matching 64-bit floats directly
 tokay_token!("Float : @with_signs=true", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     // Sign
@@ -319,7 +320,7 @@ tokay_token!("Float : @with_signs=true", {
 
 // Words, optionally with limited length
 tokay_token!("Word : @min=1 max=void", {
-    let reader = &mut context.runtime.reader;
+    let reader = &mut context.thread.reader;
     let start = reader.tell();
 
     if let Some(input) = reader.span(|ch| ch.is_alphabetic()) {

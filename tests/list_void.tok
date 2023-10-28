@@ -1,0 +1,11 @@
+#testmode:repl
+
+l = (1 void 2)
+l
+l += void
+l + (3 void 4)
+
+#---
+
+#(1, 2)
+#(1, 2, 3, 4)
