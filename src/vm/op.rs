@@ -21,12 +21,12 @@ pub(crate) enum Op {
     // Capture frames
     Frame(usize), // Start new frame with optional relative forward address fuse
     // Capture,      // Reset frame capture to current stack size, saving captures
-    Extend,        // Extend frame's reader to current position
-    Reset,         // Reset frame, stack+reader
-    ResetReader,   // Reset reader
-    ResetCapture,  // Reset captures
-    Close,         // Close frame
-    Collect(bool), // Collect stack values from current frame (true: sequence)
+    Extend,       // Extend frame's reader to current position
+    Reset,        // Reset frame, stack+reader
+    ResetReader,  // Reset reader
+    ResetCapture, // Reset captures
+    Close,        // Close frame
+    Collect,      // Collect stack values from current frame
     // InCollect,    // Same as collect, but degrate the parselet level (5) (fixme: This is temporary!)
     Fuse(usize), // Set frame fuse to relative forward address
 
@@ -238,10 +238,10 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::Collect(sequence) => Ok(Accept::Push(context.collect(
+                Op::Collect => Ok(Accept::Push(context.collect(
                     context.frame.capture_start,
                     false,
-                    *sequence,
+                    true,
                     context.thread.debug > 5,
                 ))),
 

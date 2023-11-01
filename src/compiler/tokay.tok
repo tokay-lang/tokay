@@ -200,14 +200,21 @@ Dict : @{
     Expression ___ ',' _ ___ Peek<')'>  ast("dict")
 
     # A sequence is a list of items optionally separated by ","
-    (DictItem ___ (',' _)? ___)+  ast("sequence")
+    (DictItem ___ (',' _)? ___)+  ast("dict")
 
-    # The empty sequences constructs a new, empty dict
+    # No items construct a new, empty dict
     Void  ast("dict")
 }
 
 List : @{
-    (Expression ___ (',' _)? ___)*  ast("list")
+    # Special case: single Expression followed by "," is considered as a list with a single item
+    Expression ___ ',' _ ___ Peek<']'>  ast("list")
+
+    # A sequence is a list of items optionally separated by ","
+    (Expression ___ (',' _)? ___)+  ast("list")
+
+    # No items construct a new, empty list
+    Void  ast("list")
 }
 
 InlineBlock : @{

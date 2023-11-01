@@ -29,7 +29,7 @@ pub(in crate::compiler) enum ImlOp {
     // Sequence of ops, optionally a collection
     Seq {
         seq: Vec<ImlOp>,
-        collect: Option<bool>, // Handle sequence by collect, either in dict (Some(false)) or sequence mode (Some(true)).
+        collect: bool, // Run a Context::collect() on successfull sequence match
     },
 
     // Conditional block
@@ -51,14 +51,14 @@ pub(in crate::compiler) enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, collect: Option<bool>) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, collect: bool) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    collect: None,
+                    collect: false,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -67,7 +67,7 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if collect.is_none() => seq.pop().unwrap(),
+            1 if !collect => seq.pop().unwrap(),
             _ => ImlOp::Seq { seq, collect },
         }
     }
@@ -217,9 +217,9 @@ impl ImlOp {
                 }
 
                 // Check if the sequence exists of more than one operational instruction
-                if let Some(sequence) = collect {
+                if *collect {
                     ops.insert(start, Op::Frame(0));
-                    ops.push(Op::Collect(*sequence));
+                    ops.push(Op::Collect);
                     ops.push(Op::Close);
                 }
             }
@@ -379,6 +379,6 @@ impl From<Op> for ImlOp {
 
 impl From<Vec<ImlOp>> for ImlOp {
     fn from(items: Vec<ImlOp>) -> Self {
-        ImlOp::seq(items, None)
+        ImlOp::seq(items, false)
     }
 }

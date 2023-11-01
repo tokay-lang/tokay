@@ -763,7 +763,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         // area -----------------------------------------------------------
         "area" => {
             let body = traverse(compiler, &node["children"]);
-            ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], None)
+            ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], false)
         }
 
         // assign ---------------------------------------------------------
@@ -1607,18 +1607,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             }
 
             match emit {
-                "list" => {
-                    ops.push(Op::MakeList(children.len()).into());
-                    ImlOp::from(ops)
-                }
-                "dict" => {
-                    if ops.len() == 0 {
-                        ImlOp::from(Op::MakeDict(0))
-                    } else {
-                        ImlOp::seq(ops, Some(false))
-                    }
-                }
-                _ => ImlOp::seq(ops, Some(true)),
+                "list" if ops.is_empty() => ImlOp::from(Op::MakeList(0)),
+                "dict" | "inline_sequence" if ops.is_empty() => ImlOp::from(Op::MakeDict(0)),
+                _ => ImlOp::seq(ops, true),
             }
         }
 
