@@ -1608,6 +1608,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             match emit {
                 "list" if ops.is_empty() => ImlOp::from(Op::MakeList(0)),
+                "list" => {
+                    ops.push(ImlOp::from(Op::MakeList(ops.len())));
+                    ImlOp::seq(ops, false)
+                }
                 "dict" | "inline_sequence" if ops.is_empty() => ImlOp::from(Op::MakeDict(0)),
                 _ => ImlOp::seq(ops, true),
             }

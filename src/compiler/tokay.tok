@@ -187,41 +187,38 @@ ParseletInstance : @{
     StaticParseletInstance
 }
 
-# Inline Blocks and Sequences
+# Dict
 
 DictItem : @{
     T_Alias _ '=>' _ Expect<Expression>  ast("alias")
     Expression '=>' _ Expect<Expression>  ast("alias")
-    Expression
+    ExpressionList
 }
 
 Dict : @{
-    # Special case: single Expression followed by "," is considered as a dict with a single item
-    Expression ___ ',' _ ___ Peek<')'>  ast("dict")
-
-    # A sequence is a list of items optionally separated by ","
-    (DictItem ___ (',' _)? ___)+  ast("dict")
+    # Dict items can optionally be separated by comma (,)
+    (DictItem ___ (',' _)? ___)+  ast("inline_sequence")
 
     # No items construct a new, empty dict
     Void  ast("dict")
 }
 
-List : @{
-    # Special case: single Expression followed by "," is considered as a list with a single item
-    Expression ___ ',' _ ___ Peek<']'>  ast("list")
-
-    # A sequence is a list of items optionally separated by ","
-    (Expression ___ (',' _)? ___)+  ast("list")
-
-    # No items construct a new, empty list
-    Void  ast("list")
-}
+# List : @{
+#     # Special case: single Expression followed by "," is considered as a list with a single item
+#     Expression ___ ',' _ ___ Peek<']'>  ast("list")
+#
+#     # A sequence is a list of items optionally separated by ","
+#     (Expression ___ (',' _) ___)+  ast("list")
+#
+#     # No items construct a new, empty list
+#     Void  ast("list")
+# }
 
 InlineBlock : @{
-    '(' _ ___ Dict (___ '|' _ ___ Dict)+ ___ Expect<')'>  ast("block")
+    '(' _ ___ Dict (___ '|' _ ___ Expect<Dict>)+ ___ Expect<')'>  ast("block")
     '(' _ ___ Dict ___ Expect<')'>
-    '[' _ ___ List (___ '|' _ ___ List)+ ___ Expect<']'>  ast("block")
-    '[' _ ___ List ___ Expect<']'>
+#    '[' _ ___ List (___ '|' _ ___ Expect<List>)+ ___ Expect<']'>  ast("block")
+#    '[' _ ___ List ___ Expect<']'>
 }
 
 # Call parameters (used by calls and rvalues)
@@ -232,7 +229,8 @@ CallArgument : @{
 }
 
 CallArguments : @{
-    (CallArgument (',' _)? ___)+
+    CallArgument ((',' _) ___ CallArgument)*
+    # List<CallArgument, Separator: ((',' _)? ___)>  # Stack overflow :-(
 }
 
 # Token
@@ -281,14 +279,14 @@ Literal : @{
 ## Atomic elements, including if and loops as they are atomic part of expressions
 
 Atomic : @{
-    '(' _ ___ HoldExpression ___ ')'
+    '(' _ ___ HoldAssignment ___ ')'
     Literal
     Token
-    Keyword<'if'> _ Expect<HoldExpression> ___ Expect<Statement> \
+    Keyword<'if'> _ Expect<HoldAssignment> ___ Expect<Statement> \
         (___ Keyword<'else'> _ ___ Expect<Statement>)?  ast("op_if")
     Keyword<'for'> _ Expect<Lvalue> Keyword<Expect<'in'>> _ Expect<Expression> \
          ___ Expect<Statement>  ast("op_for")
-    Keyword<'loop'> _ HoldExpression ___ Block  ast("op_loop")
+    Keyword<'loop'> _ HoldAssignment ___ Block  ast("op_loop")
     Keyword<'loop'> _ Expect<Block>  ast("op_loop")
     Load
 }
@@ -344,29 +342,39 @@ LogicalOr : @{
     LogicalAnd
 }
 
-HoldExpression : @{
-    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add_hold")
-    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub_hold")
-    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul_hold")
-    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div_hold")
-    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi_hold")
-    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod_hold")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign_hold")
-    LogicalOr
+Expression : LogicalOr
+
+ExpressionList : @{
+    Expression (',' _ Expression)+ ___ (',' _)?  ast("list")
+    Expression? (',' _)  ast("list")
+    Expression
 }
 
-Expression : @{
-    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add")
-    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub")
-    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul")
-    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div")
-    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi")
-    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign")
-    LogicalOr
+# Assignments
+
+HoldAssignment : @{
+    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add_hold")
+    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub_hold")
+    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul_hold")
+    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div_hold")
+    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi_hold")
+    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod_hold")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign_hold")
+    ExpressionList
 }
 
-# Statement and Assignment
+Assignment : @{
+    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add")
+    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub")
+    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul")
+    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div")
+    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi")
+    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign")
+    ExpressionList
+}
+
+# Blocks and Sequences
 
 Statement : @{
     Keyword<'accept'> _ Expression?  ast("op_accept")
@@ -379,10 +387,8 @@ Statement : @{
     Keyword<'repeat'> _  ast("op_repeat")
     Keyword<'reset'> _  ast("op_reset")
     Keyword<'return'> _ Expression?  ast("op_accept")
-    Expression
+    Assignment
 }
-
-# Blocks and Sequences
 
 Block : @ emit = "block" {
     '{' _ ___ '}'  ast("value_void")
@@ -390,17 +396,18 @@ Block : @ emit = "block" {
 }
 
 SequenceItem : @{
-    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
-    Expression '=>' _ Expect<Expression>  ast("alias")
+    T_Alias _ '=>' _ Expect<ExpressionList>  ast("alias")
+    Expression '=>' _ Expect<ExpressionList>  ast("alias")
     Statement
 }
 
 Sequence : @{
-    (SequenceItem (',' _)?)+  ast("sequence")
+    SequenceItem SequenceItem+  ast("sequence")
+    SequenceItem
 }
 
 Sequences : @{
-    Sequence {'|' _ Sequence}+  ast("block")
+    Sequence ('|' _ Expect<Sequence>)+  ast("block")
     Sequence
 }
 
@@ -412,12 +419,9 @@ Instruction : @{
         Token _ Peek<T_EOL>
         Sequences
     } Expect<T_EOL>  ast("constant")
-    Statement T_EOL
     Sequences T_EOL
     T_EOL
 }
-
-Nop : Void ast("op_nop")
 
 # Main
 

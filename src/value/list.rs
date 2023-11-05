@@ -22,15 +22,20 @@ impl Object for List {
     }
 
     fn repr(&self) -> String {
-        let mut ret = "[".to_string();
+        let mut ret = String::new();
+
         for item in self.iter() {
-            if ret.len() > 1 {
+            if !ret.is_empty() {
                 ret.push_str(", ");
             }
 
             ret.push_str(&item.borrow().repr());
         }
-        ret.push(']');
+
+        if self.len() <= 1 {
+            ret.push_str(", ");
+        }
+
         ret
     }
 
