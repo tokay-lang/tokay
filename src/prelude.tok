@@ -23,7 +23,7 @@ Peek : @<P> {
 # reporting a useful parse error message.
 Expect : @<P> msg=void {
     accept P
-    error(msg || "Expecting " + *P + ", but got " + repr(Peek<(Char | Token | "end-of-file")>))
+    error(msg || "Expecting " + *P + ", but got " + repr(Peek<(Token | Char | "end-of-file")>))
 }
 
 # This is a simple programmatic sequential repetition of `P`.

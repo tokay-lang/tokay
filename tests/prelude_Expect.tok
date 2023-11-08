@@ -1,0 +1,16 @@
+#testmode:repl
+'A' Expect<'x'>
+'B' Expect<'x'>
+'C' Expect<'x'>
+'D' Expect<'x'>
+'E' Expect<'x'>
+'F' Expect<'x'>
+#---
+#A1B12.34CXXX D%E F
+#---
+#ERR:Line 1, column 2: Expecting 'x', but got 1
+#ERR:Line 1, column 4: Expecting 'x', but got 12.34
+#ERR:Line 1, column 10: Expecting 'x', but got "XXX"
+#ERR:Line 1, column 15: Expecting 'x', but got "%"
+#ERR:Line 1, column 17: Expecting 'x', but got " "
+#ERR:Line 1, column 19: Expecting 'x', but got "end-of-file"

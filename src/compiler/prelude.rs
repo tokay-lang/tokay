@@ -234,16 +234,16 @@ impl Compiler {
                                                                                                                                                                 "emit" => "inline_sequence",
                                                                                                                                                                 "children" =>
                                                                                                                                                                     (value!([
-                                                                                                                                                                        "emit" => "value_token_any",
-                                                                                                                                                                        "value" => void
+                                                                                                                                                                        "emit" => "identifier",
+                                                                                                                                                                        "value" => "Token"
                                                                                                                                                                     ]))
                                                                                                                                                             ])),
                                                                                                                                                             (value!([
                                                                                                                                                                 "emit" => "inline_sequence",
                                                                                                                                                                 "children" =>
                                                                                                                                                                     (value!([
-                                                                                                                                                                        "emit" => "identifier",
-                                                                                                                                                                        "value" => "Token"
+                                                                                                                                                                        "emit" => "value_token_any",
+                                                                                                                                                                        "value" => void
                                                                                                                                                                     ]))
                                                                                                                                                             ])),
                                                                                                                                                             (value!([
