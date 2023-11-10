@@ -43,7 +43,7 @@ Repeat : @<
     max: void,  # maximum occurence, void for unlimited
     blur: true  # result blurrying; empty list becomes void, one-item list becomes item
 > {
-    res = ()
+    res = ,
     cnt = 0
 
     loop {
@@ -57,13 +57,11 @@ Repeat : @<
         break
     }
 
+    if cnt < min reject
+
     if blur {
-        if res.len == 0 {
-            accept void
-        }
-        else if res.len == 1 {
-            accept res[0]
-        }
+        if res.len == 0 accept void
+        if res.len == 1 accept res[0]
     }
 
     res

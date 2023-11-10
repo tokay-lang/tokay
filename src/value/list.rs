@@ -33,7 +33,7 @@ impl Object for List {
         }
 
         if self.len() <= 1 {
-            ret.push_str(",)");
+            ret.push_str(", )");
         }
         else {
             ret.push_str(")");

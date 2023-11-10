@@ -2,6 +2,11 @@
 # This program is used to generate Tokays own parser, and is written in Tokay itself.
 # See `build/README.md` for details.
 
+#ExpectAndRecover : @<P> msg=void {
+#    accept P
+#    print(msg || "Expecting " + *P + ", but got " + repr(Peek<(Token | Char | "end-of-file")>)) Char<^\n;>*
+#}
+
 # Whitespace & EOL
 
 _ : @{  # true whitespace is made of comments and escaped line-breaks as well
@@ -192,7 +197,7 @@ ParseletInstance : @{
 DictItem : @{
     T_Alias _ '=>' _ Expect<Expression>  ast("alias")
     Expression '=>' _ Expect<Expression>  ast("alias")
-    ExpressionList
+    Expression
 }
 
 Dict : @{
@@ -229,7 +234,7 @@ CallArgument : @{
 }
 
 CallArguments : @{
-    CallArgument ((',' _) ___ CallArgument)*
+    CallArgument + Repeat<((',' _) ___ CallArgument), min:0, blur:false> (',' _)? ___
     # List<CallArgument, Separator: ((',' _)? ___)>  # Stack overflow :-(
 }
 
@@ -307,16 +312,16 @@ Unary : @{
 }
 
 MulDiv : @{
-    MulDiv '*' _ Expect<Unary>  ast("op_binary_mul")
-    MulDiv '//' _ Expect<Unary>  ast("op_binary_divi")
-    MulDiv '/' _ Expect<Unary>  ast("op_binary_div")
-    MulDiv '%' _ Expect<Unary>  ast("op_binary_mod")
+    MulDiv '*' Not<Char<=>> _ Expect<Unary>  ast("op_binary_mul")
+    MulDiv '//' Not<Char<=>> _ Expect<Unary>  ast("op_binary_divi")
+    MulDiv '/' Not<Char<=>> _ Expect<Unary>  ast("op_binary_div")
+    MulDiv '%' Not<Char<=>> _ Expect<Unary>  ast("op_binary_mod")
     Unary
 }
 
 AddSub : @{
-    AddSub '+' Not<'+'> _ Expect<MulDiv>  ast("op_binary_add")
-    AddSub '-' Not<'-'> _ Expect<MulDiv>  ast("op_binary_sub")
+    AddSub '+' Not<Char<+=>> _ Expect<MulDiv>  ast("op_binary_add")
+    AddSub '-' Not<Char<-=>> _ Expect<MulDiv>  ast("op_binary_sub")
     MulDiv
 }
 
@@ -392,7 +397,7 @@ Statement : @{
 
 Block : @ emit = "block" {
     '{' _ ___ '}'  ast("value_void")
-    '{' _ Instruction* _ Expect<'}'>   ast(emit)
+    '{' _ Tokay* _ Expect<'}'>   ast(emit)
 }
 
 SequenceItem : @{
@@ -411,25 +416,20 @@ Sequences : @{
     Sequence
 }
 
-Instruction : @{
-    Keyword<'begin'> _ Sequences Expect<T_EOL>  ast("begin")
-    Keyword<'end'> _ Sequences Expect<T_EOL>  ast("end")
+# Main
+
+Tokay : @{
+    T_EOL
+    Keyword<'begin'> _ Expect<Sequences> Expect<T_EOL>  ast("begin")
+    Keyword<'end'> _ Expect<Sequences> Expect<T_EOL>  ast("end")
     T_Identifier _ ':' _ {
         Literal _ Peek<T_EOL>
         Token _ Peek<T_EOL>
         Sequences
     } Expect<T_EOL>  ast("constant")
-    Sequences T_EOL
-    T_EOL
+    Sequences T_EOL?
 }
 
-# Main
-
-Tokay : @{
-    Instruction+
-    Char  error("Parse error, unexpected token", true)
-}
-
-_ Tokay? Expect<EOF>  ast("main")
-#_ Tokay? Expect<EOF>  ast2rust(ast("main"))
-#_ Tokay? Expect<EOF>  ast_print(ast("main"))
+_ Tokay* Expect<EOF>  ast("main")
+#_ Tokay* Expect<EOF>  ast2rust(ast("main"))
+#_ Tokay* Expect<EOF>  ast_print(ast("main"))

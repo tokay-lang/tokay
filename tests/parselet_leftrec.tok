@@ -14,7 +14,7 @@ I1: @{
 # indirect 2: currently not working, see issue #95 for details
 X: Y 'c'
 Y: Z 'b'
-Z: X | Y | 'a'
+Z: X | Y | Char<a>
 'I2' print(Z)
 
 #---

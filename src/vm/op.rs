@@ -630,7 +630,10 @@ impl Op {
                     let mut list = List::new();
 
                     for _ in 0..*count {
-                        list.insert(0, context.pop());
+                        let value = context.pop();
+                        if !value.is_void() {
+                            list.insert(0, value);
+                        }
                     }
 
                     context.push(RefValue::from(list))

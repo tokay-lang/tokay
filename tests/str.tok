@@ -14,10 +14,10 @@ s * 2
 # fixme: Missing tests for comparison, see dict.tok
 
 # Standard get item test
-l = () for i in range(s.len) { l.push(s[i] + i) } l
+l = , for i in range(s.len) { l.push(s[i] + i) } l
 
 # Extended get item test
-m = () for i in range(-1, s.len + 1) { m.push(s[i] + s.get_item(i, "x") + i) } m
+m = , for i in range(-1, s.len + 1) { m.push(s[i] + s.get_item(i, "x") + i) } m
 
 #---
 #"true"

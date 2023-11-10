@@ -1,6 +1,6 @@
 #testmode:repl
 
-l = ()
+l = ,
 l += 1
 repr(l)
 repr((1, 2, 3, 4))

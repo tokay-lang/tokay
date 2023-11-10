@@ -1,5 +1,5 @@
 s = "Hello"
-l = ()
+l = ,
 for i in range(s.len) {
     print(i, s[i])
     l.push(s[i] + i)

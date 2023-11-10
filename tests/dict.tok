@@ -60,7 +60,7 @@ d = (name => "John")
 
 ## len
 
-dict().len()
+().len()
 d = (a => 1, b => 2)
 
 d.len()
