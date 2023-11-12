@@ -1,6 +1,12 @@
-# Tokay grammar / parser
-# This program is used to generate Tokays own parser, and is written in Tokay itself.
+# The Tokay programming language
+# Copyright © 2023 by Jan Max Meyer, Phorward Software Technologies.
+# Licensed under the MIT license. See LICENSE for more information.
+#
+# This Tokay program expresses Tokay's grammar in itself.
+# It is used to modify and build Tokays own language parser.
+#
 # See `build/README.md` for details.
+#
 
 #ExpectAndRecover : @<P> msg=void {
 #    accept P
@@ -192,12 +198,12 @@ ParseletInstance : @{
     StaticParseletInstance
 }
 
-# Dict
+# Inlined stuff - here comes everything which happens in brackets (...)
 
 DictItem : @{
-    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
-    Expression '=>' _ Expect<Expression>  ast("alias")
-    Expression
+    T_Alias _ '=>' _ Expect<InlineHoldAssignment>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineHoldAssignment>  ast("alias")
+    InlineHoldAssignment
 }
 
 Dict : @{
@@ -208,22 +214,26 @@ Dict : @{
     Void  ast("dict")
 }
 
-# List : @{
-#     # Special case: single Expression followed by "," is considered as a list with a single item
-#     Expression ___ ',' _ ___ Peek<']'>  ast("list")
-#
-#     # A sequence is a list of items optionally separated by ","
-#     (Expression ___ (',' _) ___)+  ast("list")
-#
-#     # No items construct a new, empty list
-#     Void  ast("list")
-# }
-
 InlineBlock : @{
     '(' _ ___ Dict (___ '|' _ ___ Expect<Dict>)+ ___ Expect<')'>  ast("block")
     '(' _ ___ Dict ___ Expect<')'>
-#    '[' _ ___ List (___ '|' _ ___ Expect<List>)+ ___ Expect<']'>  ast("block")
-#    '[' _ ___ List ___ Expect<']'>
+}
+
+InlineHoldAssignment : @{
+    Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_hold")
+    Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_hold")
+    Lvalue _ '*=' _ Expect<InlineHoldAssignment>  ast("assign_mul_hold")
+    Lvalue _ '/=' _ Expect<InlineHoldAssignment>  ast("assign_div_hold")
+    Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_hold")
+    Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_hold")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_hold")
+    Expression
+}
+
+InlineExpressionList : @{
+    InlineHoldAssignment (',' _ ___ InlineHoldAssignment)+ ___ (',' _ ___)?  ast("list")
+    InlineHoldAssignment? ___ (',' _ ___)  ast("list")
+    InlineHoldAssignment ___
 }
 
 # Call parameters (used by calls and rvalues)
@@ -284,14 +294,14 @@ Literal : @{
 ## Atomic elements, including if and loops as they are atomic part of expressions
 
 Atomic : @{
-    '(' _ ___ HoldAssignment ___ ')'
+    '(' _ ___ InlineExpressionList ')'
     Literal
     Token
-    Keyword<'if'> _ Expect<HoldAssignment> ___ Expect<Statement> \
+    Keyword<'if'> _ Expect<Expression> ___ Expect<Statement> \
         (___ Keyword<'else'> _ ___ Expect<Statement>)?  ast("op_if")
     Keyword<'for'> _ Expect<Lvalue> Keyword<Expect<'in'>> _ Expect<Expression> \
          ___ Expect<Statement>  ast("op_for")
-    Keyword<'loop'> _ HoldAssignment ___ Block  ast("op_loop")
+    Keyword<'loop'> _ Expression ___ Block  ast("op_loop")
     Keyword<'loop'> _ Expect<Block>  ast("op_loop")
     Load
 }
@@ -303,6 +313,8 @@ Rvalue : @{
     Rvalue (Attribute | Subscript)*  ast("rvalue")
     Atomic
 }
+
+# Expressional syntax
 
 Unary : @{
     '-' Not<'-'> _ Unary  ast("op_unary_neg")
@@ -350,7 +362,7 @@ LogicalOr : @{
 Expression : LogicalOr
 
 ExpressionList : @{
-    Expression (',' _ Expression)+ ___ (',' _)?  ast("list")
+    Expression (',' _ Expression)+ (',' _)?  ast("list")
     Expression? (',' _)  ast("list")
     Expression
 }
