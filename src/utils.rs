@@ -206,15 +206,19 @@ pub(crate) fn testcase(code: &str) {
                 let line = err
                     .get(0)
                     .expect("Expecting stderr but nothing was emitted");
-                assert_eq!(
-                    line,
-                    exp,
-                    "{}:{} stderr expects {:?} but got {:?}",
-                    filename,
-                    lines + row + 1,
-                    exp,
-                    line
-                );
+
+                if exp != "SKIP" {
+                    assert_eq!(
+                        line,
+                        exp,
+                        "{}:{} stderr expects {:?} but got {:?}",
+                        filename,
+                        lines + row + 1,
+                        exp,
+                        line
+                    );
+                }
+
                 err.remove(0);
             } else {
                 /*
@@ -228,15 +232,19 @@ pub(crate) fn testcase(code: &str) {
                 let line = out
                     .get(0)
                     .expect("Expecting stdout but nothing was emitted");
-                assert_eq!(
-                    line,
-                    exp,
-                    "{}:{} stdout expects {:?} but got {:?}",
-                    filename,
-                    lines + row + 1,
-                    exp,
-                    line
-                );
+
+                if exp != "SKIP" {
+                    assert_eq!(
+                        line,
+                        exp,
+                        "{}:{} stdout expects {:?} but got {:?}",
+                        filename,
+                        lines + row + 1,
+                        exp,
+                        line
+                    );
+                }
+
                 out.remove(0);
             }
         }
