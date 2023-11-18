@@ -200,25 +200,6 @@ ParseletInstance : @{
 
 # Inlined stuff - here comes everything which happens in brackets (...)
 
-DictItem : @{
-    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
-    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
-    InlineAssignment
-}
-
-Dict : @{
-    # Dict items can optionally be separated by comma (,)
-    (DictItem ___ (',' _)? ___)+  ast("inline_sequence")
-
-    # No items construct a new, empty dict
-    Void  ast("dict")
-}
-
-InlineBlock : @{
-    '(' _ ___ Dict (___ '|' _ ___ Expect<Dict>)+ ___ Expect<')'>  ast("block")
-    '(' _ ___ Dict ___ Expect<')'>
-}
-
 InlineHoldAssignment : @{
     Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_hold")
     Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_hold")
@@ -247,6 +228,22 @@ InlineExpressionList : @{
     InlineAssignment ___
 }
 
+InlineSequenceItem : @{
+    T_Alias _ '=>' _ Expect<InlineExpressionList>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineExpressionList>  ast("alias")
+    InlineExpressionList
+}
+
+InlineSequence : @{
+    InlineSequenceItem ___ (InlineSequenceItem ___)+  ast("inline_sequence")
+    InlineSequenceItem
+}
+
+InlineSequences : @{
+    InlineSequence (___ '|' _ ___ Expect<InlineSequence>)+  ast("block")
+    InlineSequence
+}
+
 # Call parameters (used by calls and rvalues)
 
 CallArgument : @{
@@ -271,20 +268,21 @@ TokenLiteral : @{
     Keyword<'Self'>  ast("value_token_self")
 }
 
-TokenAtom : @{
-    TokenLiteral
-    InlineBlock
-    '@' _ InlineBlock  ast("area")
+Token : @{
+    '(' _ ___ ')'  ast("dict")  # defines an empty dict
+    '(' _ ___ InlineSequences ___ Expect<')'>
+    #'@' _ Token  ast("area")
     Block
+    TokenLiteral
     ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
     ParseletInstance
 }
 
-Token : @{
-    TokenAtom '+'  ast("op_mod_pos")
-    TokenAtom '*'  ast("op_mod_kle")
-    TokenAtom '?'  ast("op_mod_opt")
-    TokenAtom
+TokenModifier : @{
+    Token '+'  ast("op_mod_pos")
+    Token '*'  ast("op_mod_kle")
+    Token '?'  ast("op_mod_opt")
+    Token
 }
 
 # Expression & Flow
@@ -305,9 +303,8 @@ Literal : @{
 ## Atomic elements, including if and loops as they are atomic part of expressions
 
 Atomic : @{
-    '(' _ ___ InlineExpressionList ')'
     Literal
-    Token
+    TokenModifier
     Keyword<'if'> _ Expect<Expression> ___ Expect<Statement> \
         (___ Keyword<'else'> _ ___ Expect<Statement>)?  ast("op_if")
     Keyword<'for'> _ Expect<Lvalue> Keyword<Expect<'in'>> _ Expect<Expression> \
