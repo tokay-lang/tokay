@@ -45,14 +45,29 @@ d = (name => "John")
 #    d["name"] = void  # void
 #    d.len             # 1
 #)
-(d["x"]  d["x"] = 42  d["x"]  d["x"]++  ++d["x"]  d["name"] = void  d.len)
+(d["x"]  d["x"] = 42   d["x"]  d["x"]++  ++d["x"]  d["name"] = void  d.len)
 
 d = (name => "John")
-(d.get_item("lastname", "Doe")  d.set_item("lastname", "Ezel")  d["lastname"] = "Esel"  d["lastname"]  d.set_item("name")  d.get_item("name", "Horst"))
+(d["x"]  { d["x"] = 42 }   d["x"]  d["x"]++  ++d["x"]  d["name"] = void  d.len)
+
+d = (name => "John")
+d.get_item("lastname", "Doe")  d.set_item("lastname", "Ezel")  d["lastname"] = "Esel"  d["lastname"]  d.set_item("name")  d.get_item("name", "Horst")
 #(
 #    d.get_item("lastname", "Doe")   # "Doe"
 #    d.set_item("lastname", "Ezel")  # "Ezel"
 #    d["lastname"] = "Esel"          # void
+#    d["lastname"]                   # "Esel"
+#    d.set_item("name")              # unset name
+#    d.get_item("name", "Horst")     # "Horst"
+#)
+
+d = (name => "John")
+(d.get_item("lastname", "Doe")  d.set_item("lastname", "Ezel")  d["lastname"] = "Esel"  d["lastname"]  d.set_item("name")  d.get_item("name", "Horst"))
+
+#(
+#    d.get_item("lastname", "Doe")   # "Doe"
+#    d.set_item("lastname", "Ezel")  # "Ezel"
+#    d["lastname"] = "Esel"          # "Esel"
 #    d["lastname"]                   # "Esel"
 #    d.set_item("name")              # unset name
 #    d.get_item("name", "Horst")     # "Horst"
@@ -121,9 +136,13 @@ d
 
 #(1, 2, 3)
 
+#(42, 42, 42, 44, 1)
+
 #(42, 42, 44, 1)
 
 #("Doe", "Ezel", "Esel", "Horst")
+
+#("Doe", "Ezel", "Esel", "Esel", "Horst")
 
 #0
 #2

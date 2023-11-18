@@ -34,8 +34,7 @@ impl Object for List {
 
         if self.len() <= 1 {
             ret.push_str(", )");
-        }
-        else {
+        } else {
             ret.push_str(")");
         }
 

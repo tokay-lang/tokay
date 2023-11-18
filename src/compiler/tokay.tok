@@ -201,9 +201,9 @@ ParseletInstance : @{
 # Inlined stuff - here comes everything which happens in brackets (...)
 
 DictItem : @{
-    T_Alias _ '=>' _ Expect<InlineHoldAssignment>  ast("alias")
-    LogicalOr '=>' _ Expect<InlineHoldAssignment>  ast("alias")
-    InlineHoldAssignment
+    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
+    InlineAssignment
 }
 
 Dict : @{
@@ -230,10 +230,21 @@ InlineHoldAssignment : @{
     Expression
 }
 
+InlineAssignment : @{
+    Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_copy")
+    Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_copy")
+    Lvalue _ '*=' _ Expect<InlineHoldAssignment>  ast("assign_mul_copy")
+    Lvalue _ '/=' _ Expect<InlineHoldAssignment>  ast("assign_div_copy")
+    Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_copy")
+    Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_copy")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_copy")
+    Expression
+}
+
 InlineExpressionList : @{
-    InlineHoldAssignment (',' _ ___ InlineHoldAssignment)+ ___ (',' _ ___)?  ast("list")
-    InlineHoldAssignment? ___ (',' _ ___)  ast("list")
-    InlineHoldAssignment ___
+    InlineAssignment (',' _ ___ InlineAssignment)+ ___ (',' _ ___)?  ast("list")
+    InlineAssignment? ___ (',' _ ___)  ast("list")
+    InlineAssignment ___
 }
 
 # Call parameters (used by calls and rvalues)
