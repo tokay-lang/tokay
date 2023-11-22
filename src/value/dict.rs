@@ -37,7 +37,7 @@ impl Object for Dict {
             let key = key.borrow();
 
             if ret.len() > 1 {
-                ret.push_str(", ");
+                ret.push_str(" ");
             }
 
             if let Some(key) = key.object::<Str>() {
@@ -67,10 +67,6 @@ impl Object for Dict {
 
             ret.push_str(" => ");
             ret.push_str(&value.borrow().repr());
-        }
-
-        if self.len() == 1 {
-            ret.push_str(", ");
         }
 
         ret.push(')');
