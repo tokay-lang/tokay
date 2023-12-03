@@ -189,7 +189,6 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
         let capture = &mut self.stack[pos];
 
-        capture.degrade(); // fixme: Can't extract do the degration?
         Some(capture.extract(&self.thread.reader))
     }
 
@@ -202,7 +201,6 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             let capture = &mut self.stack[capture_start + i];
 
             if capture.alias(name) {
-                capture.degrade(); // fixme: Can't extract do the degration?
                 return Some(capture.extract(&self.thread.reader));
             }
         }
