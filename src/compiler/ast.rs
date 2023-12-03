@@ -1198,7 +1198,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "accept" => Op::LoadAccept.into(),
                             "break" => Op::LoadBreak.into(),
                             "exit" => Op::LoadExit.into(),
-                            "push" => Op::LoadPush.into(),
+                            "push" => Op::LoadPush.into(), // usecase?
                             _ => unreachable!(),
                         }
                     } else {
@@ -1206,7 +1206,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             "accept" => Op::Accept.into(),
                             "break" => Op::Break.into(),
                             "exit" => Op::Exit.into(),
-                            "push" => Op::Push.into(),
+                            "push" => Op::Push.into(), // usecase?
                             _ => unreachable!(),
                         }
                     }

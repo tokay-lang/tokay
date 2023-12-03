@@ -71,17 +71,6 @@ impl Capture {
             _ => {}
         }
     }
-
-    // Degrades a capture to a severity to a capture with zero severity.
-    // This is done when a capture is read.
-    pub fn degrade(&mut self) {
-        match self {
-            Capture::Range(_, _, severity) | Capture::Value(_, _, severity) if *severity <= 5 => {
-                *severity = 0;
-            }
-            _ => {}
-        }
-    }
 }
 
 impl From<RefValue> for Capture {
