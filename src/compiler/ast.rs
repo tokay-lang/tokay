@@ -1595,8 +1595,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             ImlOp::from(ops)
         }
 
-        // sequence  ------------------------------------------------------
-        "sequence" | "inline_sequence" | "dict" | "list" => {
+        // sequence, dict, list  -----------------------------------------
+        "sequence" | "dict" | "list" => {
             let children = if let Some(children) = node.get_str("children") {
                 List::from(children)
             } else {
@@ -1621,7 +1621,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     ops.push(ImlOp::from(Op::MakeList(ops.len())));
                     ImlOp::seq(ops, false)
                 }
-                "dict" | "inline_sequence" if ops.is_empty() => ImlOp::from(Op::MakeDict(0)),
+                "dict" if ops.is_empty() => ImlOp::from(Op::MakeDict(0)),
                 _ => ImlOp::seq(ops, true),
             }
         }
