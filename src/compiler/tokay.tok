@@ -222,25 +222,25 @@ InlineAssignment : @{
     Expression
 }
 
-InlineExpressionList : @{
-    InlineAssignment (',' _ ___ InlineAssignment)+ ___ (',' _ ___)?  ast("list")
-    InlineAssignment? ___ (',' _ ___)  ast("list")
-    InlineAssignment ___
-}
-
 InlineSequenceItem : @{
-    T_Alias _ '=>' _ Expect<InlineExpressionList>  ast("alias")
-    LogicalOr '=>' _ Expect<InlineExpressionList>  ast("alias")
-    InlineExpressionList
+    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
+    InlineAssignment
 }
 
 InlineSequence : @{
-    (InlineSequenceItem ___)+  ast("inline_sequence")
+    (InlineSequenceItem ___)+  if type($1) == "list" && $1.len > 1 || $1["emit"] == "alias" ast("inline_sequence")
 }
 
 InlineSequences : @{
     InlineSequence (___ '|' _ ___ Expect<InlineSequence>)+  ast("block")
     InlineSequence
+}
+
+InlineExpressionList : @{
+    InlineSequences ___ (',' _ InlineSequences ___)+ (',' _)? ___  ast("list")
+    InlineSequences? ___ (',' _) ___  ast("list")
+    InlineSequences ___
 }
 
 # Call parameters (used by calls and rvalues)
@@ -269,8 +269,8 @@ TokenLiteral : @{
 
 Token : @{
     '(' _ ___ ')'  ast("dict")  # defines an empty dict
-    '(' _ ___ InlineSequences ___ Expect<')'>
-    '@' _ '(' _ ___ InlineSequences ___ Expect<')'>  ast("area")
+    '(' _ ___ (InlineExpressionList | InlineSequences) ___ Expect<')'>
+    '@' _ '(' _ ___ (InlineExpressionList | InlineSequences) ___ Expect<')'>  ast("area")
     Block
     TokenLiteral
     ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
