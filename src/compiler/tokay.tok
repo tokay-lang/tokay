@@ -426,7 +426,7 @@ SequenceItem : @{
 }
 
 Sequence : @{
-    SequenceItem+  ast("sequence")
+    SequenceItem+  if type($1) == "list" && $1.len > 1 || $1["emit"] == "alias" ast("sequence")
 }
 
 Sequences : @{
