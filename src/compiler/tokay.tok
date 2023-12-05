@@ -200,6 +200,12 @@ ParseletInstance : @{
 
 # Inlined stuff - here comes everything which happens in brackets (...)
 
+InlineExpressionList : @{
+    Expression ___ (',' _ Expression ___)+ (',' _)? ___  ast("list")
+    Expression? ___ (',' _) ___  ast("list")
+    Expression ___
+}
+
 InlineHoldAssignment : @{
     Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_hold")
     Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_hold")
@@ -208,7 +214,7 @@ InlineHoldAssignment : @{
     Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_hold")
     Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_hold")
     Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_hold")
-    Expression
+    InlineExpressionList
 }
 
 InlineAssignment : @{
@@ -219,7 +225,7 @@ InlineAssignment : @{
     Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_copy")
     Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_copy")
     Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_copy")
-    Expression
+    InlineExpressionList
 }
 
 InlineSequenceItem : @{
@@ -235,12 +241,6 @@ InlineSequence : @{
 InlineSequences : @{
     InlineSequence (___ '|' _ ___ Expect<InlineSequence>)+  ast("block")
     InlineSequence
-}
-
-InlineExpressionList : @{
-    InlineSequences ___ (',' _ InlineSequences ___)+ (',' _)? ___  ast("list")
-    InlineSequences? ___ (',' _) ___  ast("list")
-    InlineSequences ___
 }
 
 # Call parameters (used by calls and rvalues)
@@ -269,8 +269,8 @@ TokenLiteral : @{
 
 Token : @{
     '(' _ ___ ')'  ast("dict")  # defines an empty dict
-    '(' _ ___ (InlineExpressionList | InlineSequences) ___ Expect<')'>
-    '@' _ '(' _ ___ (InlineExpressionList | InlineSequences) ___ Expect<')'>  ast("area")
+    '(' _ ___ InlineSequences ___ Expect<')'>
+    '@' _ '(' _ ___ InlineSequences ___ Expect<')'>  ast("area")
     Block
     TokenLiteral
     ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
@@ -448,6 +448,6 @@ Tokay : @{
     Sequences T_EOL?
 }
 
-_ Tokay* Expect<EOF>  ast("main")
+#_ Tokay* Expect<EOF>  ast("main")
 #_ Tokay* Expect<EOF>  ast2rust(ast("main"))
-#_ Tokay* Expect<EOF>  ast_print(ast("main"))
+_ Tokay* Expect<EOF>  ast_print(ast("main"))
