@@ -200,12 +200,6 @@ ParseletInstance : @{
 
 # Inlined stuff - here comes everything which happens in brackets (...)
 
-InlineExpressionList : @{
-    Expression ___ (',' _ Expression ___)+ (',' _)? ___  ast("list")
-    Expression? ___ (',' _) ___  ast("list")
-    Expression ___
-}
-
 InlineHoldAssignment : @{
     Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_hold")
     Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_hold")
@@ -214,7 +208,7 @@ InlineHoldAssignment : @{
     Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_hold")
     Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_hold")
     Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_hold")
-    InlineExpressionList
+    Expression
 }
 
 InlineAssignment : @{
@@ -225,7 +219,7 @@ InlineAssignment : @{
     Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_copy")
     Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_copy")
     Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_copy")
-    InlineExpressionList
+    Expression
 }
 
 InlineSequenceItem : @{
@@ -243,11 +237,16 @@ InlineSequences : @{
     InlineSequence
 }
 
+InlineList : @{
+    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
+    InlineAssignment? ___ (',' _) ___  ast("list")
+}
+
 # Call parameters (used by calls and rvalues)
 
 CallArgument : @{
-    T_Identifier _ '=' _ Expect<Expression>  ast("callarg_named")
-    Expression  ast("callarg")
+    T_Identifier _ '=' Not<Char<\>=>> _ Expect<InlineSequences>  ast("callarg_named")
+    InlineSequences  ast("callarg")
 }
 
 CallArguments : @{
@@ -269,8 +268,8 @@ TokenLiteral : @{
 
 Token : @{
     '(' _ ___ ')'  ast("dict")  # defines an empty dict
-    '(' _ ___ InlineSequences ___ Expect<')'>
-    '@' _ '(' _ ___ InlineSequences ___ Expect<')'>  ast("area")
+    '(' _ ___ (InlineList | InlineSequences) ___ Expect<')'>
+    '@' _ '(' _ ___ (InlineList | InlineSequences) ___ Expect<')'>  ast("area")
     Block
     TokenLiteral
     ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
@@ -448,6 +447,6 @@ Tokay : @{
     Sequences T_EOL?
 }
 
-#_ Tokay* Expect<EOF>  ast("main")
+_ Tokay* Expect<EOF>  ast("main")
 #_ Tokay* Expect<EOF>  ast2rust(ast("main"))
-_ Tokay* Expect<EOF>  ast_print(ast("main"))
+#_ Tokay* Expect<EOF>  ast_print(ast("main"))
