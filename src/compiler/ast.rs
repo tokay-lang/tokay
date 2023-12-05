@@ -780,7 +780,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             /* assignment with operation */
-            if parts.len() > 1 && parts[1] != "hold" && parts[1] != "copy" {
+            if parts.len() > 1 && !["copy", "drop", "hold"].contains(&parts[1]) {
                 ops.push(traverse_node_lvalue(compiler, lvalue, false, false));
                 ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
 
@@ -808,7 +808,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     compiler,
                     lvalue,
                     true,
-                    ["hold", "copy"].contains(parts.last().unwrap()),
+                    ["copy", "hold"].contains(parts.last().unwrap()),
                 ));
 
                 if *parts.last().unwrap() == "copy" {

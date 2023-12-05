@@ -8247,7 +8247,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_add"
+                                                                                            "value" => "assign_add_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8305,7 +8305,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_sub"
+                                                                                            "value" => "assign_sub_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8363,7 +8363,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_mul"
+                                                                                            "value" => "assign_mul_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8421,7 +8421,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_div"
+                                                                                            "value" => "assign_div_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8479,7 +8479,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_divi"
+                                                                                            "value" => "assign_divi_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8537,7 +8537,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign_mod"
+                                                                                            "value" => "assign_mod_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -8627,7 +8627,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "assign"
+                                                                                            "value" => "assign_drop"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))

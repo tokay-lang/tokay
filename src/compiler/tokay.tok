@@ -387,13 +387,13 @@ HoldAssignment : @{
 }
 
 Assignment : @{
-    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add")
-    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub")
-    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul")
-    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div")
-    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi")
-    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign")
+    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add_drop")
+    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub_drop")
+    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul_drop")
+    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div_drop")
+    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi_drop")
+    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod_drop")
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign_drop")
     ExpressionList
 }
 
