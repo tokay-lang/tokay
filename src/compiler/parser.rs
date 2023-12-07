@@ -3022,920 +3022,544 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "InlineHoldAssignment"
-                                    ])),
-                                    (value!([
-                                        "emit" => "value_parselet",
-                                        "children" =>
-                                            (value!([
-                                                "emit" => "body",
-                                                "children" =>
-                                                    (value!([
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "+="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_add_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "-="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_sub_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "*="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mul_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "/="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_div_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "//="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_divi_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "%="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mod_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Not"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_ccl",
-                                                                                            "children" =>
-                                                                                                (value!([
-                                                                                                    "emit" => "ccl",
-                                                                                                    "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => ">"
-                                                                                                            ])),
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => "="
-                                                                                                            ]))
-                                                                                                        ]))
-                                                                                                ]))
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "Expression"
-                                                        ]))
-                                                    ]))
-                                            ]))
-                                    ]))
-                                ]))
-                        ])),
-                        (value!([
-                            "emit" => "constant",
-                            "children" =>
-                                (value!([
-                                    (value!([
-                                        "emit" => "identifier",
                                         "value" => "InlineAssignment"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "body",
-                                                "children" =>
-                                                    (value!([
+                                                (value!([
+                                                    "emit" => "arg",
+                                                    "children" =>
                                                         (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "+="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_add_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "-="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_sub_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "*="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mul_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "/="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_div_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "//="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_divi_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "%="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mod_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Not"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_ccl",
-                                                                                            "children" =>
-                                                                                                (value!([
-                                                                                                    "emit" => "ccl",
-                                                                                                    "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => ">"
-                                                                                                            ])),
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => "="
-                                                                                                            ]))
-                                                                                                        ]))
-                                                                                                ]))
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineHoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_copy"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "Expression"
+                                                            (value!([
+                                                                "emit" => "identifier",
+                                                                "value" => "mode"
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "value_string",
+                                                                "value" => "hold"
+                                                            ]))
                                                         ]))
-                                                    ]))
+                                                ])),
+                                                (value!([
+                                                    "emit" => "body",
+                                                    "children" =>
+                                                        (value!([
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "+="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_add_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "-="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_sub_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "*="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_mul_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "/="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_div_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "//="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_divi_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "%="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_mod_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Not"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "value_token_ccl",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        "emit" => "ccl",
+                                                                                                        "children" =>
+                                                                                                            (value!([
+                                                                                                                (value!([
+                                                                                                                    "emit" => "char",
+                                                                                                                    "value" => ">"
+                                                                                                                ])),
+                                                                                                                (value!([
+                                                                                                                    "emit" => "char",
+                                                                                                                    "value" => "="
+                                                                                                                ]))
+                                                                                                            ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "InlineAssignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "identifier",
+                                                                "value" => "Expression"
+                                                            ]))
+                                                        ]))
+                                                ]))
                                             ]))
                                     ]))
                                 ]))
@@ -3987,8 +3611,22 @@ impl Parser {
                                                                                     "emit" => "genarg",
                                                                                     "children" =>
                                                                                         (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineAssignment"
+                                                                                            "emit" => "call",
+                                                                                            "children" =>
+                                                                                                (value!([
+                                                                                                    (value!([
+                                                                                                        "emit" => "identifier",
+                                                                                                        "value" => "InlineAssignment"
+                                                                                                    ])),
+                                                                                                    (value!([
+                                                                                                        "emit" => "callarg",
+                                                                                                        "children" =>
+                                                                                                            (value!([
+                                                                                                                "emit" => "value_string",
+                                                                                                                "value" => "copy"
+                                                                                                            ]))
+                                                                                                    ]))
+                                                                                                ]))
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -4041,8 +3679,22 @@ impl Parser {
                                                                                     "emit" => "genarg",
                                                                                     "children" =>
                                                                                         (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineAssignment"
+                                                                                            "emit" => "call",
+                                                                                            "children" =>
+                                                                                                (value!([
+                                                                                                    (value!([
+                                                                                                        "emit" => "identifier",
+                                                                                                        "value" => "InlineAssignment"
+                                                                                                    ])),
+                                                                                                    (value!([
+                                                                                                        "emit" => "callarg",
+                                                                                                        "children" =>
+                                                                                                            (value!([
+                                                                                                                "emit" => "value_string",
+                                                                                                                "value" => "copy"
+                                                                                                            ]))
+                                                                                                    ]))
+                                                                                                ]))
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -4068,8 +3720,22 @@ impl Parser {
                                                                 ]))
                                                         ])),
                                                         (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "InlineAssignment"
+                                                            "emit" => "call",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "InlineAssignment"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "callarg",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                "emit" => "value_string",
+                                                                                "value" => "copy"
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
                                                         ]))
                                                     ]))
                                             ]))
@@ -4378,8 +4044,22 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "InlineAssignment"
+                                                                        "emit" => "call",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "InlineAssignment"
+                                                                                ])),
+                                                                                (value!([
+                                                                                    "emit" => "callarg",
+                                                                                    "children" =>
+                                                                                        (value!([
+                                                                                            "emit" => "value_string",
+                                                                                            "value" => "copy"
+                                                                                        ]))
+                                                                                ]))
+                                                                            ]))
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
@@ -4401,8 +4081,22 @@ impl Parser {
                                                                                             "value" => "_"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "InlineAssignment"
+                                                                                            "emit" => "call",
+                                                                                            "children" =>
+                                                                                                (value!([
+                                                                                                    (value!([
+                                                                                                        "emit" => "identifier",
+                                                                                                        "value" => "InlineAssignment"
+                                                                                                    ])),
+                                                                                                    (value!([
+                                                                                                        "emit" => "callarg",
+                                                                                                        "children" =>
+                                                                                                            (value!([
+                                                                                                                "emit" => "value_string",
+                                                                                                                "value" => "copy"
+                                                                                                            ]))
+                                                                                                    ]))
+                                                                                                ]))
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -4461,8 +4155,22 @@ impl Parser {
                                                                         "emit" => "op_mod_opt",
                                                                         "children" =>
                                                                             (value!([
-                                                                                "emit" => "identifier",
-                                                                                "value" => "InlineAssignment"
+                                                                                "emit" => "call",
+                                                                                "children" =>
+                                                                                    (value!([
+                                                                                        (value!([
+                                                                                            "emit" => "identifier",
+                                                                                            "value" => "InlineAssignment"
+                                                                                        ])),
+                                                                                        (value!([
+                                                                                            "emit" => "callarg",
+                                                                                            "children" =>
+                                                                                                (value!([
+                                                                                                    "emit" => "value_string",
+                                                                                                    "value" => "copy"
+                                                                                                ]))
+                                                                                        ]))
+                                                                                    ]))
                                                                             ]))
                                                                     ])),
                                                                     (value!([
@@ -7725,920 +7433,544 @@ impl Parser {
                                 (value!([
                                     (value!([
                                         "emit" => "identifier",
-                                        "value" => "HoldAssignment"
-                                    ])),
-                                    (value!([
-                                        "emit" => "value_parselet",
-                                        "children" =>
-                                            (value!([
-                                                "emit" => "body",
-                                                "children" =>
-                                                    (value!([
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "+="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_add_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "-="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_sub_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "*="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mul_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "/="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_div_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "//="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_divi_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "%="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mod_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Not"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_ccl",
-                                                                                            "children" =>
-                                                                                                (value!([
-                                                                                                    "emit" => "ccl",
-                                                                                                    "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => ">"
-                                                                                                            ])),
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => "="
-                                                                                                            ]))
-                                                                                                        ]))
-                                                                                                ]))
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_hold"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "ExpressionList"
-                                                        ]))
-                                                    ]))
-                                            ]))
-                                    ]))
-                                ]))
-                        ])),
-                        (value!([
-                            "emit" => "constant",
-                            "children" =>
-                                (value!([
-                                    (value!([
-                                        "emit" => "identifier",
                                         "value" => "Assignment"
                                     ])),
                                     (value!([
                                         "emit" => "value_parselet",
                                         "children" =>
                                             (value!([
-                                                "emit" => "body",
-                                                "children" =>
-                                                    (value!([
+                                                (value!([
+                                                    "emit" => "arg",
+                                                    "children" =>
                                                         (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "+="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_add_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "-="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_sub_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "*="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mul_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "/="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_div_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "//="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_divi_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "%="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_mod_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "sequence",
-                                                            "children" =>
-                                                                (value!([
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "Lvalue"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_token_touch",
-                                                                        "value" => "="
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Not"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_token_ccl",
-                                                                                            "children" =>
-                                                                                                (value!([
-                                                                                                    "emit" => "ccl",
-                                                                                                    "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => ">"
-                                                                                                            ])),
-                                                                                                            (value!([
-                                                                                                                "emit" => "char",
-                                                                                                                "value" => "="
-                                                                                                            ]))
-                                                                                                        ]))
-                                                                                                ]))
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "_"
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "value_generic",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "Expect"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "genarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "HoldAssignment"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ])),
-                                                                    (value!([
-                                                                        "emit" => "call",
-                                                                        "children" =>
-                                                                            (value!([
-                                                                                (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "ast"
-                                                                                ])),
-                                                                                (value!([
-                                                                                    "emit" => "callarg",
-                                                                                    "children" =>
-                                                                                        (value!([
-                                                                                            "emit" => "value_string",
-                                                                                            "value" => "assign_drop"
-                                                                                        ]))
-                                                                                ]))
-                                                                            ]))
-                                                                    ]))
-                                                                ]))
-                                                        ])),
-                                                        (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "ExpressionList"
+                                                            (value!([
+                                                                "emit" => "identifier",
+                                                                "value" => "mode"
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "value_string",
+                                                                "value" => "hold"
+                                                            ]))
                                                         ]))
-                                                    ]))
+                                                ])),
+                                                (value!([
+                                                    "emit" => "body",
+                                                    "children" =>
+                                                        (value!([
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "+="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_add_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "-="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_sub_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "*="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_mul_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "/="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_div_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "//="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_divi_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "%="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_mod_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "sequence",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Lvalue"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_token_touch",
+                                                                            "value" => "="
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Not"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "value_token_ccl",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        "emit" => "ccl",
+                                                                                                        "children" =>
+                                                                                                            (value!([
+                                                                                                                (value!([
+                                                                                                                    "emit" => "char",
+                                                                                                                    "value" => ">"
+                                                                                                                ])),
+                                                                                                                (value!([
+                                                                                                                    "emit" => "char",
+                                                                                                                    "value" => "="
+                                                                                                                ]))
+                                                                                                            ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "_"
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "value_generic",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Expect"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "genarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "Assignment"
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "call",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    (value!([
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "ast"
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "callarg",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "op_binary_add",
+                                                                                                "children" =>
+                                                                                                    (value!([
+                                                                                                        (value!([
+                                                                                                            "emit" => "value_string",
+                                                                                                            "value" => "assign_"
+                                                                                                        ])),
+                                                                                                        (value!([
+                                                                                                            "emit" => "identifier",
+                                                                                                            "value" => "mode"
+                                                                                                        ]))
+                                                                                                    ]))
+                                                                                            ]))
+                                                                                    ]))
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
+                                                                "emit" => "identifier",
+                                                                "value" => "ExpressionList"
+                                                            ]))
+                                                        ]))
+                                                ]))
                                             ]))
                                     ]))
                                 ]))
@@ -9167,8 +8499,22 @@ impl Parser {
                                                                 ]))
                                                         ])),
                                                         (value!([
-                                                            "emit" => "identifier",
-                                                            "value" => "Assignment"
+                                                            "emit" => "call",
+                                                            "children" =>
+                                                                (value!([
+                                                                    (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "Assignment"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "callarg",
+                                                                        "children" =>
+                                                                            (value!([
+                                                                                "emit" => "value_string",
+                                                                                "value" => "drop"
+                                                                            ]))
+                                                                    ]))
+                                                                ]))
                                                         ]))
                                                     ]))
                                             ]))

@@ -200,32 +200,21 @@ ParseletInstance : @{
 
 # Inlined stuff - here comes everything which happens in brackets (...)
 
-InlineHoldAssignment : @{
-    Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_hold")
-    Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_hold")
-    Lvalue _ '*=' _ Expect<InlineHoldAssignment>  ast("assign_mul_hold")
-    Lvalue _ '/=' _ Expect<InlineHoldAssignment>  ast("assign_div_hold")
-    Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_hold")
-    Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_hold")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_hold")
-    Expression
-}
-
-InlineAssignment : @{
-    Lvalue _ '+=' _ Expect<InlineHoldAssignment>  ast("assign_add_copy")
-    Lvalue _ '-=' _ Expect<InlineHoldAssignment>  ast("assign_sub_copy")
-    Lvalue _ '*=' _ Expect<InlineHoldAssignment>  ast("assign_mul_copy")
-    Lvalue _ '/=' _ Expect<InlineHoldAssignment>  ast("assign_div_copy")
-    Lvalue _ '//=' _ Expect<InlineHoldAssignment>  ast("assign_divi_copy")
-    Lvalue _ '%=' _ Expect<InlineHoldAssignment>  ast("assign_mod_copy")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineHoldAssignment>  ast("assign_copy")
+InlineAssignment : @mode = "hold" {
+    Lvalue _ '+=' _ Expect<InlineAssignment>  ast("assign_add_" + mode)
+    Lvalue _ '-=' _ Expect<InlineAssignment>  ast("assign_sub_" + mode)
+    Lvalue _ '*=' _ Expect<InlineAssignment>  ast("assign_mul_" + mode)
+    Lvalue _ '/=' _ Expect<InlineAssignment>  ast("assign_div_" + mode)
+    Lvalue _ '//=' _ Expect<InlineAssignment>  ast("assign_divi_" + mode)
+    Lvalue _ '%=' _ Expect<InlineAssignment>  ast("assign_mod_" + mode)
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineAssignment>  ast("assign_" + mode)
     Expression
 }
 
 InlineSequenceItem : @{
-    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
-    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
-    InlineAssignment
+    T_Alias _ '=>' _ Expect<InlineAssignment("copy")>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineAssignment("copy")>  ast("alias")
+    InlineAssignment("copy")
 }
 
 InlineSequence : @{
@@ -238,8 +227,8 @@ InlineSequences : @{
 }
 
 InlineList : @{
-    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
-    InlineAssignment? ___ (',' _) ___  ast("list")
+    InlineAssignment("copy") ___ (',' _ InlineAssignment("copy") ___)+ (',' _)? ___  ast("list")
+    InlineAssignment("copy")? ___ (',' _) ___  ast("list")
 }
 
 # Call parameters (used by calls and rvalues)
@@ -375,25 +364,14 @@ ExpressionList : @{
 
 # Assignments
 
-HoldAssignment : @{
-    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add_hold")
-    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub_hold")
-    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul_hold")
-    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div_hold")
-    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi_hold")
-    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod_hold")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign_hold")
-    ExpressionList
-}
-
-Assignment : @{
-    Lvalue _ '+=' _ Expect<HoldAssignment>  ast("assign_add_drop")
-    Lvalue _ '-=' _ Expect<HoldAssignment>  ast("assign_sub_drop")
-    Lvalue _ '*=' _ Expect<HoldAssignment>  ast("assign_mul_drop")
-    Lvalue _ '/=' _ Expect<HoldAssignment>  ast("assign_div_drop")
-    Lvalue _ '//=' _ Expect<HoldAssignment>  ast("assign_divi_drop")
-    Lvalue _ '%=' _ Expect<HoldAssignment>  ast("assign_mod_drop")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldAssignment>  ast("assign_drop")
+Assignment : @mode = "hold" {
+    Lvalue _ '+=' _ Expect<Assignment>  ast("assign_add_" + mode)
+    Lvalue _ '-=' _ Expect<Assignment>  ast("assign_sub_" + mode)
+    Lvalue _ '*=' _ Expect<Assignment>  ast("assign_mul_" + mode)
+    Lvalue _ '/=' _ Expect<Assignment>  ast("assign_div_" + mode)
+    Lvalue _ '//=' _ Expect<Assignment>  ast("assign_divi_" + mode)
+    Lvalue _ '%=' _ Expect<Assignment>  ast("assign_mod_" + mode)
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<Assignment>  ast("assign_" + mode)
     ExpressionList
 }
 
@@ -410,7 +388,7 @@ Statement : @{
     Keyword<'repeat'> _  ast("op_repeat")
     Keyword<'reset'> _  ast("op_reset")
     Keyword<'return'> _ Expression?  ast("op_accept")
-    Assignment
+    Assignment("drop")
 }
 
 Block : @ emit = "block" {
