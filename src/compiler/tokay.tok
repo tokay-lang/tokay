@@ -200,21 +200,12 @@ ParseletInstance : @{
 
 # Inlined stuff - here comes everything which happens in brackets (...)
 
-InlineAssignment : @mode = "hold" {
-    Lvalue _ '+=' _ Expect<InlineAssignment>  ast("assign_add_" + mode)
-    Lvalue _ '-=' _ Expect<InlineAssignment>  ast("assign_sub_" + mode)
-    Lvalue _ '*=' _ Expect<InlineAssignment>  ast("assign_mul_" + mode)
-    Lvalue _ '/=' _ Expect<InlineAssignment>  ast("assign_div_" + mode)
-    Lvalue _ '//=' _ Expect<InlineAssignment>  ast("assign_divi_" + mode)
-    Lvalue _ '%=' _ Expect<InlineAssignment>  ast("assign_mod_" + mode)
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<InlineAssignment>  ast("assign_" + mode)
-    Expression
-}
+InlineAssignment : Assignment<Expression>("copy")
 
 InlineSequenceItem : @{
-    T_Alias _ '=>' _ Expect<InlineAssignment("copy")>  ast("alias")
-    LogicalOr '=>' _ Expect<InlineAssignment("copy")>  ast("alias")
-    InlineAssignment("copy")
+    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
+    InlineAssignment
 }
 
 InlineSequence : @{
@@ -227,8 +218,8 @@ InlineSequences : @{
 }
 
 InlineList : @{
-    InlineAssignment("copy") ___ (',' _ InlineAssignment("copy") ___)+ (',' _)? ___  ast("list")
-    InlineAssignment("copy")? ___ (',' _) ___  ast("list")
+    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
+    InlineAssignment? ___ (',' _) ___  ast("list")
 }
 
 # Call parameters (used by calls and rvalues)
@@ -364,15 +355,15 @@ ExpressionList : @{
 
 # Assignments
 
-Assignment : @mode = "hold" {
-    Lvalue _ '+=' _ Expect<Assignment>  ast("assign_add_" + mode)
-    Lvalue _ '-=' _ Expect<Assignment>  ast("assign_sub_" + mode)
-    Lvalue _ '*=' _ Expect<Assignment>  ast("assign_mul_" + mode)
-    Lvalue _ '/=' _ Expect<Assignment>  ast("assign_div_" + mode)
-    Lvalue _ '//=' _ Expect<Assignment>  ast("assign_divi_" + mode)
-    Lvalue _ '%=' _ Expect<Assignment>  ast("assign_mod_" + mode)
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<Assignment>  ast("assign_" + mode)
-    ExpressionList
+Assignment : @<Source> mode = "hold" {
+    Lvalue _ '+=' _ Expect<Self>  ast("assign_add_" + mode)
+    Lvalue _ '-=' _ Expect<Self>  ast("assign_sub_" + mode)
+    Lvalue _ '*=' _ Expect<Self>  ast("assign_mul_" + mode)
+    Lvalue _ '/=' _ Expect<Self>  ast("assign_div_" + mode)
+    Lvalue _ '//=' _ Expect<Self>  ast("assign_divi_" + mode)
+    Lvalue _ '%=' _ Expect<Self>  ast("assign_mod_" + mode)
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<Self>  ast("assign_" + mode)
+    Source
 }
 
 # Blocks and Sequences
@@ -388,7 +379,7 @@ Statement : @{
     Keyword<'repeat'> _  ast("op_repeat")
     Keyword<'reset'> _  ast("op_reset")
     Keyword<'return'> _ Expression?  ast("op_accept")
-    Assignment("drop")
+    Assignment<ExpressionList>("drop")
 }
 
 Block : @ emit = "block" {

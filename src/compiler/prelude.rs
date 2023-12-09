@@ -324,7 +324,7 @@ impl Compiler {
                                                     "children" =>
                                                         (value!([
                                                             (value!([
-                                                                "emit" => "assign",
+                                                                "emit" => "assign_drop",
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
@@ -341,7 +341,7 @@ impl Compiler {
                                                                     ]))
                                                             ])),
                                                             (value!([
-                                                                "emit" => "assign",
+                                                                "emit" => "assign_drop",
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
@@ -414,7 +414,7 @@ impl Compiler {
                                                                                                                 ]))
                                                                                                         ])),
                                                                                                         (value!([
-                                                                                                            "emit" => "assign_add",
+                                                                                                            "emit" => "assign_add_drop",
                                                                                                             "children" =>
                                                                                                                 (value!([
                                                                                                                     (value!([
