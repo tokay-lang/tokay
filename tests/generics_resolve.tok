@@ -1,0 +1,23 @@
+# Test for resolving usages of generic instances before their definition
+
+HelloEarth : @{
+    Hello<Earth>("modified")
+}
+
+Hello : @<World> mode = "standard" {
+    'Hello' _ Expect<Self>  print(mode)
+    World  print(*World)
+}
+
+Earth : @{
+    'Earth'
+}
+
+HelloEarth
+
+#---
+#HelloHelloEarth
+#---
+#<parselet Earth>
+#standard
+#modified
