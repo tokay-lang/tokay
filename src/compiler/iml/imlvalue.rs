@@ -98,7 +98,13 @@ impl ImlValue {
     pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
         let resolve = match self {
             Self::Unresolved(value) => match value.try_borrow_mut() {
-                Ok(mut value) => return value.resolve(compiler),
+                Ok(mut value) => {
+                    if value.resolve(compiler) {
+                        Some(value.clone())
+                    } else {
+                        None
+                    }
+                }
                 Err(_) => todo!("Recursive resolve()"),
             },
             Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
