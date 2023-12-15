@@ -99,7 +99,9 @@ impl Parselet {
 
         if main {
             assert!(self.signature.is_empty());
-            thread.globals.resize(self.locals, crate::value!(void));
+            thread
+                .globals
+                .resize_with(self.locals, || crate::value!(void));
         }
 
         let args_len = args.len();
