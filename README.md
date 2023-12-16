@@ -43,19 +43,19 @@ Tokay is still a very young project and gains much potential. [Volunteers are we
 - Implements a memoizing packrat parsing algorithm internally
 - Robust and fast, as it is written entirely in safe [Rust](https://rust-lang.org)
 - Enabling awk-style one-liners in combination with other tools
-- Generic functions and parselets (*coming soon)
+- Generic parselets and functions
 - Import system to create modularized programs (*coming soon)
 - Embedded interoperability with other programs (*coming soon)
 
 ## Installation
 
-Using Rusts dependency manager and build-tool `cargo`, simply install Tokay with
+By using Rusts dependency manager and build-tool `cargo`, simply install Tokay with
 
 ```bash
 $ cargo install tokay
 ```
 
-Alternatively, there's also a [`tokay`](https://aur.archlinux.org/packages/tokay) and [`tokay-git`](https://aur.archlinux.org/packages/tokay-git) package in the [Arch Linux AUR](https://aur.archlinux.org/).
+For Arch Linux-based distros, there is also a [`tokay`](https://aur.archlinux.org/packages/tokay) and [`tokay-git`](https://aur.archlinux.org/packages/tokay-git) package in the [Arch Linux AUR](https://aur.archlinux.org/).
 
 ## Examples
 
@@ -73,11 +73,11 @@ print("Hello World")
 Tokay can also greet any wor(l)ds that are being fed to it. The next program prints "Hello Venus", "Hello Earth" or "Hello" followed by any other name previously parsed by the builtin `Word`-token. Any other input than a word is automatically omitted.
 
 ```tokay
-world => Word   print("Hello " + $world)
+print("Hello", Word)
 ```
 
 > ```
-> $ tokay 'world => Word   print("Hello " + $world)' -- "World 1337 Venus Mars 42 Max"
+> $ tokay 'print("Hello", Word)' -- "World 1337 Venus Mars 42 Max"
 > Hello World
 > Hello Venus
 > Hello Mars
@@ -87,26 +87,26 @@ world => Word   print("Hello " + $world)
 A simple program for counting words which exists of a least three characters and printing a total can be implemented like this:
 
 ```tokay
-Word(min=3) ++words accept
-end words
+Word(min=3) words += 1
+end print(words)
 ```
 
 > ```
-> $ tokay "Word(min=3) ++words accept; end words" -- "this is just the 1st stage of 42.5 or .1 others"
+> $ tokay "Word(min=3) words += 1; end print(words)" -- "this is just the 1st stage of 42.5 or .1 others"
 > 5
 > ```
 
-The next, extended version of the program from above counts all words and prints any numbers.
+The next, extended version of the program from above counts all words and numbers.
 
 ```tokay
-Word ++words accept
-Number
-end words + " words"
+Word words += 1
+Number numbers += 1
+end print(words || 0, "words,", numbers || 0, "numbers")
 ```
 
 > ```
-> $ tokay 'Word ++words accept; Number; end words + " words"' -- "this is just the 1st stage of 42.5 or .1 others"
-> (1, 42.5, 0.1, "9 words")
+> $ tokay 'Word words += 1; Number numbers += 1; end print(words || 0, "words,", numbers || 0, "numbers")' -- "this is just the 1st stage of 42.5 or .1 others"
+> 9 words, 3 numbers
 > ```
 
 By design, Tokay constructs syntax trees from consumed information automatically.

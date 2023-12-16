@@ -105,7 +105,7 @@ impl ImlValue {
                         None
                     }
                 }
-                Err(_) => todo!("Recursive resolve()"),
+                Err(_) => todo!("Recursive resolve() impossible by design, see bug #127"),
             },
             Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
             Self::Instance {

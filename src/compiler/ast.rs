@@ -291,12 +291,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             // Create previously collected constants
             for (name, generic) in generics {
-                compiler.set_constant(&name, generic);
+                compiler.constant(&name, generic);
             }
 
             // Create previously collected locals
             for local in locals {
-                compiler.new_local(&local);
+                compiler.local(&local);
             }
 
             let body = body.borrow();
@@ -590,7 +590,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                                 break;
                             }
 
-                            compiler.new_local(name);
+                            compiler.local(name);
                         }
                     }
                 }
@@ -1125,7 +1125,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             }
 
             //println!("{} : {:?}", ident, value);
-            compiler.set_constant(ident, value);
+            compiler.constant(ident, value);
 
             // Try to resolve usage of newly introduced constant in current scope
             compiler.resolve();
@@ -1503,7 +1503,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    let temp = compiler.pop_temp(); // Borrow a temporary, unnamed variable
+                    let temp = compiler.temp(); // Claim a temporary variable
 
                     // Create an iter() on the iter expression
                     let initial = ImlOp::from(vec![
@@ -1512,12 +1512,20 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             let iter = compiler.get_builtin("iter").unwrap();
                             ImlOp::call(compiler, None, iter, Some((1, false)))
                         },
-                        ImlOp::from(Op::StoreFast(temp)),
+                        ImlOp::from(if compiler.is_global() {
+                            Op::StoreGlobal(temp)
+                        } else {
+                            Op::StoreFast(temp)
+                        }),
                     ]);
 
                     // Create the condition, which calls iter_next() until void is returned
                     let condition = ImlOp::from(vec![
-                        ImlOp::from(Op::LoadFast(temp)),
+                        ImlOp::from(if compiler.is_global() {
+                            Op::LoadGlobal(temp)
+                        } else {
+                            Op::LoadFast(temp)
+                        }),
                         {
                             let iter_next = compiler.get_builtin("iter_next").unwrap();
                             ImlOp::call(compiler, None, iter_next, Some((1, false)))
@@ -1530,7 +1538,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     compiler.loop_push();
                     let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
                     compiler.loop_pop();
-                    compiler.push_temp(temp); // Give temp variable back for possible reuse.
+                    compiler.untemp(temp); // Give temp variable back for possible reuse.
 
                     ImlOp::Loop {
                         use_iterator: true,

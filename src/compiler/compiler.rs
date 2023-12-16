@@ -24,6 +24,7 @@ pub(super) enum Scope {
         variables: IndexMap<String, usize>, // Named variable symbol table
         temporaries: Vec<usize>, // List of unused temporary variables
         locals: usize,      // Total amount of variables in this scope
+        is_global: bool,    // Marker for global scope
         begin: Vec<ImlOp>,  // Begin operations
         end: Vec<ImlOp>,    // End operations
         is_consuming: bool, // Determines whether the scope is consuming input for early consumable detection
@@ -229,6 +230,7 @@ impl Compiler {
                 constants: IndexMap::new(),
                 temporaries: Vec::new(),
                 locals: 0,
+                is_global: self.scopes.len() == 0,
                 begin: Vec::new(),
                 end: Vec::new(),
                 is_consuming: false,
@@ -366,6 +368,18 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
+    /** Returns if the current parselet scope is global */
+    pub(super) fn is_global(&self) -> bool {
+        for scope in &self.scopes {
+            // Check for scope with variables
+            if let Scope::Parselet { is_global, .. } = scope {
+                return *is_global;
+            }
+        }
+
+        unreachable!("There _must_ be at least one parselet scope!");
+    }
+
     /// Check if there's a loop
     pub(super) fn loop_check(&mut self) -> bool {
         for i in 0..self.scopes.len() {
@@ -379,30 +393,30 @@ impl Compiler {
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
-    /** Insert new local variable under given name in current scope. */
-    pub(super) fn new_local(&mut self, name: &str) -> usize {
+    /** Insert or get local variable with given name in current parselet scope. */
+    pub(super) fn local(&mut self, name: &str) {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
                 locals, variables, ..
             } = scope
             {
-                if let Some(addr) = variables.get(name) {
-                    return *addr;
+                if variables.get(name).is_some() {
+                    return;
                 }
 
                 let addr = *locals;
                 *locals += 1;
                 variables.insert(name.to_string(), addr);
-                return addr;
+                return;
             }
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
-    /** Pop unused or create new temporary variable */
-    pub(super) fn pop_temp(&mut self) -> usize {
+    /** Claim unused or new temporary variable in current parselet scope. */
+    pub(super) fn temp(&mut self) -> usize {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
@@ -411,24 +425,26 @@ impl Compiler {
                 ..
             } = scope
             {
-                if let Some(addr) = temporaries.pop() {
-                    return addr;
+                if let Some(temp) = temporaries.pop() {
+                    return temp;
                 }
 
+                let addr = *locals;
                 *locals += 1;
-                return *locals - 1;
+
+                return addr;
             }
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
     }
 
-    /** Release temporary variable for later re-use */
-    pub(super) fn push_temp(&mut self, addr: usize) {
+    /** Return temporary variable after use for later re-use */
+    pub(super) fn untemp(&mut self, temp: usize) {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet { temporaries, .. } = scope {
-                temporaries.push(addr);
+                temporaries.push(temp);
                 return;
             }
         }
@@ -437,7 +453,7 @@ impl Compiler {
     }
 
     /** Set constant to name in current scope. */
-    pub(super) fn set_constant(&mut self, name: &str, mut value: ImlValue) {
+    pub(super) fn constant(&mut self, name: &str, mut value: ImlValue) {
         /*
             Special meaning for whitespace constants names "_" and "__".
 
@@ -479,7 +495,7 @@ impl Compiler {
     pub(super) fn get(&mut self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
         let mut top_parselet = true;
 
-        for (i, scope) in self.scopes.iter().enumerate() {
+        for scope in &self.scopes {
             match scope {
                 Scope::Block { constants, .. } => {
                     if let Some(value) = constants.get(name) {
@@ -489,6 +505,7 @@ impl Compiler {
                 Scope::Parselet {
                     constants,
                     variables,
+                    is_global,
                     ..
                 } => {
                     if let Some(value) = constants.get(name) {
@@ -496,14 +513,12 @@ impl Compiler {
                     }
 
                     // Check for variable
-                    let is_global = i + 1 == self.scopes.len();
-
-                    if is_global || top_parselet {
+                    if *is_global || top_parselet {
                         if let Some(addr) = variables.get(name) {
                             return Some(ImlValue::Variable {
                                 offset,
                                 name: name.to_string(),
-                                is_global,
+                                is_global: *is_global,
                                 addr: *addr,
                             });
                         }
@@ -528,7 +543,7 @@ impl Compiler {
         // Builtin constants are defined on demand as fallback
         if name == "_" || name == "__" {
             // Fallback for "_" defines parselet `_ : Whitespace?`
-            self.set_constant(
+            self.constant(
                 "_",
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );

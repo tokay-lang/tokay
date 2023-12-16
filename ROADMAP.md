@@ -9,9 +9,11 @@ This document describes upcoming changes to achieve with a specific version.
   - [x] Keyword<P> (#121)
   - [ ] Until<P, Escape: '\\'>
   - [ ] String<Start, End: Void, Escape: '\\'>
-- [ ] Implement embedded parselets (#120)
-- [ ] New list syntax `[...]`, redefining sequence/`dict` syntax (#100)
-  - The character-class token syntax was replaced by a `Char`-builtin
-  - List definition `list = []`
-  - Dict definition `dict = ()`
-  - Builtins `dict` and `list` should become obsolete, so variables can take their names
+- [ ] Implement inlined parselets (#120)
+- [ ] New list syntax `,`, redefining sequence/`dict` syntax (#100)
+  - Top-level `list` definition `list = ,`
+  - Top-level `dict` definition `dict = ()`
+
+## 0.8
+
+- [ ] Importable modules
