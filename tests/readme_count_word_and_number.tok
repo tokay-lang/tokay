@@ -1,0 +1,9 @@
+Word words += 1
+Number numbers += 1
+
+end print(words || 0, "words,", numbers || 0, "numbers")
+#---
+#this is just the 1st stage of 42.5 or .1 others
+#---
+#9 words, 3 numbers
+#("this", "is", "just", "the", 1, "st", "stage", "of", 42.5, "or", 0.1, "others")

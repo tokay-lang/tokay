@@ -1,0 +1,7 @@
+Word(min=3) words += 1
+end print(words || 0)
+#---
+#this is just the 1st stage of 42.5 or .1 others
+#---
+#5
+#("this", "just", "the", "stage", "others")

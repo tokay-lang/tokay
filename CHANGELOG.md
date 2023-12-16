@@ -4,7 +4,7 @@
 
 Current main branch.
 
-- Implementation of generic parselets
+- v0.6.5: Implementation of generic parselets
   - Syntax changes
   - Handle parselet instances
   - Handle generic values in intermediate structures

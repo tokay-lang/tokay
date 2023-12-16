@@ -1,0 +1,8 @@
+print("Hello", Word)
+#---
+#World 1337 Venus Mars 42 Max
+#---
+#Hello World
+#Hello Venus
+#Hello Mars
+#Hello Max
