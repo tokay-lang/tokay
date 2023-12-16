@@ -62,7 +62,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     ) -> Self {
         let frame = Frame {
             fuse: None,
-            capture_start: parselet.locals,
+            capture_start: stack.len(),
             reader_start: thread.reader.tell(),
         };
 

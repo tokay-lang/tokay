@@ -99,9 +99,6 @@ impl Parselet {
 
         if main {
             assert!(self.signature.is_empty());
-            thread
-                .globals
-                .resize_with(self.locals, || crate::value!(void));
         }
 
         let args_len = args.len();
@@ -129,8 +126,15 @@ impl Parselet {
             .into();
         }
 
-        // Initialize local variables
-        args.resize(self.locals, Capture::Empty);
+        if main {
+            // Initialize global variables
+            thread
+                .globals
+                .resize_with(self.locals, || crate::value!(void));
+        } else {
+            // Initialize local variables
+            args.resize(self.locals, Capture::Empty);
+        }
 
         // Set remaining parameters to their defaults
         for (i, arg) in (&self.signature[args_len..]).iter().enumerate() {
