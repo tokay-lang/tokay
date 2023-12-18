@@ -96,12 +96,12 @@ fn get_readers(opts: &Opts) -> Vec<Reader> {
 }
 
 // Read-Eval-Print-Loop (REPL) for Tokay
-fn repl(opts: &Opts) {
+fn repl(opts: &Opts) -> rustyline::Result<()> {
     let mut globals: Vec<RefValue> = Vec::new();
     let mut compiler = Compiler::new();
 
     // todo: Implement a completer?
-    let mut readline = rustyline::Editor::<()>::new();
+    let mut readline = rustyline::DefaultEditor::new()?;
 
     // todo: Implement a history in $HOME for production?
     if cfg!(debug_assertions) && std::env::var("TOKAY_HISTORY_LOAD").map_or(true, |var| var == "1")
@@ -129,7 +129,7 @@ fn repl(opts: &Opts) {
 
         //println!("code = {:?}", code);
 
-        readline.add_history_entry(code.as_str());
+        readline.add_history_entry(code.as_str())?;
 
         match code.as_str() {
             /*
@@ -179,9 +179,11 @@ fn repl(opts: &Opts) {
             .save_history(".tokayhist")
             .expect("Cannot save REPL history");
     }
+
+    Ok(())
 }
 
-fn main() {
+fn main() -> rustyline::Result<()> {
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();
 
@@ -241,7 +243,7 @@ fn main() {
                 if readers.len() == 0 {
                     // Run program in its own REPL?
                     if opts.repl {
-                        let mut readline = rustyline::Editor::<()>::new();
+                        let mut readline = rustyline::DefaultEditor::new()?;
                         readline.load_history(".tokayrepl").ok();
 
                         loop {
@@ -261,7 +263,7 @@ fn main() {
                                 continue;
                             }
 
-                            readline.add_history_entry(code.as_str());
+                            readline.add_history_entry(code.as_str())?;
 
                             match program.run_from_reader(Reader::new(
                                 None,
@@ -329,6 +331,8 @@ fn main() {
             print_version();
         }
 
-        repl(&opts);
+        repl(&opts)?
     }
+
+    Ok(())
 }

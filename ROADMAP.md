@@ -7,7 +7,7 @@ This document describes upcoming changes to achieve with a specific version.
 - [x] Implement iterators and `for...in`-syntax (#101)
 - [x] Implement generic parselets (#10, #105)
   - [x] `Keyword<P>` (#121)
-  - [ ] `Until<P, Escape: '\\'>``
+  - [ ] `Until<P, Escape: '\\'>`
   - [ ] `String<Start, End: Void, Escape: '\\'>`
 - [ ] Implement inlined parselets (#120)
 - [ ] New list syntax `,`, redefining sequence/`dict` syntax (#100)
