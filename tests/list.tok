@@ -1,17 +1,22 @@
 #testmode:repl
 
-# Simple lists made from sequences
-(1 2 3)
+# Simple lists
+1, 2, 3
 (1, 2, 3)
+1, 2, 3,
+(1, 2, 3,)
 (42, "Hello", 23.5, true, false)
 
 # Simple lists by constructor
+,
+(,)
+list()
 list(true)
 list((1,2,3))
 list("Tokay")
 
 # Standard get/set item test
-l = (1, 2, 3)
+l = 1, 2, 3
 #(
 #    l[0]       # 1
 #    l[1] = -2  # void
@@ -40,13 +45,18 @@ l
 
 #(1, 2, 3)
 #(1, 2, 3)
+#(1, 2, 3)
+#(1, 2, 3)
 #(42, "Hello", 23.5, true, false)
 
+#(, )
+#(, )
+#(, )
 #(true, )
 #(1, 2, 3)
 #("Tokay", )
 
-#(1, 4, 4)
+#(1, (4, 4))
 #(1, -2, 4)
 
 #(1, 1337, 1)

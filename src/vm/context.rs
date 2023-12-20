@@ -1,7 +1,7 @@
 //! Contexts and stack frames for parselet calls.
 use super::*;
 use crate::reader::Offset;
-use crate::value::{Dict, List, Object, Parselet, RefValue};
+use crate::value::{Dict, List, Object, Parselet, RefValue, Value};
 use std::iter::FromIterator;
 
 /** Representation of a stack-frame based on current context. */
@@ -268,8 +268,9 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     pub fn collect(
         &mut self,
         capture_start: usize, // Stack offset to start from
-        copy: bool,           // Copy values instead of draining them from the stack
-        debug: bool,          // Print debug information
+        copy: bool,           // When true: Copy values instead of draining them from the stack
+        sequence: bool, // Sequence mode; true: Determine dict, list or inherit type fitting best; false: Always dict
+        debug: bool,    // Print debug information
     ) -> Capture {
         // Early abort when capture_start is behind stack len
         if capture_start > self.stack.len() {
@@ -308,8 +309,6 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         }
 
         // Capture inheritance is only possible when there is only one capture available
-        let inherit = captures.len() == 1;
-
         let mut list = List::new(); // List collector
         let mut dict = Dict::new(); // Dict collector
         let mut max = self.parselet.severity; // Require at least parselet severity level
@@ -341,11 +340,9 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                         }
 
                         dict.insert(RefValue::from(alias), value);
-                    } else if inherit {
-                        return Capture::Value(value, alias, severity);
-                    } else if !value.is_void() {
+                    } else {
                         // Eiher collect into list, or insert into the dict
-                        if dict.is_empty() {
+                        if dict.is_empty() && sequence {
                             list.push(value);
                         } else {
                             dict.insert(RefValue::from(idx), value);
@@ -372,12 +369,18 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                             }
                         }
 
-                        dict.insert(RefValue::from(alias), value);
-                    } else if inherit {
-                        return Capture::Value(value, alias, severity);
+                        // A void value with an alias becomes null
+                        dict.insert(
+                            RefValue::from(alias),
+                            if value.is_void() {
+                                RefValue::from(Value::Null)
+                            } else {
+                                value
+                            },
+                        );
                     } else if !value.is_void() {
                         // Eiher collect into list, or insert into the dict
-                        if dict.is_empty() {
+                        if dict.is_empty() && sequence {
                             list.push(value);
                         } else {
                             dict.insert(RefValue::from(idx), value);
@@ -396,13 +399,11 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             self.log(&format!("dict = {:?}", dict));
         }
 
-        if dict.is_empty() {
-            if list.len() > 1 {
-                Capture::Value(RefValue::from(list), None, max)
-            } else if list.len() == 1 {
-                Capture::Value(list.pop().unwrap(), None, max)
-            } else {
-                Capture::Empty
+        if dict.is_empty() && sequence {
+            match list.len() {
+                0 => Capture::Empty,
+                1 => Capture::Value(list.pop().unwrap(), None, max),
+                _ => Capture::Value(RefValue::from(list), None, max),
             }
         } else {
             Capture::Value(RefValue::from(dict), None, max)

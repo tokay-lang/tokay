@@ -1,5 +1,5 @@
 T: @<P, t: "yeah"> {
-    P 'x' P  print(t $0)
+    P 'x' P  print(t, $0)
 }
 
 #T
@@ -7,7 +7,7 @@ print("Start")
 T<'a'>
 T<'b', "jeppie">
 '\n'
-Char print("Other" $1)
+Char print("Other", $1)
 #T<'a', "yo">
 #T<t:"yes">
 #T<z:"x">

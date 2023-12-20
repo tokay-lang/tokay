@@ -1,6 +1,17 @@
-# Tokay grammar / parser
-# This program is used to generate Tokays own parser, and is written in Tokay itself.
+# The Tokay programming language
+# Copyright © 2023 by Jan Max Meyer, Phorward Software Technologies.
+# Licensed under the MIT license. See LICENSE for more information.
+#
+# This Tokay program expresses Tokay's grammar in itself.
+# It is used to modify and build Tokays own language parser.
+#
 # See `build/README.md` for details.
+#
+
+#ExpectAndRecover : @<P> msg=void {
+#    accept P
+#    print(msg || "Expecting " + *P + ", but got " + repr(Peek<(Token | Char | "end-of-file")>)) Char<^\n;>*
+#}
 
 # Whitespace & EOL
 
@@ -187,39 +198,40 @@ ParseletInstance : @{
     StaticParseletInstance
 }
 
-# Inline Blocks and Sequences
+# Inlined stuff - here comes everything which happens in brackets (...)
+
+InlineAssignment : Assignment<Expression>("copy")
 
 InlineSequenceItem : @{
-    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
-    Expression '=>' _ Expect<Expression>  ast("alias")
-    Expression
+    T_Alias _ '=>' _ Expect<InlineAssignment>  ast("alias")
+    LogicalOr '=>' _ Expect<InlineAssignment>  ast("alias")
+    InlineAssignment
 }
 
 InlineSequence : @{
-    # Special case: Expression followed by "," is considered as a list with a single item (syntactic sugar)
-    Expression ___ ',' _ ___ Peek<')'>  ast("list")
-
-    # A sequence is a list of items optionally separated by ","
-    (InlineSequenceItem ___ (',' _)? ___)+  ast("inline_sequence")
-
-    # The empty sequences generates an empty list
-    Void  ast("list")
+    (InlineSequenceItem ___)+  if type($1) == "list" && $1.len > 1 || $1["emit"] == "alias" ast("sequence")
 }
 
-InlineBlock : @{
-    '(' _ ___ InlineSequence {___ '|' _ ___ InlineSequence}+ ___ Expect<')'>  ast("block")
-    '(' _ ___ InlineSequence ___ Expect<')'>
+InlineSequences : @{
+    InlineSequence (___ '|' _ ___ Expect<InlineSequence>)+  ast("block")
+    InlineSequence
+}
+
+InlineList : @{
+    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
+    InlineAssignment? ___ (',' _) ___  ast("list")
 }
 
 # Call parameters (used by calls and rvalues)
 
 CallArgument : @{
-    T_Identifier _ '=' _ Expect<Expression>  ast("callarg_named")
-    Expression  ast("callarg")
+    T_Identifier _ '=' Not<Char<\>=>> _ Expect<InlineSequences>  ast("callarg_named")
+    InlineSequences  ast("callarg")
 }
 
 CallArguments : @{
-    (CallArgument (',' _)? ___)+
+    CallArgument + Repeat<((',' _) ___ CallArgument), min:0, blur:false> (',' _)? ___
+    # List<CallArgument, Separator: ((',' _)? ___)>  # Stack overflow :-(
 }
 
 # Token
@@ -234,20 +246,21 @@ TokenLiteral : @{
     Keyword<'Self'>  ast("value_token_self")
 }
 
-TokenAtom : @{
-    TokenLiteral
-    InlineBlock
-    '@' _ InlineBlock  ast("area")
+Token : @{
+    '(' _ ___ ')'  ast("dict")  # defines an empty dict
+    '(' _ ___ (InlineList | InlineSequences) ___ Expect<')'>
+    '@' _ '(' _ ___ (InlineList | InlineSequences) ___ Expect<')'>  ast("area")
     Block
+    TokenLiteral
     ParseletInstance '(' _ ___ CallArguments? ___ Expect<')'>  ast("call")
     ParseletInstance
 }
 
-Token : @{
-    TokenAtom '+'  ast("op_mod_pos")
-    TokenAtom '*'  ast("op_mod_kle")
-    TokenAtom '?'  ast("op_mod_opt")
-    TokenAtom
+TokenModifier : @{
+    Token '+'  ast("op_mod_pos")
+    Token '*'  ast("op_mod_kle")
+    Token '?'  ast("op_mod_opt")
+    Token
 }
 
 # Expression & Flow
@@ -268,14 +281,13 @@ Literal : @{
 ## Atomic elements, including if and loops as they are atomic part of expressions
 
 Atomic : @{
-    '(' _ ___ HoldExpression ___ ')'
     Literal
-    Token
-    Keyword<'if'> _ Expect<HoldExpression> ___ Expect<Statement> \
+    TokenModifier
+    Keyword<'if'> _ Expect<Expression> ___ Expect<Statement> \
         (___ Keyword<'else'> _ ___ Expect<Statement>)?  ast("op_if")
     Keyword<'for'> _ Expect<Lvalue> Keyword<Expect<'in'>> _ Expect<Expression> \
          ___ Expect<Statement>  ast("op_for")
-    Keyword<'loop'> _ HoldExpression ___ Block  ast("op_loop")
+    Keyword<'loop'> _ Expression ___ Block  ast("op_loop")
     Keyword<'loop'> _ Expect<Block>  ast("op_loop")
     Load
 }
@@ -288,6 +300,8 @@ Rvalue : @{
     Atomic
 }
 
+# Expressional syntax
+
 Unary : @{
     '-' Not<'-'> _ Unary  ast("op_unary_neg")
     '!' _ Unary  ast("op_unary_not")
@@ -296,16 +310,16 @@ Unary : @{
 }
 
 MulDiv : @{
-    MulDiv '*' _ Expect<Unary>  ast("op_binary_mul")
-    MulDiv '//' _ Expect<Unary>  ast("op_binary_divi")
-    MulDiv '/' _ Expect<Unary>  ast("op_binary_div")
-    MulDiv '%' _ Expect<Unary>  ast("op_binary_mod")
+    MulDiv '*' Not<Char<=>> _ Expect<Unary>  ast("op_binary_mul")
+    MulDiv '//' Not<Char<=>> _ Expect<Unary>  ast("op_binary_divi")
+    MulDiv '/' Not<Char<=>> _ Expect<Unary>  ast("op_binary_div")
+    MulDiv '%' Not<Char<=>> _ Expect<Unary>  ast("op_binary_mod")
     Unary
 }
 
 AddSub : @{
-    AddSub '+' Not<'+'> _ Expect<MulDiv>  ast("op_binary_add")
-    AddSub '-' Not<'-'> _ Expect<MulDiv>  ast("op_binary_sub")
+    AddSub '+' Not<Char<+=>> _ Expect<MulDiv>  ast("op_binary_add")
+    AddSub '-' Not<Char<-=>> _ Expect<MulDiv>  ast("op_binary_sub")
     MulDiv
 }
 
@@ -331,29 +345,28 @@ LogicalOr : @{
     LogicalAnd
 }
 
-HoldExpression : @{
-    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add_hold")
-    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub_hold")
-    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul_hold")
-    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div_hold")
-    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi_hold")
-    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod_hold")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign_hold")
-    LogicalOr
+Expression : LogicalOr
+
+ExpressionList : @{
+    Expression (',' _ Expression)+ (',' _)?  ast("list")
+    Expression? (',' _)  ast("list")
+    Expression
 }
 
-Expression : @{
-    Lvalue _ '+=' _ Expect<HoldExpression>  ast("assign_add")
-    Lvalue _ '-=' _ Expect<HoldExpression>  ast("assign_sub")
-    Lvalue _ '*=' _ Expect<HoldExpression>  ast("assign_mul")
-    Lvalue _ '/=' _ Expect<HoldExpression>  ast("assign_div")
-    Lvalue _ '//=' _ Expect<HoldExpression>  ast("assign_divi")
-    Lvalue _ '%=' _ Expect<HoldExpression>  ast("assign_mod")
-    Lvalue _ '=' Not<Char<\>=>> _ Expect<HoldExpression>  ast("assign")
-    LogicalOr
+# Assignments
+
+Assignment : @<Source> mode = "hold" {
+    Lvalue _ '+=' _ Expect<Self>  ast("assign_add_" + mode)
+    Lvalue _ '-=' _ Expect<Self>  ast("assign_sub_" + mode)
+    Lvalue _ '*=' _ Expect<Self>  ast("assign_mul_" + mode)
+    Lvalue _ '/=' _ Expect<Self>  ast("assign_div_" + mode)
+    Lvalue _ '//=' _ Expect<Self>  ast("assign_divi_" + mode)
+    Lvalue _ '%=' _ Expect<Self>  ast("assign_mod_" + mode)
+    Lvalue _ '=' Not<Char<\>=>> _ Expect<Self>  ast("assign_" + mode)
+    Source
 }
 
-# Statement and Assignment
+# Blocks and Sequences
 
 Statement : @{
     Keyword<'accept'> _ Expression?  ast("op_accept")
@@ -366,53 +379,43 @@ Statement : @{
     Keyword<'repeat'> _  ast("op_repeat")
     Keyword<'reset'> _  ast("op_reset")
     Keyword<'return'> _ Expression?  ast("op_accept")
-    Expression
+    Assignment<ExpressionList>("drop")
 }
-
-# Blocks and Sequences
 
 Block : @ emit = "block" {
     '{' _ ___ '}'  ast("value_void")
-    '{' _ Instruction* _ Expect<'}'>   ast(emit)
+    '{' _ Tokay* _ Expect<'}'>   ast(emit)
 }
 
 SequenceItem : @{
-    T_Alias _ '=>' _ Expect<Expression>  ast("alias")
-    Expression '=>' _ Expect<Expression>  ast("alias")
+    T_Alias _ '=>' _ Expect<ExpressionList>  ast("alias")
+    Expression '=>' _ Expect<ExpressionList>  ast("alias")
     Statement
 }
 
 Sequence : @{
-    (SequenceItem (',' _)?)+  ast("sequence")
+    SequenceItem+  if type($1) == "list" && $1.len > 1 || $1["emit"] == "alias" ast("sequence")
 }
 
 Sequences : @{
-    Sequence {'|' _ Sequence}+  ast("block")
+    Sequence ('|' _ Expect<Sequence>)+  ast("block")
     Sequence
 }
 
-Instruction : @{
-    Keyword<'begin'> _ Sequences Expect<T_EOL>  ast("begin")
-    Keyword<'end'> _ Sequences Expect<T_EOL>  ast("end")
+# Main
+
+Tokay : @{
+    T_EOL
+    Keyword<'begin'> _ Expect<Sequences> Expect<T_EOL>  ast("begin")
+    Keyword<'end'> _ Expect<Sequences> Expect<T_EOL>  ast("end")
     T_Identifier _ ':' _ {
         Literal _ Peek<T_EOL>
         Token _ Peek<T_EOL>
         Sequences
     } Expect<T_EOL>  ast("constant")
-    Statement T_EOL
-    Sequences T_EOL
-    T_EOL
+    Sequences T_EOL?
 }
 
-Nop : Void ast("op_nop")
-
-# Main
-
-Tokay : @{
-    Instruction+
-    Char  error("Parse error, unexpected token", true)
-}
-
-_ Tokay? Expect<EOF>  ast("main")
-#_ Tokay? Expect<EOF>  ast2rust(ast("main"))
-#_ Tokay? Expect<EOF>  ast_print(ast("main"))
+_ Tokay* Expect<EOF>  ast("main")
+#_ Tokay* Expect<EOF>  ast2rust(ast("main"))
+#_ Tokay* Expect<EOF>  ast_print(ast("main"))

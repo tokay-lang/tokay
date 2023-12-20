@@ -2,4 +2,4 @@ Int ast("int")
 #---
 #hello1234or23so
 #---
-#((emit => "int", value => 1234, offset => 5, row => 1, col => 6, stop_offset => 9, stop_row => 1, stop_col => 10), (emit => "int", value => 23, offset => 11, row => 1, col => 12, stop_offset => 13, stop_row => 1, stop_col => 14))
+#((emit => "int" value => 1234 offset => 5 row => 1 col => 6 stop_offset => 9 stop_row => 1 stop_col => 10), (emit => "int" value => 23 offset => 11 row => 1 col => 12 stop_offset => 13 stop_row => 1 stop_col => 14))

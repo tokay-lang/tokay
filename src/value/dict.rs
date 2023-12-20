@@ -28,7 +28,7 @@ impl Object for Dict {
 
     fn repr(&self) -> String {
         if self.is_empty() {
-            return "dict()".to_string();
+            return "()".to_string();
         }
 
         let mut ret = "(".to_string();
@@ -37,7 +37,7 @@ impl Object for Dict {
             let key = key.borrow();
 
             if ret.len() > 1 {
-                ret.push_str(", ");
+                ret.push_str(" ");
             }
 
             if let Some(key) = key.object::<Str>() {

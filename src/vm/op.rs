@@ -246,7 +246,8 @@ impl Op {
                 Op::Collect => Ok(Accept::Push(context.collect(
                     context.frame.capture_start,
                     false,
-                    context.debug > 5,
+                    true,
+                    context.thread.debug > 5,
                 ))),
 
                 /*
@@ -634,7 +635,10 @@ impl Op {
                     let mut list = List::new();
 
                     for _ in 0..*count {
-                        list.insert(0, context.pop());
+                        let value = context.pop();
+                        if !value.is_void() {
+                            list.insert(0, value);
+                        }
                     }
 
                     context.push(RefValue::from(list))

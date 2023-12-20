@@ -23,6 +23,7 @@ impl Object for List {
 
     fn repr(&self) -> String {
         let mut ret = "(".to_string();
+
         for item in self.iter() {
             if ret.len() > 1 {
                 ret.push_str(", ");
@@ -31,11 +32,12 @@ impl Object for List {
             ret.push_str(&item.borrow().repr());
         }
 
-        if self.len() == 1 {
-            ret.push_str(", ");
+        if self.len() <= 1 {
+            ret.push_str(", )");
+        } else {
+            ret.push_str(")");
         }
 
-        ret.push(')');
         ret
     }
 

@@ -779,7 +779,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let mut ops = Vec::new();
 
-            if parts.len() > 1 && parts[1] != "hold" {
+            /* assignment with operation */
+            if parts.len() > 1 && !["copy", "drop", "hold"].contains(&parts[1]) {
                 ops.push(traverse_node_lvalue(compiler, lvalue, false, false));
                 ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
 
@@ -793,18 +794,26 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     _ => unreachable!(),
                 });
 
-                if *parts.last().unwrap() != "hold" {
-                    ops.push(Op::Inv.into());
+                match *parts.last().unwrap() {
+                    "hold" => {}
+                    "copy" => ops.push(Op::Sep.into()),
+                    _ => ops.push(Op::Inv.into()),
                 }
-            } else {
+            }
+            /* normal assignment without operation */
+            else {
                 ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
                 ops.push(traverse_offset(node));
                 ops.push(traverse_node_lvalue(
                     compiler,
                     lvalue,
                     true,
-                    *parts.last().unwrap() == "hold",
+                    ["copy", "hold"].contains(parts.last().unwrap()),
                 ));
+
+                if *parts.last().unwrap() == "copy" {
+                    ops.push(Op::Sep.into())
+                }
             }
 
             ImlOp::from(ops)
@@ -1594,13 +1603,15 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             ImlOp::from(ops)
         }
 
-        // sequence  ------------------------------------------------------
-        "sequence" | "inline_sequence" | "list" => {
+        // sequence, dict, list  -----------------------------------------
+        "sequence" | "dict" | "list" => {
             let children = if let Some(children) = node.get_str("children") {
                 List::from(children)
             } else {
                 List::new()
             };
+
+            //println!("{} => {:?}", emit, children);
 
             let mut ops = Vec::new();
 
@@ -1612,14 +1623,14 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 ));
             }
 
-            // Lists are definitive lists with a given length and only non-aliased values
-            if emit == "list" {
-                ops.push(Op::MakeList(children.len()).into());
-                ImlOp::from(ops)
-            }
-            // In most cases, lists are parsed as sequences;
-            else {
-                ImlOp::seq(ops, true)
+            match emit {
+                "list" if ops.is_empty() => ImlOp::from(Op::MakeList(0)),
+                "list" => {
+                    ops.push(ImlOp::from(Op::MakeList(ops.len())));
+                    ImlOp::seq(ops, false)
+                }
+                "dict" if ops.is_empty() => ImlOp::from(Op::MakeDict(0)),
+                _ => ImlOp::seq(ops, true),
             }
         }
 
@@ -1701,7 +1712,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
     let value = if value.is_void() {
         Some(
             context
-                .collect(capture_start, false, debug.is_true())
+                .collect(capture_start, false, true, debug.is_true())
                 .extract(&context.thread.reader),
         )
     } else {
@@ -1733,7 +1744,7 @@ tokay_function!("ast : @emit, value=void, flatten=true, debug=false", {
             ret.insert_str("children", value.clone());
         }
         // Otherwise this is a value
-        else {
+        else if !value.is_void() {
             ret.insert_str("value", value.clone());
         }
     }

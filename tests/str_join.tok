@@ -1,7 +1,7 @@
 #testmode:repl
 
 s = "Glasflügel"
-l = ()
+l = ,
 for i in range(s.len) { l.push(s[i] + i) }
 "".join(l)
 "|".join(l)

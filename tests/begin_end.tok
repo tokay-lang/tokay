@@ -2,7 +2,7 @@ begin print("start")
 
 Read : @{
     begin count = 0 print("begin")
-    Char<a-z> print("body" $1, ++count) repeat
+    Char<a-z> print("body", $1, ++count) repeat
     end print("end")
 }
 

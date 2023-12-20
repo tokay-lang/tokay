@@ -29,9 +29,7 @@ pub(in crate::compiler) enum ImlOp {
     // Sequence of ops, optionally a collection
     Seq {
         seq: Vec<ImlOp>,
-        collection: bool, /* According to these operation's semantics, or when an entire sequence is completely recognized,
-                          the sequence is getting accepted. Incomplete sequences are rejected, but might partly be
-                          processed, including data changes, which is a wanted behavior. */
+        collect: bool, // Run a Context::collect() on successfull sequence match
     },
 
     // Conditional block
@@ -53,14 +51,14 @@ pub(in crate::compiler) enum ImlOp {
 
 impl ImlOp {
     /// Creates a sequence from items, and optimizes stacked, unframed sequences
-    pub fn seq(items: Vec<ImlOp>, collection: bool) -> ImlOp {
+    pub fn seq(items: Vec<ImlOp>, collect: bool) -> ImlOp {
         let mut seq = Vec::new();
 
         for item in items {
             match item {
                 ImlOp::Nop => {}
                 ImlOp::Seq {
-                    collection: false,
+                    collect: false,
                     seq: items,
                 } => seq.extend(items),
                 item => seq.push(item),
@@ -69,8 +67,8 @@ impl ImlOp {
 
         match seq.len() {
             0 => ImlOp::Nop,
-            1 if !collection => seq.pop().unwrap(),
-            _ => ImlOp::Seq { seq, collection },
+            1 if !collect => seq.pop().unwrap(),
+            _ => ImlOp::Seq { seq, collect },
         }
     }
 
@@ -213,19 +211,13 @@ impl ImlOp {
 
                 ops.extend(ret);
             }
-            ImlOp::Seq { seq, collection } => {
+            ImlOp::Seq { seq, collect } => {
                 for item in seq.iter() {
                     item.compile(program, current, ops);
                 }
 
                 // Check if the sequence exists of more than one operational instruction
-                if *collection
-                    && ops[start..]
-                        .iter()
-                        .map(|op| if matches!(op, Op::Offset(_)) { 0 } else { 1 })
-                        .sum::<usize>()
-                        > 1
-                {
+                if *collect {
                     ops.insert(start, Op::Frame(0));
                     ops.push(Op::Collect);
                     ops.push(Op::Close);
