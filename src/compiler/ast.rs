@@ -1352,6 +1352,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = children.object::<Dict>().unwrap();
 
                     let res = traverse_node_static(compiler, None, children);
+                    let offset = traverse_node_offset(node);
 
                     /*
                     if !res.is_consuming() {
@@ -1396,12 +1397,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                         // mod_kle on Token::Char becomes optional Token::Chars
                                         if parts[2] == "kle" {
                                             chars = chars
-                                                .into_generic("Opt", None)
+                                                .into_generic("Opt", None, offset.clone())
                                                 .try_resolve(compiler);
                                         }
 
                                         return ImlOp::Call {
-                                            offset: traverse_node_offset(node),
+                                            offset,
                                             target: chars,
                                             args: None,
                                         };
@@ -1429,11 +1430,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     ImlOp::call(
                         compiler,
-                        traverse_node_offset(node),
+                        offset.clone(),
                         match parts[2] {
-                            "pos" => res.into_generic("Pos", assume_severity),
-                            "kle" => res.into_generic("Kle", assume_severity),
-                            "opt" => res.into_generic("Opt", assume_severity),
+                            "pos" => res.into_generic("Pos", assume_severity, offset),
+                            "kle" => res.into_generic("Kle", assume_severity, offset),
+                            "opt" => res.into_generic("Opt", assume_severity, offset),
                             _ => unreachable!(),
                         },
                         None,

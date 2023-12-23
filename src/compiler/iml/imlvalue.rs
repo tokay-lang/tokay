@@ -62,14 +62,14 @@ impl ImlValue {
     This is used internally to implement `Kle<P>` from `P*` syntax
     during the AST traversal.
     */
-    pub fn into_generic(self, name: &str, severity: Option<u8>) -> Self {
+    pub fn into_generic(self, name: &str, severity: Option<u8>, offset: Option<Offset>) -> Self {
         Self::Instance {
             offset: None,
             target: Box::new(ImlValue::Name {
                 offset: None,
                 name: name.to_string(),
             }),
-            args: vec![(None, self)],
+            args: vec![(offset, self)],
             nargs: IndexMap::new(),
             severity,
             generated: true,
@@ -173,8 +173,8 @@ impl ImlValue {
                                     compiler.errors.push(Error::new(
                                         arg.0,
                                         format!(
-                                            "Cannot assign non-consumable {} to consumable generic '{}'",
-                                            arg.1, name
+                                            "Cannot assign non-consumable {} to consumable generic {} of {}",
+                                            arg.1, name, parselet
                                         )
                                     ));
                                 }
