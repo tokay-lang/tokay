@@ -10,9 +10,13 @@ This document describes upcoming changes to achieve with a specific version.
   - [ ] `Until<P, Escape: '\\'>`
   - [ ] `String<Start, End: Void, Escape: '\\'>`
 - [ ] Implement inlined parselets (#120)
-- [ ] New list syntax `,`, redefining sequence/`dict` syntax (#100)
+- [x] New list syntax `,`, redefining sequence/`dict` syntax (#100)
   - Top-level `list` definition `l = ,`
   - Top-level `dict` definition `d = ()`
+- [ ] ImlValue redesign
+  - void and Void
+  - ImlRefValue
+  - ImlVariable
 
 ## 0.8
 

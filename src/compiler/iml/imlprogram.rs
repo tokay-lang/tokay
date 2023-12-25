@@ -163,7 +163,7 @@ impl ImlProgram {
                 ImlValue::Unresolved(value) => {
                     finalize_value(&*value.borrow(), current, visited, configs)
                 }
-                ImlValue::This(_) => Some(Consumable {
+                ImlValue::SelfToken => Some(Consumable {
                     leftrec: true,
                     nullable: false,
                 }),

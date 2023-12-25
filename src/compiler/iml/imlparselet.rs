@@ -173,8 +173,8 @@ impl ImlParselet {
             }
 
             match value {
-                ImlValue::This(_) => {
-                    // Replace any references of self
+                ImlValue::SelfValue | ImlValue::SelfToken => {
+                    // Replace any references of self by from
                     *value = ImlValue::Parselet(from.clone());
                     changes = true;
                 }
