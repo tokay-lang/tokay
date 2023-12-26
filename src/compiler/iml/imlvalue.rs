@@ -294,7 +294,7 @@ impl ImlValue {
         match self {
             Self::Unresolved(value) => value.borrow().is_consuming(),
             Self::SelfValue => false,
-            Self::SelfToken => true,
+            Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
             Self::Name { name, .. } | Self::Generic { name, .. } => {
@@ -329,6 +329,7 @@ impl ImlValue {
             ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
+            ImlValue::VoidToken => ops.push(Op::Reject),
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
                 Value::Null => ops.push(Op::PushNull),
@@ -354,10 +355,7 @@ impl ImlValue {
                 return current.0.borrow().constants[name]
                     .compile(program, current, offset, call, ops)
             }
-            ImlValue::SelfValue
-            | ImlValue::SelfToken
-            | ImlValue::VoidToken
-            | ImlValue::Parselet(_) => {}
+            ImlValue::SelfValue | ImlValue::SelfToken | ImlValue::Parselet(_) => {}
             _ => unreachable!("{}", self),
         }
 
