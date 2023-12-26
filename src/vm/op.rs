@@ -484,25 +484,32 @@ impl Op {
                 Op::LoadFast(addr) => context.load(*addr),
 
                 Op::LoadFastCapture(index) => {
-                    let value = context.get_capture(*index).unwrap_or(value!(void));
-                    context.push(value)
+                    let mut capture = context.get_capture(*index).unwrap_or(Capture::Empty);
+
+                    capture.set_severity(10);
+                    context.stack.push(capture);
+
+                    Ok(Accept::Next)
                 }
 
                 Op::LoadCapture => {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    let value = if let Some(alias) = index.object::<Str>() {
+                    let mut capture = if let Some(alias) = index.object::<Str>() {
                         context
                             .get_capture_by_name(alias.as_str())
-                            .unwrap_or(value!(void))
+                            .unwrap_or(Capture::Empty)
                     } else {
                         context
                             .get_capture(index.to_usize()?)
-                            .unwrap_or(value!(void))
+                            .unwrap_or(Capture::Empty)
                     };
 
-                    context.push(value)
+                    capture.set_severity(10);
+                    context.stack.push(capture);
+
+                    Ok(Accept::Next)
                 }
 
                 Op::LoadItem => {
@@ -624,7 +631,7 @@ impl Op {
                         }
 
                         empty => {
-                            *empty = Capture::Value(value!(void), Some(name), 0);
+                            *empty = Capture::Value(value!(null), Some(name), 10);
                         }
                     }
 

@@ -157,8 +157,11 @@ tokay_function!("ord : @c", {
 
 tokay_function!("print : @*args", {
     if args.len() == 0 && context.is_some() {
-        if let Some(capture) = context.unwrap().get_capture(0) {
-            print!("{}", capture.to_string());
+        let context = context.unwrap();
+
+        if let Some(mut capture) = context.get_capture(0) {
+            let value = capture.extract(context.thread.reader);
+            print!("{}", value.to_string());
         }
     } else {
         for i in 0..args.len() {
