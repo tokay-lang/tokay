@@ -474,7 +474,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             //println!("{:?}", self.parselet.name);
             if let Ok(inspect) = std::env::var("TOKAY_INSPECT") {
                 for name in inspect.split(" ") {
-                    if name == self.parselet.name {
+                    if self.parselet.name.starts_with(name) {
                         self.debug = 6;
                         break;
                     }
