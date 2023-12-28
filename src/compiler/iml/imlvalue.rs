@@ -329,7 +329,7 @@ impl ImlValue {
             ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
-            ImlValue::VoidToken => ops.push(Op::Reject),
+            ImlValue::VoidToken => ops.push(Op::Next),
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
                 Value::Null => ops.push(Op::PushNull),
@@ -466,6 +466,7 @@ impl std::hash::Hash for ImlValue {
         match self {
             Self::Unset => state.write_u8('u' as u8),
             Self::Unresolved(value) => value.borrow().hash(state),
+            Self::VoidToken => state.write_u8('V' as u8),
             Self::Value(value) => {
                 state.write_u8('v' as u8);
                 value.hash(state)
