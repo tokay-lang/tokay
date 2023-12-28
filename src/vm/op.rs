@@ -47,13 +47,13 @@ pub(crate) enum Op {
     // Backward(usize), // Jump backward
 
     // Interrupts
-    Next,       // Err(Reject::Next)
     Push,       // Ok(Accept::Push)
     LoadPush,   // Ok(Accept::Push) with value
     Accept,     // Ok(Accept::Return)
     LoadAccept, // Ok(Accept::Return) with value
     Repeat,     // Ok(Accept::Repeat)
-    Reject,     // Ok(Err::Reject)
+    Next,       // set state to Err(Reject::Next), continue
+    Reject,     // hard return Err(Err::Reject)
     LoadExit,   // Exit with errorcode
     Exit,       // Exit with 0
 
@@ -377,8 +377,6 @@ impl Op {
                 }
                 */
                 // Interrupts
-                Op::Next => Err(Reject::Next),
-
                 Op::Push => Ok(Accept::Push(Capture::Empty)),
                 Op::LoadPush => {
                     let value = context.pop();
@@ -387,6 +385,7 @@ impl Op {
                 Op::Accept => Ok(Accept::Return(Capture::Empty)),
                 Op::LoadAccept => Ok(Accept::Return(context.stack.pop().unwrap())),
                 Op::Repeat => Ok(Accept::Repeat),
+                Op::Next => Err(Reject::Next),
                 Op::Reject => {
                     state = Err(Reject::Next);
                     break;
