@@ -37,7 +37,7 @@ pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
     pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
     pub parselet: &'parselet Parselet,                  // Current parselet
-    pub reader_start: Offset, // Overall reader start
+    pub reader_start: Offset,                           // Overall reader start
 
     pub depth: usize, // Recursion depth
     pub debug: u8,    // Debug level
@@ -512,7 +512,9 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
                     }
                 }
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
-                Err(Reject::Next) if !first => break Capture::Empty,
+                Err(Reject::Next) if !first && !self.parselet.end.is_empty() => {
+                    break Capture::Empty
+                }
                 other => return other,
             }
 
