@@ -37,6 +37,7 @@ pub struct Context<'program, 'reader, 'thread, 'parselet> {
     // References
     pub thread: &'thread mut Thread<'program, 'reader>, // Current VM thread
     pub parselet: &'parselet Parselet,                  // Current parselet
+    pub reader_start: Offset, // Overall reader start
 
     pub depth: usize, // Recursion depth
     pub debug: u8,    // Debug level
@@ -60,10 +61,12 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         depth: usize,
         stack: Vec<Capture>,
     ) -> Self {
+        let reader_start = thread.reader.tell();
+
         let frame = Frame {
             fuse: None,
             capture_start: stack.len(),
-            reader_start: thread.reader.tell(),
+            reader_start: reader_start.clone(),
         };
 
         // Create Context
@@ -78,6 +81,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
             // Create context frame0
             frame,
             loops: Vec::new(),
+            reader_start,
             source_offset: None,
         }
     }
@@ -163,7 +167,6 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
     /** Return a capture by index as RefValue. */
     pub fn get_capture(&mut self, pos: usize) -> Option<Capture> {
         let frame0 = self.frame0();
-        let reader_start = frame0.reader_start;
 
         if pos == 0 {
             // Capture 0 either returns an already set value or ...
@@ -173,7 +176,7 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
 
             // ...returns the current range read so far.
             return Some(Capture::Range(
-                self.thread.reader.capture_from(&reader_start),
+                self.thread.reader.capture_from(&self.reader_start),
                 None,
                 self.parselet.severity,
             ));
