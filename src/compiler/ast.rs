@@ -405,7 +405,7 @@ The value must either be a literal or something from a known constant.
 
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
-fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Dict) -> ImlValue {
+fn traverse_node_static(compiler: &mut Compiler, name: Option<&str>, node: &Dict) -> ImlValue {
     compiler.parselet_push(); // yep, we push a parselet scope here...
 
     match traverse_node_rvalue(compiler, node, Rvalue::Load) {
@@ -417,10 +417,10 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
         ImlOp::Load { target: value, .. } => {
             compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
 
-            if let Some(lvalue) = lvalue {
+            if let Some(name) = name {
                 if let ImlValue::Parselet(parselet) = &value {
                     let mut parselet = parselet.borrow_mut();
-                    parselet.name = Some(lvalue.to_string());
+                    parselet.name = Some(name.to_string());
                 }
             }
 
@@ -430,7 +430,7 @@ fn traverse_node_static(compiler: &mut Compiler, lvalue: Option<&str>, node: &Di
         // Any other code becomes its own parselet without any signature.
         other => compiler.parselet_pop(
             traverse_node_offset(node),
-            lvalue.and_then(|lvalue| Some(lvalue.to_string())),
+            name.and_then(|name| Some(name.to_string())),
             None,
             None,
             None,
