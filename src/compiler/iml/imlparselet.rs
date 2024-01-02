@@ -16,14 +16,27 @@ several parselet configurations. */
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletModel {
     pub consuming: bool,                       // Flag if parselet is consuming
-    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
     pub locals: usize, // Total number of local variables present (including arguments)
+    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
     pub begin: ImlOp,  // Begin intermediate operations
     pub end: ImlOp,    // End intermediate operations
     pub body: ImlOp,   // Body intermediate Operations
 }
 
 impl ImlParseletModel {
+    pub fn new(signature: Option<IndexMap<String, ImlValue>>) -> Self {
+        let signature = signature.unwrap_or(IndexMap::new());
+
+        Self {
+            consuming: false,
+            locals: signature.len(),
+            signature,
+            begin: ImlOp::Nop,
+            end: ImlOp::Nop,
+            body: ImlOp::Nop,
+        }
+    }
+
     pub fn id(&self) -> usize {
         self as *const ImlParseletModel as usize
     }
@@ -42,26 +55,26 @@ before a parselet configuration is turned into a parselet.
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletInstance {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
-    pub constants: IndexMap<String, ImlValue>, // Generic signature with default configuration
+    pub generics: IndexMap<String, ImlValue>, // Generic signature with default configuration
     pub offset: Option<Offset>,               // Offset of definition
     pub name: Option<String>,                 // Assigned name from source (for debugging)
     pub severity: u8,                         // Capture push severity
-    pub generated: bool,
+    pub generated: bool,                      // Flag if parselet instance is auto-generated
 }
 
 /** Representation of parselet instance in intermediate code. */
 impl ImlParseletInstance {
     pub fn new(
-        model: ImlParseletModel,
-        constants: IndexMap<String, ImlValue>,
+        model: Option<ImlParseletModel>,
+        generics: Option<IndexMap<String, ImlValue>>,
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
         generated: bool,
     ) -> Self {
         Self {
-            model: Rc::new(RefCell::new(model)),
-            constants,
+            model: Rc::new(RefCell::new(model.unwrap_or(ImlParseletModel::new(None)))),
+            generics: generics.unwrap_or(IndexMap::new()),
             offset,
             name,
             severity,
@@ -82,9 +95,9 @@ impl std::fmt::Display for ImlParseletInstance {
             self.name.as_deref().unwrap_or("<anonymous parselet>")
         )?;
 
-        if !self.constants.is_empty() {
+        if !self.generics.is_empty() {
             write!(f, "<")?;
-            for (i, (name, value)) in self.constants.iter().enumerate() {
+            for (i, (name, value)) in self.generics.iter().enumerate() {
                 if matches!(value, ImlValue::Unset) {
                     write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
                 } else {
@@ -101,7 +114,7 @@ impl std::fmt::Display for ImlParseletInstance {
 impl std::cmp::PartialEq for ImlParseletInstance {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
-        self.model.borrow().id() == other.model.borrow().id() && self.constants == other.constants
+        self.model.borrow().id() == other.model.borrow().id() && self.generics == other.generics
     }
 }
 
@@ -111,7 +124,7 @@ impl std::hash::Hash for ImlParseletInstance {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let model = &*self.model.borrow();
         (model as *const ImlParseletModel as usize).hash(state);
-        self.constants.iter().collect::<Vec<_>>().hash(state);
+        self.generics.iter().collect::<Vec<_>>().hash(state);
     }
 }
 
@@ -161,14 +174,14 @@ impl ImlParselet {
     */
     pub fn derive(&self, from: &ImlParselet) -> Result<Self, String> {
         let instance = self.instance.borrow();
-        let mut constants = instance.constants.clone();
+        let mut generics = instance.generics.clone();
         let mut changes = false;
         let mut required = Vec::new();
 
-        for (name, value) in constants.iter_mut() {
+        for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open
             while let ImlValue::Generic { name, .. } = value {
-                *value = from.borrow().constants.get(name).unwrap().clone();
+                *value = from.borrow().generics.get(name).unwrap().clone();
                 changes = true;
             }
 
@@ -199,7 +212,7 @@ impl ImlParselet {
 
         Ok(Self::new(ImlParseletInstance {
             model: instance.model.clone(),
-            constants,
+            generics,
             offset: instance.offset.clone(),
             name: instance.name.clone(),
             severity: instance.severity,

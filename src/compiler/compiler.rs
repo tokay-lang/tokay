@@ -9,6 +9,8 @@ use crate::value::{RefValue, Token};
 use crate::vm::*;
 use indexmap::{IndexMap, IndexSet};
 
+pub(super) type ImlValueLookup = IndexMap<String, ImlValue>;
+
 /** Compiler symbolic scopes.
 
 In Tokay code, this relates to any block.
@@ -17,25 +19,93 @@ Loops introduce a new loop scope.
 */
 #[derive(Debug)]
 pub(super) enum Scope {
+    // parselet-level scope (variables and constants can be defined here)
     Parselet {
-        // parselet-level scope (variables and constants can be defined here)
         usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: IndexMap<String, ImlValue>, // Named constants symbol table
+        instance: ImlParseletInstance, // Constructed parselet instance
+        constants: ImlValueLookup, // Named constants symbol table
         variables: IndexMap<String, usize>, // Named variable symbol table
         temporaries: Vec<usize>, // List of unused temporary variables
-        locals: usize,      // Total amount of variables in this scope
         is_global: bool,    // Marker for global scope
-        begin: Vec<ImlOp>,  // Begin operations
-        end: Vec<ImlOp>,    // End operations
-        is_consuming: bool, // Determines whether the scope is consuming input for early consumable detection
     },
+    // block level (constants can be defined here)
     Block {
-        // block level (constants can be defined here)
-        usage_start: usize, // Begin of usages to resolve until when scope is closed
-        constants: IndexMap<String, ImlValue>, // Named constants symbol table
+        usage_start: usize,        // Begin of usages to resolve until when scope is closed
+        constants: ImlValueLookup, // Named constants symbol table
     },
-    Loop, // loop level (allows use of break & continue)
+    // loop level (allows the use of break & continue)
+    Loop,
 }
+
+/*
+#[derive(Debug)]
+pub(super) enum ScopeLevel {
+    Parselet,  // parselet-level scope (variables and constants can be defined here)
+    Block,  // block level (constants can be defined here)
+    Loop,  // loop level (allows the use of break & continue)
+}
+
+#[derive(Debug)]
+pub(super) struct Scope {
+    level: ScopeLevel,  // Scope level
+
+    usage_start: usize, // Begin of usages to resolve until when scope is closed
+    constants: ImlValueLookup, // Named constants symbol table
+
+    instance: Option<ImlParseletInstance>,  // Constructed parselet instance
+    variables: IndexMap<String, usize>, // Named variable symbol table
+    temporaries: Vec<usize>, // List of unused temporary variables
+
+    next: Option<Box<Scope>>,
+}
+
+impl Scope {
+    pub fn new<'compiler>(compiler: &'compiler mut Compiler, level: ScopeLevel) -> &'compiler mut Self {
+        compiler.scopes.insert(
+            0,
+            Self {
+                usage_start: compiler.usages.len(),
+                constants: IndexMap::new(),
+
+                instance: if level == ScopeLevel::Parselet { Some(ImlParseletInstance::new(ImlParseletModel::new(signature), generics, offset, name, 5),
+                variables: IndexMap::new(),
+
+                temporaries: Vec::new(),
+                is_global: self.scopes.is_empty(),
+                level,
+            },
+    }
+
+    pub fn new_parselet<'compiler>(compiler: &'compiler mut Compiler, generics: Option<ImlValueLookup>) -> &'compiler mut Self {
+
+
+        );
+
+        &mut compiler.scopes[0]
+    }
+
+    pub fn new_block<'compiler>(compiler: &'compiler mut Compiler) -> &'compiler mut Self {
+        compiler.scopes.insert(
+            0,
+            Scope::Block {
+                usage_start: compiler.usages.len(),
+                constants: IndexMap::new(),
+            },
+        );
+
+        &mut compiler.scopes[0]
+    }
+
+    pub fn new_loop<'compiler>(compiler: &'compiler mut Compiler) -> &'compiler mut Self {
+        compiler.scopes.insert(
+            0,
+            Scope::Loop,
+        );
+
+        &mut compiler.scopes[0]
+    }
+}
+*/
 
 /** Tokay compiler instance
 
@@ -221,19 +291,38 @@ impl Compiler {
     }
 
     /// Push a parselet scope
-    pub(super) fn parselet_push(&mut self) {
+    pub(super) fn parselet_push(
+        &mut self,
+        name: Option<String>,
+        offset: Option<Offset>,
+        generics: Option<ImlValueLookup>,
+        signature: Option<IndexMap<String, ImlValue>>,
+    ) {
+        // Generate variables from signature, addresses are enumerated!
+        let variables = signature
+            .as_ref()
+            .unwrap_or(&IndexMap::new())
+            .keys()
+            .enumerate()
+            .map(|(index, key)| (key.to_string(), index))
+            .collect();
+
         self.scopes.insert(
             0,
             Scope::Parselet {
                 usage_start: self.usages.len(),
-                variables: IndexMap::new(),
+                instance: ImlParseletInstance::new(
+                    Some(ImlParseletModel::new(signature)),
+                    generics,
+                    offset,
+                    name,
+                    5,
+                    false,
+                ),
+                variables,
                 constants: IndexMap::new(),
                 temporaries: Vec::new(),
-                locals: 0,
-                is_global: self.scopes.len() == 0,
-                begin: Vec::new(),
-                end: Vec::new(),
-                is_consuming: false,
+                is_global: self.scopes.is_empty(),
             },
         )
     }
@@ -255,29 +344,20 @@ impl Compiler {
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(super) fn parselet_pop(
-        &mut self,
-        offset: Option<Offset>,
-        name: Option<String>,
-        severity: Option<u8>,
-        constants: Option<IndexMap<String, ImlValue>>,
-        signature: Option<IndexMap<String, ImlValue>>,
-        body: ImlOp,
-    ) -> ImlValue {
+    pub(super) fn parselet_pop(&mut self, body: ImlOp) -> ImlValue {
         assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
 
         self.resolve();
 
-        let mut scope = self.scopes.remove(0);
-
         if let Scope::Parselet {
-            locals,
-            begin,
-            end,
-            is_consuming,
+            instance,
+            constants: keep_constants,
+            variables: keep_variables,
+            temporaries: keep_temporaries,
             ..
-        } = &mut scope
+        } = self.scopes.remove(0)
         {
+            /*
             fn ensure_block(ops: Vec<ImlOp>) -> ImlOp {
                 match ops.len() {
                     0 => ImlOp::Nop,
@@ -285,9 +365,6 @@ impl Compiler {
                     _ => ImlOp::Alt { alts: ops },
                 }
             }
-
-            let constants = constants.unwrap_or(IndexMap::new());
-            let signature = signature.unwrap_or(IndexMap::new());
 
             //println!("{:?} {:?} {:?}", name, signature, *locals);
 
@@ -313,31 +390,29 @@ impl Compiler {
                 return ImlValue::Void
             }
             */
-            let model = ImlParseletModel {
-                consuming: *is_consuming
-                    || begin.is_consuming()
-                    || end.is_consuming()
-                    || body.is_consuming(),
-                signature,
-                locals: *locals,
-                begin,
-                end,
-                body,
-            };
+            */
+            instance.model.borrow_mut().body = body;
 
             if self.scopes.len() == 0 {
-                //*consuming = false;
-                self.scopes.push(scope);
+                // Rebuild __main__ scope
+                self.parselet_push(Some("__main__".to_string()), None, None, None);
+
+                if let Scope::Parselet {
+                    ref mut constants,
+                    ref mut variables,
+                    ref mut temporaries,
+                    ..
+                } = &mut self.scopes[0]
+                {
+                    *constants = keep_constants;
+                    *variables = keep_variables;
+                    *temporaries = keep_temporaries;
+                } else {
+                    unreachable!();
+                }
             }
 
-            ImlValue::from(ImlParseletInstance::new(
-                model,
-                constants,
-                offset,
-                name,
-                severity.unwrap_or(5),
-                false,
-            ))
+            ImlValue::from(instance)
         } else {
             unreachable!();
         }
@@ -359,8 +434,8 @@ impl Compiler {
     /// Marks the nearest parselet scope as consuming
     pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
-            if let Scope::Parselet { is_consuming, .. } = scope {
-                *is_consuming = true;
+            if let Scope::Parselet { instance, .. } = scope {
+                instance.model.borrow_mut().consuming = true;
                 return;
             }
         }
@@ -398,16 +473,22 @@ impl Compiler {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
-                locals, variables, ..
+                instance,
+                variables,
+                ..
             } = scope
             {
                 if variables.get(name).is_some() {
                     return;
                 }
 
-                let addr = *locals;
-                *locals += 1;
-                variables.insert(name.to_string(), addr);
+                variables.insert(name.to_string(), {
+                    // todo: Make function in ImlParseletModel
+                    let mut model = instance.model.borrow_mut();
+                    let addr = model.locals;
+                    model.locals += 1;
+                    addr
+                });
                 return;
             }
         }
@@ -420,7 +501,7 @@ impl Compiler {
         for scope in &mut self.scopes {
             // Check for scope with variables
             if let Scope::Parselet {
-                locals,
+                instance,
                 temporaries,
                 ..
             } = scope
@@ -429,9 +510,10 @@ impl Compiler {
                     return temp;
                 }
 
-                let addr = *locals;
-                *locals += 1;
-
+                // todo: Make function in ImlParseletModel
+                let mut model = instance.model.borrow_mut();
+                let addr = model.locals;
+                model.locals += 1;
                 return addr;
             }
         }
@@ -503,13 +585,23 @@ impl Compiler {
                     }
                 }
                 Scope::Parselet {
+                    instance,
                     constants,
                     variables,
                     is_global,
                     ..
                 } => {
+                    // Check constants first
                     if let Some(value) = constants.get(name) {
                         return Some(value.clone());
+                    }
+
+                    // Check generic
+                    if instance.generics.get(name).is_some() {
+                        return Some(ImlValue::Generic {
+                            offset,
+                            name: name.to_string(),
+                        });
                     }
 
                     // Check for variable

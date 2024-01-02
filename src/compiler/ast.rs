@@ -1,5 +1,5 @@
 //! Compiler's internal Abstract Syntax Tree traversal
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
@@ -168,11 +168,8 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
         // Parselets
         "value_parselet" => {
-            let mut constants: IndexMap<String, ImlValue> = IndexMap::new();
-            let mut signature: IndexMap<String, ImlValue> = IndexMap::new();
-
-            let mut locals = IndexSet::new();
             let mut generics = IndexMap::new();
+            let mut signature = IndexMap::new();
 
             // Traverse the AST
             let mut sigs = List::from(node["children"].clone());
@@ -200,7 +197,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         if children.len() == 2 {
                             default = traverse_node_static(
                                 compiler,
-                                Some(&name),
+                                None,
                                 children[1].borrow().object::<Dict>().unwrap(),
                             );
 
@@ -215,23 +212,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             }
                         }
 
-                        if generics
-                            .insert(
-                                name.to_string(),
-                                ImlValue::Generic {
-                                    offset,
-                                    name: name.to_string(),
-                                },
-                            )
-                            .is_some()
-                        {
+                        if generics.insert(name.to_string(), default).is_some() {
                             compiler.errors.push(Error::new(
                                 offset,
                                 format!("Generic '{}' already defined in signature before", name),
                             ));
                         }
-
-                        constants.insert(name.to_string(), default);
                     }
                     "arg" => {
                         let first = name.chars().nth(0).unwrap();
@@ -257,29 +243,29 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             );
                         }
 
-                        // insert and check if identifier was not defined twice
-                        if !locals.insert(name.to_string()) {
+                        assert!(children.len() <= 2);
+
+                        if signature
+                            .insert(
+                                name.to_string(),
+                                if children.len() == 2 {
+                                    let default = children[1].borrow();
+                                    traverse_node_static(
+                                        compiler,
+                                        None,
+                                        default.object::<Dict>().unwrap(),
+                                    )
+                                } else {
+                                    ImlValue::Unset
+                                },
+                            )
+                            .is_some()
+                        {
                             compiler.errors.push(Error::new(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", name),
                             ));
                         }
-
-                        assert!(children.len() <= 2);
-
-                        signature.insert(
-                            name.to_string(),
-                            if children.len() == 2 {
-                                let default = children[1].borrow();
-                                traverse_node_static(
-                                    compiler,
-                                    Some(&name),
-                                    default.object::<Dict>().unwrap(),
-                                )
-                            } else {
-                                ImlValue::Unset
-                            },
-                        );
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
                     _ => unreachable!(),
@@ -287,30 +273,18 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
             }
 
             // Push new parselet scope
-            compiler.parselet_push();
-
-            // Create previously collected constants
-            for (name, generic) in generics {
-                compiler.constant(&name, generic);
-            }
-
-            // Create previously collected locals
-            for local in locals {
-                compiler.local(&local);
-            }
+            compiler.parselet_push(
+                None,
+                traverse_node_offset(node),
+                Some(generics),
+                Some(signature),
+            );
 
             let body = body.borrow();
             let body =
                 traverse_node_rvalue(compiler, body.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
 
-            let ret = compiler.parselet_pop(
-                traverse_node_offset(node),
-                None,
-                None,
-                Some(constants),
-                Some(signature),
-                body,
-            );
+            let ret = compiler.parselet_pop(body);
 
             //println!("parselet = {:#?}", ret);
             ret
@@ -405,37 +379,22 @@ The value must either be a literal or something from a known constant.
 
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
-fn traverse_node_static(compiler: &mut Compiler, name: Option<&str>, node: &Dict) -> ImlValue {
-    compiler.parselet_push(); // yep, we push a parselet scope here...
+fn traverse_node_static(compiler: &mut Compiler, name: Option<String>, node: &Dict) -> ImlValue {
+    compiler.parselet_push(name, traverse_node_offset(node), None, None); // yep, we push a parselet scope here...
 
     match traverse_node_rvalue(compiler, node, Rvalue::Load) {
         ImlOp::Nop => {
-            compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
+            compiler.parselet_pop(ImlOp::Nop);
             value!(void).into()
         }
         // Defined parselet or value
         ImlOp::Load { target: value, .. } => {
-            compiler.parselet_pop(None, None, None, None, None, ImlOp::Nop);
-
-            if let Some(name) = name {
-                if let ImlValue::Parselet(parselet) = &value {
-                    let mut parselet = parselet.borrow_mut();
-                    parselet.name = Some(name.to_string());
-                }
-            }
-
+            compiler.parselet_pop(ImlOp::Nop);
             value
         }
 
         // Any other code becomes its own parselet without any signature.
-        other => compiler.parselet_pop(
-            traverse_node_offset(node),
-            name.and_then(|name| Some(name.to_string())),
-            None,
-            None,
-            None,
-            other,
-        ),
+        other => compiler.parselet_pop(other),
     }
 }
 
@@ -823,11 +782,31 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         "begin" | "end" => {
             let body = traverse(compiler, &node["children"]);
 
-            if let Scope::Parselet { begin, end, .. } = &mut compiler.scopes[0] {
+            if let Scope::Parselet { instance, .. } = &mut compiler.scopes[0] {
+                let mut model = instance.model.borrow_mut();
+
                 if emit == "begin" {
-                    begin.push(body)
+                    match &mut model.begin {
+                        ImlOp::Nop => model.begin = body,
+                        ImlOp::Alt { alts } => alts.push(body),
+                        _ => {
+                            let alt = ImlOp::Alt {
+                                alts: vec![std::mem::replace(&mut model.begin, ImlOp::Nop), body],
+                            };
+                            model.begin = alt;
+                        }
+                    }
                 } else {
-                    end.push(body)
+                    match &mut model.end {
+                        ImlOp::Nop => model.end = body,
+                        ImlOp::Alt { alts } => alts.push(body),
+                        _ => {
+                            let alt = ImlOp::Alt {
+                                alts: vec![std::mem::replace(&mut model.end, ImlOp::Nop), body],
+                            };
+                            model.end = alt;
+                        }
+                    }
                 }
             } else {
                 compiler.errors.push(Error::new(
@@ -848,7 +827,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 // When interactive and there's a scope, don't push, as the main scope
                 // is kept to hold globals.
                 else if emit == "main" && compiler.scopes.len() != 1 {
-                    compiler.parselet_push(); // Main
+                    compiler.parselet_push(Some("__main__".to_string()), None, None, None);
                 }
 
                 let body = if let Some(list) = ast.borrow().object::<List>() {
@@ -874,15 +853,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         body
                     }
                     "main" => {
-                        let main = compiler.parselet_pop(
-                            None,
-                            Some("__main__".to_string()),
-                            None,
-                            None,
-                            None,
-                            body,
-                        );
-
+                        let main = compiler.parselet_pop(body);
                         ImlOp::call(compiler, None, main, None)
                     }
                     _ => body,
@@ -1090,7 +1061,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let value = value.object::<Dict>().unwrap();
 
             // fixme: Restricted to pure values currently.
-            let value = traverse_node_static(compiler, Some(&ident), value);
+            let value = traverse_node_static(compiler, Some(ident.to_string()), value);
 
             if value.is_consuming() {
                 if !utils::identifier_is_consumable(ident) {

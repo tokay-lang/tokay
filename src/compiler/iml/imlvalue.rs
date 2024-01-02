@@ -139,7 +139,7 @@ impl ImlValue {
                             let parselet = parselet.borrow();
                             let mut constants = IndexMap::new();
 
-                            for (name, default) in parselet.constants.iter() {
+                            for (name, default) in parselet.generics.iter() {
                                 // Take arguments by sequence first
                                 let arg = if !args.is_empty() {
                                     args.remove(0)
@@ -221,7 +221,7 @@ impl ImlValue {
                             // resolved during further compilation and derivation.
                             let instance = ImlValue::from(ImlParseletInstance {
                                 model: parselet.model.clone(),
-                                constants,
+                                generics: constants,
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
                                 severity: severity.unwrap_or(parselet.severity),
@@ -348,7 +348,7 @@ impl ImlValue {
                 }
             }
             ImlValue::Generic { name, .. } => {
-                return current.0.borrow().constants[name]
+                return current.0.borrow().generics[name]
                     .compile(program, current, offset, call, ops)
             }
             ImlValue::This(_) | ImlValue::Parselet(_) => {}
