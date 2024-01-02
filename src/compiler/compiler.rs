@@ -435,7 +435,7 @@ impl Compiler {
     pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
             if let Scope::Parselet { instance, .. } = scope {
-                instance.model.borrow_mut().consuming = true;
+                instance.model.borrow_mut().is_consuming = true;
                 return;
             }
         }

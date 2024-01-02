@@ -50,7 +50,7 @@ pub(in crate::compiler) enum ImlValue {
         args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
         nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
         severity: Option<u8>,                                // optional desired severity
-        generated: bool,
+        is_generated: bool,
     },
 }
 
@@ -72,7 +72,7 @@ impl ImlValue {
             args: vec![(offset, self)],
             nargs: IndexMap::new(),
             severity,
-            generated: true,
+            is_generated: true,
         }
     }
 
@@ -114,7 +114,7 @@ impl ImlValue {
                 args,
                 nargs,
                 severity,
-                generated,
+                is_generated,
             } => {
                 let mut is_resolved = target.resolve(compiler);
 
@@ -137,7 +137,7 @@ impl ImlValue {
                     match &**target {
                         ImlValue::Parselet(parselet) => {
                             let parselet = parselet.borrow();
-                            let mut constants = IndexMap::new();
+                            let mut generics = IndexMap::new();
 
                             for (name, default) in parselet.generics.iter() {
                                 // Take arguments by sequence first
@@ -179,7 +179,7 @@ impl ImlValue {
                                     ));
                                 }
 
-                                constants.insert(name.clone(), arg.1);
+                                generics.insert(name.clone(), arg.1);
                             }
 
                             // Report any errors for unconsumed generic arguments.
@@ -189,14 +189,14 @@ impl ImlValue {
                                     format!(
                                         "{} got too many generic arguments ({} in total, expected {})",
                                         target,
-                                        constants.len() + args.len(),
-                                        constants.len()
+                                        generics.len() + args.len(),
+                                        generics.len()
                                     ),
                                 ));
                             }
 
                             for (name, (offset, _)) in nargs {
-                                if constants.get(name).is_some() {
+                                if generics.get(name).is_some() {
                                     compiler.errors.push(Error::new(
                                         *offset,
                                         format!(
@@ -221,11 +221,11 @@ impl ImlValue {
                             // resolved during further compilation and derivation.
                             let instance = ImlValue::from(ImlParseletInstance {
                                 model: parselet.model.clone(),
-                                generics: constants,
+                                generics,
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
                                 severity: severity.unwrap_or(parselet.severity),
-                                generated: *generated,
+                                is_generated: *is_generated,
                             });
 
                             Some(instance)
@@ -293,7 +293,7 @@ impl ImlValue {
             Self::Unresolved(value) => value.borrow().is_consuming(),
             Self::This(consuming) => *consuming,
             Self::Value(value) => value.is_consuming(),
-            Self::Parselet(parselet) => parselet.borrow().model.borrow().consuming,
+            Self::Parselet(parselet) => parselet.borrow().model.borrow().is_consuming,
             Self::Name { name, .. } | Self::Generic { name, .. } => {
                 crate::utils::identifier_is_consumable(name)
             }

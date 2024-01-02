@@ -15,7 +15,7 @@ The model defines the code and local varibles of the parselet, and is shared by
 several parselet configurations. */
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletModel {
-    pub consuming: bool,                       // Flag if parselet is consuming
+    pub is_consuming: bool,                    // Flag if parselet is consuming
     pub locals: usize, // Total number of local variables present (including arguments)
     pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
     pub begin: ImlOp,  // Begin intermediate operations
@@ -28,7 +28,7 @@ impl ImlParseletModel {
         let signature = signature.unwrap_or(IndexMap::new());
 
         Self {
-            consuming: false,
+            is_consuming: false,
             locals: signature.len(),
             signature,
             begin: ImlOp::Nop,
@@ -59,7 +59,7 @@ pub(in crate::compiler) struct ImlParseletInstance {
     pub offset: Option<Offset>,               // Offset of definition
     pub name: Option<String>,                 // Assigned name from source (for debugging)
     pub severity: u8,                         // Capture push severity
-    pub generated: bool,                      // Flag if parselet instance is auto-generated
+    pub is_generated: bool,                   // Flag if parselet instance is auto-generated
 }
 
 /** Representation of parselet instance in intermediate code. */
@@ -70,7 +70,7 @@ impl ImlParseletInstance {
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
-        generated: bool,
+        is_generated: bool,
     ) -> Self {
         Self {
             model: Rc::new(RefCell::new(model.unwrap_or(ImlParseletModel::new(None)))),
@@ -78,7 +78,7 @@ impl ImlParseletInstance {
             offset,
             name,
             severity,
-            generated,
+            is_generated,
         }
     }
 
@@ -216,7 +216,7 @@ impl ImlParselet {
             offset: instance.offset.clone(),
             name: instance.name.clone(),
             severity: instance.severity,
-            generated: instance.generated,
+            is_generated: instance.is_generated,
         }))
     }
 

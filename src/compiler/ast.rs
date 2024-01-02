@@ -364,7 +364,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                 nargs,
                 offset: traverse_node_offset(node),
                 severity: None,
-                generated: false,
+                is_generated: false,
             };
 
             ret.try_resolve(compiler)
