@@ -68,7 +68,7 @@ fn traverse_offset(node: &Dict) -> ImlOp {
 }
 
 // Traverse a value node into an ImlValue instance
-fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
+fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String>) -> ImlValue {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
@@ -197,7 +197,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                         if children.len() == 2 {
                             default = traverse_node_static(
                                 compiler,
-                                None,
+                                Some(name.clone()),
                                 children[1].borrow().object::<Dict>().unwrap(),
                             );
 
@@ -212,7 +212,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
                             }
                         }
 
-                        if generics.insert(name.to_string(), default).is_some() {
+                        if generics.insert(name.clone(), default).is_some() {
                             compiler.errors.push(Error::new(
                                 offset,
                                 format!("Generic '{}' already defined in signature before", name),
@@ -247,7 +247,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
                         if signature
                             .insert(
-                                name.to_string(),
+                                name.clone(),
                                 if children.len() == 2 {
                                     let default = children[1].borrow();
                                     traverse_node_static(
@@ -274,7 +274,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict) -> ImlValue {
 
             // Push new parselet scope
             compiler.parselet_push(
-                None,
+                name,
                 traverse_node_offset(node),
                 Some(generics),
                 Some(signature),
@@ -380,21 +380,29 @@ The value must either be a literal or something from a known constant.
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
 fn traverse_node_static(compiler: &mut Compiler, name: Option<String>, node: &Dict) -> ImlValue {
-    compiler.parselet_push(name, traverse_node_offset(node), None, None); // yep, we push a parselet scope here...
+    let emit = node["emit"].borrow();
+    let emit = emit.object::<Str>().unwrap().as_str();
 
-    match traverse_node_rvalue(compiler, node, Rvalue::Load) {
-        ImlOp::Nop => {
-            compiler.parselet_pop(ImlOp::Nop);
-            value!(void).into()
-        }
-        // Defined parselet or value
-        ImlOp::Load { target: value, .. } => {
-            compiler.parselet_pop(ImlOp::Nop);
-            value
-        }
+    if emit.starts_with("value_") {
+        traverse_node_value(compiler, node, name)
+    } else {
+        // Handle anything else as an anonymous parselet it its own scope
+        compiler.parselet_push(name, None, None, None);
 
-        // Any other code becomes its own parselet without any signature.
-        other => compiler.parselet_pop(other),
+        match traverse_node_rvalue(compiler, node, Rvalue::Load) {
+            ImlOp::Nop => {
+                compiler.parselet_pop(ImlOp::Nop);
+                value!(void).into()
+            }
+            // Defined value load becomes just the value
+            ImlOp::Load { target: value, .. } => {
+                compiler.parselet_pop(ImlOp::Nop);
+                value
+            }
+
+            // Any other code becomes its own parselet without any signature.
+            body => compiler.parselet_pop(body),
+        }
     }
 }
 
@@ -443,7 +451,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children).unwrap();
+                        let index = traverse_node_value(compiler, children, None).unwrap();
 
                         if store {
                             if hold {
@@ -667,7 +675,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
         // value ---------------------------------------------------------
         value if value.starts_with("value_") => {
             let offset = traverse_node_offset(node);
-            let value = traverse_node_value(compiler, node);
+            let value = traverse_node_value(compiler, node, None);
 
             return match mode {
                 Rvalue::Load => ImlOp::load(compiler, offset, value),
@@ -954,7 +962,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         "capture_index" => {
             let children = node["children"].borrow();
-            let index = traverse_node_value(compiler, children.object::<Dict>().unwrap()).unwrap();
+            let index =
+                traverse_node_value(compiler, children.object::<Dict>().unwrap(), None).unwrap();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 

@@ -410,7 +410,7 @@ impl std::fmt::Display for ImlValue {
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet(parselet) => write!(
                 f,
-                "{}",
+                "{:?}",
                 parselet
                     .borrow()
                     .name

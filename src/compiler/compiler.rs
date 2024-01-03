@@ -307,18 +307,26 @@ impl Compiler {
             .map(|(index, key)| (key.to_string(), index))
             .collect();
 
+        let instance = ImlParseletInstance::new(
+            Some(ImlParseletModel::new(signature)),
+            generics,
+            offset,
+            name,
+            5,
+            false,
+        );
+
+        /*
+        if self.debug > 1 {
+            println!("PUSH {:#?}", instance);
+        }
+        */
+
         self.scopes.insert(
             0,
             Scope::Parselet {
                 usage_start: self.usages.len(),
-                instance: ImlParseletInstance::new(
-                    Some(ImlParseletModel::new(signature)),
-                    generics,
-                    offset,
-                    name,
-                    5,
-                    false,
-                ),
+                instance,
                 variables,
                 constants: IndexMap::new(),
                 temporaries: Vec::new(),
@@ -358,6 +366,12 @@ impl Compiler {
         } = self.scopes.remove(0)
         {
             instance.model.borrow_mut().body = body;
+
+            /*
+            if self.debug > 1 {
+                println!("POP {:#?}", instance);
+            }
+            */
 
             if self.scopes.len() == 0 {
                 // Rebuild __main__ scope
