@@ -357,40 +357,6 @@ impl Compiler {
             ..
         } = self.scopes.remove(0)
         {
-            /*
-            fn ensure_block(ops: Vec<ImlOp>) -> ImlOp {
-                match ops.len() {
-                    0 => ImlOp::Nop,
-                    1 => ops.into_iter().next().unwrap(),
-                    _ => ImlOp::Alt { alts: ops },
-                }
-            }
-
-            //println!("{:?} {:?} {:?}", name, signature, *locals);
-
-            assert!(
-                signature.len() <= *locals,
-                "signature may not be longer than locals..."
-            );
-
-            // Ensure that begin and end are blocks.
-            let begin = ensure_block(begin.drain(..).collect());
-            let end = ensure_block(end.drain(..).collect());
-
-            //println!("begin = {:?}", begin);
-            //println!("body  = {:?}", body);
-            //println!("end   = {:?}", end);
-
-            // todo: Check if the available values define a useless parselet.
-            /*
-            if matches!(begin, ImlOp::Nop)
-                || matches!(end, ImlOp::Nop)
-                || matches!(body, ImlOp::Nop)
-                || signature.is_empty() {
-                return ImlValue::Void
-            }
-            */
-            */
             instance.model.borrow_mut().body = body;
 
             if self.scopes.len() == 0 {
@@ -398,12 +364,15 @@ impl Compiler {
                 self.parselet_push(Some("__main__".to_string()), None, None, None);
 
                 if let Scope::Parselet {
+                    ref instance,
                     ref mut constants,
                     ref mut variables,
                     ref mut temporaries,
                     ..
                 } = &mut self.scopes[0]
                 {
+                    instance.model.borrow_mut().locals =
+                        keep_variables.len() + keep_temporaries.len();
                     *constants = keep_constants;
                     *variables = keep_variables;
                     *temporaries = keep_temporaries;
