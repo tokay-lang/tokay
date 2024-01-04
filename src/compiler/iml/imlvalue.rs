@@ -83,7 +83,7 @@ impl ImlValue {
         }
 
         let shared = Self::Unresolved(Rc::new(RefCell::new(self)));
-        compiler.usages.push(shared.clone());
+        compiler.scopes[0].usages.push(shared.clone());
         shared
     }
 

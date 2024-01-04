@@ -32,9 +32,8 @@ pub(super) struct Scope {
     //next: Option<Box<Scope>>,  // Previous scope
 
     // Parselet- and block-level only
-    usage_start: usize,
-    //usages: Vec<ImlValue>, // Unresolved usages within a block scope
-    constants: ImlValueLookup, // Symbol table of named constants
+    pub(super) usages: Vec<ImlValue>, // Unresolved usages within a block scope
+    constants: ImlValueLookup,        // Symbol table of named constants
 
     // Parselet-level only
     variables: IndexMap<String, usize>, // Symbol table of variables and their addresses
@@ -47,8 +46,7 @@ impl Scope {
         Self {
             level,
             is_global: compiler.scopes.is_empty(),
-            //usages: Vec::new(),
-            usage_start: compiler.usages.len(),
+            usages: Vec::new(),
             constants: ImlValueLookup::new(),
             variables: IndexMap::new(),
             temporaries: Vec::new(),
@@ -130,7 +128,6 @@ pub struct Compiler {
     pub(super) restrict: bool,              // Restrict assignment of reserved identifiers
     pub(super) statics: IndexSet<RefValue>, // Static values collected during compilation
     pub(super) scopes: Vec<Scope>,          // Current compilation scopes
-    pub(super) usages: Vec<ImlValue>,       // Unresolved values
     pub(super) errors: Vec<Error>,          // Collected errors during compilation
 }
 
@@ -153,7 +150,6 @@ impl Compiler {
             restrict: true,
             statics: IndexSet::new(),
             scopes: Vec::new(),
-            usages: Vec::new(),
             errors: Vec::new(),
         };
 
@@ -191,7 +187,7 @@ impl Compiler {
 
         assert!(self.scopes.len() == 1);
 
-        for usage in self.usages.drain(..) {
+        for usage in self.scopes[0].usages.drain(..) {
             if let ImlValue::Unresolved(usage) = usage {
                 let usage = usage.borrow();
                 if let ImlValue::Name { offset, name } = &*usage {
@@ -284,7 +280,7 @@ impl Compiler {
     /// Tries to resolves open usages from the current scope
     pub(super) fn resolve(&mut self) {
         // Cut out usages created inside this scope for processing
-        let usages: Vec<ImlValue> = self.usages.drain(self.scopes[0].usage_start..).collect();
+        let usages: Vec<ImlValue> = self.scopes[0].usages.drain(..).collect();
 
         // Afterwards, resolve and insert them again in case there where not resolved
         for mut value in usages.into_iter() {
@@ -292,7 +288,7 @@ impl Compiler {
                 continue;
             }
 
-            self.usages.push(value); // Re-insert into usages for later resolve
+            self.scopes[0].usages.push(value); // Re-insert into usages for later resolve
         }
     }
 
@@ -348,7 +344,6 @@ impl Compiler {
     pub(super) fn parselet_pop(&mut self, body: ImlOp) -> ImlValue {
         assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Parselet);
         self.resolve();
-
         let scope = self.scopes.remove(0);
         let instance = scope.instance.unwrap();
 
@@ -363,6 +358,9 @@ impl Compiler {
             self.scopes[0].constants = scope.constants;
             self.scopes[0].variables = scope.variables;
             self.scopes[0].temporaries = scope.temporaries;
+            self.scopes[0].usages = scope.usages;
+        } else {
+            self.scopes[0].usages.extend(scope.usages);
         }
 
         ImlValue::from(instance)
@@ -372,13 +370,16 @@ impl Compiler {
     pub(super) fn block_pop(&mut self) {
         assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Block);
         self.resolve();
-        self.scopes.remove(0);
+        let scope = self.scopes.remove(0);
+        self.scopes[0].usages.extend(scope.usages);
     }
 
     /// Drops a loop scope.
     pub(super) fn loop_pop(&mut self) {
         assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Loop);
-        self.scopes.remove(0);
+        self.resolve();
+        let scope = self.scopes.remove(0);
+        self.scopes[0].usages.extend(scope.usages);
     }
 
     /// Marks the nearest parselet scope as consuming
