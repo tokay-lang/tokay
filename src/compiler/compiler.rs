@@ -17,50 +17,60 @@ In Tokay code, this relates to any block.
 Parselets introduce new variable scopes.
 Loops introduce a new loop scope.
 */
-#[derive(Debug)]
-pub(super) enum Scope {
-    // parselet-level scope (variables and constants can be defined here)
-    Parselet {
-        usage_start: usize, // Begin of usages to resolve until when scope is closed
-        instance: ImlParseletInstance, // Constructed parselet instance
-        constants: ImlValueLookup, // Named constants symbol table
-        variables: IndexMap<String, usize>, // Named variable symbol table
-        temporaries: Vec<usize>, // List of unused temporary variables
-        is_global: bool,    // Marker for global scope
-    },
-    // block level (constants can be defined here)
-    Block {
-        usage_start: usize,        // Begin of usages to resolve until when scope is closed
-        constants: ImlValueLookup, // Named constants symbol table
-    },
-    // loop level (allows the use of break & continue)
-    Loop,
-}
-
-/*
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(super) enum ScopeLevel {
-    Parselet,  // parselet-level scope (variables and constants can be defined here)
-    Block,  // block level (constants can be defined here)
-    Loop,  // loop level (allows the use of break & continue)
+    Parselet, // parselet-level scope (variables and constants can be defined here)
+    Block,    // block level (constants can be defined here)
+    Loop,     // loop level (allows the use of break & continue)
 }
 
 #[derive(Debug)]
 pub(super) struct Scope {
-    level: ScopeLevel,  // Scope level
+    //compiler: &'compiler mut Compiler,  // reference to compiler
+    level: ScopeLevel, // Scope level
+    is_global: bool,   // Globa flag
+    //next: Option<Box<Scope>>,  // Previous scope
 
-    usage_start: usize, // Begin of usages to resolve until when scope is closed
-    constants: ImlValueLookup, // Named constants symbol table
+    // Parselet- and block-level only
+    usage_start: usize,
+    //usages: Vec<ImlValue>, // Unresolved usages within a block scope
+    constants: ImlValueLookup, // Symbol table of named constants
 
-    instance: Option<ImlParseletInstance>,  // Constructed parselet instance
-    variables: IndexMap<String, usize>, // Named variable symbol table
-    temporaries: Vec<usize>, // List of unused temporary variables
-
-    next: Option<Box<Scope>>,
+    // Parselet-level only
+    variables: IndexMap<String, usize>, // Symbol table of variables and their addresses
+    temporaries: Vec<usize>,            // Table of (unused) temporary addresses for later-reuse
+    pub(super) instance: Option<ImlParseletInstance>, // Currently constructed parselet instance
 }
 
 impl Scope {
-    pub fn new<'compiler>(compiler: &'compiler mut Compiler, level: ScopeLevel) -> &'compiler mut Self {
+    pub fn new(level: ScopeLevel, compiler: &Compiler) -> Self {
+        Self {
+            level,
+            is_global: compiler.scopes.is_empty(),
+            //usages: Vec::new(),
+            usage_start: compiler.usages.len(),
+            constants: ImlValueLookup::new(),
+            variables: IndexMap::new(),
+            temporaries: Vec::new(),
+            instance: None,
+        }
+    }
+}
+
+/*
+impl 'compiler Scope<'compiler> {
+    pub fn new<'compiler>(level: ScopeLevel, compiler: &'compiler mut Compiler), prev: Option<Scope>) -> Self {
+        Self {
+            compiler,
+            level,
+            next: prev,
+            usages: Vec::new(),
+            contants: ImlValueLookup::new(),
+            variables: IndexMap::new(),
+            temporaries: Vec::new(),
+            instance:
+        }
+
         compiler.scopes.insert(
             0,
             Self {
@@ -273,20 +283,16 @@ impl Compiler {
 
     /// Tries to resolves open usages from the current scope
     pub(super) fn resolve(&mut self) {
-        if let Scope::Parselet { usage_start, .. } | Scope::Block { usage_start, .. } =
-            &self.scopes[0]
-        {
-            // Cut out usages created inside this scope for processing
-            let usages: Vec<ImlValue> = self.usages.drain(usage_start..).collect();
+        // Cut out usages created inside this scope for processing
+        let usages: Vec<ImlValue> = self.usages.drain(self.scopes[0].usage_start..).collect();
 
-            // Afterwards, resolve and insert them again in case there where not resolved
-            for mut value in usages.into_iter() {
-                if value.resolve(self) {
-                    continue;
-                }
-
-                self.usages.push(value); // Re-insert into usages for later resolve
+        // Afterwards, resolve and insert them again in case there where not resolved
+        for mut value in usages.into_iter() {
+            if value.resolve(self) {
+                continue;
             }
+
+            self.usages.push(value); // Re-insert into usages for later resolve
         }
     }
 
@@ -321,104 +327,71 @@ impl Compiler {
             println!("PUSH {:#?}", instance);
         }
         */
+        let mut scope = Scope::new(ScopeLevel::Parselet, self);
+        scope.instance = Some(instance);
+        scope.variables = variables;
 
-        self.scopes.insert(
-            0,
-            Scope::Parselet {
-                usage_start: self.usages.len(),
-                instance,
-                variables,
-                constants: IndexMap::new(),
-                temporaries: Vec::new(),
-                is_global: self.scopes.is_empty(),
-            },
-        )
+        self.scopes.insert(0, scope)
     }
 
     /// Push a block scope
     pub(super) fn block_push(&mut self) {
-        self.scopes.insert(
-            0,
-            Scope::Block {
-                usage_start: self.usages.len(),
-                constants: IndexMap::new(),
-            },
-        )
+        self.scopes.insert(0, Scope::new(ScopeLevel::Block, self))
     }
 
     /// Push a loop scope
     pub(super) fn loop_push(&mut self) {
-        self.scopes.insert(0, Scope::Loop);
+        self.scopes.insert(0, Scope::new(ScopeLevel::Loop, self))
     }
 
     /// Resolves and drops a parselet scope and creates a new parselet from it.
     pub(super) fn parselet_pop(&mut self, body: ImlOp) -> ImlValue {
-        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Parselet { .. }));
-
+        assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Parselet);
         self.resolve();
 
-        if let Scope::Parselet {
-            instance,
-            constants: keep_constants,
-            variables: keep_variables,
-            temporaries: keep_temporaries,
-            ..
-        } = self.scopes.remove(0)
-        {
-            instance.model.borrow_mut().body = body;
+        let scope = self.scopes.remove(0);
+        let instance = scope.instance.unwrap();
 
-            /*
-            if self.debug > 1 {
-                println!("POP {:#?}", instance);
-            }
-            */
+        instance.model.borrow_mut().body = body;
 
-            if self.scopes.len() == 0 {
-                // Rebuild __main__ scope
-                self.parselet_push(Some("__main__".to_string()), None, None, None);
+        if self.scopes.is_empty() {
+            // Rebuild __main__ scope
+            self.parselet_push(Some("__main__".to_string()), None, None, None);
 
-                if let Scope::Parselet {
-                    ref instance,
-                    ref mut constants,
-                    ref mut variables,
-                    ref mut temporaries,
-                    ..
-                } = &mut self.scopes[0]
-                {
-                    instance.model.borrow_mut().locals =
-                        keep_variables.len() + keep_temporaries.len();
-                    *constants = keep_constants;
-                    *variables = keep_variables;
-                    *temporaries = keep_temporaries;
-                } else {
-                    unreachable!();
-                }
-            }
-
-            ImlValue::from(instance)
-        } else {
-            unreachable!();
+            let new_instance = self.scopes[0].instance.as_ref().unwrap();
+            new_instance.model.borrow_mut().locals = instance.model.borrow().locals;
+            self.scopes[0].constants = scope.constants;
+            self.scopes[0].variables = scope.variables;
+            self.scopes[0].temporaries = scope.temporaries;
         }
+
+        ImlValue::from(instance)
     }
 
     /// Drops a block scope.
     pub(super) fn block_pop(&mut self) {
-        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Block { .. }));
+        assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Block);
         self.resolve();
         self.scopes.remove(0);
     }
 
     /// Drops a loop scope.
     pub(super) fn loop_pop(&mut self) {
-        assert!(self.scopes.len() > 0 && matches!(self.scopes[0], Scope::Loop));
+        assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Loop);
         self.scopes.remove(0);
     }
 
     /// Marks the nearest parselet scope as consuming
     pub(super) fn parselet_mark_consuming(&mut self) {
         for scope in &mut self.scopes {
-            if let Scope::Parselet { instance, .. } = scope {
-                instance.model.borrow_mut().is_consuming = true;
+            if scope.level == ScopeLevel::Parselet {
+                scope
+                    .instance
+                    .as_ref()
+                    .unwrap()
+                    .model
+                    .borrow_mut()
+                    .is_consuming = true;
                 return;
             }
         }
@@ -430,8 +403,8 @@ impl Compiler {
     pub(super) fn is_global(&self) -> bool {
         for scope in &self.scopes {
             // Check for scope with variables
-            if let Scope::Parselet { is_global, .. } = scope {
-                return *is_global;
+            if scope.level == ScopeLevel::Parselet {
+                return scope.is_global;
             }
         }
 
@@ -440,40 +413,37 @@ impl Compiler {
 
     /// Check if there's a loop
     pub(super) fn loop_check(&mut self) -> bool {
-        for i in 0..self.scopes.len() {
-            match &self.scopes[i] {
-                Scope::Parselet { .. } => return false,
-                Scope::Loop => return true,
+        for scope in &self.scopes {
+            match scope.level {
+                ScopeLevel::Loop => return true,
+                ScopeLevel::Parselet => break,
                 _ => {}
             }
         }
 
-        unreachable!("There _must_ be at least one parselet scope!");
+        false
     }
 
     /** Insert or get local variable with given name in current parselet scope. */
     pub(super) fn local(&mut self, name: &str) {
         for scope in &mut self.scopes {
-            // Check for scope with variables
-            if let Scope::Parselet {
-                instance,
-                variables,
-                ..
-            } = scope
-            {
-                if variables.get(name).is_some() {
-                    return;
-                }
+            if scope.level != ScopeLevel::Parselet {
+                continue;
+            }
 
-                variables.insert(name.to_string(), {
-                    // todo: Make function in ImlParseletModel
-                    let mut model = instance.model.borrow_mut();
-                    let addr = model.locals;
-                    model.locals += 1;
-                    addr
-                });
+            if scope.variables.get(name).is_some() {
                 return;
             }
+
+            scope.variables.insert(name.to_string(), {
+                // todo: Make function in ImlParseletModel
+                let mut model = scope.instance.as_ref().unwrap().model.borrow_mut();
+                let addr = model.locals;
+                model.locals += 1;
+                addr
+            });
+
+            return;
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
@@ -482,23 +452,19 @@ impl Compiler {
     /** Claim unused or new temporary variable in current parselet scope. */
     pub(super) fn temp(&mut self) -> usize {
         for scope in &mut self.scopes {
-            // Check for scope with variables
-            if let Scope::Parselet {
-                instance,
-                temporaries,
-                ..
-            } = scope
-            {
-                if let Some(temp) = temporaries.pop() {
-                    return temp;
-                }
-
-                // todo: Make function in ImlParseletModel
-                let mut model = instance.model.borrow_mut();
-                let addr = model.locals;
-                model.locals += 1;
-                return addr;
+            if scope.level != ScopeLevel::Parselet {
+                continue;
             }
+
+            if let Some(temp) = scope.temporaries.pop() {
+                return temp;
+            }
+
+            // todo: Make function in ImlParseletModel
+            let mut model = scope.instance.as_ref().unwrap().model.borrow_mut();
+            let addr = model.locals;
+            model.locals += 1;
+            return addr;
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
@@ -507,11 +473,12 @@ impl Compiler {
     /** Return temporary variable after use for later re-use */
     pub(super) fn untemp(&mut self, temp: usize) {
         for scope in &mut self.scopes {
-            // Check for scope with variables
-            if let Scope::Parselet { temporaries, .. } = scope {
-                temporaries.push(temp);
-                return;
+            if scope.level != ScopeLevel::Parselet {
+                continue;
             }
+
+            scope.temporaries.push(temp);
+            return;
         }
 
         unreachable!("There _must_ be at least one parselet scope!");
@@ -543,12 +510,12 @@ impl Compiler {
 
         // Insert constant into next constant-holding scope
         for scope in &mut self.scopes {
-            if let Scope::Parselet { constants, .. } | Scope::Block { constants, .. } = scope {
+            if scope.level == ScopeLevel::Parselet || scope.level == ScopeLevel::Block {
                 if let Some((name, value)) = secondary {
-                    constants.insert(name.to_string(), value);
+                    scope.constants.insert(name.to_string(), value);
                 }
 
-                constants.insert(name.to_string(), value);
+                scope.constants.insert(name.to_string(), value);
                 return;
             }
         }
@@ -561,47 +528,37 @@ impl Compiler {
         let mut top_parselet = true;
 
         for scope in &self.scopes {
-            match scope {
-                Scope::Block { constants, .. } => {
-                    if let Some(value) = constants.get(name) {
-                        return Some(value.clone());
-                    }
-                }
-                Scope::Parselet {
-                    instance,
-                    constants,
-                    variables,
-                    is_global,
-                    ..
-                } => {
-                    // Check constants first
-                    if let Some(value) = constants.get(name) {
-                        return Some(value.clone());
-                    }
+            if scope.level == ScopeLevel::Loop {
+                continue;
+            }
 
-                    // Check generic
-                    if instance.generics.get(name).is_some() {
-                        return Some(ImlValue::Generic {
+            // Check constants first
+            if let Some(value) = scope.constants.get(name) {
+                return Some(value.clone());
+            }
+
+            // Check generic
+            if let Some(instance) = &scope.instance {
+                if instance.generics.get(name).is_some() {
+                    return Some(ImlValue::Generic {
+                        offset,
+                        name: name.to_string(),
+                    });
+                }
+
+                // Check for variable only in first or global scope
+                if scope.is_global || top_parselet {
+                    if let Some(addr) = scope.variables.get(name) {
+                        return Some(ImlValue::Variable {
                             offset,
                             name: name.to_string(),
+                            is_global: scope.is_global,
+                            addr: *addr,
                         });
                     }
-
-                    // Check for variable
-                    if *is_global || top_parselet {
-                        if let Some(addr) = variables.get(name) {
-                            return Some(ImlValue::Variable {
-                                offset,
-                                name: name.to_string(),
-                                is_global: *is_global,
-                                addr: *addr,
-                            });
-                        }
-                    }
-
-                    top_parselet = false;
                 }
-                _ => {}
+
+                top_parselet = false;
             }
         }
 

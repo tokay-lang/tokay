@@ -790,7 +790,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         "begin" | "end" => {
             let body = traverse(compiler, &node["children"]);
 
-            if let Scope::Parselet { instance, .. } = &mut compiler.scopes[0] {
+            if let Some(instance) = &compiler.scopes[0].instance {
                 let mut model = instance.model.borrow_mut();
 
                 if emit == "begin" {

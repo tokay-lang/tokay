@@ -6,7 +6,6 @@ mod iml;
 mod parser;
 mod prelude;
 
-use compiler::*;
 use iml::*;
 use parser::*;
 
