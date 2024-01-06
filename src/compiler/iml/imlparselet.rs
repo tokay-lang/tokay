@@ -11,13 +11,18 @@ use std::rc::Rc;
 
 /** Intermediate parselet model.
 
-The model defines the code and local varibles of the parselet, and is shared by
-several parselet configurations. */
+The model defines the code, local variable management and signature of the parselet,
+and can be shared by several parselet instances.
+
+The struct was designed to be used for parselet construction during compilation.
+*/
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletModel {
     pub is_consuming: bool,                    // Flag if parselet is consuming
     pub locals: usize, // Total number of local variables present (including arguments)
     pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
+    pub variables: IndexMap<String, usize>, // Named local variables
+    pub temporaries: Vec<usize>, // Unnamed temporary variables
     pub begin: ImlOp,  // Begin intermediate operations
     pub end: ImlOp,    // End intermediate operations
     pub body: ImlOp,   // Body intermediate Operations
@@ -26,19 +31,62 @@ pub(in crate::compiler) struct ImlParseletModel {
 impl ImlParseletModel {
     pub fn new(signature: Option<IndexMap<String, ImlValue>>) -> Self {
         let signature = signature.unwrap_or(IndexMap::new());
+        // Generate variables from signature, addresses are enumerated!
+        let variables = signature
+            .keys()
+            .enumerate()
+            .map(|(index, key)| (key.to_string(), index))
+            .collect();
 
         Self {
             is_consuming: false,
             locals: signature.len(),
             signature,
+            variables,
+            temporaries: Vec::new(),
             begin: ImlOp::Nop,
             end: ImlOp::Nop,
             body: ImlOp::Nop,
         }
     }
 
+    // Return unique memory address of this model
     pub fn id(&self) -> usize {
         self as *const ImlParseletModel as usize
+    }
+
+    /// Allocate new variable
+    fn allocate(&mut self) -> usize {
+        let addr = self.locals;
+        self.locals += 1;
+        addr
+    }
+
+    /// Declare new or return address of named variables
+    pub fn get_named(&mut self, name: &str) -> usize {
+        match self.variables.get(name) {
+            Some(addr) => *addr,
+            None => {
+                let addr = self.allocate();
+                self.variables.insert(name.to_string(), addr);
+                addr
+            }
+        }
+    }
+
+    /// Claim temporary (unnamed) variable.
+    /// The variable is either being reused or freshly allocated.
+    /// After use of the temporary address, return_temporary should be called.
+    pub fn claim_temp(&mut self) -> usize {
+        match self.temporaries.pop() {
+            Some(addr) => addr,
+            None => self.allocate(),
+        }
+    }
+
+    // Returns a temporary variable address for (eventual) reuse later.
+    pub fn return_temp(&mut self, addr: usize) {
+        self.temporaries.push(addr)
     }
 }
 
