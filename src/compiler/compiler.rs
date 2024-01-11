@@ -605,16 +605,6 @@ impl Compiler {
             }
         }
 
-        self.get_builtin(name)
-    }
-
-    /** Get defined builtin. */
-    pub(super) fn get_builtin(&mut self, name: &str) -> Option<ImlValue> {
-        // Check for a builtin function
-        if let Some(builtin) = Builtin::get(name) {
-            return Some(RefValue::from(builtin).into()); // fixme: Makes a Value into a RefValue into a Value...
-        }
-
         // Builtin constants are defined on demand as fallback
         if name == "_" || name == "__" {
             // Fallback for "_" defines parselet `_ : Whitespace?`
@@ -623,7 +613,17 @@ impl Compiler {
                 RefValue::from(Token::builtin("Whitespaces").unwrap()).into(),
             );
 
-            return Some(self.get(None, name).unwrap());
+            return Some(self.get(offset, name).unwrap());
+        }
+
+        self.get_builtin(name)
+    }
+
+    /** Get defined builtin. */
+    pub(super) fn get_builtin(&self, name: &str) -> Option<ImlValue> {
+        // Check for a builtin function
+        if let Some(builtin) = Builtin::get(name) {
+            return Some(RefValue::from(builtin).into());
         }
 
         // Check for built-in token
