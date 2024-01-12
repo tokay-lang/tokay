@@ -28,7 +28,7 @@ pub(super) enum ScopeLevel {
 pub(super) struct Scope {
     //compiler: &'compiler mut Compiler,  // reference to compiler
     level: ScopeLevel, // Scope level
-    is_global: bool,   // Globa flag
+    is_global: bool,   // Global flag
 
     // Parselet- and block-level only
     pub(super) usages: Vec<ImlValue>, // Unresolved usages within a block scope
@@ -50,44 +50,69 @@ impl Scope {
     }
 }
 
-pub(super) enum ScopeLevel2 {
-    Parselet(ImlParseletInstance), // parselet level
-    Block,                         // block level (constants can be defined here)
-    Loop,                          // loop level (allows the use of break & continue)
+// DRAFT for upcoming scoping...
+
+pub(super) enum ScopeLevel2<'instance> {
+    Parselet(&'instance mut ImlParseletInstance), // parselet level (refers to currently constructed instance)
+    Block,                                        // block level (constants can be defined here)
+    Loop,                                         // loop level (allows the use of break & continue)
 }
 
-pub(super) struct Scope2<'compiler> {
-    compiler: &'compiler Compiler,          // reference to compiler
-    level: ScopeLevel2,                     // Scope level
-    parent: Option<Box<Scope2<'compiler>>>, // Previous scope
-
-    pub(super) usages: Vec<ImlValue>, // Unresolved usages within a block scope
-    constants: ImlValueLookup,        // Symbol table of named constants
+pub(super) struct Scope2<'compiler, 'parent, 'instance> {
+    compiler: &'compiler Compiler, // reference to compiler
+    level: ScopeLevel2<'instance>, // Scope level
+    parent: Option<&'parent mut Scope2<'compiler, 'parent, 'instance>>, // Previous scope
+    constants: ImlValueLookup,     // Symbol table of named constants
+    usages: Vec<ImlValue>,         // Unresolved usages within scope
 }
 
-impl<'compiler> Scope2<'compiler> {
-    pub fn new(compiler: &'compiler Compiler, level: ScopeLevel2, parent: Option<Self>) -> Self {
+impl<'compiler, 'parent, 'instance> Scope2<'compiler, 'parent, 'instance> {
+    pub fn new(
+        compiler: &'compiler Compiler,
+        level: ScopeLevel2<'instance>,
+        parent: Option<&'parent mut Scope2<'compiler, 'parent, 'instance>>,
+    ) -> Self {
         Self {
             compiler,
             level,
-            parent: parent.map(|parent| Box::new(parent)),
-            usages: Vec::new(),
+            parent,
             constants: ImlValueLookup::new(),
+            usages: Vec::new(),
         }
     }
 
-    pub fn add(self, level: ScopeLevel2) -> Self {
-        Self::new(self.compiler, level, Some(self))
+    pub fn is_global(&self) -> bool {
+        match self.level {
+            ScopeLevel2::Parselet(_) => self.parent.is_none(),
+            _ => self.parent.as_ref().unwrap().is_global(),
+        }
     }
 
-    pub fn drop(self) -> Option<Self> {
-        todo!();
+    pub fn is_loop(&self) -> bool {
+        match self.level {
+            ScopeLevel2::Loop => true,
+            ScopeLevel2::Parselet(_) => false,
+            _ => self.parent.as_ref().unwrap().is_loop(),
+        }
     }
 
-    pub fn instance(&mut self) -> &mut ImlParseletInstance {
+    pub fn resolve(self) {
+        for mut value in self.usages.into_iter() {
+            /*
+            if !value.resolve(self.compiler) {
+                match self.parent {
+                    Some(parent) => parent.usages.push(value),
+                    None => todo!(),
+                }
+            }
+            */
+        }
+    }
+
+    pub fn get_instance(&mut self) -> &mut ImlParseletInstance {
         match &mut self.level {
             ScopeLevel2::Parselet(instance) => instance,
-            _ => self.parent.as_mut().unwrap().instance(),
+            _ => self.parent.as_mut().unwrap().get_instance(),
         }
     }
 }
