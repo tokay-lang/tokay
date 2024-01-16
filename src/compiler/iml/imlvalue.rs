@@ -1,6 +1,5 @@
 //! Intermediate value representation
 use super::*;
-use crate::compiler::Compiler;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value::{Object, RefValue, Value};
@@ -77,13 +76,13 @@ impl ImlValue {
     }
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
-    pub fn try_resolve(mut self, compiler: &mut Compiler) -> Self {
-        if self.resolve(compiler) {
+    pub fn try_resolve(mut self, scope: &Scope) -> Self {
+        if self.resolve(scope) {
             return self;
         }
 
         let shared = Self::Unresolved(Rc::new(RefCell::new(self)));
-        compiler.scopes[0].usages.push(shared.clone());
+        scope.usages.borrow_mut().push(shared.clone());
         shared
     }
 
@@ -95,11 +94,11 @@ impl ImlValue {
 
     Returns true in case the provided value is (already) resolved.
     */
-    pub fn resolve(&mut self, compiler: &mut Compiler) -> bool {
+    pub fn resolve(&mut self, scope: &Scope) -> bool {
         let resolve = match self {
             Self::Unresolved(value) => match value.try_borrow_mut() {
                 Ok(mut value) => {
-                    if value.resolve(compiler) {
+                    if value.resolve(scope) {
                         Some(value.clone())
                     } else {
                         None
@@ -107,7 +106,7 @@ impl ImlValue {
                 }
                 Err(_) => todo!("Recursive resolve() impossible by design, see bug #127"),
             },
-            Self::Name { offset, name, .. } => compiler.get(offset.clone(), &name),
+            Self::Name { offset, name, .. } => scope.resolve_name(offset.clone(), &name),
             Self::Instance {
                 offset,
                 target,
@@ -116,18 +115,18 @@ impl ImlValue {
                 severity,
                 is_generated,
             } => {
-                let mut is_resolved = target.resolve(compiler);
+                let mut is_resolved = target.resolve(scope);
 
                 // Resolve sequential generic args
                 for arg in args.iter_mut() {
-                    if !arg.1.resolve(compiler) {
+                    if !arg.1.resolve(scope) {
                         is_resolved = false;
                     }
                 }
 
                 // Resolve named generic args
                 for narg in nargs.values_mut() {
-                    if !narg.1.resolve(compiler) {
+                    if !narg.1.resolve(scope) {
                         is_resolved = false;
                     }
                 }
@@ -155,28 +154,28 @@ impl ImlValue {
 
                                 // Check integrity of constant names
                                 if let Self::Unset = arg.1 {
-                                    compiler.errors.push(Error::new(
+                                    scope.error(
                                         arg.0,
                                         format!("Expecting argument for generic '{}'", name),
-                                    ));
+                                    );
                                 } else if arg.1.is_consuming() {
                                     if !utils::identifier_is_consumable(name) {
-                                        compiler.errors.push(Error::new(
+                                        scope.error(
                                             arg.0,
                                             format!(
                                                 "Cannot assign consumable {} to non-consumable generic '{}'",
                                                 arg.1, name
                                             )
-                                        ));
+                                        );
                                     }
                                 } else if utils::identifier_is_consumable(name) {
-                                    compiler.errors.push(Error::new(
+                                    scope.error(
                                         arg.0,
                                         format!(
                                             "Cannot assign non-consumable {} to consumable generic {} of {}",
                                             arg.1, name, parselet
                                         )
-                                    ));
+                                    );
                                 }
 
                                 generics.insert(name.clone(), arg.1);
@@ -184,7 +183,7 @@ impl ImlValue {
 
                             // Report any errors for unconsumed generic arguments.
                             if !args.is_empty() {
-                                compiler.errors.push(Error::new(
+                                scope.error(
                                     args[0].0, // report first parameter
                                     format!(
                                         "{} got too many generic arguments ({} in total, expected {})",
@@ -192,26 +191,26 @@ impl ImlValue {
                                         generics.len() + args.len(),
                                         generics.len()
                                     ),
-                                ));
+                                );
                             }
 
                             for (name, (offset, _)) in nargs {
                                 if generics.get(name).is_some() {
-                                    compiler.errors.push(Error::new(
+                                    scope.error(
                                         *offset,
                                         format!(
                                             "{} already got generic argument '{}'",
                                             target, name
                                         ),
-                                    ));
+                                    );
                                 } else {
-                                    compiler.errors.push(Error::new(
+                                    scope.error(
                                         *offset,
                                         format!(
                                             "{} does not accept generic argument named '{}'",
                                             target, name
                                         ),
-                                    ));
+                                    );
                                 }
                             }
 
@@ -219,22 +218,22 @@ impl ImlValue {
                             // This can be the final parselet instance, but constants
                             // might contain generic references as well, which are being
                             // resolved during further compilation and derivation.
-                            let instance = ImlValue::from(ImlParseletInstance {
+                            let parselet = ImlValue::from(ImlParselet::new(ImlParseletInstance {
                                 model: parselet.model.clone(),
                                 generics,
                                 offset: parselet.offset.clone(),
                                 name: parselet.name.clone(),
                                 severity: severity.unwrap_or(parselet.severity),
                                 is_generated: *is_generated,
-                            });
+                            }));
 
-                            Some(instance)
+                            Some(parselet)
                         }
                         target => {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 *offset,
                                 format!("Cannot create instance from '{}'", target),
-                            ));
+                            );
                             return false;
                         }
                     }

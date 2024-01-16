@@ -11,10 +11,12 @@ use std::rc::Rc;
 
 /** Intermediate parselet model.
 
-The model defines the code, local variable management and signature of the parselet,
-and can be shared by several parselet instances.
+The model defines the signature, local variables and code of a function or
+parselet. It is shared by several parselet instances.
 
-The struct was designed to be used for parselet construction during compilation.
+The struct was designed to be used for parselet construction during compilation,
+therefore it provides an interface to define named and temporary variables
+during compilation.
 */
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletModel {
@@ -93,11 +95,11 @@ impl ImlParseletModel {
 // ImlParseletInstance
 // ----------------------------------------------------------------------------
 
-/** Intermediate parselet configuration.
+/** Intermediate parselet instance.
 
-A parselet configuration is a model with as given constants definition.
-The constants definition might be generic, which needs to be resolved first
-before a parselet configuration is turned into a parselet.
+A parselet instance is a model with as given generics definition.
+The generics definition needs to be resolved first, before a parselet instance
+is turned into a executable parselet.
 */
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -180,12 +182,6 @@ impl std::cmp::PartialOrd for ImlParseletInstance {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
-    }
-}
-
-impl From<ImlParseletInstance> for ImlValue {
-    fn from(parselet: ImlParseletInstance) -> Self {
-        ImlValue::Parselet(ImlParselet::new(parselet))
     }
 }
 
@@ -338,5 +334,11 @@ impl std::ops::Deref for ImlParselet {
 impl std::ops::DerefMut for ImlParselet {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.instance
+    }
+}
+
+impl From<ImlParselet> for ImlValue {
+    fn from(parselet: ImlParselet) -> Self {
+        ImlValue::Parselet(parselet)
     }
 }

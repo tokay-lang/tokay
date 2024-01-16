@@ -3,7 +3,6 @@
 use super::*;
 use crate::reader::Offset;
 use crate::utils;
-use crate::Compiler;
 use crate::{Object, RefValue};
 
 #[derive(Debug, Clone)]
@@ -73,35 +72,35 @@ impl ImlOp {
     }
 
     /// Load value; This is only a shortcut for creating an ImlOp::Load{}
-    pub fn load(_compiler: &mut Compiler, offset: Option<Offset>, target: ImlValue) -> ImlOp {
+    pub fn load(_scope: &Scope, offset: Option<Offset>, target: ImlValue) -> ImlOp {
         ImlOp::Load { offset, target }
     }
 
     /// Load unknown value by name
-    pub fn load_by_name(compiler: &mut Compiler, offset: Option<Offset>, name: String) -> ImlOp {
-        let value = ImlValue::Name { offset, name }.try_resolve(compiler);
+    pub fn load_by_name(scope: &Scope, offset: Option<Offset>, name: String) -> ImlOp {
+        let value = ImlValue::Name { offset, name }.try_resolve(scope);
 
-        Self::load(compiler, offset.clone(), value)
+        Self::load(scope, offset.clone(), value)
     }
 
     /// Call known value
     pub fn call(
-        compiler: &mut Compiler,
+        scope: &Scope,
         offset: Option<Offset>,
         target: ImlValue,
         args: Option<(usize, bool)>,
     ) -> ImlOp {
-        let target = target.try_resolve(compiler);
+        let target = target.try_resolve(scope);
 
         // When args is unset, and the value is not callable without arguments,
         // consider this call is a load.
         if args.is_none() && !target.is_callable(true) {
             // Currently not planned as final
-            return Self::load(compiler, offset, target);
+            return Self::load(scope, offset, target);
         }
 
         if target.is_consuming() {
-            compiler.parselet_mark_consuming();
+            scope.parselet().borrow().model.borrow_mut().is_consuming = true;
         }
 
         ImlOp::Call {
@@ -113,19 +112,19 @@ impl ImlOp {
 
     /// Call unknown value by name
     pub fn call_by_name(
-        compiler: &mut Compiler,
+        scope: &Scope,
         offset: Option<Offset>,
         name: String,
         args: Option<(usize, bool)>,
     ) -> ImlOp {
         // Perform early consumable detection depending on identifier's name
         if utils::identifier_is_consumable(&name) {
-            compiler.parselet_mark_consuming();
+            scope.parselet().borrow().model.borrow_mut().is_consuming = true;
         }
 
         ImlOp::Call {
             offset: offset.clone(),
-            target: ImlValue::Name { offset, name }.try_resolve(compiler),
+            target: ImlValue::Name { offset, name }.try_resolve(scope),
             args,
         }
     }
