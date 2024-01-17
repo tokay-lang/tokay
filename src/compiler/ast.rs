@@ -860,7 +860,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 }
 
                 match emit {
-                    "body" => {
+                    "body" | "main" => {
                         scope.parselet().borrow().model.borrow_mut().body =
                             traverse_alts(scope, ast);
                         ImlOp::Nop

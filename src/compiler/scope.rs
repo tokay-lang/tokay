@@ -22,7 +22,7 @@ pub(super) struct Scope<'compiler, 'parent> {
     pub compiler: &'compiler Compiler, // reference to compiler
     pub level: ScopeLevel,             // Scope level
     parent: Option<&'parent Scope<'compiler, 'parent>>, // Previous scope
-    constants: RefCell<IndexMap<String, ImlValue>>, // Symbol table of named constants
+    pub constants: RefCell<IndexMap<String, ImlValue>>, // Symbol table of named constants
     pub usages: RefCell<Vec<ImlValue>>, // Unresolved usages within scope
     pub errors: RefCell<Vec<Error>>,   // Errors raised
 }

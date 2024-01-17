@@ -18,7 +18,7 @@ The struct was designed to be used for parselet construction during compilation,
 therefore it provides an interface to define named and temporary variables
 during compilation.
 */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(in crate::compiler) struct ImlParseletModel {
     pub is_consuming: bool,                    // Flag if parselet is consuming
     pub locals: usize, // Total number of local variables present (including arguments)

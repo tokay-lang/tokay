@@ -6,7 +6,7 @@ use crate::reader::*;
 use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
-use indexmap::{indexset, IndexSet};
+use indexmap::{indexset, IndexMap, IndexSet};
 use std::cell::RefCell;
 
 /** Tokay compiler instance
@@ -21,6 +21,10 @@ pub struct Compiler {
     pub debug: u8,                  // Compiler debug mode
     pub(super) restrict: bool,      // Restrict assignment of reserved identifiers
     pub(super) statics: RefCell<IndexSet<RefValue>>, // Static values collected during compilation
+
+    // TODO: As workaround to emulate old behavior of the Compiler struct
+    main: ImlParseletModel,                // keep global parselet
+    constants: IndexMap<String, ImlValue>, // keep global constants
 }
 
 impl Compiler {
@@ -50,6 +54,9 @@ impl Compiler {
             debug: 0,
             restrict: true,
             statics: RefCell::new(statics),
+            // TODO: workaround...
+            main: ImlParseletModel::new(None),
+            constants: IndexMap::new(),
         };
 
         // Compile with the default prelude
@@ -70,8 +77,10 @@ impl Compiler {
         &mut self,
         ast: &RefValue,
     ) -> Result<Option<Program>, Vec<Error>> {
+        // Create main parselet from current main model
         let main_parselet = ImlParselet::new(ImlParseletInstance::new(
-            None,
+            // TODO: Keep backward compatible: copy Compiler's main model into the main_parselet
+            Some(self.main.clone()),
             None,
             None,
             Some("__main__".to_string()),
@@ -79,22 +88,51 @@ impl Compiler {
             false,
         ));
 
-        let global_scope = Scope::new(self, ScopeLevel::Parselet(main_parselet.clone()), None);
+        // println!("=> self.constants {:?}", self.constants.keys());
 
-        ast::traverse(&global_scope, &ast);
+        self.constants = {
+            // Create new global scope
+            let global_scope = Scope::new(self, ScopeLevel::Parselet(main_parselet.clone()), None);
 
-        for usage in global_scope.usages.borrow_mut().drain(..) {
-            if let ImlValue::Unresolved(usage) = usage {
-                let usage = usage.borrow();
-                if let ImlValue::Name { offset, name } = &*usage {
-                    global_scope.error(offset.clone(), format!("Use of undefined name '{}'", name));
+            // Extend compiler's constants into global_scope
+            global_scope
+                .constants
+                .borrow_mut()
+                .extend(self.constants.clone());
+
+            // Traverse the parsed AST
+            ast::traverse(&global_scope, &ast);
+
+            // try to resolve any open usages
+            global_scope.resolve_usages();
+
+            // Report unresolved names
+            for usage in global_scope.usages.borrow_mut().drain(..) {
+                if let ImlValue::Unresolved(usage) = usage {
+                    let usage = usage.borrow();
+                    if let ImlValue::Name { offset, name } = &*usage {
+                        global_scope
+                            .error(offset.clone(), format!("Use of undefined name '{}'", name));
+                    }
                 }
             }
-        }
 
-        if !global_scope.errors.borrow().is_empty() {
-            return Err(global_scope.errors.borrow_mut().drain(..).collect());
-        }
+            // Break on error
+            if !global_scope.errors.borrow().is_empty() {
+                return Err(global_scope.errors.borrow_mut().drain(..).collect());
+            }
+
+            // Otherwise, write new contants back into compiler
+            global_scope.constants.take()
+        };
+
+        // println!("<= self.constants {:?}", self.constants.keys());
+
+        // TODO: Keep backward compatible: copy main parselet and constants into compiler
+        self.main = main_parselet.borrow().model.borrow().clone();
+        self.main.body = ImlOp::Nop;
+        self.main.begin = ImlOp::Nop;
+        self.main.end = ImlOp::Nop;
 
         /*
         if self.debug > 1 {
@@ -169,77 +207,4 @@ impl Compiler {
             ImlValue::Value(value)
         }
     }
-
-    /*
-    /// Push a parselet scope
-    pub(super) fn parselet_push(
-        &mut self,
-        name: Option<String>,
-        offset: Option<Offset>,
-        generics: Option<ImlValueLookup>,
-        signature: Option<IndexMap<String, ImlValue>>,
-    ) {
-        let instance = ImlParseletInstance::new(
-            Some(ImlParseletModel::new(signature)),
-            generics,
-            offset,
-            name,
-            5,
-            false,
-        );
-
-        /*
-        if self.debug > 1 {
-            println!("PUSH {:#?}", instance);
-        }
-        */
-        let mut scope = Scope::new(ScopeLevel::Parselet, self);
-        scope.instance = Some(instance);
-
-        self.scopes.insert(0, scope)
-    }
-
-    /// Push a block scope
-    pub(super) fn block_push(&mut self) {
-        self.scopes.insert(0, Scope::new(ScopeLevel::Block, self))
-    }
-
-    /// Push a loop scope
-    pub(super) fn loop_push(&mut self) {
-        self.scopes.insert(0, Scope::new(ScopeLevel::Loop, self))
-    }
-
-    /// Resolves and drops a parselet scope and creates a new parselet from it.
-    pub(super) fn parselet_pop(&mut self, body: ImlOp) -> ImlValue {
-        assert!(!self.scopes.is_empty() && self.scopes[0].level == ScopeLevel::Parselet);
-        self.resolve();
-        let scope = self.scopes.remove(0);
-        let instance = scope.instance.unwrap();
-
-        {
-            let mut main = instance.model.borrow_mut();
-
-            main.body = body;
-
-            if self.scopes.is_empty() {
-                // Rebuild __main__ scope
-                self.parselet_push(Some("__main__".to_string()), None, None, None);
-
-                self.scopes[0].constants = scope.constants;
-                self.scopes[0].usages = scope.usages;
-
-                let new_instance = self.scopes[0].instance.as_ref().unwrap();
-                let mut new_main = new_instance.model.borrow_mut();
-
-                new_main.locals = main.locals;
-                new_main.variables = main.variables.clone();
-                new_main.temporaries = main.temporaries.clone();
-            } else {
-                self.scopes[0].usages.extend(scope.usages);
-            }
-        }
-
-        ImlValue::from(instance)
-    }
-    */
 }
