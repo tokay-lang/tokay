@@ -11,7 +11,7 @@ extern crate self as tokay;
 
 #[derive(Debug, Clone, Hash, PartialEq, PartialOrd)]
 pub enum Token {
-    Void,                               // Matches the empty word
+    Empty,                              // Matches the empty word
     EOF,                                // Matches End of File
     Char(CharClass),                    // Matches one character from a character class
     BuiltinChar(fn(ch: char) -> bool),  // Matches one character from a callback function
@@ -59,8 +59,8 @@ impl Token {
         }
 
         match ident {
+            "Empty" => Some(Token::Empty),
             "EOF" => Some(Token::EOF),
-            "Void" => Some(Token::Void),
             ident => builtin_ccl(ident),
         }
     }
@@ -73,7 +73,7 @@ impl Object for Token {
 
     fn repr(&self) -> String {
         match self {
-            Token::Void => "Void".to_string(),
+            Token::Empty => "Empty".to_string(),
             Token::EOF => "EOF".to_string(),
             Token::Char(ccl) => format!("{:?}", ccl),
             Token::Chars(ccl) => format!("{:?}+", ccl),
@@ -93,7 +93,7 @@ impl Object for Token {
 
     fn is_nullable(&self) -> bool {
         match self {
-            Token::Void => true,
+            Token::Empty => true,
             Token::EOF => false,
             Token::Char(ccl) | Token::Chars(ccl) => ccl.len() == 0, //True shouldn't be possible here by definition!
             Token::BuiltinChar(_) | Token::BuiltinChars(_) => true,
@@ -113,7 +113,7 @@ impl Object for Token {
         let reader = &mut context.thread.reader;
 
         match self {
-            Token::Void => Ok(Accept::Next),
+            Token::Empty => Ok(Accept::Next),
             Token::EOF => {
                 if let Some(_) = reader.peek() {
                     Err(Reject::Next)

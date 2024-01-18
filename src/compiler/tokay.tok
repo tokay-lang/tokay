@@ -244,6 +244,7 @@ TokenLiteral : @{
     Keyword<'Char'> '<' Ccl '>'  ast("value_token_ccl")
     Keyword<'Char'>  ast("value_token_any")
     Keyword<'Self'>  ast("value_token_self")
+    Keyword<'Void'>  ast("value_token_void")
 }
 
 Token : @{

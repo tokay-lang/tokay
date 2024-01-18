@@ -1,6 +1,6 @@
 print("stage 1 " + repr(x))
 #Int _ x = (Int expect EOF  ast("test")) ast("yo")
-x = @(Int _ Int ast("test") | Void)
+x = @(Int _ Int ast("test") | Empty)
 print("stage 2 " + repr(x))
 #end x
 #---

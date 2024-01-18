@@ -47,13 +47,13 @@ pub(crate) enum Op {
     // Backward(usize), // Jump backward
 
     // Interrupts
-    Next,       // Err(Reject::Next)
     Push,       // Ok(Accept::Push)
     LoadPush,   // Ok(Accept::Push) with value
     Accept,     // Ok(Accept::Return)
     LoadAccept, // Ok(Accept::Return) with value
     Repeat,     // Ok(Accept::Repeat)
-    Reject,     // Ok(Err::Reject)
+    Next,       // set state to Err(Reject::Next), continue
+    Reject,     // hard return Err(Err::Reject)
     LoadExit,   // Exit with errorcode
     Exit,       // Exit with 0
 
@@ -377,8 +377,6 @@ impl Op {
                 }
                 */
                 // Interrupts
-                Op::Next => Err(Reject::Next),
-
                 Op::Push => Ok(Accept::Push(Capture::Empty)),
                 Op::LoadPush => {
                     let value = context.pop();
@@ -387,6 +385,7 @@ impl Op {
                 Op::Accept => Ok(Accept::Return(Capture::Empty)),
                 Op::LoadAccept => Ok(Accept::Return(context.stack.pop().unwrap())),
                 Op::Repeat => Ok(Accept::Repeat),
+                Op::Next => Err(Reject::Next),
                 Op::Reject => {
                     state = Err(Reject::Next);
                     break;
@@ -484,25 +483,32 @@ impl Op {
                 Op::LoadFast(addr) => context.load(*addr),
 
                 Op::LoadFastCapture(index) => {
-                    let value = context.get_capture(*index).unwrap_or(value!(void));
-                    context.push(value)
+                    let mut capture = context.get_capture(*index).unwrap_or(Capture::Empty);
+
+                    capture.set_severity(10);
+                    context.stack.push(capture);
+
+                    Ok(Accept::Next)
                 }
 
                 Op::LoadCapture => {
                     let index = context.pop();
                     let index = index.borrow();
 
-                    let value = if let Some(alias) = index.object::<Str>() {
+                    let mut capture = if let Some(alias) = index.object::<Str>() {
                         context
                             .get_capture_by_name(alias.as_str())
-                            .unwrap_or(value!(void))
+                            .unwrap_or(Capture::Empty)
                     } else {
                         context
                             .get_capture(index.to_usize()?)
-                            .unwrap_or(value!(void))
+                            .unwrap_or(Capture::Empty)
                     };
 
-                    context.push(value)
+                    capture.set_severity(10);
+                    context.stack.push(capture);
+
+                    Ok(Accept::Next)
                 }
 
                 Op::LoadItem => {
@@ -624,7 +630,7 @@ impl Op {
                         }
 
                         empty => {
-                            *empty = Capture::Value(value!(void), Some(name), 0);
+                            *empty = Capture::Value(value!(null), Some(name), 10);
                         }
                     }
 

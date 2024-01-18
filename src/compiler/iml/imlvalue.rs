@@ -22,9 +22,11 @@ modified and resolved during the compilation process.
 pub(in crate::compiler) enum ImlValue {
     Unset,                             // Unset
     Unresolved(Rc<RefCell<ImlValue>>), // Unresolved ImlValues are shared
+    SelfValue,                         // self-reference (value)
+    SelfToken,                         // Self-reference (consuming)
+    VoidToken,                         // Void (consuming)
     Value(RefValue),                   // Static value
     Parselet(ImlParselet),             // Parselet
-    This(bool),                        // self-reference to function (false) or parselet (true)
     Variable {
         // Resolved variable
         offset: Option<Offset>, // Source offset
@@ -265,7 +267,7 @@ impl ImlValue {
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
             Self::Unresolved(value) => value.borrow().is_callable(without_arguments),
-            Self::This(_) => true, // fixme?
+            Self::SelfValue | Self::SelfToken => true, // fixme?
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
                 let parselet = parselet.borrow();
@@ -290,7 +292,8 @@ impl ImlValue {
     pub fn is_consuming(&self) -> bool {
         match self {
             Self::Unresolved(value) => value.borrow().is_consuming(),
-            Self::This(consuming) => *consuming,
+            Self::SelfValue => false,
+            Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().is_consuming,
             Self::Name { name, .. } | Self::Generic { name, .. } => {
@@ -325,6 +328,7 @@ impl ImlValue {
             ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
+            ImlValue::VoidToken => ops.push(Op::Next),
             ImlValue::Value(value) => match &*value.borrow() {
                 Value::Void => ops.push(Op::PushVoid),
                 Value::Null => ops.push(Op::PushNull),
@@ -350,14 +354,14 @@ impl ImlValue {
                 return current.0.borrow().generics[name]
                     .compile(program, current, offset, call, ops)
             }
-            ImlValue::This(_) | ImlValue::Parselet(_) => {}
+            ImlValue::SelfValue | ImlValue::SelfToken | ImlValue::Parselet(_) => {}
             _ => unreachable!("{}", self),
         }
 
         // Check if something has been pushed before.
         if start == ops.len() {
             let idx = match self {
-                ImlValue::This(_) => current.1, // use current index
+                ImlValue::SelfValue | ImlValue::SelfToken => current.1, // use current index
                 ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
                     Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
                     Err(msg) => {
@@ -404,8 +408,9 @@ impl std::fmt::Display for ImlValue {
         match self {
             Self::Unset => write!(f, "unset"),
             Self::Unresolved(value) => value.borrow().fmt(f),
-            Self::This(true) => write!(f, "Self"),
-            Self::This(false) => write!(f, "self"),
+            Self::SelfValue => write!(f, "self"),
+            Self::SelfToken => write!(f, "Self"),
+            Self::VoidToken => write!(f, "Void"),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet(parselet) => write!(
                 f,
@@ -460,6 +465,7 @@ impl std::hash::Hash for ImlValue {
         match self {
             Self::Unset => state.write_u8('u' as u8),
             Self::Unresolved(value) => value.borrow().hash(state),
+            Self::VoidToken => state.write_u8('V' as u8),
             Self::Value(value) => {
                 state.write_u8('v' as u8);
                 value.hash(state)

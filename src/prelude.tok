@@ -3,10 +3,10 @@
 # The `Not`-builtin runs its parser and returns its negated result,
 # so that `P` occurence becomes rejected.
 #
-# Everything else becomes accepted (Void).
+# Everything else becomes accepted (Empty).
 Not : @<P> {
     P reject
-    Void
+    Empty
 }
 
 # The `Peek`-builtin runs `P` and returns its result, but resets the reading-context afterwards.
@@ -74,7 +74,7 @@ Pos : @<P, blur: true>{ Repeat<P, blur: blur> }
 Kle : @<P, blur: true>{ Repeat<P, min: 0, blur: blur> || void }
 
 # Optionally accepts `P` or nothing.
-Opt : @<P>{ P | Void }
+Opt : @<P>{ P | Empty }
 
 # Implements a recursive, separated list.
 #

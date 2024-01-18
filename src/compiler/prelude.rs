@@ -56,7 +56,7 @@ impl Compiler {
                                                             ])),
                                                             (value!([
                                                                 "emit" => "identifier",
-                                                                "value" => "Void"
+                                                                "value" => "Empty"
                                                             ]))
                                                         ]))
                                                 ]))
@@ -865,7 +865,7 @@ impl Compiler {
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "identifier",
-                                                                        "value" => "Void"
+                                                                        "value" => "Empty"
                                                                     ]))
                                                                 ]))
                                                         ]))
