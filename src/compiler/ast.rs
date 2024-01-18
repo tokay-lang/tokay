@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 use tokay_macros::tokay_function;
 extern crate self as tokay;
 use super::*;
-use crate::error::Error;
+use crate::builtin::Builtin;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value;
@@ -21,19 +21,19 @@ pub static RESERVED_KEYWORDS: &[&'static str] = &[
 ];
 
 /// AST traversal entry
-pub(in crate::compiler) fn traverse(compiler: &mut Compiler, ast: &RefValue) -> ImlOp {
+pub(in crate::compiler) fn traverse(scope: &Scope, ast: &RefValue) -> ImlOp {
     if let Some(list) = ast.borrow().object::<List>() {
         let mut ops = Vec::new();
 
         for item in list.iter() {
-            ops.push(traverse(compiler, item));
+            ops.push(traverse(scope, item));
         }
 
         ImlOp::from(ops)
     } else if let Some(dict) = ast.borrow().object::<Dict>() {
-        traverse_node_rvalue(compiler, dict, Rvalue::CallOrLoad)
+        traverse_node_rvalue(scope, dict, Rvalue::CallOrLoad)
     } else {
-        ImlOp::load(compiler, None, ImlValue::from(RefValue::from(ast.clone())))
+        ImlOp::load(scope, None, ImlValue::from(RefValue::from(ast.clone())))
     }
 }
 
@@ -68,25 +68,25 @@ fn traverse_offset(node: &Dict) -> ImlOp {
 }
 
 // Traverse a value node into an ImlValue instance
-fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String>) -> ImlValue {
+fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlValue {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
     // Generate a value from the given code
     match emit {
         // Literals
-        "value_void" => ImlValue::Value(compiler.statics[0].clone()),
-        "value_null" => ImlValue::Value(compiler.statics[1].clone()),
-        "value_true" => ImlValue::Value(compiler.statics[2].clone()),
-        "value_false" => ImlValue::Value(compiler.statics[3].clone()),
+        "value_void" => ImlValue::Value(scope.compiler.statics.borrow()[0].clone()),
+        "value_null" => ImlValue::Value(scope.compiler.statics.borrow()[1].clone()),
+        "value_true" => ImlValue::Value(scope.compiler.statics.borrow()[2].clone()),
+        "value_false" => ImlValue::Value(scope.compiler.statics.borrow()[3].clone()),
         "value_self" => ImlValue::This(false),
         "value_integer" => match node["value"].to_i64() {
-            Ok(0) => ImlValue::Value(compiler.statics[4].clone()),
-            Ok(1) => ImlValue::Value(compiler.statics[5].clone()),
-            _ => compiler.register_static(node["value"].clone()),
+            Ok(0) => ImlValue::Value(scope.compiler.statics.borrow()[4].clone()),
+            Ok(1) => ImlValue::Value(scope.compiler.statics.borrow()[5].clone()),
+            _ => scope.compiler.register_static(node["value"].clone()),
         },
-        "value_float" => compiler.register_static(node["value"].clone()),
-        "value_string" => compiler.register_static(node["value"].clone()),
+        "value_float" => scope.compiler.register_static(node["value"].clone()),
+        "value_string" => scope.compiler.register_static(node["value"].clone()),
 
         // Tokens
         "value_token_self" => ImlValue::This(true),
@@ -94,25 +94,27 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
             let mut value = node["value"].to_string();
 
             if value.len() == 0 {
-                compiler.errors.push(Error::new(
+                scope.error(
                     traverse_node_offset(node),
                     format!("Empty match not allowed"),
-                ));
+                );
                 value = "#INVALID".to_string();
             }
 
-            compiler.register_static(if emit == "value_token_match" {
-                RefValue::from(Token::Match(value))
-            } else {
-                RefValue::from(Token::Touch(value))
-            })
+            scope
+                .compiler
+                .register_static(if emit == "value_token_match" {
+                    RefValue::from(Token::Match(value))
+                } else {
+                    RefValue::from(Token::Touch(value))
+                })
         }
-        "value_token_any" => {
-            compiler.register_static(RefValue::from(Token::Char(CharClass::new().negate())))
-        }
-        "value_token_anys" => {
-            compiler.register_static(RefValue::from(Token::Chars(CharClass::new().negate())))
-        }
+        "value_token_any" => scope
+            .compiler
+            .register_static(RefValue::from(Token::Char(CharClass::new().negate()))),
+        "value_token_anys" => scope
+            .compiler
+            .register_static(RefValue::from(Token::Chars(CharClass::new().negate()))),
         "value_token_ccl" | "value_token_ccls" => {
             let many = emit.ends_with("s");
 
@@ -159,7 +161,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                 assert!(emit == "ccl");
             }
 
-            compiler.register_static(if many {
+            scope.compiler.register_static(if many {
                 RefValue::from(Token::Chars(ccl))
             } else {
                 RefValue::from(Token::Char(ccl))
@@ -196,27 +198,27 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
 
                         if children.len() == 2 {
                             default = traverse_node_static(
-                                compiler,
+                                scope,
                                 Some(name.clone()),
                                 children[1].borrow().object::<Dict>().unwrap(),
                             );
 
                             if utils::identifier_is_consumable(&name) && !default.is_consuming() {
-                                compiler.errors.push(Error::new(
+                                scope.error(
                                     offset,
                                     format!(
                                         "Generic '{}' defines consumable, but {} is not consuming",
                                         name, default
                                     ),
-                                ));
+                                );
                             }
                         }
 
                         if generics.insert(name.clone(), default).is_some() {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 offset,
                                 format!("Generic '{}' already defined in signature before", name),
-                            ));
+                            );
                         }
                     }
                     "arg" => {
@@ -224,8 +226,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
 
                         // Check for correct identifier semantics
                         if !first.is_lowercase() {
-                            compiler.errors.push(
-                                Error::new(
+                            scope.error(
                                     traverse_node_offset(node),
                                     if first == '_' {
                                         format!(
@@ -239,7 +240,6 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                                             name, &name[0..1].to_lowercase(), &name[1..]
                                         )
                                     }
-                                )
                             );
                         }
 
@@ -251,7 +251,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                                 if children.len() == 2 {
                                     let default = children[1].borrow();
                                     traverse_node_static(
-                                        compiler,
+                                        scope,
                                         None,
                                         default.object::<Dict>().unwrap(),
                                     )
@@ -261,10 +261,10 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                             )
                             .is_some()
                         {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", name),
-                            ));
+                            );
                         }
                         //println!("{} {} {:?}", emit.to_string(), ident, default);
                     }
@@ -272,22 +272,26 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                 }
             }
 
-            // Push new parselet scope
-            compiler.parselet_push(
-                name,
-                traverse_node_offset(node),
+            // Create new parselet to construct
+            let parselet = ImlParselet::new(ImlParseletInstance::new(
+                Some(ImlParseletModel::new(Some(signature))),
                 Some(generics),
-                Some(signature),
-            );
+                traverse_node_offset(node),
+                name,
+                5,
+                false,
+            ));
 
             let body = body.borrow();
-            let body =
-                traverse_node_rvalue(compiler, body.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
+            traverse_node_rvalue(
+                // Push new parselet scope
+                &scope.shadow(ScopeLevel::Parselet(parselet.clone())),
+                body.object::<Dict>().unwrap(),
+                Rvalue::CallOrLoad,
+            );
 
-            let ret = compiler.parselet_pop(body);
-
-            //println!("parselet = {:#?}", ret);
-            ret
+            //println!("parselet = {:#?}", parselet);
+            ImlValue::from(parselet)
         }
 
         "value_generic" => {
@@ -296,7 +300,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
             // Traverse the target
             let target = &children[0].borrow();
             let target = target.object::<Dict>().unwrap();
-            let target = traverse_node_static(compiler, None, target);
+            let target = traverse_node_static(scope, None, target);
 
             // Traverse generic arguments
             let mut args = Vec::new();
@@ -312,12 +316,12 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                 match emit.object::<Str>().unwrap().as_str() {
                     "genarg" => {
                         if !nargs.is_empty() {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 traverse_node_offset(node),
                                 format!(
                                     "Sequencial generics need to be specified before named generics."
                                 ),
-                            ));
+                            );
 
                             continue;
                         }
@@ -325,7 +329,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((offset, traverse_node_static(compiler, None, param)));
+                        args.push((offset, traverse_node_static(scope, None, param)));
                     }
 
                     "genarg_named" => {
@@ -337,10 +341,10 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                         let ident = ident.object::<Str>().unwrap().as_str();
 
                         if nargs.contains_key(ident) {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 traverse_node_offset(genarg),
                                 format!("Named generic '{}' provided more than once.", ident),
-                            ));
+                            );
 
                             continue;
                         }
@@ -350,7 +354,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
 
                         nargs.insert(
                             ident.to_string(),
-                            (offset, traverse_node_static(compiler, None, param)),
+                            (offset, traverse_node_static(scope, None, param)),
                         );
                     }
 
@@ -367,7 +371,7 @@ fn traverse_node_value(compiler: &mut Compiler, node: &Dict, name: Option<String
                 is_generated: false,
             };
 
-            ret.try_resolve(compiler)
+            ret.try_resolve(scope)
         }
 
         _ => unimplemented!("unhandled value node {}", emit),
@@ -379,35 +383,44 @@ The value must either be a literal or something from a known constant.
 
 The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
 */
-fn traverse_node_static(compiler: &mut Compiler, name: Option<String>, node: &Dict) -> ImlValue {
+fn traverse_node_static(scope: &Scope, name: Option<String>, node: &Dict) -> ImlValue {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
     if emit.starts_with("value_") {
-        traverse_node_value(compiler, node, name)
+        traverse_node_value(scope, node, name)
     } else {
-        // Handle anything else as an anonymous parselet it its own scope
-        compiler.parselet_push(name, None, None, None);
+        // Handle anything else as an implicit parselet in its own scope
+        let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
+            None,
+            None,
+            traverse_node_offset(node),
+            name,
+            5,
+            false,
+        ));
 
-        match traverse_node_rvalue(compiler, node, Rvalue::Load) {
-            ImlOp::Nop => {
-                compiler.parselet_pop(ImlOp::Nop);
-                value!(void).into()
-            }
-            // Defined value load becomes just the value
-            ImlOp::Load { target: value, .. } => {
-                compiler.parselet_pop(ImlOp::Nop);
-                value
-            }
+        implicit_parselet.borrow().model.borrow_mut().body = {
+            match traverse_node_rvalue(
+                &scope.shadow(ScopeLevel::Parselet(implicit_parselet.clone())),
+                node,
+                Rvalue::Load,
+            ) {
+                ImlOp::Nop => return value!(void).into(),
+                // Defined value load becomes just the value
+                ImlOp::Load { target: value, .. } => return value,
 
-            // Any other code becomes its own parselet without any signature.
-            body => compiler.parselet_pop(body),
-        }
+                // Any other code becomes its own parselet without any signature.
+                body => body,
+            }
+        };
+
+        ImlValue::from(implicit_parselet)
     }
 }
 
 // Traverse lvalue
-fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold: bool) -> ImlOp {
+fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> ImlOp {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
     assert!(emit == "lvalue");
@@ -433,7 +446,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                 match capture {
                     "capture_alias" | "capture_expr" => {
                         ops.push(traverse_node_rvalue(
-                            compiler,
+                            scope,
                             children.object::<Dict>().unwrap(),
                             Rvalue::CallOrLoad,
                         ));
@@ -451,7 +464,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                     "capture_index" => {
                         let children = children.object::<Dict>().unwrap();
-                        let index = traverse_node_value(compiler, children, None).unwrap();
+                        let index = traverse_node_value(scope, children, None).unwrap();
 
                         if store {
                             if hold {
@@ -478,7 +491,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
                 // This loop is only iterated in case a variable isn't known!
                 'load: loop {
-                    match compiler.get(traverse_node_offset(item), name) {
+                    match scope.resolve_name(traverse_node_offset(item), name) {
                         // Known local
                         Some(ImlValue::Variable {
                             addr, is_global, ..
@@ -505,27 +518,27 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                         }
                         // Check for not assigning to a constant (at any level)
                         Some(_) => {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 traverse_node_offset(node),
                                 format!("Cannot assign to constant '{}'", name),
-                            ));
+                            );
                             break 'load;
                         }
                         // Undefined name
                         None => {
                             // Check if identifier is not a reserved word
-                            if compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
-                                compiler.errors.push(Error::new(
+                            if scope.compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
+                                scope.error(
                                     traverse_node_offset(node),
                                     format!("Expected identifier, found reserved word '{}'", name),
-                                ));
+                                );
 
                                 break 'load;
                             }
 
                             // Check if identifier is not defining a consumable
                             if utils::identifier_is_consumable(name) {
-                                compiler.errors.push(Error::new(
+                                scope.error(
                                     traverse_node_offset(node),
 
                                     if &name[0..1] == "_" {
@@ -540,24 +553,24 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
                                             name, name.to_lowercase()
                                         )
                                     }
-                                ));
+                                );
 
                                 break 'load;
                             }
 
                             // When chained lvalue, name must be declared!
                             if children.len() > 1 {
-                                compiler.errors.push(Error::new(
+                                scope.error(
                                     traverse_node_offset(node),
                                     format!(
                                         "Undeclared variable '{}', please define it first",
                                         name
                                     ),
-                                ));
+                                );
                                 break;
                             }
 
-                            compiler.local(name);
+                            scope.register_variable(name);
                         }
                     }
                 }
@@ -565,7 +578,7 @@ fn traverse_node_lvalue(compiler: &mut Compiler, node: &Dict, store: bool, hold:
 
             // item -----------------------------------------------------------
             "item" => {
-                ops.push(traverse(compiler, &item["children"]));
+                ops.push(traverse(scope, &item["children"]));
 
                 if store {
                     if hold {
@@ -601,7 +614,7 @@ enum Rvalue {
 }
 
 // Traverse an rvalue
-fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> ImlOp {
+fn traverse_node_rvalue(scope: &Scope, node: &Dict, mode: Rvalue) -> ImlOp {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
@@ -613,7 +626,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
             {
                 let children = node["children"].borrow();
                 traverse_node_rvalue(
-                    compiler,
+                    scope,
                     children.object::<Dict>().unwrap(),
                     Rvalue::CallOrLoad,
                 )
@@ -629,27 +642,27 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
             let offset = traverse_node_offset(node);
 
             // Check if identifier is not a reserved word
-            if compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
-                compiler.errors.push(Error::new(
+            if scope.compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
+                scope.error(
                     offset,
                     format!("Expected identifier, found reserved word '{}'", name),
-                ));
+                );
             }
 
             //println!("identifier = {:?}, mode = {:?}", name, mode);
 
             return match mode {
-                Rvalue::Load => ImlOp::load_by_name(compiler, offset, name.to_string()),
-                Rvalue::CallOrLoad => ImlOp::call_by_name(compiler, offset, name.to_string(), None),
+                Rvalue::Load => ImlOp::load_by_name(scope, offset, name.to_string()),
+                Rvalue::CallOrLoad => ImlOp::call_by_name(scope, offset, name.to_string(), None),
                 Rvalue::Call(args, nargs) => {
-                    ImlOp::call_by_name(compiler, offset, name.to_string(), Some((args, nargs)))
+                    ImlOp::call_by_name(scope, offset, name.to_string(), Some((args, nargs)))
                 }
             };
         }
 
         // item -----------------------------------------------------------
         "item" => ImlOp::from(vec![
-            traverse(compiler, &node["children"]),
+            traverse(scope, &node["children"]),
             traverse_offset(node),
             ImlOp::from(Op::LoadItem),
         ]),
@@ -662,7 +675,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
 
             for node in children.iter() {
                 ops.push(traverse_node_rvalue(
-                    compiler,
+                    scope,
                     node.borrow().object::<Dict>().unwrap(),
                     Rvalue::Load,
                 ));
@@ -675,18 +688,16 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
         // value ---------------------------------------------------------
         value if value.starts_with("value_") => {
             let offset = traverse_node_offset(node);
-            let value = traverse_node_value(compiler, node, None);
+            let value = traverse_node_value(scope, node, None);
 
             return match mode {
-                Rvalue::Load => ImlOp::load(compiler, offset, value),
-                Rvalue::CallOrLoad => ImlOp::call(compiler, offset, value, None),
-                Rvalue::Call(args, nargs) => {
-                    ImlOp::call(compiler, offset, value, Some((args, nargs)))
-                }
+                Rvalue::Load => ImlOp::load(scope, offset, value),
+                Rvalue::CallOrLoad => ImlOp::call(scope, offset, value, None),
+                Rvalue::Call(args, nargs) => ImlOp::call(scope, offset, value, Some((args, nargs))),
             };
         }
 
-        _ => return traverse_node(compiler, node),
+        _ => return traverse_node(scope, node),
     };
 
     // Rvalue call confguration of a value known at runtime.
@@ -706,7 +717,7 @@ fn traverse_node_rvalue(compiler: &mut Compiler, node: &Dict, mode: Rvalue) -> I
     }
 }
 
-fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
+fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
@@ -718,10 +729,9 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let (alias, expr) = (&children[0].borrow(), &children[1].borrow());
 
-            let alias =
-                traverse_node_rvalue(compiler, alias.object::<Dict>().unwrap(), Rvalue::Load);
+            let alias = traverse_node_rvalue(scope, alias.object::<Dict>().unwrap(), Rvalue::Load);
             let expr =
-                traverse_node_rvalue(compiler, expr.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
+                traverse_node_rvalue(scope, expr.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
 
             // Push value first, then the alias
             ImlOp::from(vec![expr, alias, ImlOp::from(Op::MakeAlias)])
@@ -729,7 +739,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // area -----------------------------------------------------------
         "area" => {
-            let body = traverse(compiler, &node["children"]);
+            let body = traverse(scope, &node["children"]);
             ImlOp::seq(vec![body, ImlOp::from(Op::Extend)], false)
         }
 
@@ -748,8 +758,8 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             /* assignment with operation */
             if parts.len() > 1 && !["copy", "drop", "hold"].contains(&parts[1]) {
-                ops.push(traverse_node_lvalue(compiler, lvalue, false, false));
-                ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
+                ops.push(traverse_node_lvalue(scope, lvalue, false, false));
+                ops.push(traverse_node_rvalue(scope, value, Rvalue::Load));
 
                 ops.push(match parts[1] {
                     "add" => ImlOp::from(Op::BinaryOp("iadd")),
@@ -769,10 +779,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             }
             /* normal assignment without operation */
             else {
-                ops.push(traverse_node_rvalue(compiler, value, Rvalue::Load));
+                ops.push(traverse_node_rvalue(scope, value, Rvalue::Load));
                 ops.push(traverse_offset(node));
                 ops.push(traverse_node_lvalue(
-                    compiler,
+                    scope,
                     lvalue,
                     true,
                     ["copy", "hold"].contains(parts.last().unwrap()),
@@ -788,10 +798,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
         // begin ----------------------------------------------------------
         "begin" | "end" => {
-            let body = traverse(compiler, &node["children"]);
+            let body = traverse(scope, &node["children"]);
 
-            if let Scope::Parselet { instance, .. } = &mut compiler.scopes[0] {
-                let mut model = instance.model.borrow_mut();
+            if let ScopeLevel::Parselet(parselet) = &scope.level {
+                let parselet = parselet.borrow();
+                let mut model = parselet.model.borrow_mut();
 
                 if emit == "begin" {
                     match &mut model.begin {
@@ -817,10 +828,10 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     }
                 }
             } else {
-                compiler.errors.push(Error::new(
+                scope.error(
                     traverse_node_offset(node),
                     format!("'{}' may only be used in parselet scope", emit),
-                ));
+                );
             }
 
             ImlOp::Nop
@@ -829,42 +840,33 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         // block ----------------------------------------------------------
         "block" | "body" | "main" => {
             if let Some(ast) = node.get_str("children") {
-                if emit == "block" {
-                    compiler.block_push();
-                }
-                // When interactive and there's a scope, don't push, as the main scope
-                // is kept to hold globals.
-                else if emit == "main" && compiler.scopes.len() != 1 {
-                    compiler.parselet_push(Some("__main__".to_string()), None, None, None);
-                }
+                fn traverse_alts(scope: &Scope, ast: &RefValue) -> ImlOp {
+                    if let Some(list) = ast.borrow().object::<List>() {
+                        let mut alts = Vec::new();
 
-                let body = if let Some(list) = ast.borrow().object::<List>() {
-                    let mut alts = Vec::new();
-
-                    for item in list.iter() {
-                        match traverse(compiler, item) {
-                            ImlOp::Nop => {}
-                            item => alts.push(item),
+                        for item in list.iter() {
+                            match traverse(scope, item) {
+                                ImlOp::Nop => {}
+                                item => alts.push(item),
+                            }
                         }
-                    }
 
-                    ImlOp::Alt { alts }
-                } else if let Some(dict) = ast.borrow().object::<Dict>() {
-                    traverse_node_rvalue(compiler, dict, Rvalue::CallOrLoad)
-                } else {
-                    unreachable!();
-                };
+                        ImlOp::Alt { alts }
+                    } else if let Some(dict) = ast.borrow().object::<Dict>() {
+                        traverse_node_rvalue(scope, dict, Rvalue::CallOrLoad)
+                    } else {
+                        unreachable!();
+                    }
+                }
 
                 match emit {
-                    "block" => {
-                        compiler.block_pop();
-                        body
+                    "body" | "main" => {
+                        scope.parselet().borrow().model.borrow_mut().body =
+                            traverse_alts(scope, ast);
+                        ImlOp::Nop
                     }
-                    "main" => {
-                        let main = compiler.parselet_pop(body);
-                        ImlOp::call(compiler, None, main, None)
-                    }
-                    _ => body,
+                    // block and body runs in a block level scope
+                    _ => traverse_alts(&scope.shadow(ScopeLevel::Block), ast),
                 }
             } else {
                 ImlOp::Nop
@@ -889,12 +891,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 match emit.object::<Str>().unwrap().as_str() {
                     "callarg" => {
                         if nargs > 0 {
-                            compiler.errors.push(Error::new(
+                            scope.error(
                                 traverse_node_offset(node),
                                 format!(
                                     "Sequencial arguments need to be specified before named arguments."
                                 ),
-                            ));
+                            );
 
                             continue;
                         }
@@ -902,7 +904,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let param = &param["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        ops.push(traverse_node_rvalue(compiler, param, Rvalue::CallOrLoad));
+                        ops.push(traverse_node_rvalue(scope, param, Rvalue::CallOrLoad));
                         args += 1;
                     }
 
@@ -912,7 +914,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let param = &children[1].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        ops.push(traverse_node_rvalue(compiler, param, Rvalue::CallOrLoad));
+                        ops.push(traverse_node_rvalue(scope, param, Rvalue::CallOrLoad));
 
                         let ident = children[0].borrow();
                         let ident = ident.object::<Dict>().unwrap();
@@ -920,7 +922,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         let ident = ident.object::<Str>().unwrap().as_str();
 
                         ops.push(ImlOp::load(
-                            compiler,
+                            scope,
                             traverse_node_offset(&param),
                             ImlValue::from(RefValue::from(ident)),
                         ));
@@ -939,7 +941,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let rvalue = children[0].borrow();
             ops.push(traverse_node_rvalue(
-                compiler,
+                scope,
                 rvalue.object::<Dict>().unwrap(),
                 Rvalue::Call(args, nargs > 0),
             ));
@@ -952,7 +954,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             {
                 let children = node["children"].borrow();
                 traverse_node_rvalue(
-                    compiler,
+                    scope,
                     children.object::<Dict>().unwrap(),
                     Rvalue::CallOrLoad,
                 )
@@ -963,7 +965,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
         "capture_index" => {
             let children = node["children"].borrow();
             let index =
-                traverse_node_value(compiler, children.object::<Dict>().unwrap(), None).unwrap();
+                traverse_node_value(scope, children.object::<Dict>().unwrap(), None).unwrap();
             ImlOp::from(Op::LoadFastCapture(index.to_usize().unwrap()))
         }
 
@@ -979,7 +981,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let mut ops = Vec::new();
 
             ops.push(traverse_node_rvalue(
-                compiler,
+                scope,
                 &first.object::<Dict>().unwrap(),
                 Rvalue::CallOrLoad,
             ));
@@ -997,7 +999,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 let next = child["children"].borrow();
 
                 ops.push(traverse_node_rvalue(
-                    compiler,
+                    scope,
                     &next.object::<Dict>().unwrap(),
                     Rvalue::CallOrLoad,
                 ));
@@ -1055,13 +1057,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let ident = ident.object::<Str>().unwrap().as_str();
 
             // Disallow assignment to any reserved identifier
-            if compiler.restrict
+            if scope.compiler.restrict
                 && (RESERVED_KEYWORDS.contains(&ident) || RESERVED_TOKENS.contains(&ident))
             {
-                compiler.errors.push(Error::new(
+                scope.error(
                     traverse_node_offset(node),
                     format!("Expected identifier, found reserved word '{}'", ident),
-                ));
+                );
 
                 return ImlOp::Nop;
             }
@@ -1070,22 +1072,22 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let value = value.object::<Dict>().unwrap();
 
             // fixme: Restricted to pure values currently.
-            let value = traverse_node_static(compiler, Some(ident.to_string()), value);
+            let value = traverse_node_static(scope, Some(ident.to_string()), value);
 
             if value.is_consuming() {
                 if !utils::identifier_is_consumable(ident) {
-                    compiler.errors.push(Error::new(
+                    scope.error(
                         traverse_node_offset(node),
                         format!(
                             "Cannot assign constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
                             ident, &ident[0..1].to_uppercase(), &ident[1..]
                         )
-                    ));
+                    );
 
                     return ImlOp::Nop;
                 }
             } else if utils::identifier_is_consumable(ident) {
-                compiler.errors.push(Error::new(
+                scope.error(
                     traverse_node_offset(node),
                     if ident.starts_with("_") {
                         format!(
@@ -1099,16 +1101,16 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             ident, &ident[0..1].to_lowercase(), &ident[1..]
                         )
                     }
-                ));
+                );
 
                 return ImlOp::Nop;
             }
 
             //println!("{} : {:?}", ident, value);
-            compiler.constant(ident, value);
+            scope.define_constant(ident, value);
 
             // Try to resolve usage of newly introduced constant in current scope
-            compiler.resolve();
+            scope.resolve_usages();
 
             ImlOp::Nop
         }
@@ -1119,7 +1121,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
             let lvalue = children.object::<Dict>().unwrap();
 
             let mut ops = vec![
-                traverse_node_lvalue(compiler, lvalue, false, false),
+                traverse_node_lvalue(scope, lvalue, false, false),
                 traverse_offset(node),
             ];
 
@@ -1159,17 +1161,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             let op = match parts[1] {
                 "accept" | "break" | "exit" | "push" => {
-                    if parts[1] == "break" && !compiler.loop_check() {
-                        compiler.errors.push(Error::new(
+                    if parts[1] == "break" && !scope.is_loop() {
+                        scope.error(
                             traverse_node_offset(node),
                             format!("'break' cannot be used outside of a loop."),
-                        ));
+                        );
                     }
 
                     if let Some(value) = node.get_str("children") {
                         let value = value.borrow();
                         ops.push(traverse_node_rvalue(
-                            compiler,
+                            scope,
                             &value.object::<Dict>().unwrap(),
                             Rvalue::CallOrLoad,
                         ));
@@ -1193,11 +1195,11 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 }
 
                 "continue" => {
-                    if !compiler.loop_check() {
-                        compiler.errors.push(Error::new(
+                    if !scope.is_loop() {
+                        scope.error(
                             traverse_node_offset(node),
                             format!("'continue' cannot be used outside of a loop."),
-                        ));
+                        );
                     }
 
                     Op::Continue.into()
@@ -1207,7 +1209,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    traverse_node_rvalue(compiler, children, Rvalue::Load)
+                    traverse_node_rvalue(scope, children, Rvalue::Load)
                 }
 
                 "next" => Op::Next.into(),
@@ -1224,13 +1226,13 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    let res = traverse_node_rvalue(compiler, children, Rvalue::CallOrLoad);
+                    let res = traverse_node_rvalue(scope, children, Rvalue::CallOrLoad);
 
                     // Evaluate operation at compile-time if possible
                     if let Ok(value) = res.get_evaluable_value() {
                         if let Ok(value) = value.unary_op(parts[2]) {
                             return ImlOp::load(
-                                compiler,
+                                scope,
                                 traverse_node_offset(node),
                                 ImlValue::from(value),
                             );
@@ -1258,12 +1260,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     let (left, right) = (children[0].borrow(), children[1].borrow());
                     let left = traverse_node_rvalue(
-                        compiler,
+                        scope,
                         &left.object::<Dict>().unwrap(),
                         Rvalue::CallOrLoad,
                     );
                     let right = traverse_node_rvalue(
-                        compiler,
+                        scope,
                         &right.object::<Dict>().unwrap(),
                         Rvalue::CallOrLoad,
                     );
@@ -1298,7 +1300,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                             {
                                 if let Ok(value) = left.binary_op(right, parts[2]) {
                                     return ImlOp::load(
-                                        compiler,
+                                        scope,
                                         traverse_node_offset(node),
                                         ImlValue::from(value),
                                     );
@@ -1331,12 +1333,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let children = node["children"].borrow();
                     let children = children.object::<Dict>().unwrap();
 
-                    let res = traverse_node_static(compiler, None, children);
+                    let res = traverse_node_static(scope, None, children);
                     let offset = traverse_node_offset(node);
 
                     /*
                     if !res.is_consuming() {
-                        compiler.errors.push(Error::new(
+                        scope.error(
                             traverse_node_offset(node),
                             format!(
                                 "Operator '{}' has no effect on non-consuming {}",
@@ -1352,7 +1354,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     "sequence"
                                 }
                             ),
-                        ));
+                        );
                     } else {
                         compiler.parselet_mark_consuming();
                     }
@@ -1378,7 +1380,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                         if parts[2] == "kle" {
                                             chars = chars
                                                 .into_generic("Opt", None, offset.clone())
-                                                .try_resolve(compiler);
+                                                .try_resolve(scope);
                                         }
 
                                         return ImlOp::Call {
@@ -1391,7 +1393,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                     // mod_not on Token::Char becomes a negated Token::Char
                                     "not" => {
                                         return ImlOp::call(
-                                            compiler,
+                                            scope,
                                             traverse_node_offset(node),
                                             ImlValue::from(RefValue::from(Token::Char(
                                                 ccl.clone().negate(),
@@ -1409,7 +1411,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     }
 
                     ImlOp::call(
-                        compiler,
+                        scope,
                         offset.clone(),
                         match parts[2] {
                             "pos" => res.into_generic("Pos", assume_severity, offset),
@@ -1428,19 +1430,19 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let (condition, then_part) = (children[0].borrow(), children[1].borrow());
 
                     let condition = traverse_node_rvalue(
-                        compiler,
+                        scope,
                         &condition.object::<Dict>().unwrap(),
                         Rvalue::CallOrLoad,
                     );
                     let then_part = traverse_node_rvalue(
-                        compiler,
+                        scope,
                         &then_part.object::<Dict>().unwrap(),
                         Rvalue::CallOrLoad,
                     );
                     let else_part = if children.len() == 3 {
                         let else_part = children[2].borrow();
                         traverse_node_rvalue(
-                            compiler,
+                            scope,
                             &else_part.object::<Dict>().unwrap(),
                             Rvalue::CallOrLoad,
                         )
@@ -1484,16 +1486,17 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                     let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    let temp = compiler.temp(); // Claim a temporary variable
+                    let temp = scope.parselet().borrow().model.borrow_mut().claim_temp();
 
                     // Create an iter() on the iter expression
                     let initial = ImlOp::from(vec![
-                        traverse_node_rvalue(compiler, iter_expr, Rvalue::CallOrLoad),
+                        traverse_node_rvalue(scope, iter_expr, Rvalue::CallOrLoad),
                         {
-                            let iter = compiler.get_builtin("iter").unwrap();
-                            ImlOp::call(compiler, None, iter, Some((1, false)))
+                            let iter =
+                                ImlValue::from(RefValue::from(Builtin::get("iter").unwrap()));
+                            ImlOp::call(scope, None, iter, Some((1, false)))
                         },
-                        ImlOp::from(if compiler.is_global() {
+                        ImlOp::from(if scope.is_global() {
                             Op::StoreGlobal(temp)
                         } else {
                             Op::StoreFast(temp)
@@ -1502,24 +1505,32 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
                     // Create the condition, which calls iter_next() until void is returned
                     let condition = ImlOp::from(vec![
-                        ImlOp::from(if compiler.is_global() {
+                        ImlOp::from(if scope.is_global() {
                             Op::LoadGlobal(temp)
                         } else {
                             Op::LoadFast(temp)
                         }),
                         {
-                            let iter_next = compiler.get_builtin("iter_next").unwrap();
-                            ImlOp::call(compiler, None, iter_next, Some((1, false)))
+                            let iter_next =
+                                ImlValue::from(RefValue::from(Builtin::get("iter_next").unwrap()));
+                            ImlOp::call(scope, None, iter_next, Some((1, false)))
                         },
                         traverse_node_lvalue(
-                            compiler, var, true, true, //hold for preceding loop break check
+                            scope, var, true, true, //hold for preceding loop break check
                         ),
                     ]);
 
-                    compiler.loop_push();
-                    let body = traverse_node_rvalue(compiler, body, Rvalue::Load);
-                    compiler.loop_pop();
-                    compiler.untemp(temp); // Give temp variable back for possible reuse.
+                    // Traverse loop body
+                    let body =
+                        traverse_node_rvalue(&scope.shadow(ScopeLevel::Loop), body, Rvalue::Load);
+
+                    // Give temp variable back for possible reuse.
+                    scope
+                        .parselet()
+                        .borrow()
+                        .model
+                        .borrow_mut()
+                        .return_temp(temp);
 
                     ImlOp::Loop {
                         use_iterator: true,
@@ -1532,7 +1543,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                 "loop" => {
                     let children = List::from(&node["children"]);
 
-                    compiler.loop_push();
+                    let scope = scope.shadow(ScopeLevel::Loop);
 
                     let ret = match children.len() {
                         1 => {
@@ -1543,7 +1554,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(ImlOp::Nop),
                                 body: Box::new(traverse_node_rvalue(
-                                    compiler,
+                                    &scope,
                                     body.object::<Dict>().unwrap(),
                                     Rvalue::CallOrLoad,
                                 )),
@@ -1556,12 +1567,12 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                                 use_iterator: false,
                                 initial: Box::new(ImlOp::Nop),
                                 condition: Box::new(traverse_node_rvalue(
-                                    compiler,
+                                    &scope,
                                     condition.object::<Dict>().unwrap(),
                                     Rvalue::CallOrLoad,
                                 )),
                                 body: Box::new(traverse_node_rvalue(
-                                    compiler,
+                                    &scope,
                                     body.object::<Dict>().unwrap(),
                                     Rvalue::CallOrLoad,
                                 )),
@@ -1569,8 +1580,6 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
                         }
                         _ => unreachable!(),
                     };
-
-                    compiler.loop_pop();
 
                     ret
                 }
@@ -1598,7 +1607,7 @@ fn traverse_node(compiler: &mut Compiler, node: &Dict) -> ImlOp {
 
             for node in children.iter() {
                 ops.push(traverse_node_rvalue(
-                    compiler,
+                    scope,
                     node.borrow().object::<Dict>().unwrap(),
                     Rvalue::CallOrLoad, // fixme: only statics or "real" rvalue nodes should be called, others just loaded
                 ));

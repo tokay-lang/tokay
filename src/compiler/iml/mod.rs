@@ -1,4 +1,5 @@
 //! Tokay intermediate code representation
+pub use super::*;
 pub use crate::vm::*;
 
 mod imlop;
