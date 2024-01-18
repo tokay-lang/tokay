@@ -76,7 +76,7 @@ impl ImlProgram {
             };
 
             // Memoize parselets required to be finalized (needs a general rework later...)
-            if parselet.borrow().model.borrow().consuming {
+            if parselet.borrow().model.borrow().is_consuming {
                 //fixme...
                 finalize.insert(parselet.clone());
             }
@@ -189,7 +189,7 @@ impl ImlProgram {
                 }
                 ImlValue::Generic { name, .. } => {
                     // fixme: Is this still relevant???
-                    finalize_value(&current.borrow().constants[name], current, visited, configs)
+                    finalize_value(&current.borrow().generics[name], current, visited, configs)
                 }
                 _ => None,
             }
@@ -303,7 +303,7 @@ impl ImlProgram {
             let parselet = current.borrow();
             let model = parselet.model.borrow();
 
-            if !model.consuming {
+            if !model.is_consuming {
                 return None;
             }
 
@@ -313,7 +313,7 @@ impl ImlProgram {
                 // When in visited, this is a recursion
                 Some(Consumable {
                     // If the idx is 0, current is the seeked parselet, so it is left-recursive
-                    leftrec: if idx == 0 && !current.borrow().generated {
+                    leftrec: if idx == 0 && !current.borrow().is_generated {
                         configs.get_mut(current).unwrap().leftrec = true;
                         true
                     } else {
