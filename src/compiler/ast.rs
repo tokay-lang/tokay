@@ -196,10 +196,8 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         assert!(children.len() <= 2);
 
                         // Evaluate default parameter
-                        let mut default = ImlValue::Unset;
-
-                        if children.len() == 2 {
-                            default = traverse_node_static(
+                        let default = if children.len() == 2 {
+                            let default = traverse_node_static(
                                 scope,
                                 Some(name.clone()),
                                 children[1].borrow().object::<Dict>().unwrap(),
@@ -214,7 +212,11 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                     ),
                                 );
                             }
-                        }
+
+                            Some(default)
+                        } else {
+                            None
+                        };
 
                         if generics.insert(name.clone(), default).is_some() {
                             scope.error(
@@ -252,13 +254,13 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                 name.clone(),
                                 if children.len() == 2 {
                                     let default = children[1].borrow();
-                                    traverse_node_static(
+                                    Some(traverse_node_static(
                                         scope,
                                         None,
                                         default.object::<Dict>().unwrap(),
-                                    )
+                                    ))
                                 } else {
-                                    ImlValue::Unset
+                                    None
                                 },
                             )
                             .is_some()
@@ -331,7 +333,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((offset, traverse_node_static(scope, None, param)));
+                        args.push((offset, Some(traverse_node_static(scope, None, param))));
                     }
 
                     "genarg_named" => {
@@ -356,7 +358,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         nargs.insert(
                             ident.to_string(),
-                            (offset, traverse_node_static(scope, None, param)),
+                            (offset, Some(traverse_node_static(scope, None, param))),
                         );
                     }
 

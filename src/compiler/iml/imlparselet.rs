@@ -20,18 +20,18 @@ during compilation.
 */
 #[derive(Debug, Clone)]
 pub(in crate::compiler) struct ImlParseletModel {
-    pub is_consuming: bool,                    // Flag if parselet is consuming
-    pub locals: usize, // Total number of local variables present (including arguments)
-    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
+    pub is_consuming: bool, // Flag if parselet is consuming
+    pub locals: usize,      // Total number of local variables present (including arguments)
+    pub signature: IndexMap<String, Option<ImlValue>>, // Arguments signature with default values
     pub variables: IndexMap<String, usize>, // Named local variables
     pub temporaries: Vec<usize>, // Unnamed temporary variables
-    pub begin: ImlOp,  // Begin intermediate operations
-    pub end: ImlOp,    // End intermediate operations
-    pub body: ImlOp,   // Body intermediate Operations
+    pub begin: ImlOp,       // Begin intermediate operations
+    pub end: ImlOp,         // End intermediate operations
+    pub body: ImlOp,        // Body intermediate Operations
 }
 
 impl ImlParseletModel {
-    pub fn new(signature: Option<IndexMap<String, ImlValue>>) -> Self {
+    pub fn new(signature: Option<IndexMap<String, Option<ImlValue>>>) -> Self {
         let signature = signature.unwrap_or(IndexMap::new());
         // Generate variables from signature, addresses are enumerated!
         let variables = signature
@@ -105,18 +105,18 @@ is turned into a executable parselet.
 #[derive(Debug)]
 pub(in crate::compiler) struct ImlParseletInstance {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
-    pub generics: IndexMap<String, ImlValue>, // Generic signature with default configuration
-    pub offset: Option<Offset>,               // Offset of definition
-    pub name: Option<String>,                 // Assigned name from source (for debugging)
-    pub severity: u8,                         // Capture push severity
-    pub is_generated: bool,                   // Flag if parselet instance is auto-generated
+    pub generics: IndexMap<String, Option<ImlValue>>, // Generic signature with default configuration
+    pub offset: Option<Offset>,                       // Offset of definition
+    pub name: Option<String>,                         // Assigned name from source (for debugging)
+    pub severity: u8,                                 // Capture push severity
+    pub is_generated: bool,                           // Flag if parselet instance is auto-generated
 }
 
 /** Representation of parselet instance in intermediate code. */
 impl ImlParseletInstance {
     pub fn new(
         model: Option<ImlParseletModel>,
-        generics: Option<IndexMap<String, ImlValue>>,
+        generics: Option<IndexMap<String, Option<ImlValue>>>,
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
@@ -148,10 +148,10 @@ impl std::fmt::Display for ImlParseletInstance {
         if !self.generics.is_empty() {
             write!(f, "<")?;
             for (i, (name, value)) in self.generics.iter().enumerate() {
-                if matches!(value, ImlValue::Unset) {
-                    write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
-                } else {
+                if let Some(value) = value {
                     write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
+                } else {
+                    write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
                 }
             }
             write!(f, ">")?;
@@ -224,19 +224,22 @@ impl ImlParselet {
 
         for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open
-            while let ImlValue::Generic { name, .. } = value {
+            while let Some(ImlValue::Generic { name, .. }) = value {
                 *value = from.borrow().generics.get(name).unwrap().clone();
                 changes = true;
             }
 
-            match value {
-                ImlValue::SelfValue | ImlValue::SelfToken => {
-                    // Replace any references of self by from
-                    *value = ImlValue::Parselet(from.clone());
-                    changes = true;
+            if let Some(value) = value {
+                match value {
+                    ImlValue::SelfValue | ImlValue::SelfToken => {
+                        // Replace any references of self by from
+                        *value = ImlValue::Parselet(from.clone());
+                        changes = true;
+                    }
+                    _ => {}
                 }
-                ImlValue::Unset => required.push(name.to_string()),
-                _ => {}
+            } else {
+                required.push(name.to_string());
             }
         }
 
@@ -282,10 +285,10 @@ impl ImlParselet {
                         // Copy parameter name
                         var_value.0.clone(),
                         // Register default value, if any
-                        match &var_value.1 {
-                            ImlValue::Unset => None,
-                            value => Some(program.register(value)),
-                        },
+                        var_value
+                            .1
+                            .as_ref()
+                            .and_then(|value| Some(program.register(value))),
                     )
                 })
                 .collect(),

@@ -20,7 +20,6 @@ modified and resolved during the compilation process.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Unset,                             // Unset
     Unresolved(Rc<RefCell<ImlValue>>), // Unresolved ImlValues are shared
     SelfValue,                         // self-reference (value)
     SelfToken,                         // Self-reference (consuming)
@@ -35,7 +34,7 @@ pub(in crate::compiler) enum ImlValue {
         addr: usize,            // Address
     },
     Generic {
-        // Known generic placeholder
+        // Generic placeholder
         offset: Option<Offset>, // Source offset
         name: String,           // Identifier
     },
@@ -46,11 +45,11 @@ pub(in crate::compiler) enum ImlValue {
     },
     Instance {
         // Unresolved parselet instance definition
-        offset: Option<Offset>,                              // Source offset
-        target: Box<ImlValue>,                               // Instance target
-        args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
-        nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
-        severity: Option<u8>,                                // optional desired severity
+        offset: Option<Offset>,                        // Source offset
+        target: Box<ImlValue>,                         // Instance target
+        args: Vec<(Option<Offset>, Option<ImlValue>)>, // Sequential generic args
+        nargs: IndexMap<String, (Option<Offset>, Option<ImlValue>)>, // Named generic args
+        severity: Option<u8>,                          // optional desired severity
         is_generated: bool,
     },
 }
@@ -70,7 +69,7 @@ impl ImlValue {
                 offset: None,
                 name: name.to_string(),
             }),
-            args: vec![(offset, self)],
+            args: vec![(offset, Some(self))],
             nargs: IndexMap::new(),
             severity,
             is_generated: true,
@@ -121,15 +120,19 @@ impl ImlValue {
 
                 // Resolve sequential generic args
                 for arg in args.iter_mut() {
-                    if !arg.1.resolve(scope) {
-                        is_resolved = false;
+                    if let Some(arg) = arg.1.as_mut() {
+                        if !arg.resolve(scope) {
+                            is_resolved = false;
+                        }
                     }
                 }
 
                 // Resolve named generic args
                 for narg in nargs.values_mut() {
-                    if !narg.1.resolve(scope) {
-                        is_resolved = false;
+                    if let Some(narg) = narg.1.as_mut() {
+                        if !narg.resolve(scope) {
+                            is_resolved = false;
+                        }
                     }
                 }
 
@@ -155,28 +158,30 @@ impl ImlValue {
                                 };
 
                                 // Check integrity of constant names
-                                if let Self::Unset = arg.1 {
-                                    scope.error(
-                                        arg.0,
-                                        format!("Expecting argument for generic '{}'", name),
-                                    );
-                                } else if arg.1.is_consuming() {
-                                    if !utils::identifier_is_consumable(name) {
+                                if let (offset, Some(value)) = &arg {
+                                    if value.is_consuming() {
+                                        if !utils::identifier_is_consumable(name) {
+                                            scope.error(
+                                                *offset,
+                                                format!(
+                                                    "Cannot assign consumable {} to non-consumable generic '{}'",
+                                                    value, name
+                                                )
+                                            );
+                                        }
+                                    } else if utils::identifier_is_consumable(name) {
                                         scope.error(
-                                            arg.0,
+                                            *offset,
                                             format!(
-                                                "Cannot assign consumable {} to non-consumable generic '{}'",
-                                                arg.1, name
+                                                "Cannot assign non-consumable {} to consumable generic {} of {}",
+                                                value, name, parselet
                                             )
                                         );
                                     }
-                                } else if utils::identifier_is_consumable(name) {
+                                } else {
                                     scope.error(
                                         arg.0,
-                                        format!(
-                                            "Cannot assign non-consumable {} to consumable generic {} of {}",
-                                            arg.1, name, parselet
-                                        )
+                                        format!("Expecting argument for generic '{}'", name),
                                     );
                                 }
 
@@ -275,10 +280,7 @@ impl ImlValue {
 
                 if without_arguments {
                     parselet.signature.len() == 0
-                        || parselet
-                            .signature
-                            .iter()
-                            .all(|arg| !matches!(arg.1, Self::Unset))
+                        || parselet.signature.iter().all(|arg| arg.1.is_some())
                 } else {
                     true
                 }
@@ -324,7 +326,6 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
-            ImlValue::Unset => return,
             ImlValue::Unresolved(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
@@ -352,6 +353,8 @@ impl ImlValue {
             }
             ImlValue::Generic { name, .. } => {
                 return current.0.borrow().generics[name]
+                    .as_ref()
+                    .unwrap()
                     .compile(program, current, offset, call, ops)
             }
             ImlValue::SelfValue | ImlValue::SelfToken | ImlValue::Parselet(_) => {}
@@ -406,7 +409,6 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unset => write!(f, "unset"),
             Self::Unresolved(value) => value.borrow().fmt(f),
             Self::SelfValue => write!(f, "self"),
             Self::SelfToken => write!(f, "Self"),
@@ -439,7 +441,15 @@ impl std::fmt::Display for ImlValue {
                 let mut first = true;
 
                 for arg in args {
-                    write!(f, "{}{}", if !first { ", " } else { "" }, arg.1)?;
+                    write!(
+                        f,
+                        "{}{}",
+                        if !first { ", " } else { "" },
+                        arg.1
+                            .as_ref()
+                            .map(|v| v.to_string())
+                            .unwrap_or("None".to_string())
+                    )?;
                     first = false;
                 }
 
@@ -449,7 +459,11 @@ impl std::fmt::Display for ImlValue {
                         "{}{}:{}",
                         if !first { ", " } else { "" },
                         narg,
-                        nargs[narg].1
+                        nargs[narg]
+                            .1
+                            .as_ref()
+                            .map(|v| v.to_string())
+                            .unwrap_or("None".to_string())
                     )?;
                     first = false;
                 }
@@ -463,7 +477,6 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Unset => state.write_u8('u' as u8),
             Self::Unresolved(value) => value.borrow().hash(state),
             Self::VoidToken => state.write_u8('V' as u8),
             Self::Value(value) => {
@@ -480,7 +493,7 @@ impl std::hash::Hash for ImlValue {
                 consumable.hash(state);
             }
             */
-            other => unreachable!("{} is unhashable", other),
+            other => unreachable!("{:?} is unhashable", other),
         }
     }
 }

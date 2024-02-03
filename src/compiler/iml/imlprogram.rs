@@ -189,7 +189,12 @@ impl ImlProgram {
                 }
                 ImlValue::Generic { name, .. } => {
                     // fixme: Is this still relevant???
-                    finalize_value(&current.borrow().generics[name], current, visited, configs)
+                    finalize_value(
+                        current.borrow().generics[name].as_ref().unwrap(),
+                        current,
+                        visited,
+                        configs,
+                    )
                 }
                 _ => None,
             }
