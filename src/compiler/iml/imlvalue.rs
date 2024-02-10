@@ -105,7 +105,7 @@ impl ImlValue {
                         None
                     }
                 }
-                Err(_) => todo!("Recursive resolve() impossible by design, see bug #127"),
+                Err(_) => Some(ImlValue::SelfToken),
             },
             Self::Name { offset, name, .. } => scope.resolve_name(offset.clone(), &name),
             Self::Instance {

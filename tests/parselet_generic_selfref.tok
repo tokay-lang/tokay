@@ -7,6 +7,8 @@ X: @<X> {
 Y<'a'> print("Ja!")
 X<'x'> print("Jx!")
 #---
-#ERR:SKIP
-#ERR:not yet implemented: Recursive resolve() impossible by design, see bug #127
-#ERR:SKIP
+#xaxxxx
+#---
+#Ja!
+#Jx!
+#Jx!
