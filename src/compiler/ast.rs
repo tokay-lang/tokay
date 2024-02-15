@@ -333,7 +333,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((offset, Some(traverse_node_static(scope, None, param))));
+                        args.push((offset, traverse_node_static(scope, None, param)));
                     }
 
                     "genarg_named" => {
@@ -358,7 +358,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         nargs.insert(
                             ident.to_string(),
-                            (offset, Some(traverse_node_static(scope, None, param))),
+                            (offset, traverse_node_static(scope, None, param)),
                         );
                     }
 
