@@ -45,11 +45,11 @@ pub(in crate::compiler) enum ImlValue {
     },
     Instance {
         // Unresolved parselet instance definition
-        offset: Option<Offset>,                        // Source offset
-        target: Box<ImlValue>,                         // Instance target
-        args: Vec<(Option<Offset>, Option<ImlValue>)>, // Sequential generic args
-        nargs: IndexMap<String, (Option<Offset>, Option<ImlValue>)>, // Named generic args
-        severity: Option<u8>,                          // optional desired severity
+        offset: Option<Offset>,                              // Source offset
+        target: Box<ImlValue>,                               // Instance target
+        args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
+        nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
+        severity: Option<u8>,                                // optional desired severity
         is_generated: bool,
     },
 }
@@ -62,18 +62,28 @@ impl ImlValue {
     This is used internally to implement `Kle<P>` from `P*` syntax
     during the AST traversal.
     */
-    pub fn into_generic(self, name: &str, severity: Option<u8>, offset: Option<Offset>) -> Self {
+    pub fn into_generic(
+        self,
+        name: &str,
+        scope: &Scope,
+        severity: Option<u8>,
+        offset: Option<Offset>,
+    ) -> Self {
         Self::Instance {
             offset: None,
-            target: Box::new(ImlValue::Name {
-                offset: None,
-                name: name.to_string(),
-            }),
-            args: vec![(offset, Some(self))],
+            target: Box::new(
+                ImlValue::Name {
+                    offset: None,
+                    name: name.to_string(),
+                }
+                .try_resolve(scope),
+            ),
+            args: vec![(offset, self)],
             nargs: IndexMap::new(),
             severity,
             is_generated: true,
         }
+        .try_resolve(scope)
     }
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
@@ -120,19 +130,15 @@ impl ImlValue {
 
                 // Resolve sequential generic args
                 for arg in args.iter_mut() {
-                    if let Some(arg) = arg.1.as_mut() {
-                        if !arg.resolve(scope) {
-                            is_resolved = false;
-                        }
+                    if !arg.1.resolve(scope) {
+                        is_resolved = false;
                     }
                 }
 
                 // Resolve named generic args
                 for narg in nargs.values_mut() {
-                    if let Some(narg) = narg.1.as_mut() {
-                        if !narg.resolve(scope) {
-                            is_resolved = false;
-                        }
+                    if !narg.1.resolve(scope) {
+                        is_resolved = false;
                     }
                 }
 
@@ -146,11 +152,12 @@ impl ImlValue {
                             for (name, default) in parselet.generics.iter() {
                                 // Take arguments by sequence first
                                 let arg = if !args.is_empty() {
-                                    args.remove(0)
+                                    let arg = args.remove(0);
+                                    (arg.0, Some(arg.1))
                                 }
                                 // Otherwise, take named arguments by sequence
                                 else if let Some(narg) = nargs.shift_remove(name) {
-                                    narg
+                                    (narg.0, Some(narg.1))
                                 }
                                 // Otherwise, use default
                                 else {
@@ -441,15 +448,7 @@ impl std::fmt::Display for ImlValue {
                 let mut first = true;
 
                 for arg in args {
-                    write!(
-                        f,
-                        "{}{}",
-                        if !first { ", " } else { "" },
-                        arg.1
-                            .as_ref()
-                            .map(|v| v.to_string())
-                            .unwrap_or("None".to_string())
-                    )?;
+                    write!(f, "{}{}", if !first { ", " } else { "" }, arg.1)?;
                     first = false;
                 }
 
@@ -459,11 +458,7 @@ impl std::fmt::Display for ImlValue {
                         "{}{}:{}",
                         if !first { ", " } else { "" },
                         narg,
-                        nargs[narg]
-                            .1
-                            .as_ref()
-                            .map(|v| v.to_string())
-                            .unwrap_or("None".to_string())
+                        nargs[narg].1
                     )?;
                     first = false;
                 }

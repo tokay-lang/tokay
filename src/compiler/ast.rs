@@ -333,7 +333,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((offset, Some(traverse_node_static(scope, None, param))));
+                        args.push((offset, traverse_node_static(scope, None, param)));
                     }
 
                     "genarg_named" => {
@@ -358,7 +358,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         nargs.insert(
                             ident.to_string(),
-                            (offset, Some(traverse_node_static(scope, None, param))),
+                            (offset, traverse_node_static(scope, None, param)),
                         );
                     }
 
@@ -1382,9 +1382,12 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                                         // mod_kle on Token::Char becomes optional Token::Chars
                                         if parts[2] == "kle" {
-                                            chars = chars
-                                                .into_generic("Opt", None, offset.clone())
-                                                .try_resolve(scope);
+                                            chars = chars.into_generic(
+                                                "Opt",
+                                                scope,
+                                                None,
+                                                offset.clone(),
+                                            );
                                         }
 
                                         return ImlOp::Call {
@@ -1418,9 +1421,9 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                         scope,
                         offset.clone(),
                         match parts[2] {
-                            "pos" => res.into_generic("Pos", assume_severity, offset),
-                            "kle" => res.into_generic("Kle", assume_severity, offset),
-                            "opt" => res.into_generic("Opt", assume_severity, offset),
+                            "pos" => res.into_generic("Pos", scope, assume_severity, offset),
+                            "kle" => res.into_generic("Kle", scope, assume_severity, offset),
+                            "opt" => res.into_generic("Opt", scope, assume_severity, offset),
                             _ => unreachable!(),
                         },
                         None,
