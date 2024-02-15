@@ -100,11 +100,11 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
 
         if name == "_" || name == "__" {
             // `__` becomes `Value+`
-            value = value.into_generic("Pos", Some(0), None).try_resolve(self);
+            value = value.into_generic("Pos", self, Some(0), None);
             secondary = Some(("__", value.clone()));
 
             // ...and then in-place "_" is defined as `_ : __?`
-            value = value.into_generic("Opt", Some(0), None).try_resolve(self);
+            value = value.into_generic("Opt", self, Some(0), None);
         }
 
         // Insert constant into current scope

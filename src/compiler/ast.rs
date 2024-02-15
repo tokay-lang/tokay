@@ -1382,9 +1382,12 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                                         // mod_kle on Token::Char becomes optional Token::Chars
                                         if parts[2] == "kle" {
-                                            chars = chars
-                                                .into_generic("Opt", None, offset.clone())
-                                                .try_resolve(scope);
+                                            chars = chars.into_generic(
+                                                "Opt",
+                                                scope,
+                                                None,
+                                                offset.clone(),
+                                            );
                                         }
 
                                         return ImlOp::Call {
@@ -1418,9 +1421,9 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                         scope,
                         offset.clone(),
                         match parts[2] {
-                            "pos" => res.into_generic("Pos", assume_severity, offset),
-                            "kle" => res.into_generic("Kle", assume_severity, offset),
-                            "opt" => res.into_generic("Opt", assume_severity, offset),
+                            "pos" => res.into_generic("Pos", scope, assume_severity, offset),
+                            "kle" => res.into_generic("Kle", scope, assume_severity, offset),
+                            "opt" => res.into_generic("Opt", scope, assume_severity, offset),
                             _ => unreachable!(),
                         },
                         None,

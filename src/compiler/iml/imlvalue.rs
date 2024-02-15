@@ -62,18 +62,28 @@ impl ImlValue {
     This is used internally to implement `Kle<P>` from `P*` syntax
     during the AST traversal.
     */
-    pub fn into_generic(self, name: &str, severity: Option<u8>, offset: Option<Offset>) -> Self {
+    pub fn into_generic(
+        self,
+        name: &str,
+        scope: &Scope,
+        severity: Option<u8>,
+        offset: Option<Offset>,
+    ) -> Self {
         Self::Instance {
             offset: None,
-            target: Box::new(ImlValue::Name {
-                offset: None,
-                name: name.to_string(),
-            }),
+            target: Box::new(
+                ImlValue::Name {
+                    offset: None,
+                    name: name.to_string(),
+                }
+                .try_resolve(scope),
+            ),
             args: vec![(offset, self)],
             nargs: IndexMap::new(),
             severity,
             is_generated: true,
         }
+        .try_resolve(scope)
     }
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
