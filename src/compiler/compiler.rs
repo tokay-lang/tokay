@@ -106,15 +106,11 @@ impl Compiler {
             // try to resolve any open usages
             global_scope.resolve_usages();
 
+            // println!("constants {:#?}, {} usages", global_scope.constants, global_scope.usages.borrow().len());
+
             // Report unresolved names
             for usage in global_scope.usages.borrow_mut().drain(..) {
-                if let ImlValue::Unresolved(usage) = usage {
-                    let usage = usage.borrow();
-                    if let ImlValue::Name { offset, name } = &*usage {
-                        global_scope
-                            .error(offset.clone(), format!("Use of undefined name '{}'", name));
-                    }
-                }
+                global_scope.error(usage.offset(), format!("Use of undefined {}", usage));
             }
 
             // Break on error

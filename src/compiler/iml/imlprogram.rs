@@ -32,7 +32,7 @@ impl ImlProgram {
     otherwiese the value is cloned and put into the statics table. */
     pub fn register(&mut self, value: &ImlValue) -> usize {
         match value {
-            ImlValue::Unresolved(value) => return self.register(&*value.borrow()),
+            ImlValue::Shared(value) => return self.register(&*value.borrow()),
             ImlValue::Parselet(_) | ImlValue::Value(_) => match self.statics.get_index_of(value) {
                 None => return self.statics.insert_full(value.clone(), None).0,
                 Some(idx) => return idx,
@@ -160,7 +160,7 @@ impl ImlProgram {
             configs: &mut HashMap<ImlParselet, Consumable>,
         ) -> Option<Consumable> {
             match value {
-                ImlValue::Unresolved(value) => {
+                ImlValue::Shared(value) => {
                     finalize_value(&*value.borrow(), current, visited, configs)
                 }
                 ImlValue::SelfToken => Some(Consumable {

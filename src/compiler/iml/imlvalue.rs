@@ -20,12 +20,12 @@ modified and resolved during the compilation process.
 */
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
-    Unresolved(Rc<RefCell<ImlValue>>), // Unresolved ImlValues are shared
-    SelfValue,                         // self-reference (value)
-    SelfToken,                         // Self-reference (consuming)
-    VoidToken,                         // Void (consuming)
-    Value(RefValue),                   // Static value
-    Parselet(ImlParselet),             // Parselet
+    Shared(Rc<RefCell<ImlValue>>), // Shared ImlValues are used for later resolve
+    SelfValue,                     // self-reference (value)
+    SelfToken,                     // Self-reference (consuming)
+    VoidToken,                     // Void (consuming)
+    Value(RefValue),               // Static value
+    Parselet(ImlParselet),         // Parselet
     Variable {
         // Resolved variable
         offset: Option<Offset>, // Source offset
@@ -86,31 +86,61 @@ impl ImlValue {
         .try_resolve(scope)
     }
 
+    /// Checks whether the given intermediate value is resolved or not.
+    pub fn is_resolved(&self) -> bool {
+        match self {
+            Self::Shared(value) => value.borrow().is_resolved(),
+            Self::Name { .. } | Self::Instance { .. } => false,
+            _ => true,
+        }
+    }
+
+    /// Returns the value's definition offset, if available
+    pub fn offset(&self) -> Option<Offset> {
+        match self {
+            Self::Shared(value) => value.borrow().offset(),
+            Self::Name { offset, .. } | Self::Instance { offset, .. } => offset.clone(),
+            _ => None,
+        }
+    }
+
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
-    pub fn try_resolve(mut self, scope: &Scope) -> Self {
-        if self.resolve(scope) {
+    pub fn try_resolve(self, scope: &Scope) -> Self {
+        if self.is_resolved() {
+            // TODO: Clean shared chain?
             return self;
         }
 
-        let shared = Self::Unresolved(Rc::new(RefCell::new(self)));
-        scope.usages.borrow_mut().push(shared.clone());
-        shared
+        match self.resolve(scope) {
+            Some(value) => value,
+            None => {
+                if matches!(self, Self::Shared(_)) {
+                    self
+                } else {
+                    let shared = Self::Shared(Rc::new(RefCell::new(self)));
+                    scope.usages.borrow_mut().push(shared.clone());
+                    shared
+                }
+            }
+        }
     }
 
     /**
-    In-place resolve unresolved ImlValue.
+    Resolve unresolved ImlValue.
 
+    - ImlValue::Shared are being followed
     - ImlValue::Name are being resolved by the compiler's symbol table
     - ImlValue::Instance are being recursively resolved to produce an ImlValue::Parselet
 
-    Returns true in case the provided value is (already) resolved.
+    Returns Some(value) with the resolved value on success, None otherwise.
     */
-    pub fn resolve(&mut self, scope: &Scope) -> bool {
-        let resolve = match self {
-            Self::Unresolved(value) => match value.try_borrow_mut() {
+    fn resolve(&self, scope: &Scope) -> Option<ImlValue> {
+        match self {
+            Self::Shared(value) => match value.try_borrow_mut() {
                 Ok(mut value) => {
-                    if value.resolve(scope) {
-                        Some(value.clone())
+                    if let Some(replace) = value.resolve(scope) {
+                        *value = replace.clone();
+                        Some(replace)
                     } else {
                         None
                     }
@@ -126,144 +156,115 @@ impl ImlValue {
                 severity,
                 is_generated,
             } => {
-                let mut is_resolved = target.resolve(scope);
+                match target.resolve(scope) {
+                    Some(ImlValue::Parselet(parselet)) => {
+                        let parselet = parselet.borrow();
+                        let mut generics = IndexMap::new();
 
-                // Resolve sequential generic args
-                for arg in args.iter_mut() {
-                    if !arg.1.resolve(scope) {
-                        is_resolved = false;
-                    }
-                }
+                        // TODO: This should be improved, clone should not be used
+                        let mut args = args.clone();
+                        let mut nargs = nargs.clone();
 
-                // Resolve named generic args
-                for narg in nargs.values_mut() {
-                    if !narg.1.resolve(scope) {
-                        is_resolved = false;
-                    }
-                }
+                        for (name, default) in parselet.generics.iter() {
+                            // Take arguments by sequence first
+                            let arg = if !args.is_empty() {
+                                let arg = args.remove(0);
+                                (arg.0, Some(arg.1))
+                            }
+                            // Otherwise, take named arguments
+                            else if let Some(narg) = nargs.shift_remove(name) {
+                                (narg.0, Some(narg.1))
+                            }
+                            // Otherwise, use default
+                            else {
+                                (*offset, default.clone())
+                            };
 
-                // When all instance members are resolved, try to turn the instance definition into a parselet
-                if is_resolved {
-                    match &**target {
-                        ImlValue::Parselet(parselet) => {
-                            let parselet = parselet.borrow();
-                            let mut generics = IndexMap::new();
-
-                            for (name, default) in parselet.generics.iter() {
-                                // Take arguments by sequence first
-                                let arg = if !args.is_empty() {
-                                    let arg = args.remove(0);
-                                    (arg.0, Some(arg.1))
-                                }
-                                // Otherwise, take named arguments by sequence
-                                else if let Some(narg) = nargs.shift_remove(name) {
-                                    (narg.0, Some(narg.1))
-                                }
-                                // Otherwise, use default
-                                else {
-                                    (*offset, default.clone())
-                                };
-
-                                // Check integrity of constant names
-                                if let (offset, Some(value)) = &arg {
-                                    if value.is_consuming() {
-                                        if !utils::identifier_is_consumable(name) {
-                                            scope.error(
-                                                *offset,
-                                                format!(
-                                                    "Cannot assign consumable {} to non-consumable generic '{}'",
-                                                    value, name
-                                                )
-                                            );
-                                        }
-                                    } else if utils::identifier_is_consumable(name) {
+                            // Check integrity of constant names
+                            if let (offset, Some(value)) = &arg {
+                                if value.is_consuming() {
+                                    if !utils::identifier_is_consumable(name) {
                                         scope.error(
                                             *offset,
                                             format!(
-                                                "Cannot assign non-consumable {} to consumable generic {} of {}",
-                                                value, name, parselet
+                                                "Cannot assign consumable {} to non-consumable generic '{}'",
+                                                value, name
                                             )
                                         );
                                     }
-                                } else {
+                                } else if utils::identifier_is_consumable(name) {
                                     scope.error(
-                                        arg.0,
-                                        format!("Expecting argument for generic '{}'", name),
+                                        *offset,
+                                        format!(
+                                            "Cannot assign non-consumable {} to consumable generic {} of {}",
+                                            value, name, parselet
+                                        )
                                     );
                                 }
-
-                                generics.insert(name.clone(), arg.1);
-                            }
-
-                            // Report any errors for unconsumed generic arguments.
-                            if !args.is_empty() {
+                            } else {
                                 scope.error(
-                                    args[0].0, // report first parameter
-                                    format!(
-                                        "{} got too many generic arguments ({} in total, expected {})",
-                                        target,
-                                        generics.len() + args.len(),
-                                        generics.len()
-                                    ),
+                                    arg.0,
+                                    format!("Expecting argument for generic '{}'", name),
                                 );
                             }
 
-                            for (name, (offset, _)) in nargs {
-                                if generics.get(name).is_some() {
-                                    scope.error(
-                                        *offset,
-                                        format!(
-                                            "{} already got generic argument '{}'",
-                                            target, name
-                                        ),
-                                    );
-                                } else {
-                                    scope.error(
-                                        *offset,
-                                        format!(
-                                            "{} does not accept generic argument named '{}'",
-                                            target, name
-                                        ),
-                                    );
-                                }
-                            }
-
-                            // Make a parselet instance from the instance definition;
-                            // This can be the final parselet instance, but constants
-                            // might contain generic references as well, which are being
-                            // resolved during further compilation and derivation.
-                            let parselet = ImlValue::from(ImlParselet::new(ImlParseletInstance {
-                                model: parselet.model.clone(),
-                                generics,
-                                offset: parselet.offset.clone(),
-                                name: parselet.name.clone(),
-                                severity: severity.unwrap_or(parselet.severity),
-                                is_generated: *is_generated,
-                            }));
-
-                            Some(parselet)
+                            generics.insert(name.clone(), arg.1);
                         }
-                        target => {
+
+                        // Report any errors for unconsumed generic arguments.
+                        if !args.is_empty() {
                             scope.error(
-                                *offset,
-                                format!("Cannot create instance from '{}'", target),
+                                args[0].0, // report first parameter
+                                format!(
+                                    "{} got too many generic arguments ({} in total, expected {})",
+                                    target,
+                                    generics.len() + args.len(),
+                                    generics.len()
+                                ),
                             );
-                            return false;
                         }
+
+                        for (name, (offset, _)) in nargs {
+                            if generics.get(&name).is_some() {
+                                scope.error(
+                                    offset,
+                                    format!("{} already got generic argument '{}'", target, name),
+                                );
+                            } else {
+                                scope.error(
+                                    offset,
+                                    format!(
+                                        "{} does not accept generic argument named '{}'",
+                                        target, name
+                                    ),
+                                );
+                            }
+                        }
+
+                        // Make a parselet instance from the instance definition;
+                        // This can be the final parselet instance, but constants
+                        // might contain generic references as well, which are being
+                        // resolved during further compilation and derivation.
+                        let parselet = ImlValue::from(ImlParselet::new(ImlParseletInstance {
+                            model: parselet.model.clone(),
+                            generics,
+                            offset: parselet.offset.clone(),
+                            name: parselet.name.clone(),
+                            severity: severity.unwrap_or(parselet.severity),
+                            is_generated: *is_generated,
+                        }));
+
+                        Some(parselet)
                     }
-                } else {
-                    return false;
+                    Some(target) => {
+                        scope.error(*offset, format!("Cannot create instance from '{}'", target));
+                        None
+                    }
+                    None => None,
                 }
             }
-            _ => return true, // anything else is considered as resolved
-        };
-
-        if let Some(resolve) = resolve {
-            *self = resolve;
-            return true;
+            _ => Some(self.clone()),
         }
-
-        false
     }
 
     /// Conert ImlValue into RefValue
@@ -278,7 +279,7 @@ impl ImlValue {
     /// and when its callable if with or without arguments.
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
-            Self::Unresolved(value) => value.borrow().is_callable(without_arguments),
+            Self::Shared(value) => value.borrow().is_callable(without_arguments),
             Self::SelfValue | Self::SelfToken => true, // fixme?
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
@@ -300,7 +301,7 @@ impl ImlValue {
     /// Check whether intermediate value represents consuming
     pub fn is_consuming(&self) -> bool {
         match self {
-            Self::Unresolved(value) => value.borrow().is_consuming(),
+            Self::Shared(value) => value.borrow().is_consuming(),
             Self::SelfValue => false,
             Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_consuming(),
@@ -333,7 +334,7 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
-            ImlValue::Unresolved(value) => {
+            ImlValue::Shared(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
             ImlValue::VoidToken => ops.push(Op::Next),
@@ -416,7 +417,7 @@ impl ImlValue {
 impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unresolved(value) => value.borrow().fmt(f),
+            Self::Shared(value) => value.borrow().fmt(f),
             Self::SelfValue => write!(f, "self"),
             Self::SelfToken => write!(f, "Self"),
             Self::VoidToken => write!(f, "Void"),
@@ -472,7 +473,7 @@ impl std::fmt::Display for ImlValue {
 impl std::hash::Hash for ImlValue {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Self::Unresolved(value) => value.borrow().hash(state),
+            Self::Shared(value) => value.borrow().hash(state),
             Self::VoidToken => state.write_u8('V' as u8),
             Self::Value(value) => {
                 state.write_u8('v' as u8);

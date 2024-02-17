@@ -77,7 +77,7 @@ impl Object for Token {
             Token::EOF => "EOF".to_string(),
             Token::Char(ccl) => format!("{:?}", ccl),
             Token::Chars(ccl) => format!("{:?}+", ccl),
-            Token::BuiltinChar(_) | Token::BuiltinChars(_) => "\"<token builtin fn>\n".to_string(),
+            Token::BuiltinChar(_) | Token::BuiltinChars(_) => "<token builtin fn>".to_string(),
             Token::Touch(s) => format!("'{}'", s),
             Token::Match(s) => format!("''{}''", s),
         }

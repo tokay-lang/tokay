@@ -172,9 +172,11 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
     pub fn resolve_usages(&self) {
         let resolve: Vec<ImlValue> = self.usages.borrow_mut().drain(..).collect();
 
-        // Try to resolve open usages, move them into parent when still unresolved
-        for mut value in resolve.into_iter() {
-            if !value.resolve(self) {
+        // Try to resolve open usages, keep then when they are still unresolved
+        for value in resolve.into_iter() {
+            let value = value.try_resolve(self);
+
+            if !value.is_resolved() {
                 self.usages.borrow_mut().push(value);
             }
         }

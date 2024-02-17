@@ -333,7 +333,10 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((offset, traverse_node_static(scope, None, param)));
+                        args.push((
+                            offset,
+                            traverse_node_static(scope, None, param).try_resolve(scope),
+                        ));
                     }
 
                     "genarg_named" => {
@@ -358,7 +361,10 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         nargs.insert(
                             ident.to_string(),
-                            (offset, traverse_node_static(scope, None, param)),
+                            (
+                                offset,
+                                traverse_node_static(scope, None, param).try_resolve(scope),
+                            ),
                         );
                     }
 
@@ -366,16 +372,15 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                 }
             }
 
-            let ret = ImlValue::Instance {
+            ImlValue::Instance {
                 target: Box::new(target),
                 args,
                 nargs,
                 offset: traverse_node_offset(node),
                 severity: None,
                 is_generated: false,
-            };
-
-            ret.try_resolve(scope)
+            }
+            .try_resolve(scope)
         }
 
         _ => unimplemented!("unhandled value node {}", emit),
