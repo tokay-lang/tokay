@@ -164,16 +164,35 @@ impl ImlValue {
                         // TODO: This should be improved, clone should not be used
                         let mut args = args.clone();
                         let mut nargs = nargs.clone();
+                        let mut resolved = true;
+                        let mut errors = Vec::new();
 
                         for (name, default) in parselet.generics.iter() {
                             // Take arguments by sequence first
                             let arg = if !args.is_empty() {
-                                let arg = args.remove(0);
-                                (arg.0, Some(arg.1))
+                                let (offset, mut arg) = args.remove(0);
+
+                                if let Some(value) = arg.resolve(scope) {
+                                    arg = value;
+                                } else {
+                                    resolved = false;
+                                    continue;
+                                }
+
+                                (offset, Some(arg))
                             }
                             // Otherwise, take named arguments
                             else if let Some(narg) = nargs.shift_remove(name) {
-                                (narg.0, Some(narg.1))
+                                let (offset, mut arg) = narg;
+
+                                if let Some(value) = arg.resolve(scope) {
+                                    arg = value;
+                                } else {
+                                    resolved = false;
+                                    continue;
+                                }
+
+                                (offset, Some(arg))
                             }
                             // Otherwise, use default
                             else {
@@ -184,31 +203,41 @@ impl ImlValue {
                             if let (offset, Some(value)) = &arg {
                                 if value.is_consuming() {
                                     if !utils::identifier_is_consumable(name) {
-                                        scope.error(
+                                        errors.push((
                                             *offset,
                                             format!(
                                                 "Cannot assign consumable {} to non-consumable generic '{}'",
                                                 value, name
                                             )
-                                        );
+                                        ));
                                     }
                                 } else if utils::identifier_is_consumable(name) {
-                                    scope.error(
+                                    errors.push((
                                         *offset,
                                         format!(
                                             "Cannot assign non-consumable {} to consumable generic {} of {}",
                                             value, name, parselet
                                         )
-                                    );
+                                    ));
                                 }
                             } else {
-                                scope.error(
+                                errors.push((
                                     arg.0,
                                     format!("Expecting argument for generic '{}'", name),
-                                );
+                                ));
                             }
 
                             generics.insert(name.clone(), arg.1);
+                        }
+
+                        // In case the instance is not fully resolved, don't continue
+                        if !resolved {
+                            return None;
+                        }
+
+                        // In case errors occured during generic argument collection, merge them into the scope
+                        for error in errors {
+                            scope.error(error.0, error.1);
                         }
 
                         // Report any errors for unconsumed generic arguments.
@@ -216,7 +245,7 @@ impl ImlValue {
                             scope.error(
                                 args[0].0, // report first parameter
                                 format!(
-                                    "{} got too many generic arguments ({} in total, expected {})",
+                                    "{} got too many generic arguments ({} given, {} expected)",
                                     target,
                                     generics.len() + args.len(),
                                     generics.len()
