@@ -174,11 +174,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
 
         // Try to resolve open usages, keep then when they are still unresolved
         for value in resolve.into_iter() {
-            let value = value.try_resolve(self);
-
-            if !value.is_resolved() {
-                self.usages.borrow_mut().push(value);
-            }
+            value.try_resolve(self);
         }
     }
 

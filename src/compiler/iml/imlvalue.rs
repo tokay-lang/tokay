@@ -86,15 +86,6 @@ impl ImlValue {
         .try_resolve(scope)
     }
 
-    /// Checks whether the given intermediate value is resolved or not.
-    pub fn is_resolved(&self) -> bool {
-        match self {
-            Self::Shared(value) => value.borrow().is_resolved(),
-            Self::Name { .. } | Self::Instance { .. } => false,
-            _ => true,
-        }
-    }
-
     /// Returns the value's definition offset, if available
     pub fn offset(&self) -> Option<Offset> {
         match self {
@@ -106,21 +97,12 @@ impl ImlValue {
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
     pub fn try_resolve(self, scope: &Scope) -> Self {
-        if self.is_resolved() {
-            // TODO: Clean shared chain?
-            return self;
-        }
-
         match self.resolve(scope) {
             Some(value) => value,
             None => {
-                if matches!(self, Self::Shared(_)) {
-                    self
-                } else {
-                    let shared = Self::Shared(Rc::new(RefCell::new(self)));
-                    scope.usages.borrow_mut().push(shared.clone());
-                    shared
-                }
+                let shared = Self::Shared(Rc::new(RefCell::new(self)));
+                scope.usages.borrow_mut().push(shared.clone());
+                shared
             }
         }
     }
