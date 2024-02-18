@@ -100,9 +100,14 @@ impl ImlValue {
         match self.resolve(scope) {
             Some(value) => value,
             None => {
-                let shared = Self::Shared(Rc::new(RefCell::new(self)));
-                scope.usages.borrow_mut().push(shared.clone());
-                shared
+                if matches!(self, Self::Shared(_)) {
+                    scope.usages.borrow_mut().push(self.clone());
+                    self
+                } else {
+                    let shared = Self::Shared(Rc::new(RefCell::new(self)));
+                    scope.usages.borrow_mut().push(shared.clone());
+                    shared
+                }
             }
         }
     }
