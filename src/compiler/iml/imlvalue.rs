@@ -95,15 +95,30 @@ impl ImlValue {
         }
     }
 
+    /// Unchains any ImlValue::Shared()-chains into their innner values,
+    /// in case the value is not shared anymore.
+    fn unchain(self) -> Self {
+        if let Self::Shared(rc) = self {
+            match Rc::try_unwrap(rc) {
+                Ok(value) => value.into_inner().unchain(),
+                Err(rc) => Self::Shared(rc),
+            }
+        } else {
+            self
+        }
+    }
+
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
     pub fn try_resolve(self, scope: &Scope) -> Self {
         match self.resolve(scope) {
             Some(value) => value,
             None => {
+                // Insert an already shared ImlValue into usages
                 if matches!(self, Self::Shared(_)) {
                     scope.usages.borrow_mut().push(self.clone());
                     self
                 } else {
+                    // Create a new shared ImlValue
                     let shared = Self::Shared(Rc::new(RefCell::new(self)));
                     scope.usages.borrow_mut().push(shared.clone());
                     shared
@@ -113,7 +128,7 @@ impl ImlValue {
     }
 
     /**
-    Resolve unresolved ImlValue.
+    Internal resolving function, which returns the resolved value of an ImlValue, when possible.
 
     - ImlValue::Shared are being followed
     - ImlValue::Name are being resolved by the compiler's symbol table
@@ -123,16 +138,19 @@ impl ImlValue {
     */
     fn resolve(&self, scope: &Scope) -> Option<ImlValue> {
         match self {
-            Self::Shared(value) => match value.try_borrow_mut() {
-                Ok(mut value) => {
-                    if let Some(replace) = value.resolve(scope) {
-                        *value = replace.clone();
-                        Some(replace)
-                    } else {
-                        None
+            Self::Shared(value) => {
+                if let Some(resolved) = value.borrow().resolve(scope) {
+                    match value.try_borrow_mut() {
+                        Ok(mut value) => {
+                            *value = resolved.clone();
+                            Some(resolved)
+                        }
+                        Err(_) => Some(resolved)
                     }
                 }
-                Err(_) => todo!("Recursive resolve() impossible by design, see bug #127"),
+                else {
+                    None
+                }
             },
             Self::Name { offset, name, .. } => scope.resolve_name(offset.clone(), &name),
             Self::Instance {
