@@ -273,6 +273,8 @@ impl ImlParselet {
         let instance = self.instance.borrow();
         let model = instance.model.borrow();
 
+        // println!("--- compile {:?} ---", instance.name);
+
         Parselet::new(
             Some(format!("{}", instance)),
             None,

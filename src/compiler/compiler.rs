@@ -109,6 +109,8 @@ impl Compiler {
             // println!("constants {:#?}, {} usages", global_scope.constants, global_scope.usages.borrow().len());
 
             // Report unresolved names
+            // println!("usages = {:?}", global_scope.usages);
+
             for usage in global_scope.usages.borrow_mut().drain(..) {
                 global_scope.error(usage.offset(), format!("Use of undefined {}", usage));
             }

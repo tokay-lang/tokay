@@ -72,8 +72,11 @@ impl ImlOp {
     }
 
     /// Load value; This is only a shortcut for creating an ImlOp::Load{}
-    pub fn load(_scope: &Scope, offset: Option<Offset>, target: ImlValue) -> ImlOp {
-        ImlOp::Load { offset, target }
+    pub fn load(scope: &Scope, offset: Option<Offset>, target: ImlValue) -> ImlOp {
+        ImlOp::Load {
+            offset,
+            target: target.try_resolve(scope),
+        }
     }
 
     /// Load unknown value by name
