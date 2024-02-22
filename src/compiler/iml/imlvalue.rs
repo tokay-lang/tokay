@@ -131,7 +131,7 @@ impl ImlValue {
                     Ok(value) => {
                         // println!("UNCHAIN {:?}", value);
                         value.into_inner().resolve(scope)
-                    },
+                    }
                     Err(rc) => {
                         let resolved = rc.borrow().clone().resolve(scope);
 
@@ -139,16 +139,15 @@ impl ImlValue {
                             let mut value = rc.borrow_mut();
                             *value = resolved.clone();
                             resolved
-                        }
-                        else {
+                        } else {
                             ImlValue::Shared(rc)
                         }
                     }
                 }
             }
-            Self::Name {
-                offset, ref name
-            } => scope.resolve_name(offset.clone(), &name).unwrap_or(self),
+            Self::Name { offset, ref name } => {
+                scope.resolve_name(offset.clone(), &name).unwrap_or(self)
+            }
             Self::Instance {
                 offset,
                 target,
@@ -170,11 +169,11 @@ impl ImlValue {
                         // Take arguments by sequence first
                         let arg = if !args.is_empty() {
                             let arg = args.remove(0);
-                            (arg.0, Some(arg.1.try_resolve(scope)))
+                            (arg.0, Some(arg.1.resolve(scope)))
                         }
                         // Otherwise, take named arguments
                         else if let Some(narg) = nargs.shift_remove(name) {
-                            (narg.0, Some(narg.1.try_resolve(scope)))
+                            (narg.0, Some(narg.1.resolve(scope)))
                         }
                         // Otherwise, use default
                         else {
