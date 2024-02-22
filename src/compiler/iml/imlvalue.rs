@@ -128,29 +128,26 @@ impl ImlValue {
         match self {
             Self::Shared(rc) => {
                 match Rc::try_unwrap(rc) {
-                    Ok(value) => value.into_inner().resolve(scope),
+                    Ok(value) => {
+                        // println!("UNCHAIN {:?}", value);
+                        value.into_inner().resolve(scope)
+                    },
                     Err(rc) => {
-                        match rc.try_borrow_mut() {
-                            Ok(mut value) => {
-                                let resolved = value.clone().resolve(scope);
+                        let resolved = rc.borrow().clone().resolve(scope);
 
-                                if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
-                                    *value = resolved.clone();
-                                    return resolved;
-                                }
-                            }
-                            Err(_) => {
-                                //panic!("{:?}", rc);
-                                //rc.borrow().clone().resolve(scope)
-                            }
+                        if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
+                            let mut value = rc.borrow_mut();
+                            *value = resolved.clone();
+                            resolved
                         }
-
-                        Self::Shared(rc)
+                        else {
+                            ImlValue::Shared(rc)
+                        }
                     }
                 }
             }
             Self::Name {
-                offset, ref name, ..
+                offset, ref name
             } => scope.resolve_name(offset.clone(), &name).unwrap_or(self),
             Self::Instance {
                 offset,
