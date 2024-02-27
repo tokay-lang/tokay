@@ -96,22 +96,22 @@ impl ImlValue {
     }
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
-    pub fn try_resolve(self, scope: &Scope) -> Self {
-        let value = self.resolve(scope);
+    pub fn try_resolve(mut self, scope: &Scope) -> Self {
+        self = self.resolve(scope, 0);
 
-        match &value {
+        match &self {
             Self::Name { .. } | Self::Instance { .. } => {
                 // Create a new shared ImlValue
-                let shared = Self::Shared(Rc::new(RefCell::new(value)));
+                let shared = Self::Shared(Rc::new(RefCell::new(self)));
                 scope.usages.borrow_mut().push(shared.clone());
                 shared
             }
             Self::Shared(_) => {
                 // Insert an already shared ImlValue into usages
-                scope.usages.borrow_mut().push(value.clone());
-                value
+                scope.usages.borrow_mut().push(self.clone());
+                self
             }
-            _resolved => value,
+            _ => self,
         }
     }
 
@@ -124,16 +124,18 @@ impl ImlValue {
 
     Returns Some(value) with the resolved value on success, None otherwise.
     */
-    fn resolve(self, scope: &Scope) -> ImlValue {
+    fn resolve(self, scope: &Scope, i: usize) -> ImlValue {
+        // println!("i = {} {:?}", i, &self);
+
         match self {
             Self::Shared(rc) => {
                 match Rc::try_unwrap(rc) {
                     Ok(value) => {
                         // println!("UNCHAIN {:?}", value);
-                        value.into_inner().resolve(scope)
+                        value.into_inner().resolve(scope, i + 1)
                     }
                     Err(rc) => {
-                        let resolved = rc.borrow().clone().resolve(scope);
+                        let resolved = rc.borrow().clone().resolve(scope, i + 1);
 
                         if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
                             let mut value = rc.borrow_mut();
@@ -142,6 +144,28 @@ impl ImlValue {
                         } else {
                             ImlValue::Shared(rc)
                         }
+
+                        /*
+                        let mut later = false;
+
+                        match rc.try_borrow_mut() {
+                            Ok(mut value) => {
+                                let resolved = value.clone().resolve(scope, i + 1);
+                                if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
+                                    *value = resolved.clone();
+                                    return resolved;
+                                }
+                            }
+                            Err(_) => later = true,
+                        }
+
+                        if later {
+                            ImlValue::Shared(rc).later(scope)
+                        }
+                        else {
+                            ImlValue::Shared(rc)
+                        }
+                        */
                     }
                 }
             }
@@ -169,11 +193,11 @@ impl ImlValue {
                         // Take arguments by sequence first
                         let arg = if !args.is_empty() {
                             let arg = args.remove(0);
-                            (arg.0, Some(arg.1.resolve(scope)))
+                            (arg.0, Some(arg.1.resolve(scope, i + 1)))
                         }
                         // Otherwise, take named arguments
                         else if let Some(narg) = nargs.shift_remove(name) {
-                            (narg.0, Some(narg.1.resolve(scope)))
+                            (narg.0, Some(narg.1.resolve(scope, i + 1)))
                         }
                         // Otherwise, use default
                         else {

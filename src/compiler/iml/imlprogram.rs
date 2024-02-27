@@ -75,6 +75,8 @@ impl ImlProgram {
                 }
             };
 
+            // println!("\n::: {} {:?} :::\n", idx, parselet.borrow().name);
+
             // Memoize parselets required to be finalized (needs a general rework later...)
             if parselet.borrow().model.borrow().is_consuming {
                 //fixme...
