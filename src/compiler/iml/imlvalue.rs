@@ -62,28 +62,18 @@ impl ImlValue {
     This is used internally to implement `Kle<P>` from `P*` syntax
     during the AST traversal.
     */
-    pub fn into_generic(
-        self,
-        name: &str,
-        scope: &Scope,
-        severity: Option<u8>,
-        offset: Option<Offset>,
-    ) -> Self {
+    pub fn into_generic(self, name: &str, severity: Option<u8>, offset: Option<Offset>) -> Self {
         Self::Instance {
             offset: None,
-            target: Box::new(
-                ImlValue::Name {
-                    offset: None,
-                    name: name.to_string(),
-                }
-                .try_resolve(scope),
-            ),
+            target: Box::new(ImlValue::Name {
+                offset: None,
+                name: name.to_string(),
+            }),
             args: vec![(offset, self)],
             nargs: IndexMap::new(),
             severity,
             is_generated: true,
         }
-        .try_resolve(scope)
     }
 
     /// Returns the value's definition offset, if available
@@ -97,7 +87,7 @@ impl ImlValue {
 
     /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
     pub fn try_resolve(mut self, scope: &Scope) -> Self {
-        self = self.resolve(scope, 0);
+        self = self.resolve(scope);
 
         match &self {
             Self::Name { .. } | Self::Instance { .. } => {
@@ -124,25 +114,23 @@ impl ImlValue {
 
     Returns Some(value) with the resolved value on success, None otherwise.
     */
-    fn resolve(self, scope: &Scope, i: usize) -> ImlValue {
-        // println!("i = {} {:?}", i, &self);
-
+    fn resolve(self, scope: &Scope) -> ImlValue {
         match self {
             Self::Shared(rc) => {
                 match Rc::try_unwrap(rc) {
                     Ok(value) => {
                         // println!("UNCHAIN {:?}", value);
-                        value.into_inner().resolve(scope, i + 1)
+                        value.into_inner().resolve(scope)
                     }
                     Err(rc) => {
-                        let resolved = rc.borrow().clone().resolve(scope, i + 1);
+                        let resolved = rc.borrow().clone().resolve(scope);
 
-                        if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
+                        if matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
+                            ImlValue::Shared(rc)
+                        } else {
                             let mut value = rc.borrow_mut();
                             *value = resolved.clone();
                             resolved
-                        } else {
-                            ImlValue::Shared(rc)
                         }
 
                         /*
@@ -180,7 +168,7 @@ impl ImlValue {
                 severity,
                 is_generated,
             } => {
-                let target = target.try_resolve(scope);
+                let target = target.resolve(scope);
 
                 if let ImlValue::Parselet(parselet) = &target {
                     let parselet = parselet.borrow();
@@ -193,11 +181,11 @@ impl ImlValue {
                         // Take arguments by sequence first
                         let arg = if !args.is_empty() {
                             let arg = args.remove(0);
-                            (arg.0, Some(arg.1.resolve(scope, i + 1)))
+                            (arg.0, Some(arg.1.try_resolve(scope)))
                         }
                         // Otherwise, take named arguments
                         else if let Some(narg) = nargs.shift_remove(name) {
-                            (narg.0, Some(narg.1.resolve(scope, i + 1)))
+                            (narg.0, Some(narg.1.try_resolve(scope)))
                         }
                         // Otherwise, use default
                         else {
@@ -458,10 +446,10 @@ impl std::fmt::Display for ImlValue {
             ),
             Self::Variable {
                 name, is_global, ..
-            } if *is_global => write!(f, "global '{}'", name),
-            Self::Variable { name, .. } => write!(f, "local '{}'", name),
-            Self::Name { name, .. } => write!(f, "name '{}'", name),
-            Self::Generic { name, .. } => write!(f, "generic '{}'", name),
+            } if *is_global => write!(f, "{}", name),
+            Self::Variable { name, .. } => write!(f, "{}", name),
+            Self::Name { name, .. } => write!(f, "{}", name),
+            Self::Generic { name, .. } => write!(f, "{}", name),
             Self::Instance {
                 target,
                 args,

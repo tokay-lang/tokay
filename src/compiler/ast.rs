@@ -333,10 +333,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let param = &genarg["children"].borrow();
                         let param = param.object::<Dict>().unwrap();
 
-                        args.push((
-                            offset,
-                            traverse_node_static(scope, None, param).try_resolve(scope),
-                        ));
+                        args.push((offset, traverse_node_static(scope, None, param)));
                     }
 
                     "genarg_named" => {
@@ -361,16 +358,22 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         nargs.insert(
                             ident.to_string(),
-                            (
-                                offset,
-                                traverse_node_static(scope, None, param).try_resolve(scope),
-                            ),
+                            (offset, traverse_node_static(scope, None, param)),
                         );
                     }
 
                     other => unimplemented!("Unhandled genarg type {:?}", other),
                 }
             }
+
+            /*
+            if let Some(name) = &name {
+                println!(
+                    "name = {} target = {:?} args = {:?} nargs = {:?}",
+                    name, target, args, nargs
+                );
+            }
+            */
 
             ImlValue::Instance {
                 target: Box::new(target),
@@ -380,7 +383,12 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                 severity: None,
                 is_generated: false,
             }
-            .try_resolve(scope)
+
+            /*
+            if let Some(_) = &name {
+                println!("ret = {:?}", ret);
+            }
+            */
         }
 
         _ => unimplemented!("unhandled value node {}", emit),
@@ -388,36 +396,47 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 }
 
 /** Traverse a static value.
+
 The value must either be a literal or something from a known constant.
 
-The name attribute is optional and can be used to assign an identifier to parselets for debug purposes
+The assign attribute is optional and is only provided when the static is being assigned to
+some identifier. In this case, special handling of e.g. value_generic-nodes is being performed.
 */
-fn traverse_node_static(scope: &Scope, name: Option<String>, node: &Dict) -> ImlValue {
+fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> ImlValue {
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
-    if emit.starts_with("value_") {
-        traverse_node_value(scope, node, name)
+    if emit.starts_with("value_") && (emit != "value_generic" || assign.is_none()) {
+        traverse_node_value(scope, node, assign)
     } else {
         // Handle anything else as an implicit parselet in its own scope
         let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
             None,
             None,
             traverse_node_offset(node),
-            name,
+            assign,
             5,
             false,
         ));
 
         implicit_parselet.borrow().model.borrow_mut().body = {
-            match traverse_node_rvalue(
+            let ret = traverse_node_rvalue(
                 &scope.shadow(ScopeLevel::Parselet(implicit_parselet.clone())),
                 node,
-                Rvalue::Load,
-            ) {
+                Rvalue::CallOrLoad,
+            );
+
+            //println!("ret = {:?}", ret);
+
+            match ret {
                 ImlOp::Nop => return value!(void).into(),
-                // Defined value load becomes just the value
-                ImlOp::Load { target: value, .. } => return value,
+                // Defined value call without parameters, or load becomes just the value
+                ImlOp::Load { target: value, .. }
+                | ImlOp::Call {
+                    target: value,
+                    args: None,
+                    ..
+                } if emit != "value_generic" => return value,
 
                 // Any other code becomes its own parselet without any signature.
                 body => body,
@@ -1387,19 +1406,10 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                                         // mod_kle on Token::Char becomes optional Token::Chars
                                         if parts[2] == "kle" {
-                                            chars = chars.into_generic(
-                                                "Opt",
-                                                scope,
-                                                None,
-                                                offset.clone(),
-                                            );
+                                            chars = chars.into_generic("Opt", None, offset.clone());
                                         }
 
-                                        return ImlOp::Call {
-                                            offset,
-                                            target: chars,
-                                            args: None,
-                                        };
+                                        return ImlOp::call(scope, offset, chars, None);
                                     }
 
                                     // mod_not on Token::Char becomes a negated Token::Char
@@ -1426,9 +1436,9 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                         scope,
                         offset.clone(),
                         match parts[2] {
-                            "pos" => res.into_generic("Pos", scope, assume_severity, offset),
-                            "kle" => res.into_generic("Kle", scope, assume_severity, offset),
-                            "opt" => res.into_generic("Opt", scope, assume_severity, offset),
+                            "pos" => res.into_generic("Pos", assume_severity, offset),
+                            "kle" => res.into_generic("Kle", assume_severity, offset),
+                            "opt" => res.into_generic("Opt", assume_severity, offset),
                             _ => unreachable!(),
                         },
                         None,
