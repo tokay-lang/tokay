@@ -207,7 +207,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                 scope.error(
                                     offset,
                                     format!(
-                                        "Generic '{}' defines consumable, but {} is not consuming",
+                                        "Generic '{}' defines consumable, but '{}' is not consuming",
                                         name, default
                                     ),
                                 );
@@ -256,7 +256,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                     let default = children[1].borrow();
                                     Some(traverse_node_static(
                                         scope,
-                                        None,
+                                        Some(name.clone()),
                                         default.object::<Dict>().unwrap(),
                                     ))
                                 } else {
