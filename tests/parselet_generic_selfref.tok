@@ -1,10 +1,18 @@
-Y: X<Y>
-
-X: @<X> {
-    'x' X
+Assignment : @<Expression, Assignment: Assignment, ext: void> {
+    Ident _ '=' _ Expect<Assignment>  ast("assign" + ext)
+    Expression  ast("value")
 }
 
+HoldAssignment : Assignment<Int, HoldAssignment>  # endless recursion!
+# HoldAssignment : Assignment<Int, HoldAssignment> Empty  # works!
+
+# ast_print(Assignment<Int>)
+ast_print(HoldAssignment)
+
 #---
-#ERR:SKIP
-#ERR:not yet implemented: Recursive resolve() impossible by design, see bug #127
-#ERR:SKIP
+#a=b=c=42
+#---
+#assign [start 1:1, end 1:9]
+# assign [start 1:3, end 1:9]
+#  assign [start 1:5, end 1:9]
+#   value [start 1:7, end 1:9] => 42

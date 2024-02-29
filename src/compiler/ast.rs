@@ -406,7 +406,26 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
-    if emit.starts_with("value_") {
+    // Special case: Put a generic with an assignment name into its own parselet
+    if emit == "value_generic" && assign.is_some() {
+        // Handle anything else as an implicit parselet in its own scope
+        let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
+            None,
+            None,
+            traverse_node_offset(node),
+            assign,
+            5,
+            false,
+        ));
+
+        implicit_parselet.borrow().model.borrow_mut().body = traverse_node_rvalue(
+            &scope.shadow(ScopeLevel::Parselet(implicit_parselet.clone())),
+            node,
+            Rvalue::CallOrLoad,
+        );
+
+        ImlValue::from(implicit_parselet)
+    } else if emit.starts_with("value_") {
         traverse_node_value(scope, node, assign).try_resolve(scope)
     } else {
         // Handle anything else as an implicit parselet in its own scope
@@ -420,15 +439,11 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
         ));
 
         implicit_parselet.borrow().model.borrow_mut().body = {
-            let ret = traverse_node_rvalue(
+            match traverse_node_rvalue(
                 &scope.shadow(ScopeLevel::Parselet(implicit_parselet.clone())),
                 node,
                 Rvalue::Load,
-            );
-
-            //println!("ret = {:?}", ret);
-
-            match ret {
+            ) {
                 ImlOp::Nop => return value!(void).into(),
                 // Defined value call without parameters, or load becomes just the value
                 ImlOp::Load { target: value, .. } => return value,

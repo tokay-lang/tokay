@@ -306,7 +306,7 @@ impl ImlValue {
                     true
                 }
             }
-            Self::Instance { target, .. } => target.is_callable(without_arguments),
+            Self::Instance { target, .. } => true,
             _ => false,
         }
     }
