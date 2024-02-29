@@ -406,8 +406,8 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
     let emit = node["emit"].borrow();
     let emit = emit.object::<Str>().unwrap().as_str();
 
-    if emit.starts_with("value_") && (emit != "value_generic" || assign.is_none()) {
-        traverse_node_value(scope, node, assign)
+    if emit.starts_with("value_") {
+        traverse_node_value(scope, node, assign).try_resolve(scope)
     } else {
         // Handle anything else as an implicit parselet in its own scope
         let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
@@ -423,7 +423,7 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
             let ret = traverse_node_rvalue(
                 &scope.shadow(ScopeLevel::Parselet(implicit_parselet.clone())),
                 node,
-                Rvalue::CallOrLoad,
+                Rvalue::Load,
             );
 
             //println!("ret = {:?}", ret);
@@ -431,12 +431,7 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
             match ret {
                 ImlOp::Nop => return value!(void).into(),
                 // Defined value call without parameters, or load becomes just the value
-                ImlOp::Load { target: value, .. }
-                | ImlOp::Call {
-                    target: value,
-                    args: None,
-                    ..
-                } if emit != "value_generic" => return value,
+                ImlOp::Load { target: value, .. } => return value,
 
                 // Any other code becomes its own parselet without any signature.
                 body => body,
@@ -1134,7 +1129,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 return ImlOp::Nop;
             }
 
-            //println!("{} : {:?}", ident, value);
+            // println!("{} : {:#?}", ident, value);
             scope.define_constant(ident, value);
 
             // Try to resolve usage of newly introduced constant in current scope
