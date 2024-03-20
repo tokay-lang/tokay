@@ -119,7 +119,6 @@ impl ImlValue {
             Self::Shared(rc) => {
                 match Rc::try_unwrap(rc) {
                     Ok(value) => {
-                        // println!("UNCHAIN {:?}", value);
                         value.into_inner().resolve(scope)
                     }
                     Err(rc) => {
@@ -132,28 +131,6 @@ impl ImlValue {
                             *value = resolved.clone();
                             resolved
                         }
-
-                        /*
-                        let mut later = false;
-
-                        match rc.try_borrow_mut() {
-                            Ok(mut value) => {
-                                let resolved = value.clone().resolve(scope, i + 1);
-                                if !matches!(resolved, Self::Name { .. } | Self::Instance { .. }) {
-                                    *value = resolved.clone();
-                                    return resolved;
-                                }
-                            }
-                            Err(_) => later = true,
-                        }
-
-                        if later {
-                            ImlValue::Shared(rc).later(scope)
-                        }
-                        else {
-                            ImlValue::Shared(rc)
-                        }
-                        */
                     }
                 }
             }
@@ -181,11 +158,11 @@ impl ImlValue {
                         // Take arguments by sequence first
                         let arg = if !args.is_empty() {
                             let arg = args.remove(0);
-                            (arg.0, Some(arg.1.try_resolve(scope)))
+                            (arg.0, Some(arg.1.resolve(scope)))
                         }
                         // Otherwise, take named arguments
                         else if let Some(narg) = nargs.shift_remove(name) {
-                            (narg.0, Some(narg.1.try_resolve(scope)))
+                            (narg.0, Some(narg.1.resolve(scope)))
                         }
                         // Otherwise, use default
                         else {
@@ -306,7 +283,7 @@ impl ImlValue {
                     true
                 }
             }
-            Self::Instance { target, .. } => true,
+            Self::Instance { .. } => true,
             _ => false,
         }
     }
