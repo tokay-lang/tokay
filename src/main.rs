@@ -1,5 +1,6 @@
 //! Tokay main and REPL
 use clap::Parser;
+use env_logger;
 use rustyline;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
@@ -184,6 +185,8 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
 }
 
 fn main() -> rustyline::Result<()> {
+    env_logger::init();
+
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();
 
