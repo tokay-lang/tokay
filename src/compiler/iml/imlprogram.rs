@@ -336,7 +336,7 @@ impl ImlProgram {
                     finalize_op(part, current, visited, configs);
                 }
 
-                visited.remove(current);
+                visited.shift_remove(current);
 
                 Some(Consumable {
                     leftrec: false,
