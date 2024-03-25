@@ -59,7 +59,7 @@ impl ImlProgram {
     and nullable parselet detection occurs.
     */
     pub fn compile(mut self) -> Result<Program, Vec<Error>> {
-        log::info!("{} compile", self.main);
+        log::info!("compiling {}", self.main);
 
         let mut finalize = HashSet::new(); // list of consuming parselets required to be finalized
 
@@ -105,7 +105,7 @@ impl ImlProgram {
         }
 
         // Finalize parselets
-        log::info!("{} has {} parselets to finalize", self.main, finalize.len());
+        log::debug!("{} has {} parselets to finalize", self.main, finalize.len());
 
         for (i, parselet) in finalize.iter().enumerate() {
             log::trace!(" {: >3} => {:#?}", i, parselet);
@@ -134,7 +134,7 @@ impl ImlProgram {
             })
             .collect();
 
-        log::info!("{} has {} statics compiled", self.main, statics.len());
+        log::debug!("{} has {} statics compiled", self.main, statics.len());
 
         for (i, value) in statics.iter().enumerate() {
             log::trace!(" {: >3} : {:#?}", i, value);
@@ -377,7 +377,7 @@ impl ImlProgram {
             }
         }
 
-        log::info!(
+        log::debug!(
             "{} has {} parselets finalized",
             self.statics.keys()[0],
             parselets.len()

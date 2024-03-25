@@ -236,23 +236,27 @@ impl ImlValue {
                         }
                     }
 
-                    log::debug!("creating {}", parselet);
+                    log::trace!("creating instance from {}", parselet);
                     for (k, v) in &generics {
-                        log::debug!("  {} => {:?}", k, v);
+                        log::trace!("  {} => {:?}", k, v);
                     }
 
                     // Make a parselet instance from the instance definition;
                     // This can be the final parselet instance, but constants
                     // might contain generic references as well, which are being
                     // resolved during further compilation and derivation.
-                    return ImlValue::from(ImlParselet::new(ImlParseletInstance {
+                    let parselet = ImlParselet::new(ImlParseletInstance {
                         model: parselet.model.clone(),
                         generics,
                         offset: parselet.offset.clone(),
                         name: parselet.name.clone(),
                         severity: severity.unwrap_or(parselet.severity),
                         is_generated,
-                    }));
+                    });
+
+                    log::trace!("instance {} created", parselet);
+
+                    return ImlValue::from(parselet);
                 }
 
                 Self::Instance {

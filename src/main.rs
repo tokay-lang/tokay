@@ -18,7 +18,7 @@ fn print_version() {
     version,
     about,
     help_template = r#"{bin} {version}
-© 2023 by {author}
+© 2024 by {author}
 {about}
 {bin} is free software released under the MIT license.
 
@@ -28,7 +28,7 @@ PROGRAM and INPUT are directly used as input strings in case no file with the
 given name exists. Use '-f' to disable this behavior. Specify '-' to use stdin
 as input file.
 
-When PROGRAM was not specified, {bin} turns into an interactive REPL.
+When a PROGRAM is not specified, {bin} turns into an interactive REPL.
 
 Visit https://tokay.dev/ for help and further information."#
 )]
