@@ -143,7 +143,7 @@ impl std::fmt::Display for ImlParseletInstance {
         write!(
             f,
             "{}",
-            self.name.as_deref().unwrap_or("<anonymous parselet>")
+            self.name.as_deref().unwrap_or("__AnonymousParselet__")
         )?;
 
         if !self.generics.is_empty() {
@@ -248,7 +248,7 @@ impl ImlParselet {
         if !required.is_empty() {
             return Err(format!(
                 "{} requires assignment of generic argument {}",
-                instance.name.as_deref().unwrap_or("<anonymous parselet>"),
+                instance.name.as_deref().unwrap_or("__AnonymousParselet__"),
                 required.join(", ")
             ));
         }

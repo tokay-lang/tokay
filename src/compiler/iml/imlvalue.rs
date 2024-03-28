@@ -434,7 +434,7 @@ impl std::fmt::Display for ImlValue {
                     .borrow()
                     .name
                     .as_deref()
-                    .unwrap_or("<anonymous parselet>")
+                    .unwrap_or("__AnonymousParselet__")
             ),
             Self::Variable {
                 name, is_global, ..
