@@ -10,6 +10,16 @@ use num::ToPrimitive;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate::compiler) struct ImlInstance {
+    pub offset: Option<Offset>,                              // Source offset
+    pub target: Box<ImlValue>,                               // Instance target
+    pub args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
+    pub nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
+    pub severity: Option<u8>,                                // optional desired severity
+    pub is_generated: bool,
+}
+
 /** Intermediate value
 
 Intermediate values are value descriptors that result during the compile process based on current
@@ -27,6 +37,7 @@ pub(in crate::compiler) enum ImlValue {
     VoidToken,                     // Void (consuming)
     Value(RefValue),               // Static value
     Parselet(ImlParselet),         // Parselet
+    Instance(ImlInstance),         // Instance definition
     Variable {
         // Resolved variable
         offset: Option<Offset>, // Source offset
@@ -44,15 +55,6 @@ pub(in crate::compiler) enum ImlValue {
         offset: Option<Offset>, // Source offset
         name: String,           // Identifier
     },
-    Instance {
-        // Unresolved parselet instance definition
-        offset: Option<Offset>,                              // Source offset
-        target: Box<ImlValue>,                               // Instance target
-        args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
-        nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
-        severity: Option<u8>,                                // optional desired severity
-        is_generated: bool,
-    },
 }
 
 impl ImlValue {
@@ -64,7 +66,7 @@ impl ImlValue {
     during the AST traversal.
     */
     pub fn into_generic(self, name: &str, severity: Option<u8>, offset: Option<Offset>) -> Self {
-        Self::Instance {
+        Self::Instance(ImlInstance {
             offset: None,
             target: Box::new(ImlValue::Name {
                 offset: None,
@@ -74,14 +76,16 @@ impl ImlValue {
             nargs: IndexMap::new(),
             severity,
             is_generated: true,
-        }
+        })
     }
 
     /// Returns the value's definition offset, if available
     pub fn offset(&self) -> Option<Offset> {
         match self {
             Self::Shared(value) => value.borrow().offset(),
-            Self::Name { offset, .. } | Self::Instance { offset, .. } => offset.clone(),
+            Self::Name { offset, .. } | Self::Instance(ImlInstance { offset, .. }) => {
+                offset.clone()
+            }
             _ => None,
         }
     }
@@ -93,7 +97,7 @@ impl ImlValue {
         self = self.resolve(scope);
 
         match &self {
-            Self::Name { .. } | Self::Instance { .. } => {
+            Self::Name { .. } | Self::Instance(_) => {
                 log::trace!("Inserting new shared usage");
                 let shared = Self::Shared(Rc::new(RefCell::new(self)));
                 scope.usages.borrow_mut().push(shared.clone());
@@ -142,20 +146,13 @@ impl ImlValue {
                 log::trace!("resolving name {:?} to {:?}", name, found);
                 found.unwrap_or(self)
             }
-            Self::Instance {
-                offset,
-                target,
-                mut args,
-                mut nargs,
-                severity,
-                is_generated,
-            } => {
+            Self::Instance(mut instance) => {
                 log::trace!("resolving instance");
-                log::trace!("  target = {:?}", target);
-                log::trace!("  args = {:?}", args);
-                log::trace!("  nargs = {:?}", nargs);
+                log::trace!("  target = {:?}", instance.target);
+                log::trace!("  args = {:?}", instance.args);
+                log::trace!("  nargs = {:?}", instance.nargs);
 
-                let target = target.resolve(scope);
+                let target = instance.target.resolve(scope);
 
                 if let ImlValue::Parselet(parselet) = &target {
                     let parselet = parselet.borrow();
@@ -164,17 +161,17 @@ impl ImlValue {
                     // Map args and nargs to generics of this parselet
                     for (name, default) in parselet.generics.iter() {
                         // Take arguments by sequence first
-                        let arg = if !args.is_empty() {
-                            let arg = args.remove(0);
+                        let arg = if !instance.args.is_empty() {
+                            let arg = instance.args.remove(0);
                             (arg.0, Some(arg.1.resolve(scope)))
                         }
                         // Otherwise, take named arguments
-                        else if let Some(narg) = nargs.shift_remove(name) {
+                        else if let Some(narg) = instance.nargs.shift_remove(name) {
                             (narg.0, Some(narg.1.resolve(scope)))
                         }
                         // Otherwise, use default
                         else {
-                            (offset.clone(), default.clone())
+                            (instance.offset.clone(), default.clone())
                         };
 
                         // Check integrity of constant names
@@ -207,19 +204,19 @@ impl ImlValue {
                     }
 
                     // Report any errors for unconsumed generic arguments.
-                    if !args.is_empty() {
+                    if !instance.args.is_empty() {
                         scope.error(
-                            args[0].0, // report first parameter
+                            instance.args[0].0, // report first parameter
                             format!(
                                 "{} got too many generic arguments ({} given, {} expected)",
                                 target,
-                                generics.len() + args.len(),
+                                generics.len() + instance.args.len(),
                                 generics.len()
                             ),
                         );
                     }
 
-                    for (name, (offset, _)) in nargs {
+                    for (name, (offset, _)) in instance.nargs {
                         if generics.get(&name).is_some() {
                             scope.error(
                                 offset,
@@ -248,10 +245,10 @@ impl ImlValue {
                     let parselet = ImlParselet::new(ImlParseletInstance {
                         model: parselet.model.clone(),
                         generics,
-                        offset: parselet.offset.clone(),
+                        offset: instance.offset,
                         name: parselet.name.clone(),
-                        severity: severity.unwrap_or(parselet.severity),
-                        is_generated,
+                        severity: instance.severity.unwrap_or(parselet.severity),
+                        is_generated: instance.is_generated,
                     });
 
                     log::trace!("instance {} created", parselet);
@@ -259,14 +256,8 @@ impl ImlValue {
                     return ImlValue::from(parselet);
                 }
 
-                Self::Instance {
-                    offset,
-                    target: Box::new(target),
-                    args,
-                    nargs,
-                    severity,
-                    is_generated,
-                }
+                instance.target = Box::new(target);
+                Self::Instance(instance)
             }
             _ => self,
         }
@@ -298,7 +289,7 @@ impl ImlValue {
                     true
                 }
             }
-            Self::Instance { .. } => true,
+            Self::Instance(_) => true,
             _ => false,
         }
     }
@@ -314,7 +305,7 @@ impl ImlValue {
             Self::Name { name, .. } | Self::Generic { name, .. } => {
                 crate::utils::identifier_is_consumable(name)
             }
-            Self::Instance { target, .. } => target.is_consuming(),
+            Self::Instance(instance) => instance.target.is_consuming(),
             _ => false,
         }
     }
@@ -373,6 +364,44 @@ impl ImlValue {
             ImlValue::SelfValue | ImlValue::SelfToken | ImlValue::Parselet(_) => {}
             _ => unreachable!("{}", self),
         }
+
+        /*
+            match self {
+            Self::Shared(value) => {
+                return value.borrow().compile(program, current, offset, call, ops)
+            }
+            Self::Generic { name, .. } => {
+                return current.0.borrow().generics[name]
+                    .as_ref()
+                    .unwrap()
+                    .compile(program, current, offset, call, ops)
+            }
+            Self::VoidToken => ops.push(Op::Next),
+            Self::Value(value) => match &*value.borrow() {
+                Value::Void => ops.push(Op::PushVoid),
+                Value::Null => ops.push(Op::PushNull),
+                Value::True => ops.push(Op::PushTrue),
+                Value::False => ops.push(Op::PushFalse),
+                Value::Int(i) => match i.to_i32() {
+                    Some(0) => ops.push(Op::Push0),
+                    Some(1) => ops.push(Op::Push1),
+                    _ => { /* continue below! */ }
+                },
+                _ => { /* continue below! */ }
+            },
+            Self::SelfValue | Self::SelfToken | Self::Parselet(_) => { /* continue below! */ }
+            Self::Variable {
+                addr, is_global, ..
+            } => {
+                if *is_global {
+                    ops.push(Op::LoadGlobal(*addr))
+                } else {
+                    ops.push(Op::LoadFast(*addr))
+                }
+            }
+            _ => unreachable!("{}", self),
+        }
+        */
 
         // Check if something has been pushed before.
         if start == ops.len() {
@@ -442,29 +471,24 @@ impl std::fmt::Display for ImlValue {
             Self::Variable { name, .. } => write!(f, "{}", name),
             Self::Name { name, .. } => write!(f, "{}", name),
             Self::Generic { name, .. } => write!(f, "{}", name),
-            Self::Instance {
-                target,
-                args,
-                nargs,
-                ..
-            } => {
-                write!(f, "{}", target)?;
+            Self::Instance(instance) => {
+                write!(f, "{}", instance.target)?;
 
                 write!(f, "<")?;
                 let mut first = true;
 
-                for arg in args {
+                for arg in &instance.args {
                     write!(f, "{}{}", if !first { ", " } else { "" }, arg.1)?;
                     first = false;
                 }
 
-                for narg in nargs.keys() {
+                for narg in instance.nargs.keys() {
                     write!(
                         f,
                         "{}{}:{}",
                         if !first { ", " } else { "" },
                         narg,
-                        nargs[narg].1
+                        instance.nargs[narg].1
                     )?;
                     first = false;
                 }

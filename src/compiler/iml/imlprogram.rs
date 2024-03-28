@@ -42,7 +42,7 @@ impl ImlProgram {
                 offset.clone(),
                 format!("Variable '{}' used in static context", name),
             )),
-            ImlValue::Generic { offset, .. } | ImlValue::Instance { offset, .. } => {
+            ImlValue::Generic { offset, .. } | ImlValue::Instance(ImlInstance { offset, .. }) => {
                 self.errors
                     .push(Error::new(offset.clone(), format!("Unresolved {}", value)));
             }

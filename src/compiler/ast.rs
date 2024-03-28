@@ -375,14 +375,14 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
             }
             */
 
-            ImlValue::Instance {
+            ImlValue::Instance(ImlInstance {
                 target: Box::new(target),
                 args,
                 nargs,
                 offset: traverse_node_offset(node),
                 severity: None,
                 is_generated: false,
-            }
+            })
 
             /*
             if let Some(_) = &name {
