@@ -223,6 +223,8 @@ impl ImlParselet {
         let mut changes = false;
         let mut required = Vec::new();
 
+        log::info!("Deriving {} from {}", self, from);
+
         for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open
             while let Some(ImlValue::Generic { name, .. }) = value {
@@ -230,17 +232,14 @@ impl ImlParselet {
                 changes = true;
             }
 
-            if let Some(value) = value {
-                match value {
-                    ImlValue::SelfValue | ImlValue::SelfToken => {
-                        // Replace any references of self by from
-                        *value = ImlValue::Parselet(from.clone());
-                        changes = true;
-                    }
-                    _ => {}
+            match value {
+                Some(ImlValue::SelfValue | ImlValue::SelfToken) => {
+                    // Replace any references of self by from
+                    *value = Some(ImlValue::Parselet(from.clone()));
+                    changes = true;
                 }
-            } else {
-                required.push(name.to_string());
+                Some(_) => {}
+                None => required.push(name.to_string()),
             }
         }
 

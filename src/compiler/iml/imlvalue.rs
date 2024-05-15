@@ -17,8 +17,10 @@ pub(in crate::compiler) struct ImlInstance {
     pub args: Vec<(Option<Offset>, ImlValue)>,               // Sequential generic args
     pub nargs: IndexMap<String, (Option<Offset>, ImlValue)>, // Named generic args
     pub severity: Option<u8>,                                // optional desired severity
-    pub is_generated: bool,
+    pub is_generated: bool, // flag for generated parselet (e.g. using modifier)
 }
+
+impl ImlInstance {}
 
 /** Intermediate value
 
@@ -37,7 +39,7 @@ pub(in crate::compiler) enum ImlValue {
     VoidToken,                     // Void (consuming)
     Value(RefValue),               // Static value
     Parselet(ImlParselet),         // Parselet
-    Instance(ImlInstance),         // Instance definition
+    Instance(ImlInstance),         // Instance
     Variable {
         // Resolved variable
         offset: Option<Offset>, // Source offset
@@ -90,21 +92,21 @@ impl ImlValue {
         }
     }
 
-    /// Try to resolve immediatelly, otherwise push shared reference to compiler's unresolved ImlValue.
+    /// Try to resolve, otherwise push a shared reference to the compiler's unresolved usages pool.
     pub fn try_resolve(mut self, scope: &Scope) -> Self {
         log::trace!("try_resolve {:?}", self);
 
         self = self.resolve(scope);
 
         match &self {
-            Self::Name { .. } | Self::Instance(_) => {
-                log::trace!("Inserting new shared usage");
+            Self::Name { .. } | Self::Instance { .. } => {
+                log::trace!("Inserting new shared usage into scope");
                 let shared = Self::Shared(Rc::new(RefCell::new(self)));
                 scope.usages.borrow_mut().push(shared.clone());
                 shared
             }
             Self::Shared(_) => {
-                log::trace!("Reinserting already shared usage");
+                log::trace!("Re-inserting shared usage into scope (remains unresolved)");
                 scope.usages.borrow_mut().push(self.clone());
                 self
             }
@@ -115,11 +117,10 @@ impl ImlValue {
     /**
     Internal resolving function, which returns the resolved value of an ImlValue, when possible.
 
-    - ImlValue::Shared are being followed
+    - ImlValue::Shared are being followed and the innerst ImlValue is returned, either
+      - by substituting the share when the share is on its own
+      - returning a clone of the inner value, to keep the shares in place.
     - ImlValue::Name are being resolved by the compiler's symbol table
-    - ImlValue::Instance are being recursively resolved to produce an ImlValue::Parselet
-
-    Returns Some(value) with the resolved value on success, None otherwise.
     */
     fn resolve(self, scope: &Scope) -> ImlValue {
         match self {
@@ -146,12 +147,29 @@ impl ImlValue {
                 log::trace!("resolving name {:?} to {:?}", name, found);
                 found.unwrap_or(self)
             }
-            Self::Instance(mut instance) => {
+            /*
+            Self::Instance(instance) => {
                 log::trace!("resolving instance");
                 log::trace!("  target = {:?}", instance.target);
                 log::trace!("  args = {:?}", instance.args);
                 log::trace!("  nargs = {:?}", instance.nargs);
 
+                instance.target = Box::new(instance.target.resolve(scope));
+                instance.args = instance
+                    .args
+                    .into_iter()
+                    .map(|(offset, arg)| (offset, arg.resolve(scope)))
+                    .collect();
+                instance.nargs = instance
+                    .nargs
+                    .into_iter()
+                    .map(|(name, (offset, narg))| (name, (offset, narg.resolve(scope))))
+                    .collect();
+
+                ImlValue::Instance(instance)
+            }
+            */
+            Self::Instance(mut instance) => {
                 let target = instance.target.resolve(scope);
 
                 if let ImlValue::Parselet(parselet) = &target {
@@ -251,7 +269,7 @@ impl ImlValue {
                         is_generated: instance.is_generated,
                     });
 
-                    log::trace!("instance {} created", parselet);
+                    log::info!("instance {} created", parselet);
 
                     return ImlValue::from(parselet);
                 }
@@ -263,7 +281,7 @@ impl ImlValue {
         }
     }
 
-    /// Conert ImlValue into RefValue
+    /// Convert ImlValue into RefValue
     pub fn unwrap(self) -> RefValue {
         match self {
             Self::Value(value) => value,
@@ -330,43 +348,6 @@ impl ImlValue {
         let start = ops.len();
 
         match self {
-            ImlValue::Shared(value) => {
-                return value.borrow().compile(program, current, offset, call, ops)
-            }
-            ImlValue::VoidToken => ops.push(Op::Next),
-            ImlValue::Value(value) => match &*value.borrow() {
-                Value::Void => ops.push(Op::PushVoid),
-                Value::Null => ops.push(Op::PushNull),
-                Value::True => ops.push(Op::PushTrue),
-                Value::False => ops.push(Op::PushFalse),
-                Value::Int(i) => match i.to_i32() {
-                    Some(0) => ops.push(Op::Push0),
-                    Some(1) => ops.push(Op::Push1),
-                    _ => {}
-                },
-                _ => {}
-            },
-            ImlValue::Variable {
-                addr, is_global, ..
-            } => {
-                if *is_global {
-                    ops.push(Op::LoadGlobal(*addr))
-                } else {
-                    ops.push(Op::LoadFast(*addr))
-                }
-            }
-            ImlValue::Generic { name, .. } => {
-                return current.0.borrow().generics[name]
-                    .as_ref()
-                    .unwrap()
-                    .compile(program, current, offset, call, ops)
-            }
-            ImlValue::SelfValue | ImlValue::SelfToken | ImlValue::Parselet(_) => {}
-            _ => unreachable!("{}", self),
-        }
-
-        /*
-            match self {
             Self::Shared(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
@@ -399,14 +380,18 @@ impl ImlValue {
                     ops.push(Op::LoadFast(*addr))
                 }
             }
+            Self::Instance(instance) => {
+                todo!();
+            }
             _ => unreachable!("{}", self),
         }
-        */
 
         // Check if something has been pushed before.
         if start == ops.len() {
             let idx = match self {
-                ImlValue::SelfValue | ImlValue::SelfToken => current.1, // use current index
+                ImlValue::SelfValue | ImlValue::SelfToken => {
+                    current.1 // use current index
+                }
                 ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
                     Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
                     Err(msg) => {
@@ -512,12 +497,8 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('p' as u8);
                 parselet.hash(state);
             }
-            /*
-            Self::This(consumable) => {
-                state.write_u8('s' as u8);
-                consumable.hash(state);
-            }
-            */
+            Self::SelfToken => state.write_u8('S' as u8),
+            Self::SelfValue => state.write_u8('s' as u8),
             other => unreachable!("{:?} is unhashable", other),
         }
     }
