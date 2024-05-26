@@ -234,7 +234,7 @@ impl ImlParselet {
 
             match value {
                 Some(ImlValue::SelfValue | ImlValue::SelfToken) => {
-                    // Replace any references of self by from
+                    // Replace any references on `Self` or `self` by from
                     *value = Some(ImlValue::Parselet(from.clone()));
                     changes = true;
                 }

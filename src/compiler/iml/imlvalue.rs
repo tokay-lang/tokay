@@ -370,7 +370,7 @@ impl ImlValue {
                 },
                 _ => { /* continue below! */ }
             },
-            Self::SelfValue | Self::SelfToken | Self::Parselet(_) => { /* continue below! */ }
+            Self::Parselet(_) => { /* continue below! */ }
             Self::Variable {
                 addr, is_global, ..
             } => {
@@ -389,9 +389,6 @@ impl ImlValue {
         // Check if something has been pushed before.
         if start == ops.len() {
             let idx = match self {
-                ImlValue::SelfValue | ImlValue::SelfToken => {
-                    current.1 // use current index
-                }
                 ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
                     Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
                     Err(msg) => {
@@ -497,8 +494,6 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('p' as u8);
                 parselet.hash(state);
             }
-            Self::SelfToken => state.write_u8('S' as u8),
-            Self::SelfValue => state.write_u8('s' as u8),
             other => unreachable!("{:?} is unhashable", other),
         }
     }
