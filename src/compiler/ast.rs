@@ -277,7 +277,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
             }
 
             // Create new parselet to construct
-            let parselet = ImlParselet::new(ImlParseletInstance::new(
+            let parselet = ImlRefParselet::new(ImlParselet::new(
                 Some(ImlParseletModel::new(Some(signature))),
                 Some(generics),
                 traverse_node_offset(node),
@@ -410,7 +410,7 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
     // Special case: Put a generic with an assignment name into its own parselet
     if emit == "value_generic" && assign.is_some() {
         // Handle anything else as an implicit parselet in its own scope
-        let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
+        let implicit_parselet = ImlRefParselet::new(ImlParselet::new(
             None,
             None,
             traverse_node_offset(node),
@@ -432,7 +432,7 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
         traverse_node_value(scope, node, assign).try_resolve(scope)
     } else {
         // Handle anything else as an implicit parselet in its own scope
-        let implicit_parselet = ImlParselet::new(ImlParseletInstance::new(
+        let implicit_parselet = ImlRefParselet::new(ImlParselet::new(
             None,
             None,
             traverse_node_offset(node),

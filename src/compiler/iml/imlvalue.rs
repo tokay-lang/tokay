@@ -38,7 +38,7 @@ pub(in crate::compiler) enum ImlValue {
     SelfToken,                     // Self-reference (consuming)
     VoidToken,                     // Void (consuming)
     Value(RefValue),               // Static value
-    Parselet(ImlParselet),         // Parselet
+    Parselet(ImlRefParselet),      // Parselet
     Instance(ImlInstance),         // Instance
     Variable {
         // Resolved variable
@@ -260,7 +260,7 @@ impl ImlValue {
                     // This can be the final parselet instance, but constants
                     // might contain generic references as well, which are being
                     // resolved during further compilation and derivation.
-                    let parselet = ImlParselet::new(ImlParseletInstance {
+                    let parselet = ImlRefParselet::new(ImlParselet {
                         model: parselet.model.clone(),
                         generics,
                         offset: instance.offset,
@@ -335,7 +335,7 @@ impl ImlValue {
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        current: (&ImlParselet, usize),
+        current: (&ImlRefParselet, usize),
         offset: &Option<Offset>,
         call: Option<Option<(usize, bool)>>,
         ops: &mut Vec<Op>,

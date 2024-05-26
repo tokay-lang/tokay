@@ -13,9 +13,9 @@ use indexmap::IndexMap;
 use std::cell::RefCell;
 
 pub(super) enum ScopeLevel {
-    Parselet(ImlParselet), // parselet level (refers to currently constructed parselet)
-    Block,                 // block level (constants can be defined here)
-    Loop,                  // loop level (allows the use of break & continue)
+    Parselet(ImlRefParselet), // parselet level (refers to currently constructed parselet)
+    Block,                    // block level (constants can be defined here)
+    Loop,                     // loop level (allows the use of break & continue)
 }
 
 pub(super) struct Scope<'compiler, 'parent> {
@@ -72,7 +72,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
         }
     }
 
-    pub fn parselet(&self) -> ImlParselet {
+    pub fn parselet(&self) -> ImlRefParselet {
         match &self.level {
             ScopeLevel::Parselet(parselet) => parselet.clone(),
             _ => self.parent.as_ref().unwrap().parselet(),

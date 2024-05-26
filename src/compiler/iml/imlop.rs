@@ -134,7 +134,7 @@ impl ImlOp {
     pub fn compile_to_vec(
         &self,
         program: &mut ImlProgram,
-        current: (&ImlParselet, usize),
+        current: (&ImlRefParselet, usize),
     ) -> Vec<Op> {
         let mut ops = Vec::new();
         self.compile(program, current, &mut ops);
@@ -145,7 +145,7 @@ impl ImlOp {
     pub fn compile(
         &self,
         program: &mut ImlProgram,
-        current: (&ImlParselet, usize),
+        current: (&ImlRefParselet, usize),
         ops: &mut Vec<Op>,
     ) -> usize {
         let start = ops.len();

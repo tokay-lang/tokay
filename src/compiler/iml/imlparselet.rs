@@ -93,28 +93,28 @@ impl ImlParseletModel {
     }
 }
 
-// ImlParseletInstance
+// ImlParselet
 // ----------------------------------------------------------------------------
 
-/** Intermediate parselet instance.
+/** Intermediate parselet.
 
-A parselet instance is a model with as given generics definition.
-The generics definition needs to be resolved first, before a parselet instance
-is turned into a executable parselet.
+An intermediate parselet is a parselet model with as given generics definition.
+The generics definition needs to be resolved first, before an intermediate parselet
+can be turned into a executable parselet.
 */
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(in crate::compiler) struct ImlParseletInstance {
+pub(in crate::compiler) struct ImlParselet {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
     pub generics: IndexMap<String, Option<ImlValue>>, // Generic signature with default configuration
     pub offset: Option<Offset>,                       // Offset of definition
     pub name: Option<String>,                         // Assigned name from source (for debugging)
     pub severity: u8,                                 // Capture push severity
-    pub is_generated: bool,                           // Flag if parselet instance is auto-generated
+    pub is_generated: bool,                           // Flag if parselet parselet is auto-generated
 }
 
-/** Representation of parselet instance in intermediate code. */
-impl ImlParseletInstance {
+/** Representation of parselet parselet in intermediate code. */
+impl ImlParselet {
     pub fn new(
         model: Option<ImlParseletModel>,
         generics: Option<IndexMap<String, Option<ImlValue>>>,
@@ -134,11 +134,11 @@ impl ImlParseletInstance {
     }
 
     pub fn id(&self) -> usize {
-        self as *const ImlParseletInstance as usize
+        self as *const ImlParselet as usize
     }
 }
 
-impl std::fmt::Display for ImlParseletInstance {
+impl std::fmt::Display for ImlParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -162,16 +162,16 @@ impl std::fmt::Display for ImlParseletInstance {
     }
 }
 
-impl std::cmp::PartialEq for ImlParseletInstance {
+impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self.model.borrow().id() == other.model.borrow().id() && self.generics == other.generics
     }
 }
 
-impl Eq for ImlParseletInstance {}
+impl Eq for ImlParselet {}
 
-impl std::hash::Hash for ImlParseletInstance {
+impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let model = &*self.model.borrow();
         (model as *const ImlParseletModel as usize).hash(state);
@@ -179,26 +179,26 @@ impl std::hash::Hash for ImlParseletInstance {
     }
 }
 
-impl std::cmp::PartialOrd for ImlParseletInstance {
+impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
     }
 }
 
-// ImlParselet
+// ImlRefParselet
 // ----------------------------------------------------------------------------
 
-/// Shared ImlParseletInstance
+/// Shared ImlParselet
 #[derive(Clone, Eq, PartialEq)]
-pub(in crate::compiler) struct ImlParselet {
-    instance: Rc<RefCell<ImlParseletInstance>>,
+pub(in crate::compiler) struct ImlRefParselet {
+    parselet: Rc<RefCell<ImlParselet>>,
 }
 
-impl ImlParselet {
-    pub fn new(parselet: ImlParseletInstance) -> Self {
+impl ImlRefParselet {
+    pub fn new(parselet: ImlParselet) -> Self {
         Self {
-            instance: Rc::new(RefCell::new(parselet)),
+            parselet: Rc::new(RefCell::new(parselet)),
         }
     }
 
@@ -217,9 +217,9 @@ impl ImlParselet {
     The function either returns a derived parselet in case it was derived, otherwise it returns
     a clone of itself.
     */
-    pub fn derive(&self, from: &ImlParselet) -> Result<Self, String> {
-        let instance = self.instance.borrow();
-        let mut generics = instance.generics.clone();
+    pub fn derive(&self, from: &ImlRefParselet) -> Result<Self, String> {
+        let parselet = self.parselet.borrow();
+        let mut generics = parselet.generics.clone();
         let mut changes = false;
         let mut required = Vec::new();
 
@@ -247,7 +247,7 @@ impl ImlParselet {
         if !required.is_empty() {
             return Err(format!(
                 "{} requires assignment of generic argument {}",
-                instance.name.as_deref().unwrap_or("__AnonymousParselet__"),
+                parselet.name.as_deref().unwrap_or("__AnonymousParselet__"),
                 required.join(", ")
             ));
         }
@@ -257,28 +257,28 @@ impl ImlParselet {
             return Ok(self.clone());
         }
 
-        Ok(Self::new(ImlParseletInstance {
-            model: instance.model.clone(),
+        Ok(Self::new(ImlParselet {
+            model: parselet.model.clone(),
             generics,
-            offset: instance.offset.clone(),
-            name: instance.name.clone(),
-            severity: instance.severity,
-            is_generated: instance.is_generated,
+            offset: parselet.offset.clone(),
+            name: parselet.name.clone(),
+            severity: parselet.severity,
+            is_generated: parselet.is_generated,
         }))
     }
 
     /** Compiles an intermediate parselet into a compiled VM parselet,
     which is part of the provided `program` and indexed by `this`. */
     pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
-        let instance = self.instance.borrow();
-        let model = instance.model.borrow();
+        let parselet = self.parselet.borrow();
+        let model = parselet.model.borrow();
 
-        log::debug!("compiling {}", instance);
+        log::debug!("compiling {}", parselet);
 
         Parselet::new(
-            Some(format!("{}", instance)),
+            Some(format!("{}", parselet)),
             None,
-            instance.severity,
+            parselet.severity,
             model
                 .signature
                 .iter()
@@ -302,15 +302,15 @@ impl ImlParselet {
     }
 }
 
-impl std::hash::Hash for ImlParselet {
+impl std::hash::Hash for ImlRefParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.instance.borrow().hash(state);
+        self.parselet.borrow().hash(state);
     }
 }
 
-impl std::fmt::Debug for ImlParselet {
+impl std::fmt::Debug for ImlRefParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.instance.borrow())
+        write!(f, "{}", self.parselet.borrow())
         // Avoid endless recursion in case of recursive parselets
         /*
         if self.0.try_borrow_mut().is_ok() {
@@ -322,28 +322,28 @@ impl std::fmt::Debug for ImlParselet {
     }
 }
 
-impl std::fmt::Display for ImlParselet {
+impl std::fmt::Display for ImlRefParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.instance.borrow())
+        write!(f, "{}", self.parselet.borrow())
     }
 }
 
-impl std::ops::Deref for ImlParselet {
-    type Target = Rc<RefCell<ImlParseletInstance>>;
+impl std::ops::Deref for ImlRefParselet {
+    type Target = Rc<RefCell<ImlParselet>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.instance
+        &self.parselet
     }
 }
 
-impl std::ops::DerefMut for ImlParselet {
+impl std::ops::DerefMut for ImlRefParselet {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.instance
+        &mut self.parselet
     }
 }
 
-impl From<ImlParselet> for ImlValue {
-    fn from(parselet: ImlParselet) -> Self {
+impl From<ImlRefParselet> for ImlValue {
+    fn from(parselet: ImlRefParselet) -> Self {
         ImlValue::Parselet(parselet)
     }
 }

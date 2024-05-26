@@ -82,7 +82,7 @@ impl Compiler {
         log::trace!("compile_from_ast");
 
         // Create main parselet from current main model
-        let main_parselet = ImlParselet::new(ImlParseletInstance::new(
+        let main_parselet = ImlRefParselet::new(ImlParselet::new(
             // TODO: Keep backward compatible: copy Compiler's main model into the main_parselet
             Some(self.main.clone()),
             None,
