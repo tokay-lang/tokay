@@ -110,7 +110,7 @@ pub(in crate::compiler) struct ImlParselet {
     pub offset: Option<Offset>,                       // Offset of definition
     pub name: Option<String>,                         // Assigned name from source (for debugging)
     pub severity: u8,                                 // Capture push severity
-    pub is_generated: bool,                           // Flag if parselet parselet is auto-generated
+    pub is_generated: bool,                           // Flag if parselet is auto-generated
 }
 
 /** Representation of parselet parselet in intermediate code. */

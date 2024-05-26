@@ -1,4 +1,4 @@
-//! ImlProgram glues ImlRefParselet, ImlOp and ImlValue together to produce a VM program.
+//! ImlProgram glues ImlParselet, ImlOp and ImlValue together to produce a VM program.
 
 use super::*;
 use crate::value::Parselet;
