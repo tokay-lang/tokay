@@ -268,8 +268,8 @@ impl ImlRefParselet {
     }
 
     /** Compiles an intermediate parselet into a compiled VM parselet,
-    which is part of the provided `program` and indexed by `this`. */
-    pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
+    which is part of the provided `program` and indexed by `index`. */
+    pub fn compile(&self, program: &mut ImlProgram, index: usize) -> Parselet {
         let parselet = self.parselet.borrow();
         let model = parselet.model.borrow();
 
@@ -295,9 +295,9 @@ impl ImlRefParselet {
                 })
                 .collect(),
             model.locals,
-            model.begin.compile_to_vec(program, (self, this)),
-            model.end.compile_to_vec(program, (self, this)),
-            model.body.compile_to_vec(program, (self, this)),
+            model.begin.compile_to_vec(program, (self, index)),
+            model.end.compile_to_vec(program, (self, index)),
+            model.body.compile_to_vec(program, (self, index)),
         )
     }
 }
