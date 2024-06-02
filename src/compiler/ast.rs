@@ -1120,7 +1120,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     scope.error(
                         traverse_node_offset(node),
                         format!(
-                            "Cannot assign constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
+                            "Cannot assign to constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
                             ident, &ident[0..1].to_uppercase(), &ident[1..]
                         )
                     );

@@ -19,6 +19,6 @@ _ : "abc"
 
 #---
 #ERR:Line 1, column 1: Cannot assign to constant 'Pi', because it must be consumable. Use an identifier starting in lower-case, e.g. 'pi'
-#ERR:Line 5, column 1: Cannot assign constant 'cident' as consumable. Use an identifier starting in upper-case, e.g. 'Cident'
+#ERR:Line 5, column 1: Cannot assign to constant 'cident' as consumable. Use an identifier starting in upper-case, e.g. 'Cident'
 #ERR:Line 12, column 1: Cannot assign to constant 'Factorial', because it must be consumable. Use an identifier starting in lower-case, e.g. 'factorial'
 #ERR:Line 18, column 1: Cannot assign to constant '_', because it must be consumable. Use an identifier not starting with '_'.

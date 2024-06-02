@@ -294,7 +294,7 @@ impl ImlValue {
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
             Self::Shared(value) => value.borrow().is_callable(without_arguments),
-            Self::SelfValue | Self::SelfToken => true, // fixme?
+            Self::SelfValue | Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
                 let parselet = parselet.borrow();
