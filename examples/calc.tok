@@ -6,7 +6,7 @@ _ : Char< \t>+                         # redefine whitespace to just tab and spa
 Factor : @{
     Float _                            # built-in 64-bit signed float token
     Int _                              # built-in 64-bit signed int token
-    '(' _ Expr expect ')' _
+    '(' _ Expr Expect<')'> _
 }
 
 Term : @{
@@ -22,7 +22,7 @@ Expr : @{
 }
 
 
-begin print("Tokay Calc" version)      # print at startup
+begin print("Tokay Calc " + version)   # print at startup
 
 Expr _ print("= " + $1)                # execute each expression
 'exit' exit                            # exit command
