@@ -185,7 +185,10 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
 }
 
 fn main() -> rustyline::Result<()> {
-    env_logger::init();
+    // TOKAY_LOG setting has precedes over RUST_LOG setting.
+    if std::env::var("TOKAY_LOG").is_err() {
+        env_logger::init();
+    }
 
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();

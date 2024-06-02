@@ -6,6 +6,7 @@ use crate::reader::*;
 use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
+use env_logger;
 use indexmap::{indexset, IndexMap, IndexSet};
 use log;
 use std::cell::RefCell;
@@ -182,6 +183,12 @@ impl Compiler {
             println!("--- Abstract Syntax Tree ---");
             ast::print(&ast);
             //println!("###\n{:#?}\n###", ast);
+        }
+
+        // When TOKAY_LOG is set, set RUST_LOG to the setting *after* internal compilations
+        if let Ok(log) = std::env::var("TOKAY_LOG") {
+            std::env::set_var("RUST_LOG", log.clone());
+            env_logger::init();
         }
 
         self.compile_from_ast(&ast, None)

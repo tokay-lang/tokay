@@ -380,7 +380,7 @@ impl ImlValue {
                     ops.push(Op::LoadFast(*addr))
                 }
             }
-            Self::Instance(instance) => {
+            Self::Instance(_instance) => {
                 todo!();
             }
             _ => unreachable!("{}", self),

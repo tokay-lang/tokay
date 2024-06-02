@@ -197,6 +197,40 @@ print(factorial(int(Number)))
 
 The Tokay homepage [tokay.dev](https://tokay.dev) provides links to a quick start and documentation. The documentation source code is maintained in a [separate repository](https://github.com/tokay-lang/tokay-docs).
 
+## Debugging
+
+For debugging, there are two methods to use.
+
+### Tracing using the `log`-crate
+
+For Rust standard trace, use the [`env_logger` facilities](https://docs.rs/env_logger/latest/env_logger/). Full trace is only compiled into debug executables, the release version only provides warning level and upwards.
+
+```
+$ RUST_LOG=tokay=debug tokay
+```
+
+Alternatively, tracing can be activated for the `__main__`-program by setting `TOKAY_LOG`. This is used to start tracing when the internal parser has been compiled and executed already, and parsed the actual program. `TOKAY_LOG` can be set to any `RUST_LOG`-compliant format, as it becomes `RUST_LOG` right after.
+
+```
+$ TOKAY_LOG=tokay=debug tokay
+```
+
+### Built-in AST and VM debugger using `TOKAY_DEBUG` and `TOKAY_PARSER_DEBUG`
+
+Set `TOKAY_DEBUG` to a debug level between 1-6. This can also be achieved using `tokay -dddd` where every `d` increments the debug level. Additionally, `TOKAY_INSPECT` can be set to one or a list of parselet name (-prefixes) which should be inspected in VM step-by-step trace (`TOKAY_DEBUG=6`).
+
+| Level | Mode                              |
+| ----- | --------------------------------- |
+| 0     | No debug                          |
+| 1     | Print constructed AST             |
+| 2     | Print final intermediate program  |
+| 3     | Print compiled VM program         |
+| 4     | Print VM execution trace          |
+| 5     | Print VM stack contents           |
+| 6     | VM opcode debugger                |
+
+`TOKAY_PARSER_DEBUG` sets the specific debug level for the parser, which is implemented in Tokay itself and is part of the compiler. Only levels > 2 can be recognized here, as the AST of the parser is built into the code.
+
 ## Logo
 
 The Tokay programming language is named after the [Tokay gecko (Gekko gecko)](https://en.wikipedia.org/wiki/Tokay_gecko) from Asia, shouting out "token" in the night.
