@@ -344,10 +344,8 @@ impl ImlValue {
             ops.push(Op::Offset(Box::new(*offset)));
         }
 
-        // Remember current ops start
-        let start = ops.len();
-
-        match self {
+        // First, try to push some Op for the value
+        let op = match self {
             Self::Shared(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
@@ -357,37 +355,47 @@ impl ImlValue {
                     .unwrap()
                     .compile(program, current, offset, call, ops)
             }
-            Self::VoidToken => ops.push(Op::Next),
+            Self::VoidToken => Some(Op::Next),
             Self::Value(value) => match &*value.borrow() {
-                Value::Void => ops.push(Op::PushVoid),
-                Value::Null => ops.push(Op::PushNull),
-                Value::True => ops.push(Op::PushTrue),
-                Value::False => ops.push(Op::PushFalse),
+                Value::Void => Some(Op::PushVoid),
+                Value::Null => Some(Op::PushNull),
+                Value::True => Some(Op::PushTrue),
+                Value::False => Some(Op::PushFalse),
                 Value::Int(i) => match i.to_i32() {
-                    Some(0) => ops.push(Op::Push0),
-                    Some(1) => ops.push(Op::Push1),
-                    _ => { /* continue below! */ }
+                    Some(0) => Some(Op::Push0),
+                    Some(1) => Some(Op::Push1),
+                    _ => None,
                 },
-                _ => { /* continue below! */ }
+                _ => None,
             },
-            Self::Parselet(_) => { /* continue below! */ }
             Self::Variable {
-                addr, is_global, ..
+                is_global, addr, ..
             } => {
                 if *is_global {
-                    ops.push(Op::LoadGlobal(*addr))
+                    Some(Op::LoadGlobal(*addr))
                 } else {
-                    ops.push(Op::LoadFast(*addr))
+                    Some(Op::LoadFast(*addr))
                 }
             }
-            Self::Instance(_instance) => {
-                todo!();
-            }
-            _ => unreachable!("{}", self),
-        }
+            _ => None,
+        };
 
         // Check if something has been pushed before.
-        if start == ops.len() {
+        if let Some(op) = op {
+            ops.push(op); // Push the op
+
+            match call {
+                // Load (already done previously)
+                None => {}
+                // Call or load
+                Some(None) => ops.push(Op::CallOrCopy),
+                // Call (qualified)
+                Some(Some((0, false))) => ops.push(Op::Call),
+                Some(Some((args, false))) => ops.push(Op::CallArg(args)),
+                Some(Some((args, true))) => ops.push(Op::CallArgNamed(args)),
+            }
+        } else {
+            // Register new static
             let idx = match self {
                 ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
                     Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
@@ -396,7 +404,8 @@ impl ImlValue {
                         return;
                     }
                 },
-                resolved => program.register(resolved),
+                ImlValue::Value(_) => program.register(self),
+                _ => unreachable!("Can't compile {:?}", self),
             };
 
             match call {
@@ -414,17 +423,6 @@ impl ImlValue {
                 Some(Some((0, false))) => ops.push(Op::CallStatic(idx)),
                 Some(Some((args, false))) => ops.push(Op::CallStaticArg(Box::new((idx, args)))),
                 Some(Some((args, true))) => ops.push(Op::CallStaticArgNamed(Box::new((idx, args)))),
-            }
-        } else {
-            match call {
-                // Load (already done previously)
-                None => {}
-                // Call or load
-                Some(None) => ops.push(Op::CallOrCopy),
-                // Call (qualified)
-                Some(Some((0, false))) => ops.push(Op::Call),
-                Some(Some((args, false))) => ops.push(Op::CallArg(args)),
-                Some(Some((args, true))) => ops.push(Op::CallArgNamed(args)),
             }
         }
     }
