@@ -1,6 +1,7 @@
 //! ImlProgram glues ImlParselet, ImlOp and ImlValue together to produce a VM program.
 
 use super::*;
+use crate::reader::Offset;
 use crate::value::Parselet;
 use crate::vm::Program;
 use crate::Error;
@@ -13,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 pub(in crate::compiler) struct ImlProgram {
     main: ImlValue,
     statics: IndexMap<ImlValue, Option<Parselet>>, // static values with optional final parselet replacement
-    pub errors: Vec<Error>, // errors collected during finalization (at least these are unresolved symbols)
+    errors: Vec<Error>,                            // errors collected during compilation
 }
 
 impl ImlProgram {
@@ -23,6 +24,11 @@ impl ImlProgram {
             statics: indexmap!(main => None),
             errors: Vec::new(),
         }
+    }
+
+    /// Push an Error to the programs's error log, with given offset and msg.
+    pub fn push_error(&mut self, offset: Option<Offset>, msg: String) {
+        self.errors.push(Error::new(offset, msg))
     }
 
     /** Registers an ImlValue in the ImlProgram's statics map and returns its index.

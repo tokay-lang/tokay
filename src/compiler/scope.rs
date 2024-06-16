@@ -178,7 +178,8 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
         }
     }
 
-    pub fn error(&self, offset: Option<Offset>, msg: String) {
+    /// Push an Error to the scope's error log, with given offset and msg.
+    pub fn push_error(&self, offset: Option<Offset>, msg: String) {
         self.errors.borrow_mut().push(Error::new(offset, msg))
     }
 }

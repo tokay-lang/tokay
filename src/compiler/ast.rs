@@ -96,7 +96,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
             let mut value = node["value"].to_string();
 
             if value.len() == 0 {
-                scope.error(
+                scope.push_error(
                     traverse_node_offset(node),
                     format!("Empty match not allowed"),
                 );
@@ -204,7 +204,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                             );
 
                             if utils::identifier_is_consumable(&name) && !default.is_consuming() {
-                                scope.error(
+                                scope.push_error(
                                     offset,
                                     format!(
                                         "Generic '{}' defines consumable, but '{}' is not consuming",
@@ -219,7 +219,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         };
 
                         if generics.insert(name.clone(), default).is_some() {
-                            scope.error(
+                            scope.push_error(
                                 offset,
                                 format!("Generic '{}' already defined in signature before", name),
                             );
@@ -230,7 +230,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
                         // Check for correct identifier semantics
                         if !first.is_lowercase() {
-                            scope.error(
+                            scope.push_error(
                                     traverse_node_offset(node),
                                     if first == '_' {
                                         format!(
@@ -265,7 +265,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                             )
                             .is_some()
                         {
-                            scope.error(
+                            scope.push_error(
                                 traverse_node_offset(node),
                                 format!("Argument '{}' already given in signature before", name),
                             );
@@ -320,7 +320,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                 match emit.object::<Str>().unwrap().as_str() {
                     "genarg" => {
                         if !nargs.is_empty() {
-                            scope.error(
+                            scope.push_error(
                                 traverse_node_offset(node),
                                 format!(
                                     "Sequencial generics need to be specified before named generics."
@@ -345,7 +345,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         let ident = ident.object::<Str>().unwrap().as_str();
 
                         if nargs.contains_key(ident) {
-                            scope.error(
+                            scope.push_error(
                                 traverse_node_offset(genarg),
                                 format!("Named generic '{}' provided more than once.", ident),
                             );
@@ -559,7 +559,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
                         }
                         // Check for not assigning to a constant (at any level)
                         Some(_) => {
-                            scope.error(
+                            scope.push_error(
                                 traverse_node_offset(node),
                                 format!("Cannot assign to constant '{}'", name),
                             );
@@ -569,7 +569,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
                         None => {
                             // Check if identifier is not a reserved word
                             if scope.compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
-                                scope.error(
+                                scope.push_error(
                                     traverse_node_offset(node),
                                     format!("Expected identifier, found reserved word '{}'", name),
                                 );
@@ -579,7 +579,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
 
                             // Check if identifier is not defining a consumable
                             if utils::identifier_is_consumable(name) {
-                                scope.error(
+                                scope.push_error(
                                     traverse_node_offset(node),
 
                                     if &name[0..1] == "_" {
@@ -601,7 +601,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
 
                             // When chained lvalue, name must be declared!
                             if children.len() > 1 {
-                                scope.error(
+                                scope.push_error(
                                     traverse_node_offset(node),
                                     format!(
                                         "Undeclared variable '{}', please define it first",
@@ -684,7 +684,7 @@ fn traverse_node_rvalue(scope: &Scope, node: &Dict, mode: Rvalue) -> ImlOp {
 
             // Check if identifier is not a reserved word
             if scope.compiler.restrict && RESERVED_KEYWORDS.contains(&name) {
-                scope.error(
+                scope.push_error(
                     offset,
                     format!("Expected identifier, found reserved word '{}'", name),
                 );
@@ -869,7 +869,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     }
                 }
             } else {
-                scope.error(
+                scope.push_error(
                     traverse_node_offset(node),
                     format!("'{}' may only be used in parselet scope", emit),
                 );
@@ -932,7 +932,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 match emit.object::<Str>().unwrap().as_str() {
                     "callarg" => {
                         if nargs > 0 {
-                            scope.error(
+                            scope.push_error(
                                 traverse_node_offset(node),
                                 format!(
                                     "Sequencial arguments need to be specified before named arguments."
@@ -1101,7 +1101,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
             if scope.compiler.restrict
                 && (RESERVED_KEYWORDS.contains(&ident) || RESERVED_TOKENS.contains(&ident))
             {
-                scope.error(
+                scope.push_error(
                     traverse_node_offset(node),
                     format!("Expected identifier, found reserved word '{}'", ident),
                 );
@@ -1117,7 +1117,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
             if value.is_consuming() {
                 if !utils::identifier_is_consumable(ident) {
-                    scope.error(
+                    scope.push_error(
                         traverse_node_offset(node),
                         format!(
                             "Cannot assign to constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
@@ -1128,7 +1128,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     return ImlOp::Nop;
                 }
             } else if utils::identifier_is_consumable(ident) {
-                scope.error(
+                scope.push_error(
                     traverse_node_offset(node),
                     if ident.starts_with("_") {
                         format!(
@@ -1203,7 +1203,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
             let op = match parts[1] {
                 "accept" | "break" | "exit" | "push" => {
                     if parts[1] == "break" && !scope.is_loop() {
-                        scope.error(
+                        scope.push_error(
                             traverse_node_offset(node),
                             format!("'break' cannot be used outside of a loop."),
                         );
@@ -1237,7 +1237,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                 "continue" => {
                     if !scope.is_loop() {
-                        scope.error(
+                        scope.push_error(
                             traverse_node_offset(node),
                             format!("'continue' cannot be used outside of a loop."),
                         );
@@ -1379,7 +1379,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                     /*
                     if !res.is_consuming() {
-                        scope.error(
+                        scope.push_error(
                             traverse_node_offset(node),
                             format!(
                                 "Operator '{}' has no effect on non-consuming {}",

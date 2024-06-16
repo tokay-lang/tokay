@@ -117,7 +117,8 @@ impl Compiler {
             // println!("usages = {:?}", global_scope.usages);
 
             for usage in global_scope.usages.borrow_mut().drain(..) {
-                global_scope.error(usage.offset(), format!("Use of undefined name '{}'", usage));
+                global_scope
+                    .push_error(usage.offset(), format!("Use of undefined name '{}'", usage));
             }
 
             // Break on error

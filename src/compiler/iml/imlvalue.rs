@@ -3,7 +3,6 @@ use super::*;
 use crate::reader::Offset;
 use crate::utils;
 use crate::value::{Object, RefValue, Value};
-use crate::Error;
 use indexmap::IndexMap;
 use log;
 use num::ToPrimitive;
@@ -196,7 +195,7 @@ impl ImlValue {
                         if let (offset, Some(value)) = &arg {
                             if value.is_consuming() {
                                 if !utils::identifier_is_consumable(name) {
-                                    scope.error(
+                                    scope.push_error(
                                         *offset,
                                         format!(
                                             "Cannot assign consumable {} to non-consumable generic '{}'",
@@ -205,7 +204,7 @@ impl ImlValue {
                                     );
                                 }
                             } else if utils::identifier_is_consumable(name) {
-                                scope.error(
+                                scope.push_error(
                                     *offset,
                                     format!(
                                         "Cannot assign non-consumable {} to consumable generic {} of {}",
@@ -214,8 +213,10 @@ impl ImlValue {
                                 );
                             }
                         } else {
-                            scope
-                                .error(arg.0, format!("Expecting argument for generic '{}'", name));
+                            scope.push_error(
+                                arg.0,
+                                format!("Expecting argument for generic '{}'", name),
+                            );
                         }
 
                         generics.insert(name.clone(), arg.1);
@@ -223,7 +224,7 @@ impl ImlValue {
 
                     // Report any errors for unconsumed generic arguments.
                     if !instance.args.is_empty() {
-                        scope.error(
+                        scope.push_error(
                             instance.args[0].0, // report first parameter
                             format!(
                                 "{} got too many generic arguments ({} given, {} expected)",
@@ -236,12 +237,12 @@ impl ImlValue {
 
                     for (name, (offset, _)) in instance.nargs {
                         if generics.get(&name).is_some() {
-                            scope.error(
+                            scope.push_error(
                                 offset,
                                 format!("{} already got generic argument '{}'", target, name),
                             );
                         } else {
-                            scope.error(
+                            scope.push_error(
                                 offset,
                                 format!(
                                     "{} does not accept generic argument named '{}'",
@@ -380,7 +381,7 @@ impl ImlValue {
             _ => None,
         };
 
-        // Check if something has been pushed before.
+        // Determine push or static load/call
         if let Some(op) = op {
             ops.push(op); // Push the op
 
@@ -400,7 +401,7 @@ impl ImlValue {
                 ImlValue::Parselet(parselet) => match parselet.derive(current.0) {
                     Ok(parselet) => program.register(&ImlValue::Parselet(parselet)),
                     Err(msg) => {
-                        program.errors.push(Error::new(offset.clone(), msg));
+                        program.push_error(offset.clone(), msg);
                         return;
                     }
                 },
