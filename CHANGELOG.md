@@ -4,6 +4,15 @@
 
 Current main branch.
 
+- v0.6.6:
+  - Improved and revised `list` and `dict` syntax
+    - `,` is now some kind of operator, denoting a list
+  - Implementation and use of `Keyword<P>`
+  - `Empty` and `Void` clarification
+  - Improved logging and debug
+  - Compiler internals
+    - New `Scope` struct
+    - More refactoring on `ImlValue`
 - v0.6.5: Implementation of generic parselets
   - Syntax changes
   - Handle parselet instances

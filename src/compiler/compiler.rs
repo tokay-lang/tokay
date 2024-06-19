@@ -181,7 +181,6 @@ impl Compiler {
         };
 
         if self.debug > 0 {
-            println!("--- Abstract Syntax Tree ---");
             ast::print(&ast);
             //println!("###\n{:#?}\n###", ast);
         }
