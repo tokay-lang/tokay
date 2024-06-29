@@ -5,7 +5,7 @@ _ : Char< \t>+                         # redefine whitespace to just tab and spa
 
 Factor : @{
     Float _                            # built-in 64-bit signed float token
-    Int _                              # built-in 64-bit signed int token
+    Int _                              # built-in bigint token
     '(' _ Expr Expect<')'> _
 }
 
