@@ -1,6 +1,6 @@
 
 Token
 #---
-#The tokay gecko reaches a length of 25-30 cm on average.
+#The Tokay gecko reaches a length of 25-30 cm on average. 1 + 23.5 * -4 + 5
 #---
-#("The", "tokay", "gecko", "reaches", "a", "length", "of", 25, -30, "cm", "on", "average", ".")
+#("The", "Tokay", "gecko", "reaches", "a", "length", "of", 25, "-", 30, "cm", "on", "average", ".", 1, "+", 23.5, "*", "-", 4, "+", 5)

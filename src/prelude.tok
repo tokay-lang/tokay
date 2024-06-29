@@ -97,4 +97,4 @@ Keyword : @<P> {
 Number : Float | Int
 
 # Parse any token, which is just no whitespace in default terms.
-Token : Word | Number | AsciiPunctuation
+Token : AsciiPunctuation | Word | Number

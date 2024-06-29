@@ -1119,15 +1119,15 @@ impl Compiler {
                                             (value!([
                                                 (value!([
                                                     "emit" => "identifier",
+                                                    "value" => "AsciiPunctuation"
+                                                ])),
+                                                (value!([
+                                                    "emit" => "identifier",
                                                     "value" => "Word"
                                                 ])),
                                                 (value!([
                                                     "emit" => "identifier",
                                                     "value" => "Number"
-                                                ])),
-                                                (value!([
-                                                    "emit" => "identifier",
-                                                    "value" => "AsciiPunctuation"
                                                 ]))
                                             ]))
                                     ]))
