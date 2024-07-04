@@ -21,15 +21,18 @@
 
 Tokay is a programming language designed for ad-hoc parsing.
 
-> Tokay is under development and not considered for production use yet; Be part of Tokay's ongoing development, and [contribute](CONTRIBUTING.md)!
+> [!IMPORTANT]
+> Tokay is under development and not considered for production use yet.
+> Be part of Tokay's ongoing development, and [contribute](CONTRIBUTING.md)!
+>
 
 ## About
 
-Tokay is intended to be a programming language that can be used to quickly implement solutions for text processing problems. This can involve either simple data extractions, but also the parsing of syntactical structures or parts thereof and the conversion of information into structured parse trees or abstract syntax trees for further processing.
+Tokay is intended to become a programming language that can be used to quickly implement solutions for text processing problems. This can involve either simple data extractions, but also the parsing of syntactical structures or parts thereof and the conversion of information into structured parse trees or abstract syntax trees for further processing.
 
-Therefore, Tokay is not only a practical tool for simple one-liners like matchers or recognizers, but also a language that can be used to implement code analyzers, refactoring tools, interpreters, compilers or transpilers. Actually [Tokay's own language parser](src/compiler/tokay.tok) is implemented in Tokay itself.
+Therefore, Tokay is becoming not only a practical tool for simple one-liners like matchers or recognizers, but also a language that can be used to implement code analyzers, refactoring tools, interpreters, compilers or transpilers. Actually [Tokay's own language parser](src/compiler/tokay.tok) is implemented in Tokay itself.
 
-Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), has syntactic and semantic flavours of [Python](https://www.python.org/) and [Rust](https://www.rust-lang.org/), but also follows its own philosophy, ideas and design principles. Thus, it isn't directly compareable to other languages or projects, and stands on its own.
+Tokay is inspired by [awk](https://en.wikipedia.org/wiki/AWK), has syntactic and semantic flavours from [Python](https://www.python.org/) and [Rust](https://www.rust-lang.org/), but also follows its own philosophy, ideas and design principles. Thus, Tokay isn't directly compareable to other languages or projects, and stands on its own. It's an entirely new programming language.
 
 Tokay is still a very young project and gains much potential. [Volunteers are welcome!](CONTRIBUTING.md)
 
