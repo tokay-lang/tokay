@@ -34,6 +34,7 @@ pub(in crate::compiler) struct ImlParseletModel {
 impl ImlParseletModel {
     pub fn new(signature: Option<IndexMap<String, Option<ImlValue>>>) -> Self {
         let signature = signature.unwrap_or(IndexMap::new());
+
         // Generate variables from signature, addresses are enumerated!
         let variables = signature
             .keys()
@@ -66,7 +67,7 @@ impl ImlParseletModel {
     }
 
     /// Declare new or return address of named variables
-    pub fn get_named(&mut self, name: &str) -> usize {
+    pub fn var(&mut self, name: &str) -> usize {
         match self.variables.get(name) {
             Some(addr) => *addr,
             None => {
@@ -80,7 +81,7 @@ impl ImlParseletModel {
     /// Claim temporary (unnamed) variable.
     /// The variable is either being reused or freshly allocated.
     /// After use of the temporary address, return_temporary should be called.
-    pub fn claim_temp(&mut self) -> usize {
+    pub fn temp(&mut self) -> usize {
         match self.temporaries.pop() {
             Some(addr) => addr,
             None => self.allocate(),
@@ -88,7 +89,7 @@ impl ImlParseletModel {
     }
 
     // Returns a temporary variable address for (eventual) reuse later.
-    pub fn return_temp(&mut self, addr: usize) {
+    pub fn untemp(&mut self, addr: usize) {
         self.temporaries.push(addr)
     }
 }
@@ -246,7 +247,7 @@ impl ImlRefParselet {
         // Check for accepted constant configuration
         if !required.is_empty() {
             return Err(format!(
-                "{} requires assignment of generic argument {}",
+                "'{}' requires assignment of generic argument '{}'",
                 parselet.name.as_deref().unwrap_or("__AnonymousParselet__"),
                 required.join(", ")
             ));

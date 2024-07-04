@@ -80,7 +80,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
     }
 
     pub fn register_variable(&self, name: &str) {
-        self.parselet().borrow().model.borrow_mut().get_named(name);
+        self.parselet().borrow().model.borrow_mut().var(name);
     }
 
     /** Define constant to name in current scope. */

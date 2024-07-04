@@ -172,6 +172,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
 
         // Parselets
         "value_parselet" => {
+            // Construct generics and signature
             let mut generics = IndexMap::new();
             let mut signature = IndexMap::new();
 
@@ -225,7 +226,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                             );
                         }
                     }
-                    "arg" => {
+                    "sig" => {
                         let first = name.chars().nth(0).unwrap();
 
                         // Check for correct identifier semantics
@@ -277,7 +278,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
             }
 
             // Create new parselet to construct
-            let parselet = ImlRefParselet::new(ImlParselet::new(
+            let new_parselet = ImlRefParselet::new(ImlParselet::new(
                 Some(ImlParseletModel::new(Some(signature))),
                 Some(generics),
                 traverse_node_offset(node),
@@ -286,19 +287,18 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                 false,
             ));
 
+            // Push new parselet scope
+            let scope = &scope.shadow(ScopeLevel::Parselet(new_parselet.clone()));
+
+            // Traverse the model's body
             let body = body.borrow();
-            traverse_node_rvalue(
-                // Push new parselet scope
-                &scope.shadow(ScopeLevel::Parselet(parselet.clone())),
-                body.object::<Dict>().unwrap(),
-                Rvalue::CallOrLoad,
-            );
+            traverse_node_rvalue(&scope, body.object::<Dict>().unwrap(), Rvalue::CallOrLoad);
 
             //println!("parselet = {:#?}", parselet);
-            ImlValue::from(parselet)
+            ImlValue::from(new_parselet)
         }
 
-        "value_generic" => {
+        "value_instance" => {
             let children = List::from(&node["children"]);
 
             // Traverse the target
@@ -318,7 +318,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                 let emit = genarg["emit"].borrow();
 
                 match emit.object::<Str>().unwrap().as_str() {
-                    "genarg" => {
+                    "instarg" => {
                         if !nargs.is_empty() {
                             scope.push_error(
                                 traverse_node_offset(node),
@@ -336,7 +336,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                         args.push((offset, traverse_node_static(scope, None, param)));
                     }
 
-                    "genarg_named" => {
+                    "instarg_named" => {
                         let children = List::from(&genarg["children"]);
 
                         let ident = children[0].borrow();
@@ -1521,7 +1521,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     let iter_expr = iter_expr.object::<Dict>().unwrap();
                     let body = body.object::<Dict>().unwrap();
 
-                    let temp = scope.parselet().borrow().model.borrow_mut().claim_temp();
+                    let temp = scope.parselet().borrow().model.borrow_mut().temp();
 
                     // Create an iter() on the iter expression
                     let initial = ImlOp::from(vec![
@@ -1560,12 +1560,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                         traverse_node_rvalue(&scope.shadow(ScopeLevel::Loop), body, Rvalue::Load);
 
                     // Give temp variable back for possible reuse.
-                    scope
-                        .parselet()
-                        .borrow()
-                        .model
-                        .borrow_mut()
-                        .return_temp(temp);
+                    scope.parselet().borrow().model.borrow_mut().untemp(temp);
 
                     ImlOp::Loop {
                         use_iterator: true,

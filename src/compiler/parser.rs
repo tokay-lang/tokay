@@ -218,7 +218,7 @@ impl Parser {
                                                             "emit" => "op_accept",
                                                             "children" =>
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -226,7 +226,7 @@ impl Parser {
                                                                                 "value" => "Peek"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
@@ -240,7 +240,7 @@ impl Parser {
                                                             "emit" => "op_accept",
                                                             "children" =>
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -248,7 +248,7 @@ impl Parser {
                                                                                 "value" => "Peek"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "identifier",
@@ -1251,7 +1251,7 @@ impl Parser {
                                                                         ]))
                                                                 ])),
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -1259,7 +1259,7 @@ impl Parser {
                                                                                 "value" => "Expect"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
@@ -1397,7 +1397,7 @@ impl Parser {
                                                                         ]))
                                                                 ])),
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -1405,7 +1405,7 @@ impl Parser {
                                                                                 "value" => "Expect"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
@@ -2242,7 +2242,7 @@ impl Parser {
                                                                         "value" => "++"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -2250,7 +2250,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -2288,7 +2288,7 @@ impl Parser {
                                                                         "value" => "--"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -2296,7 +2296,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -2381,7 +2381,7 @@ impl Parser {
                                                                         ]))
                                                                 ])),
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -2389,7 +2389,7 @@ impl Parser {
                                                                                 "value" => "Expect"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "call",
@@ -2478,7 +2478,7 @@ impl Parser {
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "value_generic",
+                                                                                        "emit" => "value_instance",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 (value!([
@@ -2486,7 +2486,7 @@ impl Parser {
                                                                                                     "value" => "Expect"
                                                                                                 ])),
                                                                                                 (value!([
-                                                                                                    "emit" => "genarg",
+                                                                                                    "emit" => "instarg",
                                                                                                     "children" =>
                                                                                                         (value!([
                                                                                                             "emit" => "identifier",
@@ -2597,7 +2597,7 @@ impl Parser {
                                                                     "value" => "___"
                                                                 ])),
                                                                 (value!([
-                                                                    "emit" => "value_generic",
+                                                                    "emit" => "value_instance",
                                                                     "children" =>
                                                                         (value!([
                                                                             (value!([
@@ -2605,7 +2605,7 @@ impl Parser {
                                                                                 "value" => "Expect"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "genarg",
+                                                                                "emit" => "instarg",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "value_token_touch",
@@ -2670,7 +2670,7 @@ impl Parser {
                                                                                         "value" => "_"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "value_generic",
+                                                                                        "emit" => "value_instance",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 (value!([
@@ -2678,7 +2678,7 @@ impl Parser {
                                                                                                     "value" => "Expect"
                                                                                                 ])),
                                                                                                 (value!([
-                                                                                                    "emit" => "genarg",
+                                                                                                    "emit" => "instarg",
                                                                                                     "children" =>
                                                                                                         (value!([
                                                                                                             "emit" => "identifier",
@@ -2703,7 +2703,7 @@ impl Parser {
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         "emit" => "value_string",
-                                                                                        "value" => "arg"
+                                                                                        "value" => "sig"
                                                                                     ]))
                                                                             ]))
                                                                         ]))
@@ -2824,7 +2824,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -2832,7 +2832,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -2858,7 +2858,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "genarg_named"
+                                                                                            "value" => "instarg_named"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -2890,7 +2890,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "genarg"
+                                                                                            "value" => "instarg"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -2970,7 +2970,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -2978,7 +2978,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -3000,7 +3000,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_string",
-                                                                                            "value" => "value_generic"
+                                                                                            "value" => "value_instance"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
@@ -3029,7 +3029,7 @@ impl Parser {
                                         "children" =>
                                             (value!([
                                                 (value!([
-                                                    "emit" => "value_generic",
+                                                    "emit" => "value_instance",
                                                     "children" =>
                                                         (value!([
                                                             (value!([
@@ -3037,7 +3037,7 @@ impl Parser {
                                                                 "value" => "Assignment"
                                                             ])),
                                                             (value!([
-                                                                "emit" => "genarg",
+                                                                "emit" => "instarg",
                                                                 "children" =>
                                                                     (value!([
                                                                         "emit" => "identifier",
@@ -3094,7 +3094,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -3102,7 +3102,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -3148,7 +3148,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -3156,7 +3156,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -3427,7 +3427,7 @@ impl Parser {
                                                                                             "value" => "___"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "value_generic",
+                                                                                            "emit" => "value_instance",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -3435,7 +3435,7 @@ impl Parser {
                                                                                                         "value" => "Expect"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "genarg",
+                                                                                                        "emit" => "instarg",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "identifier",
@@ -3662,7 +3662,7 @@ impl Parser {
                                                                         "value" => "="
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -3670,7 +3670,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -3698,7 +3698,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -3706,7 +3706,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -3795,7 +3795,7 @@ impl Parser {
                                                                                 "value" => "CallArgument"
                                                                             ])),
                                                                             (value!([
-                                                                                "emit" => "value_generic",
+                                                                                "emit" => "value_instance",
                                                                                 "children" =>
                                                                                     (value!([
                                                                                         (value!([
@@ -3803,7 +3803,7 @@ impl Parser {
                                                                                             "value" => "Repeat"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "genarg",
+                                                                                            "emit" => "instarg",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     "emit" => "sequence",
@@ -3835,7 +3835,7 @@ impl Parser {
                                                                                                 ]))
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "genarg_named",
+                                                                                            "emit" => "instarg_named",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -3849,7 +3849,7 @@ impl Parser {
                                                                                                 ]))
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "genarg_named",
+                                                                                            "emit" => "instarg_named",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -3977,7 +3977,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -3985,7 +3985,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4031,7 +4031,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4039,7 +4039,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4073,7 +4073,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4081,7 +4081,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4127,7 +4127,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4135,7 +4135,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4169,7 +4169,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4177,7 +4177,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4211,7 +4211,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4219,7 +4219,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4343,7 +4343,7 @@ impl Parser {
                                                                         "value" => "___"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4351,7 +4351,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4405,7 +4405,7 @@ impl Parser {
                                                                         "value" => "___"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4413,7 +4413,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4483,7 +4483,7 @@ impl Parser {
                                                                         "value" => "___"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4491,7 +4491,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4669,7 +4669,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4677,7 +4677,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4715,7 +4715,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4723,7 +4723,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4761,7 +4761,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4769,7 +4769,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4807,7 +4807,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4815,7 +4815,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4853,7 +4853,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4861,7 +4861,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4963,7 +4963,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4971,7 +4971,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -4985,7 +4985,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -4993,7 +4993,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5007,7 +5007,7 @@ impl Parser {
                                                                         "value" => "___"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5015,7 +5015,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5036,7 +5036,7 @@ impl Parser {
                                                                                             "value" => "___"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "value_generic",
+                                                                                            "emit" => "value_instance",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -5044,7 +5044,7 @@ impl Parser {
                                                                                                         "value" => "Keyword"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "genarg",
+                                                                                                        "emit" => "instarg",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "value_token_touch",
@@ -5062,7 +5062,7 @@ impl Parser {
                                                                                             "value" => "___"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "value_generic",
+                                                                                            "emit" => "value_instance",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -5070,7 +5070,7 @@ impl Parser {
                                                                                                         "value" => "Expect"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "genarg",
+                                                                                                        "emit" => "instarg",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "identifier",
@@ -5107,7 +5107,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5115,7 +5115,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -5129,7 +5129,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5137,7 +5137,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5147,7 +5147,7 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5155,10 +5155,10 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
-                                                                                            "emit" => "value_generic",
+                                                                                            "emit" => "value_instance",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -5166,7 +5166,7 @@ impl Parser {
                                                                                                         "value" => "Expect"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "genarg",
+                                                                                                        "emit" => "instarg",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "value_token_touch",
@@ -5183,7 +5183,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5191,7 +5191,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5205,7 +5205,7 @@ impl Parser {
                                                                         "value" => "___"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5213,7 +5213,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5247,7 +5247,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5255,7 +5255,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -5305,7 +5305,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5313,7 +5313,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -5327,7 +5327,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5335,7 +5335,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5417,7 +5417,7 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5425,7 +5425,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -5533,7 +5533,7 @@ impl Parser {
                                                                         "value" => "-"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5541,7 +5541,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -5697,7 +5697,7 @@ impl Parser {
                                                                         "value" => "*"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5705,7 +5705,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -5727,7 +5727,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5735,7 +5735,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5777,7 +5777,7 @@ impl Parser {
                                                                         "value" => "//"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5785,7 +5785,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -5807,7 +5807,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5815,7 +5815,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5857,7 +5857,7 @@ impl Parser {
                                                                         "value" => "/"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5865,7 +5865,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -5887,7 +5887,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5895,7 +5895,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -5937,7 +5937,7 @@ impl Parser {
                                                                         "value" => "%"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5945,7 +5945,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -5967,7 +5967,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -5975,7 +5975,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -6041,7 +6041,7 @@ impl Parser {
                                                                         "value" => "+"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6049,7 +6049,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -6077,7 +6077,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6085,7 +6085,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -6127,7 +6127,7 @@ impl Parser {
                                                                         "value" => "-"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6135,7 +6135,7 @@ impl Parser {
                                                                                     "value" => "Not"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_ccl",
@@ -6163,7 +6163,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6171,7 +6171,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -6252,7 +6252,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6260,7 +6260,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6302,7 +6302,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6310,7 +6310,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6352,7 +6352,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6360,7 +6360,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6402,7 +6402,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6410,7 +6410,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6452,7 +6452,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6460,7 +6460,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6502,7 +6502,7 @@ impl Parser {
                                                                                                         "value" => "_"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "value_generic",
+                                                                                                        "emit" => "value_instance",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 (value!([
@@ -6510,7 +6510,7 @@ impl Parser {
                                                                                                                     "value" => "Expect"
                                                                                                                 ])),
                                                                                                                 (value!([
-                                                                                                                    "emit" => "genarg",
+                                                                                                                    "emit" => "instarg",
                                                                                                                     "children" =>
                                                                                                                         (value!([
                                                                                                                             "emit" => "identifier",
@@ -6603,7 +6603,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6611,7 +6611,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -6681,7 +6681,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -6689,7 +6689,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -6900,7 +6900,7 @@ impl Parser {
                                                         ]))
                                                 ])),
                                                 (value!([
-                                                    "emit" => "arg",
+                                                    "emit" => "sig",
                                                     "children" =>
                                                         (value!([
                                                             (value!([
@@ -6938,7 +6938,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -6946,7 +6946,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7005,7 +7005,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7013,7 +7013,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7072,7 +7072,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7080,7 +7080,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7139,7 +7139,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7147,7 +7147,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7206,7 +7206,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7214,7 +7214,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7273,7 +7273,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7281,7 +7281,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7336,7 +7336,7 @@ impl Parser {
                                                                             "value" => "="
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7344,7 +7344,7 @@ impl Parser {
                                                                                         "value" => "Not"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_ccl",
@@ -7372,7 +7372,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -7380,7 +7380,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_self"
@@ -7448,7 +7448,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7456,7 +7456,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7502,7 +7502,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7510,7 +7510,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7556,7 +7556,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7564,7 +7564,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7610,7 +7610,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7618,7 +7618,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7664,7 +7664,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7672,7 +7672,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7710,7 +7710,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7718,7 +7718,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7764,7 +7764,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7772,7 +7772,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7810,7 +7810,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7818,7 +7818,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7856,7 +7856,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7864,7 +7864,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7902,7 +7902,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7910,7 +7910,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -7956,7 +7956,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -7964,7 +7964,7 @@ impl Parser {
                                                                                     "value" => "Assignment"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8001,7 +8001,7 @@ impl Parser {
                                         "children" =>
                                             (value!([
                                                 (value!([
-                                                    "emit" => "arg",
+                                                    "emit" => "sig",
                                                     "children" =>
                                                         (value!([
                                                             (value!([
@@ -8083,7 +8083,7 @@ impl Parser {
                                                                             "value" => "_"
                                                                         ])),
                                                                         (value!([
-                                                                            "emit" => "value_generic",
+                                                                            "emit" => "value_instance",
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
@@ -8091,7 +8091,7 @@ impl Parser {
                                                                                         "value" => "Expect"
                                                                                     ])),
                                                                                     (value!([
-                                                                                        "emit" => "genarg",
+                                                                                        "emit" => "instarg",
                                                                                         "children" =>
                                                                                             (value!([
                                                                                                 "emit" => "value_token_touch",
@@ -8162,7 +8162,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8170,7 +8170,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8216,7 +8216,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8224,7 +8224,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8477,7 +8477,7 @@ impl Parser {
                                                                                             "value" => "_"
                                                                                         ])),
                                                                                         (value!([
-                                                                                            "emit" => "value_generic",
+                                                                                            "emit" => "value_instance",
                                                                                             "children" =>
                                                                                                 (value!([
                                                                                                     (value!([
@@ -8485,7 +8485,7 @@ impl Parser {
                                                                                                         "value" => "Expect"
                                                                                                     ])),
                                                                                                     (value!([
-                                                                                                        "emit" => "genarg",
+                                                                                                        "emit" => "instarg",
                                                                                                         "children" =>
                                                                                                             (value!([
                                                                                                                 "emit" => "identifier",
@@ -8550,7 +8550,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8558,7 +8558,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -8572,7 +8572,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8580,7 +8580,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8590,7 +8590,7 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8598,7 +8598,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8632,7 +8632,7 @@ impl Parser {
                                                             "children" =>
                                                                 (value!([
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8640,7 +8640,7 @@ impl Parser {
                                                                                     "value" => "Keyword"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "value_token_touch",
@@ -8654,7 +8654,7 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8662,7 +8662,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8672,7 +8672,7 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8680,7 +8680,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8746,7 +8746,7 @@ impl Parser {
                                                                                                 "value" => "_"
                                                                                             ])),
                                                                                             (value!([
-                                                                                                "emit" => "value_generic",
+                                                                                                "emit" => "value_instance",
                                                                                                 "children" =>
                                                                                                     (value!([
                                                                                                         (value!([
@@ -8754,7 +8754,7 @@ impl Parser {
                                                                                                             "value" => "Peek"
                                                                                                         ])),
                                                                                                         (value!([
-                                                                                                            "emit" => "genarg",
+                                                                                                            "emit" => "instarg",
                                                                                                             "children" =>
                                                                                                                 (value!([
                                                                                                                     "emit" => "identifier",
@@ -8778,7 +8778,7 @@ impl Parser {
                                                                                                 "value" => "_"
                                                                                             ])),
                                                                                             (value!([
-                                                                                                "emit" => "value_generic",
+                                                                                                "emit" => "value_instance",
                                                                                                 "children" =>
                                                                                                     (value!([
                                                                                                         (value!([
@@ -8786,7 +8786,7 @@ impl Parser {
                                                                                                             "value" => "Peek"
                                                                                                         ])),
                                                                                                         (value!([
-                                                                                                            "emit" => "genarg",
+                                                                                                            "emit" => "instarg",
                                                                                                             "children" =>
                                                                                                                 (value!([
                                                                                                                     "emit" => "identifier",
@@ -8804,7 +8804,7 @@ impl Parser {
                                                                             ]))
                                                                     ])),
                                                                     (value!([
-                                                                        "emit" => "value_generic",
+                                                                        "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
                                                                                 (value!([
@@ -8812,7 +8812,7 @@ impl Parser {
                                                                                     "value" => "Expect"
                                                                                 ])),
                                                                                 (value!([
-                                                                                    "emit" => "genarg",
+                                                                                    "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
@@ -8881,7 +8881,7 @@ impl Parser {
                                             ]))
                                     ])),
                                     (value!([
-                                        "emit" => "value_generic",
+                                        "emit" => "value_instance",
                                         "children" =>
                                             (value!([
                                                 (value!([
@@ -8889,7 +8889,7 @@ impl Parser {
                                                     "value" => "Expect"
                                                 ])),
                                                 (value!([
-                                                    "emit" => "genarg",
+                                                    "emit" => "instarg",
                                                     "children" =>
                                                         (value!([
                                                             "emit" => "identifier",

@@ -177,7 +177,7 @@ ParseletGenerics : @{
 ## Parselet: Arguments
 
 ParseletArgument : @{
-    T_Identifier _ ('=' _ Expect<Expression>)?  ast("arg")
+    T_Identifier _ ('=' _ Expect<Expression>)?  ast("sig")
 }
 
 ParseletArguments : @{
@@ -189,12 +189,12 @@ ParseletArguments : @{
 StaticParseletInstance : T_Consumable | Parselet
 
 ParseletInstanceArgument : @{
-    T_Identifier _ ':' _ Expect<Atomic> _  ast("genarg_named")
-    Atomic _  ast("genarg")
+    T_Identifier _ ':' _ Expect<Atomic> _  ast("instarg_named")
+    Atomic _  ast("instarg")
 }
 
 ParseletInstance : @{
-    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ Expect<'>'>  ast("value_generic")
+    StaticParseletInstance '<' _ (ParseletInstanceArgument (',' _)?)+ _ Expect<'>'>  ast("value_instance")
     StaticParseletInstance
 }
 
