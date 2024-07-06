@@ -491,7 +491,7 @@ impl std::hash::Hash for ImlValue {
             }
             Self::Parselet(parselet) => {
                 state.write_u8('p' as u8);
-                parselet.hash(state);
+                parselet.borrow().id().hash(state);
             }
             other => unreachable!("{:?} is unhashable", other),
         }
