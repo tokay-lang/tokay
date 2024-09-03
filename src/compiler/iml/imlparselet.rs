@@ -174,6 +174,7 @@ impl Eq for ImlParselet {}
 
 impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash is generated from the model and the generics configuration
         let model = &*self.model.borrow();
         (model as *const ImlParseletModel as usize).hash(state);
         self.generics.iter().collect::<Vec<_>>().hash(state);
@@ -198,9 +199,20 @@ pub(in crate::compiler) struct ImlRefParselet {
 
 impl ImlRefParselet {
     pub fn new(parselet: ImlParselet) -> Self {
-        Self {
+        let parselet = Self {
             parselet: Rc::new(RefCell::new(parselet)),
+        };
+
+        /*
+        // Replace any Self-default to this parselet-ref
+        for default in parselet.borrow_mut().generics.values_mut() {
+            if let Some(ImlValue::SelfToken | ImlValue::SelfValue) = default {
+                *default = Some(ImlValue::Parselet(parselet.clone()))
+            }
         }
+        */
+
+        parselet
     }
 
     /** Derives an intermediate parselet by another intermediate parselet (`from`).
@@ -220,11 +232,17 @@ impl ImlRefParselet {
     */
     pub fn derive(&self, from: &ImlRefParselet) -> Result<Self, String> {
         let parselet = self.parselet.borrow();
+
+        // Fast track
+        if parselet.generics.is_empty() {
+            return Ok(self.clone());
+        }
+
         let mut generics = parselet.generics.clone();
         let mut changes = false;
         let mut required = Vec::new();
 
-        log::info!("Deriving {} from {}", self, from);
+        log::debug!("  deriving {} from {}", self, from);
 
         for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open
@@ -255,17 +273,34 @@ impl ImlRefParselet {
 
         // When there is no change, there is no derivation
         if !changes {
+            log::debug!("  no derivation");
+            // log::warn!("  {} => {}", self, self);
             return Ok(self.clone());
         }
 
-        Ok(Self::new(ImlParselet {
+        // Create new derivative parselet
+        let derived = Self::new(ImlParselet {
             model: parselet.model.clone(),
             generics,
             offset: parselet.offset.clone(),
             name: parselet.name.clone(),
             severity: parselet.severity,
             is_generated: parselet.is_generated,
-        }))
+        });
+
+        /*
+        // Replace self by derived
+        for value in derived.borrow_mut().generics.values_mut() {
+            if let Some(ImlValue::SelfToken) = value {
+                *value = Some(ImlValue::from(derived.clone()))
+                // *value = Some(ImlValue::SelfToken{inner: false});
+            }
+        }
+        */
+
+        log::debug!("  derived = {}", derived);
+        // log::warn!("* {} => {}", self, derived);
+        Ok(derived)
     }
 
     /** Compiles an intermediate parselet into a compiled VM parselet,

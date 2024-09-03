@@ -33,8 +33,8 @@ modified and resolved during the compilation process.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>), // Shared ImlValues are used for later resolve
-    SelfValue,                     // self-reference (value)
-    SelfToken,                     // Self-reference (consuming)
+    SelfValue,                     // Self-reference, non-consuming
+    SelfToken,                     // Self-reference, consuming
     VoidToken,                     // Void (consuming)
     Value(RefValue),               // Static value
     Parselet(ImlRefParselet),      // Parselet
@@ -222,7 +222,7 @@ impl ImlValue {
                         generics.insert(name.clone(), arg.1);
                     }
 
-                    // Report any errors for unconsumed generic arguments.
+                    // Report any errors for remaining generic arguments.
                     if !instance.args.is_empty() {
                         scope.push_error(
                             instance.args[0].0, // report first parameter
@@ -493,6 +493,8 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('p' as u8);
                 parselet.borrow().id().hash(state);
             }
+            Self::SelfToken => state.write_u8('S' as u8),
+            Self::SelfValue => state.write_u8('s' as u8),
             other => unreachable!("{:?} is unhashable", other),
         }
     }

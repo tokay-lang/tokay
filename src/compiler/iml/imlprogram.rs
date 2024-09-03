@@ -111,7 +111,7 @@ impl ImlProgram {
         }
 
         // Finalize parselets
-        log::debug!("{} has {} parselets to finalize", self.main, finalize.len());
+        log::info!("{} has {} parselets to finalize", self.main, finalize.len());
 
         for (i, parselet) in finalize.iter().enumerate() {
             log::trace!(" {: >3} => {:#?}", i, parselet);
@@ -140,7 +140,7 @@ impl ImlProgram {
             })
             .collect();
 
-        log::debug!("{} has {} statics compiled", self.main, statics.len());
+        log::info!("{} has {} statics compiled", self.main, statics.len());
 
         for (i, value) in statics.iter().enumerate() {
             log::trace!(" {: >3} : {:#?}", i, value);

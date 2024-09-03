@@ -195,7 +195,7 @@ $ RUST_LOG=tokay=debug tokay
 Alternatively, tracing can be activated for the `__main__`-program by setting `TOKAY_LOG`. This is used to start tracing when the internal parser has been compiled and executed already, and parsed the actual program. `TOKAY_LOG` can be set to any `RUST_LOG`-compliant format, as it becomes `RUST_LOG` right after.
 
 ```
-$ TOKAY_LOG=tokay=debug tokay
+$ TOKAY_LOG=debug tokay
 ```
 
 ### Built-in AST and VM debugger using `TOKAY_DEBUG` and `TOKAY_PARSER_DEBUG`
