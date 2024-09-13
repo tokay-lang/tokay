@@ -129,7 +129,11 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
             }
 
             if let ScopeLevel::Parselet(parselet) = &scope.level {
-                if top_parselet && parselet.borrow().generics.get(name).is_some() {
+                if top_parselet
+                    && (parselet.borrow().generics.get(name).is_some()
+                        || name == "Self"
+                        || name == "self")
+                {
                     return Some(ImlValue::Generic {
                         offset,
                         name: name.to_string(),
@@ -154,14 +158,6 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
             }
 
             top = scope.parent.as_deref();
-        }
-
-        if name == "Self" {
-            return Some(ImlValue::SelfToken)
-        }
-
-        if name == "self" {
-            return Some(ImlValue::SelfValue)
         }
 
         // Check for a builtin function

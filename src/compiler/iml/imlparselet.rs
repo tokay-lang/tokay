@@ -206,9 +206,9 @@ impl ImlRefParselet {
         // Inject "Self" and "self" into ImlRefParselet's generics
         /*
         {
-            let mut parselet = parselet.borrow_mut();
-            parselet.generics.insert("Self".to_string(), ImlValue::Parselet(parselet.clone()));
-            parselet.generics.insert("self".to_string(), ImlValue::Parselet(parselet.clone()));
+            let mut obj = parselet.borrow_mut();
+            obj.generics.insert("Self".to_string(), Some(ImlValue::Parselet(parselet.clone())));
+            obj.generics.insert("self".to_string(), Some(ImlValue::Parselet(parselet.clone())));
         }
         */
 
@@ -248,18 +248,17 @@ impl ImlRefParselet {
             // Replace any generics until no more are open;
             // need to do it in a loop, as generics can reference other generics.
             while let Some(ImlValue::Generic { name, .. }) = value {
-                *value = from.borrow().generics.get(name).unwrap().clone();
+                if name == "Self" || name == "self" {
+                    *value = Some(ImlValue::Parselet(from.clone()));
+                } else {
+                    *value = from.borrow().generics.get(name).unwrap().clone();
+                }
+
                 changes = true;
             }
 
-            match value {
-                Some(ImlValue::SelfValue | ImlValue::SelfToken) => {
-                    // Replace any references on `Self` or `self` by from
-                    *value = Some(ImlValue::Parselet(from.clone()));
-                    changes = true;
-                }
-                Some(_) => {}
-                None => required.push(name.to_string()),
+            if value.is_none() {
+                required.push(name.to_string());
             }
         }
 

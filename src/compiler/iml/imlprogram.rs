@@ -178,10 +178,6 @@ impl ImlProgram {
                 ImlValue::Shared(value) => {
                     finalize_value(&*value.borrow(), current, visited, configs)
                 }
-                ImlValue::SelfToken => Some(Consumable {
-                    leftrec: true,
-                    nullable: false,
-                }),
                 ImlValue::Parselet(parselet) => {
                     // Try to derive the parselet with current constants
                     let derived = parselet.derive(current).unwrap();
