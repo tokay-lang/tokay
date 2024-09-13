@@ -940,7 +940,8 @@ impl Compiler {
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
-                                                                            "emit" => "value_token_self"
+                                                                            "emit" => "identifier",
+                                                                            "value" => "Self"
                                                                         ])),
                                                                         (value!([
                                                                             "emit" => "identifier",
@@ -987,7 +988,8 @@ impl Compiler {
                                                                             "children" =>
                                                                                 (value!([
                                                                                     (value!([
-                                                                                        "emit" => "value_token_self"
+                                                                                        "emit" => "identifier",
+                                                                                        "value" => "Self"
                                                                                     ])),
                                                                                     (value!([
                                                                                         "emit" => "identifier",

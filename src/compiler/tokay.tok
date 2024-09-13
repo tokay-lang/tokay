@@ -243,7 +243,6 @@ TokenLiteral : @{
     Keyword<'Chars'>  ast("value_token_anys")
     Keyword<'Char'> '<' Ccl '>'  ast("value_token_ccl")
     Keyword<'Char'>  ast("value_token_any")
-    Keyword<'Self'>  ast("value_token_self")
     Keyword<'Void'>  ast("value_token_void")
 }
 
@@ -273,7 +272,6 @@ Literal : @{
     Keyword<'false'> _  ast("value_false")
     Keyword<'void'> _  ast("value_void")
     Keyword<'null'> _  ast("value_null")
-    Keyword<'self'> _  ast("value_self")
     T_String  ast("value_string")
     T_Float
     T_Integer

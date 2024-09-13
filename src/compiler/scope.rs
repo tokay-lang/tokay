@@ -156,6 +156,14 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
             top = scope.parent.as_deref();
         }
 
+        if name == "Self" {
+            return Some(ImlValue::SelfToken)
+        }
+
+        if name == "self" {
+            return Some(ImlValue::SelfValue)
+        }
+
         // Check for a builtin function
         if let Some(builtin) = Builtin::get(name) {
             return Some(RefValue::from(builtin).into());

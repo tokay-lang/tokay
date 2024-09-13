@@ -203,12 +203,12 @@ impl ImlRefParselet {
             parselet: Rc::new(RefCell::new(parselet)),
         };
 
+        // Inject "Self" and "self" into ImlRefParselet's generics
         /*
-        // Replace any Self-default to this parselet-ref
-        for default in parselet.borrow_mut().generics.values_mut() {
-            if let Some(ImlValue::SelfToken | ImlValue::SelfValue) = default {
-                *default = Some(ImlValue::Parselet(parselet.clone()))
-            }
+        {
+            let mut parselet = parselet.borrow_mut();
+            parselet.generics.insert("Self".to_string(), ImlValue::Parselet(parselet.clone()));
+            parselet.generics.insert("self".to_string(), ImlValue::Parselet(parselet.clone()));
         }
         */
 
@@ -245,7 +245,8 @@ impl ImlRefParselet {
         log::debug!("  deriving {} from {}", self, from);
 
         for (name, value) in generics.iter_mut() {
-            // Replace any generics until no more are open
+            // Replace any generics until no more are open;
+            // need to do it in a loop, as generics can reference other generics.
             while let Some(ImlValue::Generic { name, .. }) = value {
                 *value = from.borrow().generics.get(name).unwrap().clone();
                 changes = true;
