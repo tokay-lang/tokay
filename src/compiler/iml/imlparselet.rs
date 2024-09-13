@@ -199,23 +199,13 @@ pub(in crate::compiler) struct ImlRefParselet {
 
 impl ImlRefParselet {
     pub fn new(parselet: ImlParselet) -> Self {
-        let parselet = Self {
+        Self {
             parselet: Rc::new(RefCell::new(parselet)),
-        };
-
-        // Inject "Self" and "self" into ImlRefParselet's generics
-        /*
-        {
-            let mut obj = parselet.borrow_mut();
-            obj.generics.insert("Self".to_string(), Some(ImlValue::Parselet(parselet.clone())));
-            obj.generics.insert("self".to_string(), Some(ImlValue::Parselet(parselet.clone())));
         }
-        */
-
-        parselet
     }
 
-    /** Derives an intermediate parselet by another intermediate parselet (`from`).
+    /** Derives an intermediate parselet instance from the view of
+    another intermediate parselet instance (`from`).
 
     The namespace defines the constant configuration of a surrounding parselet (`from`),
     and extends the intermediate parselet's constant configuration, making it a derivation.
@@ -257,6 +247,11 @@ impl ImlRefParselet {
                 changes = true;
             }
 
+            // Generics pointing to ImlValue::SelfToken/SelfValue must be replaced, too
+            if changes && matches!(value, Some(ImlValue::SelfToken | ImlValue::SelfValue)) {
+                *value = Some(ImlValue::Parselet(from.clone()));
+            }
+
             if value.is_none() {
                 required.push(name.to_string());
             }
@@ -287,16 +282,6 @@ impl ImlRefParselet {
             severity: parselet.severity,
             is_generated: parselet.is_generated,
         });
-
-        /*
-        // Replace self by derived
-        for value in derived.borrow_mut().generics.values_mut() {
-            if let Some(ImlValue::SelfToken) = value {
-                *value = Some(ImlValue::from(derived.clone()))
-                // *value = Some(ImlValue::SelfToken{inner: false});
-            }
-        }
-        */
 
         log::debug!("  derived = {}", derived);
         // log::warn!("* {} => {}", self, derived);

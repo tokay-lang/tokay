@@ -212,7 +212,18 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                 );
                             }
 
-                            Some(default)
+                            Some(match default {
+                                // Any Self/self-generic becomes its ImlValue pendant
+                                // because there must be a distinguishment between
+                                // default Self/self and instance Self/self.
+                                ImlValue::Generic { name, .. } if name == "self" => {
+                                    ImlValue::SelfValue
+                                }
+                                ImlValue::Generic { name, .. } if name == "Self" => {
+                                    ImlValue::SelfToken
+                                }
+                                default => default,
+                            })
                         } else {
                             None
                         };

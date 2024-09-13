@@ -33,6 +33,8 @@ modified and resolved during the compilation process.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::compiler) enum ImlValue {
     Shared(Rc<RefCell<ImlValue>>), // Shared ImlValues are used for later resolve
+    SelfValue,                     // self-reference (value)
+    SelfToken,                     // Self-reference (consuming)
     VoidToken,                     // Void (consuming)
     Value(RefValue),               // Static value
     Parselet(ImlRefParselet),      // Parselet
@@ -293,7 +295,7 @@ impl ImlValue {
     pub fn is_callable(&self, without_arguments: bool) -> bool {
         match self {
             Self::Shared(value) => value.borrow().is_callable(without_arguments),
-            Self::VoidToken => true,
+            Self::SelfValue | Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_callable(without_arguments),
             Self::Parselet(parselet) => {
                 let parselet = parselet.borrow();
@@ -315,7 +317,7 @@ impl ImlValue {
     pub fn is_consuming(&self) -> bool {
         match self {
             Self::Shared(value) => value.borrow().is_consuming(),
-            Self::VoidToken => true,
+            Self::SelfToken | Self::VoidToken => true,
             Self::Value(value) => value.is_consuming(),
             Self::Parselet(parselet) => parselet.borrow().model.borrow().is_consuming,
             Self::Name { name, .. } | Self::Generic { name, .. } => {
@@ -403,6 +405,7 @@ impl ImlValue {
                     }
                 },
                 ImlValue::Value(_) => program.register(self),
+                ImlValue::SelfToken | ImlValue::SelfValue => current.1,
                 _ => unreachable!("Can't compile {:?}", self),
             };
 
@@ -430,6 +433,8 @@ impl std::fmt::Display for ImlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Shared(value) => value.borrow().fmt(f),
+            Self::SelfValue => write!(f, "self"),
+            Self::SelfToken => write!(f, "Self"),
             Self::VoidToken => write!(f, "Void"),
             Self::Value(value) => write!(f, "{}", value.repr()),
             Self::Parselet(parselet) => write!(
@@ -488,6 +493,8 @@ impl std::hash::Hash for ImlValue {
                 state.write_u8('p' as u8);
                 parselet.borrow().id().hash(state);
             }
+            Self::SelfToken => state.write_u8('S' as u8),
+            Self::SelfValue => state.write_u8('s' as u8),
             other => unreachable!("{:?} is unhashable", other),
         }
     }
