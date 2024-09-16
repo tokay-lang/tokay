@@ -178,12 +178,14 @@ impl ImlProgram {
                 ImlValue::Shared(value) => {
                     finalize_value(&*value.borrow(), current, visited, configs)
                 }
-                /*
-                ImlValue::SelfToken => Some(Consumable {
-                    leftrec: true,
-                    nullable: false,
-                }),
-                */
+                ImlValue::SelfToken => {
+                    configs.get_mut(current).unwrap().leftrec = true;
+
+                    Some(Consumable {
+                        leftrec: true,
+                        nullable: configs[current].nullable,
+                    })
+                }
                 ImlValue::Parselet(parselet) => {
                     // Try to derive the parselet with current constants
                     let derived = parselet.derive(current).unwrap();
@@ -204,15 +206,12 @@ impl ImlProgram {
                         None
                     }
                 }
-                ImlValue::Generic { name, .. } => {
-                    // fixme: Is this still relevant???
-                    finalize_value(
-                        current.borrow().generics[name].as_ref().unwrap(),
-                        current,
-                        visited,
-                        configs,
-                    )
-                }
+                ImlValue::Generic { name, .. } => finalize_value(
+                    current.borrow().generics[name].as_ref().unwrap(),
+                    current,
+                    visited,
+                    configs,
+                ),
                 _ => None,
             }
         }
@@ -360,6 +359,12 @@ impl ImlProgram {
             }
         }
 
+        log::trace!(
+            "{} has {} parselets to finalize",
+            self.statics.keys()[0],
+            parselets.len()
+        );
+
         // Now, start the closure algorithm with left-recursive and nullable configurations for all parselets
         // put into the finalize list.
         let mut changes = true;
@@ -385,19 +390,15 @@ impl ImlProgram {
             }
         }
 
+        for parselet in &parselets {
+            log::trace!(" {:?} consuming={:?}", parselet, configs[&parselet]);
+        }
+
         log::debug!(
             "{} has {} parselets finalized",
             self.statics.keys()[0],
             parselets.len()
         );
-
-        for parselet in &parselets {
-            log::trace!(
-                " {} consuming={:?}",
-                parselet.borrow().name.as_deref().unwrap_or("(unnamed)"),
-                configs[&parselet]
-            );
-        }
 
         configs.into_iter().map(|(k, v)| (k, v.leftrec)).collect()
     }
