@@ -349,11 +349,17 @@ impl ImlValue {
             Self::Shared(value) => {
                 return value.borrow().compile(program, current, offset, call, ops)
             }
-            Self::Generic { name, .. } => {
-                return current.0.borrow().generics[name]
-                    .as_ref()
-                    .unwrap()
-                    .compile(program, current, offset, call, ops)
+            Self::Generic {
+                name,
+                offset: generic_offset,
+            } => {
+                return current.0.borrow().generics[name].as_ref().unwrap().compile(
+                    program,
+                    current,
+                    &generic_offset.or(*offset),
+                    call,
+                    ops,
+                )
             }
             Self::VoidToken => Some(Op::Next),
             Self::Value(value) => match &*value.borrow() {
