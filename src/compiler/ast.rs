@@ -80,7 +80,6 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
         "value_null" => ImlValue::Value(scope.compiler.statics.borrow()[1].clone()),
         "value_true" => ImlValue::Value(scope.compiler.statics.borrow()[2].clone()),
         "value_false" => ImlValue::Value(scope.compiler.statics.borrow()[3].clone()),
-        "value_self" => ImlValue::SelfValue,
         "value_integer" => match node["value"].to_i64() {
             Ok(0) => ImlValue::Value(scope.compiler.statics.borrow()[4].clone()),
             Ok(1) => ImlValue::Value(scope.compiler.statics.borrow()[5].clone()),
@@ -90,7 +89,6 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
         "value_string" => scope.compiler.register_static(node["value"].clone()),
 
         // Tokens
-        "value_token_self" => ImlValue::SelfToken,
         "value_token_void" => ImlValue::VoidToken,
         "value_token_match" | "value_token_touch" => {
             let mut value = node["value"].to_string();
@@ -214,7 +212,18 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                 );
                             }
 
-                            Some(default)
+                            Some(match default {
+                                // Any Self/self-generic becomes its definitive ImlValue pendant
+                                // because there must be a distinguishment between
+                                // default Self/self and instance Self/self.
+                                ImlValue::Generic { name, .. } if name == "self" => {
+                                    ImlValue::SelfValue
+                                }
+                                ImlValue::Generic { name, .. } if name == "Self" => {
+                                    ImlValue::SelfToken
+                                }
+                                default => default,
+                            })
                         } else {
                             None
                         };

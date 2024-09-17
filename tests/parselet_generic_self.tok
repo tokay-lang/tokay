@@ -1,11 +1,9 @@
-A : @<E, I: A> {
+A: @<E, I: Self> {
     Ident '=' Expect<I>  ast("assign")
     E                    ast("value")
 }
 
-AA : A<Int, AA>
-
-ast_print(AA)
+ast_print(A<Int>)
 
 #---
 #a=b=c=42
