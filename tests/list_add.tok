@@ -25,7 +25,7 @@ l
 l = ,
 i = 0
 l += i
-l, ++i
+l ++i
 
 # iadd with mutable object
 l = ,
