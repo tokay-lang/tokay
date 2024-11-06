@@ -98,3 +98,35 @@ Number : Float | Int
 
 # Parse any token, which is just no whitespace in default terms.
 Token : AsciiPunctuation | Word | Number
+
+# Functions
+
+max : @value {
+    iter(value).max
+}
+
+min : @value {
+    iter(value).min
+}
+
+sum : @value {
+    res = void
+
+    for i in value {
+        res += i
+    }
+
+    res
+}
+
+avg : @value {
+    res = void
+    cnt = 0
+
+    for i in value {
+        res += i
+        cnt++
+    }
+
+    res / cnt
+}

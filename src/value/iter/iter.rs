@@ -93,6 +93,26 @@ impl Iter {
         ))
     });
 
+    tokay_method!("iter_max : @iter", {
+        let mut borrowed_iter = iter.borrow_mut();
+
+        if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
+            Ok(iter.max().unwrap())
+        } else {
+            Ok(iter.clone())
+        }
+    });
+
+    tokay_method!("iter_min : @iter", {
+        let mut borrowed_iter = iter.borrow_mut();
+
+        if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
+            Ok(iter.min().unwrap())
+        } else {
+            Ok(iter.clone())
+        }
+    });
+
     tokay_method!("iter_rev : @iter", {
         {
             let mut iter = iter.borrow_mut();
