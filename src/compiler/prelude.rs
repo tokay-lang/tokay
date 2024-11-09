@@ -1460,6 +1460,28 @@ impl Compiler {
                                                                     ]))
                                                             ])),
                                                             (value!([
+                                                                "emit" => "op_if",
+                                                                "children" =>
+                                                                    (value!([
+                                                                        (value!([
+                                                                            "emit" => "op_unary_not",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    "emit" => "identifier",
+                                                                                    "value" => "cnt"
+                                                                                ]))
+                                                                        ])),
+                                                                        (value!([
+                                                                            "emit" => "op_accept",
+                                                                            "children" =>
+                                                                                (value!([
+                                                                                    "emit" => "value_integer",
+                                                                                    "value" => 0
+                                                                                ]))
+                                                                        ]))
+                                                                    ]))
+                                                            ])),
+                                                            (value!([
                                                                 "emit" => "op_binary_div",
                                                                 "children" =>
                                                                     (value!([

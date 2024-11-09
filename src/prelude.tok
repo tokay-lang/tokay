@@ -101,14 +101,29 @@ Token : AsciiPunctuation | Word | Number
 
 # Functions
 
+# Calculates the maximum of a value.
+#
+# In case the provided value is not an iterator,
+# it will be turned into an iterator with just
+# its own value.
 max : @value {
     iter(value).max
 }
 
+# Calculates the minimum of a value.
+#
+# In case the provided value is not an iterator,
+# it will be turned into an iterator with just
+# its own value.
 min : @value {
     iter(value).min
 }
 
+# Calculates the sum of a value.
+#
+# In case the provided value is not an iterator,
+# it will be turned into an iterator with just
+# its own value.
 sum : @value {
     res = void
 
@@ -119,6 +134,11 @@ sum : @value {
     res
 }
 
+# Calculates the average of a value.
+#
+# In case the provided value is not an iterator,
+# it will be turned into an iterator with just
+# its own value.
 avg : @value {
     res = void
     cnt = 0
@@ -128,5 +148,6 @@ avg : @value {
         cnt++
     }
 
+    if !cnt return 0
     res / cnt
 }

@@ -49,7 +49,7 @@ impl Iter {
 
     tokay_method!("iter : @value", {
         // If parameter is already an iterator, just return it
-        if value.is("iter") || value.is_void() {
+        if value.is("iter") {
             Ok(value)
         }
         // Check for an available iter() method on the provided value first
