@@ -97,7 +97,7 @@ impl Iter {
         let mut borrowed_iter = iter.borrow_mut();
 
         if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
-            Ok(iter.max().unwrap())
+            Ok(iter.max().unwrap_or(RefValue::from(Value::Void)))
         } else {
             Ok(iter.clone())
         }
@@ -107,7 +107,7 @@ impl Iter {
         let mut borrowed_iter = iter.borrow_mut();
 
         if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
-            Ok(iter.min().unwrap())
+            Ok(iter.min().unwrap_or(RefValue::from(Value::Void)))
         } else {
             Ok(iter.clone())
         }

@@ -148,6 +148,6 @@ avg : @value {
         cnt++
     }
 
-    if !cnt return 0
+    if !cnt return void
     res / cnt
 }

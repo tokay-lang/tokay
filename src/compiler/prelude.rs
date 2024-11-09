@@ -1475,8 +1475,7 @@ impl Compiler {
                                                                             "emit" => "op_accept",
                                                                             "children" =>
                                                                                 (value!([
-                                                                                    "emit" => "value_integer",
-                                                                                    "value" => 0
+                                                                                    "emit" => "value_void"
                                                                                 ]))
                                                                         ]))
                                                                     ]))

@@ -1,0 +1,36 @@
+#testmode:repl
+# Aggregate Functions
+
+l = list(range(10))
+
+min(l)
+max(l)
+sum(l)
+avg(l)
+
+min(42)
+max(42)
+sum(42)
+avg(42)
+
+print(type(min(void)))
+print(type(max(void)))
+print(type(sum(void)))
+print(type(avg(void)))
+
+
+#---
+#0
+#9
+#45
+#4.5
+
+#42
+#42
+#42
+#42
+
+#void
+#void
+#void
+#void
