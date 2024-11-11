@@ -148,6 +148,9 @@ avg : @value {
         cnt++
     }
 
-    if !cnt return void
+    # TODO: Facilities for type checking divisable types must be improved!
+    if !cnt || (type(res) != "int" && type(res) != "float" && type(res) != "bool" && type(res) != "null")
+        return void
+
     res / cnt
 }

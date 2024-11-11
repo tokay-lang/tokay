@@ -1464,11 +1464,163 @@ impl Compiler {
                                                                 "children" =>
                                                                     (value!([
                                                                         (value!([
-                                                                            "emit" => "op_unary_not",
+                                                                            "emit" => "op_logical_or",
                                                                             "children" =>
                                                                                 (value!([
-                                                                                    "emit" => "identifier",
-                                                                                    "value" => "cnt"
+                                                                                    (value!([
+                                                                                        "emit" => "op_unary_not",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                "emit" => "identifier",
+                                                                                                "value" => "cnt"
+                                                                                            ]))
+                                                                                    ])),
+                                                                                    (value!([
+                                                                                        "emit" => "op_logical_and",
+                                                                                        "children" =>
+                                                                                            (value!([
+                                                                                                (value!([
+                                                                                                    "emit" => "op_logical_and",
+                                                                                                    "children" =>
+                                                                                                        (value!([
+                                                                                                            (value!([
+                                                                                                                "emit" => "op_logical_and",
+                                                                                                                "children" =>
+                                                                                                                    (value!([
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "comparison",
+                                                                                                                            "children" =>
+                                                                                                                                (value!([
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "call",
+                                                                                                                                        "children" =>
+                                                                                                                                            (value!([
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "identifier",
+                                                                                                                                                    "value" => "type"
+                                                                                                                                                ])),
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "callarg",
+                                                                                                                                                    "children" =>
+                                                                                                                                                        (value!([
+                                                                                                                                                            "emit" => "identifier",
+                                                                                                                                                            "value" => "res"
+                                                                                                                                                        ]))
+                                                                                                                                                ]))
+                                                                                                                                            ]))
+                                                                                                                                    ])),
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "cmp_neq",
+                                                                                                                                        "children" =>
+                                                                                                                                            (value!([
+                                                                                                                                                "emit" => "value_string",
+                                                                                                                                                "value" => "int"
+                                                                                                                                            ]))
+                                                                                                                                    ]))
+                                                                                                                                ]))
+                                                                                                                        ])),
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "comparison",
+                                                                                                                            "children" =>
+                                                                                                                                (value!([
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "call",
+                                                                                                                                        "children" =>
+                                                                                                                                            (value!([
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "identifier",
+                                                                                                                                                    "value" => "type"
+                                                                                                                                                ])),
+                                                                                                                                                (value!([
+                                                                                                                                                    "emit" => "callarg",
+                                                                                                                                                    "children" =>
+                                                                                                                                                        (value!([
+                                                                                                                                                            "emit" => "identifier",
+                                                                                                                                                            "value" => "res"
+                                                                                                                                                        ]))
+                                                                                                                                                ]))
+                                                                                                                                            ]))
+                                                                                                                                    ])),
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "cmp_neq",
+                                                                                                                                        "children" =>
+                                                                                                                                            (value!([
+                                                                                                                                                "emit" => "value_string",
+                                                                                                                                                "value" => "float"
+                                                                                                                                            ]))
+                                                                                                                                    ]))
+                                                                                                                                ]))
+                                                                                                                        ]))
+                                                                                                                    ]))
+                                                                                                            ])),
+                                                                                                            (value!([
+                                                                                                                "emit" => "comparison",
+                                                                                                                "children" =>
+                                                                                                                    (value!([
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "call",
+                                                                                                                            "children" =>
+                                                                                                                                (value!([
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "identifier",
+                                                                                                                                        "value" => "type"
+                                                                                                                                    ])),
+                                                                                                                                    (value!([
+                                                                                                                                        "emit" => "callarg",
+                                                                                                                                        "children" =>
+                                                                                                                                            (value!([
+                                                                                                                                                "emit" => "identifier",
+                                                                                                                                                "value" => "res"
+                                                                                                                                            ]))
+                                                                                                                                    ]))
+                                                                                                                                ]))
+                                                                                                                        ])),
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "cmp_neq",
+                                                                                                                            "children" =>
+                                                                                                                                (value!([
+                                                                                                                                    "emit" => "value_string",
+                                                                                                                                    "value" => "bool"
+                                                                                                                                ]))
+                                                                                                                        ]))
+                                                                                                                    ]))
+                                                                                                            ]))
+                                                                                                        ]))
+                                                                                                ])),
+                                                                                                (value!([
+                                                                                                    "emit" => "comparison",
+                                                                                                    "children" =>
+                                                                                                        (value!([
+                                                                                                            (value!([
+                                                                                                                "emit" => "call",
+                                                                                                                "children" =>
+                                                                                                                    (value!([
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "identifier",
+                                                                                                                            "value" => "type"
+                                                                                                                        ])),
+                                                                                                                        (value!([
+                                                                                                                            "emit" => "callarg",
+                                                                                                                            "children" =>
+                                                                                                                                (value!([
+                                                                                                                                    "emit" => "identifier",
+                                                                                                                                    "value" => "res"
+                                                                                                                                ]))
+                                                                                                                        ]))
+                                                                                                                    ]))
+                                                                                                            ])),
+                                                                                                            (value!([
+                                                                                                                "emit" => "cmp_neq",
+                                                                                                                "children" =>
+                                                                                                                    (value!([
+                                                                                                                        "emit" => "value_string",
+                                                                                                                        "value" => "null"
+                                                                                                                    ]))
+                                                                                                            ]))
+                                                                                                        ]))
+                                                                                                ]))
+                                                                                            ]))
+                                                                                    ]))
                                                                                 ]))
                                                                         ])),
                                                                         (value!([
