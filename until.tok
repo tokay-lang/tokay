@@ -1,0 +1,14 @@
+Until : @<P, Escape: Void, Reject: Void> {
+    Peek<P>  accept $0
+    (Escape P | Char)  repeat
+    Reject?  reject
+}
+
+String: @<Start: Char<'">, End: Void, Escape: '\\'> {
+    #Start Until<(End | Start), Escape> (End | Start)
+    Start Until<End, Escape> (End | Start)
+}
+
+#print(Until<'x', '\\'> 'x')
+print("STRING:", String<'"', '"'>)
+print(Char)
