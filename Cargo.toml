@@ -32,7 +32,7 @@ charclass = "0.2"  # use crates.io-version
 # charclass = { version = "0.2", path = "../charclass" }  # use local version
 clap = { version = "4", features = ["derive"] }
 env_logger = "0"
-indexmap = "2"
+indexmap = "2.6"
 log = { version = "0", features = ["release_max_level_warn"] }
 num = "0.4"
 num-bigint = "0.4"
