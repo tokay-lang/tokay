@@ -87,6 +87,15 @@ list(iter(d))
 list(d.keys)
 list(d.items)
 
+# clone
+
+d = (a => 1  b => 2)
+e = d.clone()
+
+e["c"] = 3
+d
+e
+
 # merge
 
 d = (a => 1 b => 2)
@@ -155,6 +164,9 @@ d
 #(1, 2)
 #("a", "b")
 #(("a", 1), ("b", 2))
+
+#(a => 1 b => 2)
+#(a => 1 b => 2 c => 3)
 
 #(a => 1 b => 2 c => 3)
 #(a => 1 b => 2 c => 3)
