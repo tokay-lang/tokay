@@ -1,11 +1,10 @@
 //! Dictionary object
-use super::{BoxedObject, MethodIter, Object, RefValue, Str, Value};
+use super::{BoxedObject, MethodIter, Object, RefValue, Str};
 use crate::value;
 use crate::Error;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
-use num::ToPrimitive;
 use std::cmp::Ordering;
 
 // Alias for the inner dict
@@ -103,6 +102,25 @@ impl Dict {
 
     tokay_method!("dict : @", Ok(RefValue::from(Dict::new())));
 
+    tokay_method!("dict_iter : @dict", {
+        // If index is void, create an iterator on keys.
+        if dict.is("dict") {
+            Ok(RefValue::from(MethodIter::new_method_iter(
+                dict.clone(),
+                "values",
+                None,
+                "iinc",
+            )))
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
     tokay_method!("dict_len : @dict", {
         let dict = dict.borrow();
 
@@ -134,7 +152,7 @@ impl Dict {
     });
 
     // Method to retrieve or iterate the keys of a dict.
-    tokay_method!("dict_keys : @dict, index=void", {
+    tokay_method!("dict_keys : @dict, index=void, default=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
             return Ok(RefValue::from(MethodIter::new_method_iter(
@@ -151,7 +169,37 @@ impl Dict {
             if let Some((key, _)) = dict.get_index(index.to_usize()?) {
                 Ok(key.clone())
             } else {
-                Ok(value!(void))
+                Ok(default)
+            }
+        } else {
+            Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )))
+        }
+    });
+
+    // Method to retrieve or iterate the values of a dict.
+    tokay_method!("dict_values : @dict, index=void, default=void", {
+        // If index is void, create an iterator on keys.
+        if index.is_void() {
+            return Ok(RefValue::from(MethodIter::new_method_iter(
+                dict.clone(),
+                "values",
+                None,
+                "iinc",
+            )));
+        }
+
+        // Otherwise, borrow
+        let dict = dict.borrow();
+        if let Some(dict) = dict.object::<Dict>() {
+            if let Some((_, value)) = dict.get_index(index.to_usize()?) {
+                Ok(value.clone())
+            } else {
+                Ok(default)
             }
         } else {
             Err(Error::from(format!(
@@ -164,7 +212,7 @@ impl Dict {
     });
 
     // Method to retrieve or iterate a list of [key, value] from a dict by index
-    tokay_method!("dict_items : @dict, index=void", {
+    tokay_method!("dict_items : @dict, index=void, default=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {
             return Ok(RefValue::from(MethodIter::new_method_iter(
@@ -181,7 +229,7 @@ impl Dict {
             if let Some((key, value)) = dict.get_index(index.to_usize()?) {
                 Ok(value!([(key.clone()), (value.clone())]))
             } else {
-                Ok(value!(void))
+                Ok(default)
             }
         } else {
             Err(Error::from(format!(
@@ -209,16 +257,6 @@ impl Dict {
             if let Some(item) = dict.get(&item) {
                 Ok(item.clone())
             } else {
-                // In case index is an int that can be turned into an usize,
-                // try to obtain the dict item by its index
-                if let Value::Int(index) = &*item.borrow() {
-                    if let Some(index) = index.to_usize() {
-                        if let Some((_, item)) = dict.get_index(index) {
-                            return Ok(item.clone());
-                        }
-                    }
-                }
-
                 Ok(default)
             }
         } else {
