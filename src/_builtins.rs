@@ -6,7 +6,7 @@
 use crate::builtin::Builtin;
 
 /*GENERATE cargo run -- _builtins.tok -- `find . -name "*.rs"` */
-pub static BUILTINS: [Builtin; 69] = [
+pub static BUILTINS: [Builtin; 68] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -82,10 +82,6 @@ pub static BUILTINS: [Builtin; 69] = [
     Builtin {
         name: "dict_pop",
         func: crate::value::dict::Dict::tokay_method_dict_pop,
-    },
-    Builtin {
-        name: "dict_push",
-        func: crate::value::dict::Dict::tokay_method_dict_push,
     },
     Builtin {
         name: "dict_set_item",

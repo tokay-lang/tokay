@@ -81,6 +81,7 @@ impl Object for Dict {
     }
 }
 
+#[allow(unused_doc_comments)]
 impl Dict {
     pub fn new() -> Self {
         Self {
@@ -100,8 +101,25 @@ impl Dict {
         self.shift_remove(&RefValue::from(key)) // fixme: improve lookup!
     }
 
-    tokay_method!("dict : @", Ok(RefValue::from(Dict::new())));
+    /** Creates a new `dict`.
 
+    Any provided `nargs` become key-value-pairs in the newly created dict.
+
+    This can also be shortcut by the `()` syntax.
+    */
+    tokay_method!(
+        "dict : @**nargs",
+        Ok(RefValue::from(if let Some(nargs) = nargs {
+            nargs.clone()
+        } else {
+            Dict::new()
+        }))
+    );
+
+    /** Creates an iterator over a `dict`.
+
+    The iterator is a method-iterator calling `iter_values()`.
+    */
     tokay_method!("dict_iter : @dict", {
         // If index is void, create an iterator on keys.
         if dict.is("dict") {
@@ -121,6 +139,7 @@ impl Dict {
         }
     });
 
+    /// Returns the number of items in the `dict`.
     tokay_method!("dict_len : @dict", {
         let dict = dict.borrow();
 
@@ -136,6 +155,7 @@ impl Dict {
         }
     });
 
+    /// Clone `dict` into a standalone copy.
     tokay_method!("dict_clone : @dict", {
         let dict = dict.borrow();
 
@@ -151,7 +171,12 @@ impl Dict {
         }
     });
 
-    // Method to retrieve or iterate the keys of a dict.
+    /** Retrieve or iterate the keys of a `dict`.
+
+    When no `index` is given, the method returns an iterator over the keys.
+    Otherwise, the key at the provided `index` is returned, or `default` in
+    case the `index` is out of bounds.
+    */
     tokay_method!("dict_keys : @dict, index=void, default=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
@@ -181,7 +206,12 @@ impl Dict {
         }
     });
 
-    // Method to retrieve or iterate the values of a dict.
+    /** Retrieve or iterate the values of a `dict`.
+
+    When no `index` is given, the method returns an iterator over the values.
+    Otherwise, the value at the provided `index` is returned, or `default` in
+    case the `index` is out of bounds.
+    */
     tokay_method!("dict_values : @dict, index=void, default=void", {
         // If index is void, create an iterator on keys.
         if index.is_void() {
@@ -211,7 +241,14 @@ impl Dict {
         }
     });
 
-    // Method to retrieve or iterate a list of [key, value] from a dict by index
+    /** Retrieve or iterate both keys and values of a `dict`.
+
+    The function returns a list of key-value for each result.
+
+    When no `index` is given, the method returns an iterator over the key-value-pairs.
+    Otherwise, the key-value-pair at the provided `index` is returned, or `default` in
+    case the `index` is out of bounds.
+    */
     tokay_method!("dict_items : @dict, index=void, default=void", {
         // If index is void, create an iterator on items.
         if index.is_void() {
@@ -241,12 +278,16 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_get_item : @dict, item, default=void", {
-        if !item.is_hashable() {
+    /** Retrieve item with `key` from `dict`. Returns `default` when key is not found.
+
+    This method is also invoked when using the `dict` item syntax.
+    */
+    tokay_method!("dict_get_item : @dict, key, default=void", {
+        if !key.is_hashable() {
             return Err(Error::from(format!(
                 "{} unhashable type '{}'",
                 __function,
-                item.name()
+                key.name()
             )));
         }
 
@@ -254,8 +295,8 @@ impl Dict {
         let dict = dict.borrow();
 
         if let Some(dict) = dict.object::<Dict>() {
-            if let Some(item) = dict.get(&item) {
-                Ok(item.clone())
+            if let Some(key) = dict.get(&key) {
+                Ok(key.clone())
             } else {
                 Ok(default)
             }
@@ -269,12 +310,21 @@ impl Dict {
         }
     });
 
-    tokay_method!("dict_set_item : @dict, item, value=void", {
-        if !item.is_hashable() {
+    /** Insert or replace `value` under the given `key` in `dict`.
+
+    When `value` is provided as void, the key is removed.
+
+    Returns the previous item's value if the key already existed in `dict`,
+    otherwise void.
+
+    This method is also invoked when assigning to a `dict` item.
+    */
+    tokay_method!("dict_set_item : @dict, key, value=void", {
+        if !key.is_hashable() {
             return Err(Error::from(format!(
                 "{} unhashable type '{}'",
                 __function,
-                item.name()
+                key.name()
             )));
         }
 
@@ -282,10 +332,10 @@ impl Dict {
 
         if let Some(dict) = dict.object_mut::<Dict>() {
             if value.is_void() {
-                dict.shift_remove(&item);
+                dict.shift_remove(&key);
                 Ok(value![void])
             } else {
-                dict.insert(item, value.clone());
+                dict.insert(key, value.clone());
                 Ok(value)
             }
         } else {
@@ -298,6 +348,7 @@ impl Dict {
         }
     });
 
+    /** Merges dict `other` into `dict`. */
     tokay_method!("dict_merge : @dict, other", {
         {
             let dict = &mut *dict.borrow_mut();
@@ -330,25 +381,9 @@ impl Dict {
         Ok(dict)
     });
 
-    tokay_method!("dict_push : @dict, key, value", {
-        let dict = &mut *dict.borrow_mut();
+    /** Returns and removes `key` from `dict`.
 
-        if let Some(dict) = dict.object_mut::<Dict>() {
-            Ok(if let Some(old) = dict.insert(key, value) {
-                old
-            } else {
-                value!(void)
-            })
-        } else {
-            Err(Error::from(format!(
-                "{} only accepts '{}' as parameter, not '{}'",
-                __function,
-                "dict",
-                dict.name()
-            )))
-        }
-    });
-
+    When the given `key` does not exist, `default` will be returned, */
     tokay_method!("dict_pop : @dict, key=void, default=void", {
         let dict = &mut *dict.borrow_mut();
 

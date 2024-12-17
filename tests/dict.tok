@@ -19,6 +19,9 @@ x : 10
 d = (b => 3 c => 1 a => 2)
 d
 
+dict()
+dict(a=1, b=2, c=3)
+
 ## Comparison
 
 a = (a => 1 b => 2)
@@ -83,6 +86,8 @@ d = (a => 1  b => 2)
 d.len()
 dict_len("Donkey")  # invalid
 
+# iter / values
+
 list(iter(d))
 list(d.values)
 d.values(0)
@@ -90,11 +95,15 @@ d.values(1)
 type(d.values(2))
 d.values(2, default="Esel")
 
+# keys
+
 list(d.keys)
 d.keys(0)
 d.keys(1)
 type(d.keys(2))
 d.keys(2, default="Esel")
+
+# items
 
 list(d.items)
 d.items(0)
@@ -118,18 +127,6 @@ d.merge((c => 3))
 d
 d.merge(d)
 (a => 23 b => 42) $1.merge($1)
-
-## push
-
-d = dict()
-d.push(1, 2)
-d.push(2, 3)
-d
-
-d = dict()
-d.push(1, 2)
-d.push(2, 3)
-d.push(1, 4)
 
 ## pop
 
@@ -156,6 +153,9 @@ d
 #(0 => 1 true => 2 "true" => 3)
 
 #(b => 3 c => 1 a => 2)
+
+#()
+#(a => 1 b => 2 c => 3)
 
 #(true, true, true, false, true, true, true, true, true, true)
 
@@ -202,9 +202,6 @@ d
 #(a => 1 b => 2 c => 3)
 #(a => 1 b => 2 c => 3)
 #((a => 23 b => 42), (a => 23 b => 42))
-
-#(1 => 2 2 => 3)
-#2
 
 #(esel => 1 bert => 2 edgar => 42 klaus => 23)
 #"eugen"
