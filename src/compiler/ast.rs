@@ -1022,10 +1022,14 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
         // comparison -----------------------------------------------------
         "comparison" => {
             // comparison can be a chain of comparisons, allowing to compare e.g. `1 < 2 < 3`
-            let children = node["children"].borrow();
-            let mut children = children.object::<List>().unwrap().clone();
+            let mut branches = Vec::new();
 
-            let first = children.remove(0);
+            let children = node["children"].borrow();
+            let children = children.object::<List>().unwrap();
+
+            let mut child_iter = children.iter().peekable();
+
+            let first = child_iter.next().unwrap();
             let first = first.borrow();
 
             let mut ops = Vec::new();
@@ -1036,28 +1040,37 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 Rvalue::CallOrLoad,
             ));
 
-            let mut backpatch = Vec::new();
+            while let Some(op) = child_iter.next() {
+                let op = op.borrow();
+                let op = op.object::<Dict>().unwrap();
 
-            while !children.is_empty() {
-                let child = children.remove(0);
-                let child = child.borrow();
-                let child = child.object::<Dict>().unwrap();
-
-                let emit = child["emit"].borrow();
+                let emit = op["emit"].borrow();
                 let emit = emit.object::<Str>().unwrap().as_str();
 
-                let next = child["children"].borrow();
+                let next = op["children"].borrow();
 
-                ops.push(traverse_node_rvalue(
-                    scope,
-                    &next.object::<Dict>().unwrap(),
-                    Rvalue::CallOrLoad,
-                ));
+                // Old (current) path
+                if let Some(next) = next.object::<Dict>() {
+                    ops.push(traverse_node_rvalue(scope, &next, Rvalue::CallOrLoad));
+                }
+                // New (desired) path
+                else {
+                    let next = child_iter.next().unwrap();
+                    let next = next.borrow();
 
-                // Chained comparison requires forperand duplication
-                if !children.is_empty() {
+                    ops.push(traverse_node_rvalue(
+                        scope,
+                        &next.object::<Dict>().unwrap(),
+                        Rvalue::CallOrLoad,
+                    ));
+                }
+
+                let is_chained = child_iter.peek().is_some();
+
+                // Chained comparison requires for operand duplication
+                if is_chained {
                     ops.push(ImlOp::from(Op::Swap(2))); // Swap operands
-                    ops.push(ImlOp::from(Op::Copy(2))); // Copy second operand
+                    ops.push(ImlOp::from(Op::Copy(2))); // Copy second operand, to keep a copy
                 }
 
                 ops.push(ImlOp::from(match emit {
@@ -1070,25 +1083,34 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     _ => unimplemented!("{}", emit),
                 }));
 
-                // Push and remember placeholder for later clean-up jump
-                if !children.is_empty() {
-                    backpatch.push(ops.len());
-                    ops.push(ImlOp::Nop); // Placeholder for condition
-                }
+                // Push this branch
+                branches.push(ops);
+                ops = Vec::new();
             }
 
-            if backpatch.len() > 0 {
-                // Jump over clean-up part with last result
-                ops.push(ImlOp::from(Op::Forward(3)));
+            let mut branches = branches.into_iter().rev().peekable();
 
-                // Otherwise, remember clean-up start
-                let clean_up = ops.len();
-                ops.push(ImlOp::from(Op::Drop));
-                ops.push(ImlOp::from(Op::PushFalse));
+            while let Some(mut branch) = branches.next() {
+                // println!("{:?} {:?}", branch, branches.peek().is_none());
+                branch.extend(ops);
+                ops = branch;
 
-                // Backpatch all placeholders to relative jump to the clean-up part
-                for index in backpatch {
-                    ops[index] = ImlOp::from(Op::ForwardIfFalse(clean_up - index + 1));
+                if branches.peek().is_some() {
+                    let then: Vec<_> = ops.drain(..).collect();
+
+                    ops.push(ImlOp::If {
+                        peek: false,
+                        test: true,
+                        then: Box::new(if then.len() == 0 {
+                            ImlOp::from(Op::PushTrue)
+                        } else {
+                            ImlOp::from(then)
+                        }),
+                        else_: Box::new(ImlOp::from(vec![
+                            ImlOp::from(Op::Drop),
+                            ImlOp::from(Op::PushFalse),
+                        ])),
+                    })
                 }
             }
 
