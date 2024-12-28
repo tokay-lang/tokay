@@ -50,6 +50,7 @@ impl Object for List {
     }
 }
 
+#[allow(unused_doc_comments)]
 impl List {
     pub fn new() -> Self {
         Self {
@@ -82,6 +83,17 @@ impl List {
         };
 
         Ok(RefValue::from(list))
+    });
+
+    /// Clone `list` into a standalone copy.
+    tokay_method!("list_clone : @list", {
+        let borrowed = list.borrow();
+
+        if let Some(list) = borrowed.object::<List>() {
+            Ok(RefValue::from(list.clone()))
+        } else {
+            Ok(RefValue::from(List { list: vec![list.clone()] }))
+        }
     });
 
     tokay_method!("list_len : @list", {
