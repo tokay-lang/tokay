@@ -5243,6 +5243,10 @@ impl Parser {
                                                                         "value" => "_"
                                                                     ])),
                                                                     (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "___"
+                                                                    ])),
+                                                                    (value!([
                                                                         "emit" => "value_instance",
                                                                         "children" =>
                                                                             (value!([
