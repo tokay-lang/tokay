@@ -3516,6 +3516,10 @@ impl Parser {
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
+                                                                                            "value" => "___"
+                                                                                        ])),
+                                                                                        (value!([
+                                                                                            "emit" => "identifier",
                                                                                             "value" => "InlineAssignment"
                                                                                         ])),
                                                                                         (value!([

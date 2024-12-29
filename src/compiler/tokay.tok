@@ -218,7 +218,7 @@ InlineSequences : @{
 }
 
 InlineList : @{
-    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
+    InlineAssignment ___ (',' _ ___ InlineAssignment ___)+ (',' _)? ___  ast("list")
     InlineAssignment? ___ (',' _) ___  ast("list")
 }
 
