@@ -1,16 +1,24 @@
 .PHONY: .FORCE
-ETARENEG=cd ../src && awk -f ../build/etareneg.awk
+ETARENEG=awk -f etareneg.awk
+
+help:
+	@echo "No target specified."
+	@echo "See README.md build-section for details."
+	@echo ""
+	@echo "  make builtins  update src/_builtins.rs"
+	@echo "  make parser    update src/compiler/parser.rs from src/compiler/tokay.tok"
+	@echo "  make prelude   update src/compiler/prelude.rs from src/prelude.tok"
+	@echo ""
+	@echo "This is the Tokay source generation toolchain."
+	@echo "To just build Tokay, simply use 'cargo build'."
 
 all:
-	@echo No target specified. See README.md for details.
-	@echo ""
-	@echo "  make builtins    update src/_builtins.rs from src/"
-	@echo "  make parser      update src/compiler/parse.rs from src/compiler/tokay.tok"
-	@echo "  make prelude     update src/compiler/prelude.rs from src/prelude.tok"
-	@echo ""
+	make prelude
+	make parser
+	make builtins
 
 # builtins --------------------------------------------------------------------
-BUILTINS=../src/_builtins.rs
+BUILTINS=src/_builtins.rs
 
 builtins: $(BUILTINS)
 
@@ -25,7 +33,7 @@ reset-builtins:
 
 
 # parser ----------------------------------------------------------------------
-PARSER=../src/compiler/parser.rs
+PARSER=src/compiler/parser.rs
 
 parser: $(PARSER)
 
@@ -39,7 +47,7 @@ reset-parser:
 	git checkout $(PARSER)
 
 # prelude ----------------------------------------------------------------------
-PRELUDE=../src/compiler/prelude.rs
+PRELUDE=src/compiler/prelude.rs
 
 prelude: $(PRELUDE)
 

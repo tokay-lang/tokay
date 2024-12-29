@@ -5,7 +5,7 @@
 # This Tokay program expresses Tokay's grammar in itself.
 # It is used to modify and build Tokays own language parser.
 #
-# See `build/README.md` for details.
+# See `README.md` build-section for details.
 #
 
 #ExpectAndRecover : @<P> msg=void {

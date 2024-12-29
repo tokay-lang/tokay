@@ -5,7 +5,7 @@
 
 use crate::builtin::Builtin;
 
-/*GENERATE cargo run -- _builtins.tok -- `find . -name "*.rs"` */
+/*GENERATE cargo run -- src/_builtins.tok -- `find src -name "*.rs"` */
 pub static BUILTINS: [Builtin; 70] = [
     Builtin {
         name: "Float",
