@@ -382,6 +382,26 @@ impl List {
 
         Ok(list)
     });
+
+    /** Find `item` in `list` and return its offset.
+
+    In case `item` is not in the list, -1 is returned.
+    */
+    tokay_method!("list_index : @list, item", {
+        let list = list.borrow();
+
+        if let Some(list) = list.object::<List>() {
+            if let Some(index) = list
+                .list
+                .iter()
+                .position(|val| *val.borrow() == *item.borrow())
+            {
+                return Ok(value![index]);
+            }
+        }
+
+        Ok(value![-1])
+    });
 }
 
 impl std::ops::Deref for List {
