@@ -4,6 +4,7 @@ use crate::vm::*;
 use charclass::{charclass, CharClass};
 use num_bigint::BigInt;
 use num_parse::*;
+use serde;
 use tokay_macros::tokay_token;
 extern crate self as tokay;
 
@@ -216,6 +217,24 @@ impl Object for Token {
                 }
             }
         }
+    }
+}
+
+impl serde::ser::Serialize for Token {
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        todo!()
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Token {
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        todo!()
     }
 }
 

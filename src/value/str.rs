@@ -4,10 +4,11 @@ use crate::value;
 use num::{ToPrimitive, Zero};
 use num_bigint::{BigInt, Sign};
 use num_parse::*;
+use serde;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 pub struct Str {
     string: String,
 }

@@ -2,8 +2,10 @@
 use clap::Parser;
 use env_logger;
 use rustyline;
+use serde_json;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
+use tokay::value;
 use tokay::vm::Thread;
 use tokay::{Compiler, Object, Reader, RefValue};
 
@@ -184,7 +186,7 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
     Ok(())
 }
 
-fn main() -> rustyline::Result<()> {
+fn main1() -> rustyline::Result<()> {
     // TOKAY_LOG setting has precedes over RUST_LOG setting.
     if std::env::var("TOKAY_LOG").is_err() {
         env_logger::init();
@@ -339,6 +341,18 @@ fn main() -> rustyline::Result<()> {
 
         repl(&opts)?
     }
+
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let val = value![[1, 2, 3]];
+
+    let serialized = serde_json::to_string(&val)?;
+    println!("Serialized: {}", serialized);
+
+    let deserialized: RefValue = serde_json::from_str(&serialized)?;
+    println!("Deserialized: {:?}", deserialized);
 
     Ok(())
 }

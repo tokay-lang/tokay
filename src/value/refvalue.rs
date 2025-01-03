@@ -4,6 +4,7 @@ use crate::value;
 use crate::{Accept, Context, Error, Reject};
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
+use serde;
 use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
@@ -479,5 +480,26 @@ impl From<BoxedObject> for RefValue {
         RefValue {
             value: Rc::new(RefCell::new(Value::Object(value))),
         }
+    }
+}
+
+impl serde::Serialize for RefValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.value.borrow().serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for RefValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        Ok(RefValue {
+            value: Rc::new(RefCell::new(value)),
+        })
     }
 }

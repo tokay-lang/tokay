@@ -118,6 +118,80 @@ impl PartialOrd for BoxedObject {
     }
 }
 
+// SerdeBoxedObject
+// ----------------------------------------------------------------------------
+/*
+pub trait SerdeBoxedObject {
+    fn dyn_serialize(&self, serializer: &dyn S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+}
+
+impl<T> CloneBoxedObject for T
+where
+    T: 'static + Object + Clone,
+{
+    fn dyn_clone(&self) -> BoxedObject {
+        Box::new(self.clone())
+    }
+}
+
+impl serde::ser::Serialize for BoxedObject {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        // Delegate to the `serialize_trait` method
+            self.serialize_trait(serializer)
+        }
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for BoxedObject {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        /*
+        let name = <&str as serde::de::Deserialize>::deserialize(deserializer)?;
+        Ok(my_trait_factory(name))
+        */
+        todo!();
+    }
+}
+*/
+
+// SerializeBoxedObject
+// ----------------------------------------------------------------------------
+/*
+pub trait SerializeBoxedObject {
+    fn dyn_serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer;
+}
+
+impl<T> SerializeBoxedObject for T
+where
+    T: 'static + Object + serde::Serialize,
+{
+    fn dyn_serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        todo!()
+    }
+}
+
+impl serde::Serialize for BoxedObject {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.dyn_serialize(serializer)
+    }
+}
+*/
+
 // Object
 // ----------------------------------------------------------------------------
 

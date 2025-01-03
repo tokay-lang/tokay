@@ -1,10 +1,11 @@
 //! Tokay value
-use super::{BoxedObject, Dict, Object, RefValue};
+use super::{BoxedObject, Dict, List, Object, RefValue};
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
+use serde;
 use std::any::Any;
 use std::cmp::Ordering;
 
@@ -279,6 +280,62 @@ impl Ord for Value {
             Some(ordering) => ordering,
             None => self.id().cmp(&other.id()),
         }
+    }
+}
+
+impl serde::Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Value::Void => serializer.serialize_unit_variant("Value", 0, "void"),
+            Value::Null => serializer.serialize_unit_variant("Value", 1, "null"),
+            Value::True => serializer.serialize_unit_variant("Value", 2, "True"),
+            Value::False => serializer.serialize_unit_variant("Value", 3, "False"),
+            Value::Int(i) => serializer.serialize_newtype_variant("Value", 4, "Int", i),
+            Value::Float(f) => serializer.serialize_newtype_variant("Value", 5, "Float", f),
+            Value::Object(_) => {
+                macro_rules! downcast_serializer_to_type {
+                    () => {
+                        unimplemented!("Serializer for '{}' not specified", self.name())
+                    };
+
+                    ($type:ty $(, $rest:ty)*) => {
+                        if let Some(object) = self.object::<$type>() {
+                            serializer.serialize_newtype_variant("Value", 6, "Object", object)
+                        }
+                        else {
+                            downcast_serializer_to_type!($($rest),*)
+                        }
+                    };
+                }
+
+                downcast_serializer_to_type!(List, Dict)
+            }
+        }
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Value {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        /*
+        let name = <&str as serde::de::Deserialize>::deserialize(deserializer)?;
+
+        if let Some(builtin) = Builtin::get(name) {
+            Ok(BuiltinRef(builtin))
+        }
+        else {
+            Err(serde::de::Error::custom(format!(
+                "Builtin named '{}' not found",
+                name
+            )))
+        }
+        */
+        todo!();
     }
 }
 
