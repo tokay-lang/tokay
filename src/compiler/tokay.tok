@@ -5,7 +5,7 @@
 # This Tokay program expresses Tokay's grammar in itself.
 # It is used to modify and build Tokays own language parser.
 #
-# See `build/README.md` for details.
+# See `README.md` build-section for details.
 #
 
 #ExpectAndRecover : @<P> msg=void {
@@ -218,7 +218,7 @@ InlineSequences : @{
 }
 
 InlineList : @{
-    InlineAssignment ___ (',' _ InlineAssignment ___)+ (',' _)? ___  ast("list")
+    InlineAssignment ___ (',' _ ___ InlineAssignment ___)+ (',' _)? ___  ast("list")
     InlineAssignment? ___ (',' _) ___  ast("list")
 }
 
@@ -287,7 +287,7 @@ Atomic : @{
     Keyword<'for'> _ Expect<Lvalue> _ Keyword<Expect<'in'>> _ Expect<Expression> \
          ___ Expect<Statement>  ast("op_for")
     Keyword<'loop'> _ Expression ___ Block  ast("op_loop")
-    Keyword<'loop'> _ Expect<Block>  ast("op_loop")
+    Keyword<'loop'> _ ___ Expect<Block>  ast("op_loop")
     Load
 }
 

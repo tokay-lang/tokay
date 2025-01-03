@@ -639,12 +639,13 @@ impl Op {
                 }
 
                 Op::MakeList(count) => {
-                    let mut list = List::new();
+                    let mut list = List::with_capacity(*count);
 
-                    for _ in 0..*count {
-                        let value = context.pop();
+                    for mut value in context.stack.drain(context.stack.len() - *count..) {
+                        let value = value.extract(&mut context.thread.reader);
+
                         if !value.is_void() {
-                            list.insert(0, value);
+                            list.push(value);
                         }
                     }
 
@@ -654,10 +655,16 @@ impl Op {
                 Op::MakeDict(count) => {
                     let mut dict = Dict::new();
 
-                    for _ in 0..*count {
-                        let key = context.pop();
-                        let value = context.pop();
-                        dict.insert(key, value);
+                    {
+                        let start = context.stack.len() - *count * 2;
+                        let mut items = context.stack.drain(start..);
+
+                        while let (Some(mut value), Some(mut key)) = (items.next(), items.next()) {
+                            let key = key.extract(&mut context.thread.reader);
+                            let value = value.extract(&mut context.thread.reader);
+
+                            dict.insert(key, value);
+                        }
                     }
 
                     context.push(RefValue::from(dict))

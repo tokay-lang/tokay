@@ -1,4 +1,4 @@
-//! Tokay parser, implemented in Tokay itself.
+//! The Tokay parser, implemented in Tokay itself.
 
 use super::*;
 use crate::error::Error;
@@ -24,9 +24,9 @@ impl Parser {
             // The best way is to test grammar changes with `tokay.tok` intensely before rebuilding the
             // parser, to ensure all runs well.
 
-            // To update this file, `cd build` and run `make parser` in a shell.
+            // To update this file, run `make parser` in a shell.
 
-            /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"), level=3)/g' compiler/tokay.tok`" -- compiler/tokay.tok */
+            /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"), level=3)/g' src/compiler/tokay.tok`" -- src/compiler/tokay.tok */
             value!([
                 "emit" => "main",
                 "children" =>
@@ -3516,6 +3516,10 @@ impl Parser {
                                                                                         ])),
                                                                                         (value!([
                                                                                             "emit" => "identifier",
+                                                                                            "value" => "___"
+                                                                                        ])),
+                                                                                        (value!([
+                                                                                            "emit" => "identifier",
                                                                                             "value" => "InlineAssignment"
                                                                                         ])),
                                                                                         (value!([
@@ -5237,6 +5241,10 @@ impl Parser {
                                                                     (value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "_"
+                                                                    ])),
+                                                                    (value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "___"
                                                                     ])),
                                                                     (value!([
                                                                         "emit" => "value_instance",
