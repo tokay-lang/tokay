@@ -182,7 +182,20 @@ The Tokay homepage [tokay.dev](https://tokay.dev) provides links to a quick star
 
 ## Building
 
-The `Makefile` located in `src/` provides tooling to build Tokay's internal parts.
+To build Tokay, use Rust's standard build tool `cargo`:
+
+```bash
+# for debugging
+$ cargo run -- PARAMS... -- INPUTS...
+
+# for debug build
+$ cargo build
+
+# for optimized release-build
+$ cargo build --release
+```
+
+Additionally, parts of Tokay's source code are generated using a `Makefile`-based tooling, which is described below.
 
 ### `make builtins` - update Tokay's builtin registry from the Rust sources
 
