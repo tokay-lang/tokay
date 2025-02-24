@@ -187,7 +187,10 @@ impl Compiler {
 
         // When TOKAY_LOG is set, set RUST_LOG to the setting *after* internal compilations
         if let Ok(log) = std::env::var("TOKAY_LOG") {
-            std::env::set_var("RUST_LOG", log.clone());
+            // FIXME: Avoid use of unsafe!
+            unsafe {
+                std::env::set_var("RUST_LOG", log.clone());
+            }
             env_logger::init();
         }
 

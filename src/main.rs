@@ -195,7 +195,10 @@ fn main() -> rustyline::Result<()> {
 
     // Set TOKAY_DEBUG when debug flag was set.
     if opts.debug > 0 {
-        std::env::set_var("TOKAY_DEBUG", format!("{}", opts.debug));
+        // FIXME: Avoid use of unsafe!
+        unsafe {
+            std::env::set_var("TOKAY_DEBUG", format!("{}", opts.debug));
+        }
     }
 
     // Show license and exit?
