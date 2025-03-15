@@ -1070,8 +1070,18 @@ impl Compiler {
                                                                                     "emit" => "instarg",
                                                                                     "children" =>
                                                                                         (value!([
-                                                                                            "emit" => "identifier",
-                                                                                            "value" => "Alphanumeric"
+                                                                                            "emit" => "block",
+                                                                                            "children" =>
+                                                                                                (value!([
+                                                                                                    (value!([
+                                                                                                        "emit" => "identifier",
+                                                                                                        "value" => "Alphanumeric"
+                                                                                                    ])),
+                                                                                                    (value!([
+                                                                                                        "emit" => "value_token_touch",
+                                                                                                        "value" => "_"
+                                                                                                    ]))
+                                                                                                ]))
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
