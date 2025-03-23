@@ -453,7 +453,7 @@ impl std::fmt::Display for RefValue {
 
 impl std::fmt::Debug for RefValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.borrow().fmt(f)
+        write!(f, "{}", self.repr())
     }
 }
 
