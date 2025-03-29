@@ -118,7 +118,13 @@ impl Object for Value {
             Self::True => "true".to_string(),
             Self::False => "false".to_string(),
             Self::Int(i) => format!("{}", i),
-            Self::Float(f) => format!("{}", f),
+            Self::Float(f) => {
+                if f.fract() == 0.0 {
+                    format!("{}.0", f)
+                } else {
+                    format!("{}", f)
+                }
+            }
             Self::Object(o) => o.repr(),
             _ => self.name().to_string(),
         }
@@ -173,6 +179,7 @@ impl Object for Value {
     fn to_string(&self) -> String {
         match self {
             Self::Void => "".to_string(),
+            Self::Float(f) => format!("{}", f),
             Self::Object(o) => o.to_string(),
             _ => self.repr(),
         }
