@@ -280,7 +280,7 @@ impl RefValue {
                 Ok(builtin) => {
                     return Ok(builtin
                         .call(None, vec![self, operand.ref_or_copy()])?
-                        .unwrap())
+                        .unwrap());
                 }
                 // default "inline" operation is the non-inline operation assigning the result to itself
                 Err(_) if op.starts_with("i") => {}

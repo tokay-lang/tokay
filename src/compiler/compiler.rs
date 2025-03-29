@@ -7,7 +7,7 @@ use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
 use env_logger;
-use indexmap::{indexset, IndexMap, IndexSet};
+use indexmap::{IndexMap, IndexSet, indexset};
 use log;
 use std::cell::RefCell;
 

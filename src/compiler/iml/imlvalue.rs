@@ -347,7 +347,7 @@ impl ImlValue {
         // First, try to push some Op for the value
         let op = match self {
             Self::Shared(value) => {
-                return value.borrow().compile(program, current, offset, call, ops)
+                return value.borrow().compile(program, current, offset, call, ops);
             }
             Self::Generic {
                 name,
@@ -359,7 +359,7 @@ impl ImlValue {
                     &generic_offset.or(*offset),
                     call,
                     ops,
-                )
+                );
             }
             Self::VoidToken => Some(Op::Next),
             Self::Value(value) => match &*value.borrow() {

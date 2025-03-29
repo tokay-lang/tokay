@@ -1,7 +1,7 @@
 //! Token callables represented by Value::Token
 use super::{BoxedObject, Dict, Object, RefValue};
 use crate::vm::*;
-use charclass::{charclass, CharClass};
+use charclass::{CharClass, charclass};
 use num_bigint::BigInt;
 use num_parse::*;
 use tokay_macros::tokay_token;

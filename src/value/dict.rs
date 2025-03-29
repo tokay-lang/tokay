@@ -1,7 +1,7 @@
 //! Dictionary object
 use super::{BoxedObject, MethodIter, Object, RefValue, Str};
-use crate::value;
 use crate::Error;
+use crate::value;
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
