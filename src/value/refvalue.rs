@@ -281,7 +281,7 @@ impl RefValue {
                 Ok(builtin) => {
                     return Ok(builtin
                         .call(None, vec![self, operand.ref_or_copy()])?
-                        .unwrap())
+                        .unwrap());
                 }
                 // default "inline" operation is the non-inline operation assigning the result to itself
                 Err(_) if op.starts_with("i") => {}
@@ -454,7 +454,7 @@ impl std::fmt::Display for RefValue {
 
 impl std::fmt::Debug for RefValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.borrow().fmt(f)
+        write!(f, "{}", self.repr())
     }
 }
 

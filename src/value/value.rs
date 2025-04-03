@@ -119,7 +119,13 @@ impl Object for Value {
             Self::True => "true".to_string(),
             Self::False => "false".to_string(),
             Self::Int(i) => format!("{}", i),
-            Self::Float(f) => format!("{}", f),
+            Self::Float(f) => {
+                if f.fract() == 0.0 {
+                    format!("{}.0", f)
+                } else {
+                    format!("{}", f)
+                }
+            }
             Self::Object(o) => o.repr(),
             _ => self.name().to_string(),
         }
@@ -174,6 +180,7 @@ impl Object for Value {
     fn to_string(&self) -> String {
         match self {
             Self::Void => "".to_string(),
+            Self::Float(f) => format!("{}", f),
             Self::Object(o) => o.to_string(),
             _ => self.repr(),
         }
@@ -291,10 +298,14 @@ impl serde::Serialize for Value {
         match self {
             Value::Void => serializer.serialize_unit_variant("Value", 0, "void"),
             Value::Null => serializer.serialize_unit_variant("Value", 1, "null"),
-            Value::True => serializer.serialize_unit_variant("Value", 2, "True"),
-            Value::False => serializer.serialize_unit_variant("Value", 3, "False"),
-            Value::Int(i) => serializer.serialize_newtype_variant("Value", 4, "Int", i),
-            Value::Float(f) => serializer.serialize_newtype_variant("Value", 5, "Float", f),
+            Value::True => serializer.serialize_unit_variant("Value", 2, "true"),
+            Value::False => serializer.serialize_unit_variant("Value", 3, "false"),
+            Value::Int(i) => {
+                serializer.serialize_newtype_variant("Value", 4, "int", &i.to_i64().unwrap())
+            }
+            Value::Float(f) => {
+                serializer.serialize_newtype_variant("Value", 5, "float", &f.to_f64().unwrap())
+            }
             Value::Object(_) => {
                 macro_rules! downcast_serializer_to_type {
                     () => {
@@ -303,7 +314,7 @@ impl serde::Serialize for Value {
 
                     ($type:ty $(, $rest:ty)*) => {
                         if let Some(object) = self.object::<$type>() {
-                            serializer.serialize_newtype_variant("Value", 6, "Object", object)
+                            serializer.serialize_newtype_variant("Value", 6, object.name(), object)
                         }
                         else {
                             downcast_serializer_to_type!($($rest),*)

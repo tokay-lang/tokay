@@ -809,7 +809,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
             /* assignment with operation */
             if parts.len() > 1 && !["copy", "drop", "hold"].contains(&parts[1]) {
                 ops.push(traverse_node_lvalue(scope, lvalue, false, false));
-                ops.push(traverse_node_rvalue(scope, value, Rvalue::Load));
+                ops.push(traverse_node_rvalue(scope, value, Rvalue::CallOrLoad));
 
                 ops.push(match parts[1] {
                     "add" => ImlOp::from(Op::BinaryOp("iadd")),
@@ -829,7 +829,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
             }
             /* normal assignment without operation */
             else {
-                ops.push(traverse_node_rvalue(scope, value, Rvalue::Load));
+                ops.push(traverse_node_rvalue(scope, value, Rvalue::CallOrLoad));
                 ops.push(traverse_offset(node));
                 ops.push(traverse_node_lvalue(
                     scope,
