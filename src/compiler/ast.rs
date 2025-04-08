@@ -1140,6 +1140,16 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 return ImlOp::Nop;
             }
 
+            // Disallow assignment to variable in scope
+            if let Some(ImlValue::Variable { .. }) = scope.resolve_name(None, &ident) {
+                scope.push_error(
+                    traverse_node_offset(node),
+                    format!("Cannot assign constant value to variable '{}'", ident),
+                );
+
+                return ImlOp::Nop;
+            }
+
             // Distinguish between pure values or an expression
             let value = value.object::<Dict>().unwrap();
 
