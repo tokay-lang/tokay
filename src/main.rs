@@ -18,7 +18,7 @@ fn print_version() {
     version,
     about,
     help_template = r#"{bin} {version}
-© 2024 by {author}
+© 2025 by {author}
 {about}
 {bin} is free software released under the MIT license.
 
