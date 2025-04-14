@@ -9,6 +9,7 @@ use tokay_macros::tokay_method;
 extern crate self as tokay;
 
 #[derive(Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct Str {
     string: String,
 }

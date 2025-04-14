@@ -1,5 +1,5 @@
 //! Tokay value
-use super::{BoxedObject, Dict, List, Object, RefValue};
+use super::{BoxedObject, Dict, List, Object, RefValue, Str};
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -296,16 +296,12 @@ impl serde::Serialize for Value {
         S: serde::Serializer,
     {
         match self {
-            Value::Void => serializer.serialize_unit_variant("Value", 0, "void"),
-            Value::Null => serializer.serialize_unit_variant("Value", 1, "null"),
-            Value::True => serializer.serialize_unit_variant("Value", 2, "true"),
-            Value::False => serializer.serialize_unit_variant("Value", 3, "false"),
-            Value::Int(i) => {
-                serializer.serialize_newtype_variant("Value", 4, "int", &i.to_i64().unwrap())
-            }
-            Value::Float(f) => {
-                serializer.serialize_newtype_variant("Value", 5, "float", &f.to_f64().unwrap())
-            }
+            Value::Void => serializer.serialize_unit(), // FIXME:uncool.
+            Value::Null => serializer.serialize_none(),
+            Value::True => serializer.serialize_bool(true),
+            Value::False => serializer.serialize_bool(false),
+            Value::Int(i) => serializer.serialize_i64(i.to_i64().unwrap()),
+            Value::Float(f) => serializer.serialize_f64(f.to_f64().unwrap()),
             Value::Object(_) => {
                 macro_rules! downcast_serializer_to_type {
                     () => {
@@ -314,7 +310,7 @@ impl serde::Serialize for Value {
 
                     ($type:ty $(, $rest:ty)*) => {
                         if let Some(object) = self.object::<$type>() {
-                            serializer.serialize_newtype_variant("Value", 6, object.name(), object)
+                            object.serialize(serializer)
                         }
                         else {
                             downcast_serializer_to_type!($($rest),*)
@@ -322,7 +318,7 @@ impl serde::Serialize for Value {
                     };
                 }
 
-                downcast_serializer_to_type!(List, Dict)
+                downcast_serializer_to_type!(Str, List, Dict)
             }
         }
     }
