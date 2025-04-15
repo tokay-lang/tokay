@@ -5,11 +5,11 @@ use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
-use serde;
+use serde::{self, Deserialize, Serialize, ser::SerializeStruct};
 use std::any::Any;
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Value {
     // Atomics
     Void,  // void
@@ -22,6 +22,10 @@ pub enum Value {
     Float(f64),  // float
 
     // Objects
+    #[serde(
+        serialize_with = "serialize_object",
+        deserialize_with = "deserialize_object"
+    )]
     Object(BoxedObject), // object
 }
 
@@ -290,60 +294,55 @@ impl Ord for Value {
     }
 }
 
-impl serde::Serialize for Value {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            Value::Void => serializer.serialize_unit(), // FIXME:uncool.
-            Value::Null => serializer.serialize_none(),
-            Value::True => serializer.serialize_bool(true),
-            Value::False => serializer.serialize_bool(false),
-            Value::Int(i) => serializer.serialize_i64(i.to_i64().unwrap()),
-            Value::Float(f) => serializer.serialize_f64(f.to_f64().unwrap()),
-            Value::Object(_) => {
-                macro_rules! downcast_serializer_to_type {
-                    () => {
-                        unimplemented!("Serializer for '{}' not specified", self.name())
-                    };
+// Serialization for the C variant
+fn serialize_object<S>(value: &BoxedObject, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    macro_rules! downcast_serializer_to_type {
+        () => {
+            unimplemented!("Serializer for '{}' not specified", value.name())
+        };
 
-                    ($type:ty $(, $rest:ty)*) => {
-                        if let Some(object) = self.object::<$type>() {
-                            object.serialize(serializer)
-                        }
-                        else {
-                            downcast_serializer_to_type!($($rest),*)
-                        }
-                    };
-                }
-
-                downcast_serializer_to_type!(Str, List, Dict)
+        ($type:ty $(, $rest:ty)*) => {
+            if let Some(object) = value.as_any().downcast_ref::<$type>() {
+                let mut s = serializer.serialize_struct("Value", 6)?;
+                s.serialize_field("type", object.name())?;
+                s.serialize_field("data", &object)?;
+                s.end()
             }
-        }
+            else {
+                downcast_serializer_to_type!($($rest),*)
+            }
+        };
     }
+
+    downcast_serializer_to_type!(Str, List, Dict)
 }
 
-impl<'de> serde::de::Deserialize<'de> for Value {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        /*
-        let name = <&str as serde::de::Deserialize>::deserialize(deserializer)?;
+fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    /*
+    macro_rules! downcast_serializer_to_type {
+        () => {
+            unimplemented!("Deserializer for Object not specified")
+        };
 
-        if let Some(builtin) = Builtin::get(name) {
-            Ok(BuiltinRef(builtin))
-        }
-        else {
-            Err(serde::de::Error::custom(format!(
-                "Builtin named '{}' not found",
-                name
-            )))
-        }
-        */
-        todo!();
+        ($type:ty $(, $rest:ty)*) => {
+            if let Some(object) = value.as_any().downcast_ref::<$type>() {
+                object.deserialize(deserializer)
+            }
+            else {
+                downcast_serializer_to_type!($($rest),*)
+            }
+        };
     }
+
+    downcast_serializer_to_type!(Str, List, Dict)
+    */
+    unimplemented!()
 }
 
 impl From<bool> for RefValue {
