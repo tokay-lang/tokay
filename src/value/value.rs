@@ -5,11 +5,12 @@ use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
-use serde::{self, Deserialize, Serialize, ser::SerializeStruct};
+use serde::{self, Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Value {
     // Atomics
     Void,  // void
@@ -18,11 +19,17 @@ pub enum Value {
     False, // false
 
     // Numerics
+    #[serde(
+        serialize_with = "serialize_int_to_i64",
+        deserialize_with = "deserialize_int_from_i64"
+    )]
     Int(BigInt), // int
-    Float(f64),  // float
+
+    Float(f64), // float
 
     // Objects
     #[serde(
+        untagged,
         serialize_with = "serialize_object",
         deserialize_with = "deserialize_object"
     )]
@@ -294,7 +301,25 @@ impl Ord for Value {
     }
 }
 
-// Serialization for the C variant
+// Serialization for Int
+fn serialize_int_to_i64<S>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let i = value
+        .to_i64()
+        .ok_or_else(|| serde::ser::Error::custom("BigInt too big"))?;
+    i.serialize(serializer)
+}
+
+fn deserialize_int_from_i64<'de, D>(deserializer: D) -> Result<BigInt, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(BigInt::from(i64::deserialize(deserializer)?))
+}
+
+// Serialization for Object
 fn serialize_object<S>(value: &BoxedObject, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -306,10 +331,7 @@ where
 
         ($type:ty $(, $rest:ty)*) => {
             if let Some(object) = value.as_any().downcast_ref::<$type>() {
-                let mut s = serializer.serialize_struct("Value", 6)?;
-                s.serialize_field("type", object.name())?;
-                s.serialize_field("data", &object)?;
-                s.end()
+                object.serialize(serializer)
             }
             else {
                 downcast_serializer_to_type!($($rest),*)
