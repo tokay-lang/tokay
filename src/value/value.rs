@@ -5,7 +5,7 @@ use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
-use serde::{self, Deserialize, Serialize};
+use serde::{self, Deserialize, Serialize, ser::SerializeMap};
 use std::any::Any;
 use std::cmp::Ordering;
 
@@ -331,7 +331,9 @@ where
 
         ($type:ty $(, $rest:ty)*) => {
             if let Some(object) = value.as_any().downcast_ref::<$type>() {
-                object.serialize(serializer)
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(object.name(), object)?;
+                map.end()
             }
             else {
                 downcast_serializer_to_type!($($rest),*)
@@ -352,28 +354,20 @@ where
         type Value = BoxedObject;
 
         fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-            f.write_str("map with one key: 'str', 'list', 'dict'")
+            f.write_str("map with one key")
         }
 
         fn visit_map<V>(self, mut map: V) -> Result<BoxedObject, V::Error>
         where
             V: serde::de::MapAccess<'de>,
         {
-            Ok(Box::new(List::deserialize(
-                serde::de::value::MapAccessDeserializer::new(map),
-            )?))
-            /*
-            let key = map.next_key::<&str>()?;
-            let map = serde::de::value::MapAccessDeserializer::new(map);
-
-            match key {
-                Some("str") => Ok(Box::new(Str::deserialize(map)?)),
-                Some("list") => Ok(Box::new(List::deserialize(map)?)),
-                Some("dict") => Ok(Box::new(Dict::deserialize(map)?)),
+            match map.next_key::<&str>()? {
+                Some("str") => Ok(Box::new(map.next_value::<Str>()?)),
+                Some("list") => Ok(Box::new(map.next_value::<List>()?)),
+                Some("dict") => Ok(Box::new(map.next_value::<Dict>()?)),
                 Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict"])),
                 None => Err(serde::de::Error::custom("expected a single-key map")),
             }
-            */
         }
     }
 

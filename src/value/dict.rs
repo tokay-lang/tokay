@@ -13,6 +13,7 @@ type InnerDict = IndexMap<RefValue, RefValue>;
 
 // Dict object type
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct Dict {
     dict: InnerDict,
 }

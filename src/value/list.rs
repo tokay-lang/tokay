@@ -10,6 +10,7 @@ type InnerList = Vec<RefValue>;
 
 /// List object type
 #[derive(Debug, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
 pub struct List {
     list: InnerList,
 }
