@@ -350,7 +350,8 @@ fn main1() -> rustyline::Result<()> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     //let val = value![[void, null, 1337, "hello", [1, 2, 3]]];
-    let val = value![[void, null, 1337, 42.5, "Hello", "World"]];
+    //let val = value![[void, null, 1337, 42.5, "Hello", "World"]];
+    let val = value![[void, null, 1337, 42.5]];
     println!("{}", val.repr());
 
     let serialized = serde_json::to_string(&val)?;

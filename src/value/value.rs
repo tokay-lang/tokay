@@ -346,25 +346,38 @@ fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    /*
-    macro_rules! downcast_serializer_to_type {
-        () => {
-            unimplemented!("Deserializer for Object not specified")
-        };
+    struct ObjectVisitor;
 
-        ($type:ty $(, $rest:ty)*) => {
-            if let Some(object) = value.as_any().downcast_ref::<$type>() {
-                object.deserialize(deserializer)
+    impl<'de> serde::de::Visitor<'de> for ObjectVisitor {
+        type Value = BoxedObject;
+
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("map with one key: 'str', 'list', 'dict'")
+        }
+
+        fn visit_map<V>(self, mut map: V) -> Result<BoxedObject, V::Error>
+        where
+            V: serde::de::MapAccess<'de>,
+        {
+            Ok(Box::new(List::deserialize(
+                serde::de::value::MapAccessDeserializer::new(map),
+            )?))
+            /*
+            let key = map.next_key::<&str>()?;
+            let map = serde::de::value::MapAccessDeserializer::new(map);
+
+            match key {
+                Some("str") => Ok(Box::new(Str::deserialize(map)?)),
+                Some("list") => Ok(Box::new(List::deserialize(map)?)),
+                Some("dict") => Ok(Box::new(Dict::deserialize(map)?)),
+                Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict"])),
+                None => Err(serde::de::Error::custom("expected a single-key map")),
             }
-            else {
-                downcast_serializer_to_type!($($rest),*)
-            }
-        };
+            */
+        }
     }
 
-    downcast_serializer_to_type!(Str, List, Dict)
-    */
-    unimplemented!()
+    deserializer.deserialize_map(ObjectVisitor)
 }
 
 impl From<bool> for RefValue {
