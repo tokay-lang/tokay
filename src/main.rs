@@ -2,10 +2,8 @@
 use clap::Parser;
 use env_logger;
 use rustyline;
-use serde_json;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
-use tokay::value;
 use tokay::vm::Thread;
 use tokay::{Compiler, Object, Reader, RefValue};
 
@@ -54,6 +52,10 @@ struct Opts {
     /// Accept only files as parameters, no string fallbacks.
     #[clap(short, long, action)]
     files: bool,
+
+    /// Dump program as JSON (serde test)
+    #[clap(short, long, action)]
+    json: bool,
 
     /// Run Tokay without verbose outputs
     #[clap(short, long, action)]
@@ -148,6 +150,11 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
             _ => match compiler.compile(Reader::new(None, Box::new(io::Cursor::new(code)))) {
                 Ok(None) => {}
                 Ok(Some(program)) => {
+                    if opts.json {
+                        let serialized_program = serde_json::to_string(&program).unwrap();
+                        println!("{}", serialized_program);
+                    }
+
                     let mut readers = get_readers(&opts);
 
                     // In case no stream was specified and REPL fires up, read on an empty string.
@@ -186,7 +193,7 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
     Ok(())
 }
 
-fn main1() -> rustyline::Result<()> {
+fn main() -> rustyline::Result<()> {
     // TOKAY_LOG setting has precedes over RUST_LOG setting.
     if std::env::var("TOKAY_LOG").is_err() {
         env_logger::init();
@@ -248,6 +255,11 @@ fn main1() -> rustyline::Result<()> {
         match compiler.compile(program) {
             Ok(None) => {}
             Ok(Some(program)) => {
+                if opts.json {
+                    let serialized_program = serde_json::to_string(&program).unwrap();
+                    println!("{}", serialized_program);
+                }
+
                 let mut readers = get_readers(&opts);
 
                 // In case no stream but a program is specified, use stdin as input stream.
@@ -348,16 +360,18 @@ fn main1() -> rustyline::Result<()> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //let val = value![[void, null, 1337, "hello", [1, 2, 3]]];
-    let val = value![[void, null, 1337, 42.5, "Hello", "World"]];
-    println!("{}", val.repr());
+/*
+fn serde_main() -> Result<(), Box<dyn std::error::Error>> {
+    let val = value![[void, null, 1337, "hello", [1, 2, 3]]];
+    // let val = value![[void, null, 1337, 42.5, "Hello", "World", ["a" => 1, "b" => 2]]];
+    println!("Original (Tokay):     {}", val.repr());
 
-    let serialized = serde_json::to_string(&val)?;
-    println!("Serialized: {}", serialized);
+    let serialized = serde_json::to_string(&val).unwrap();
+    println!("Serialized (JSON):    {}", serialized);
 
     let deserialized: RefValue = serde_json::from_str(&serialized)?;
-    println!("Deserialized: {:?}", deserialized);
+    println!("Deserialized (Tokay): {}", deserialized.repr());
 
     Ok(())
 }
+*/

@@ -1,5 +1,5 @@
 //! Tokay value
-use super::{BoxedObject, Dict, List, Object, RefValue, Str};
+use super::{BoxedObject, Dict, List, Object, ParseletRef, RefValue, Str};
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -29,7 +29,7 @@ pub enum Value {
 
     // Objects
     #[serde(
-        untagged,
+        untagged,  // https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=bf4276c00019146d787ffb5b710e31fb
         serialize_with = "serialize_object",
         deserialize_with = "deserialize_object"
     )]
@@ -341,7 +341,7 @@ where
         };
     }
 
-    downcast_serializer_to_type!(Str, List, Dict)
+    downcast_serializer_to_type!(Str, List, Dict, ParseletRef)
 }
 
 fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>

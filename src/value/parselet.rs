@@ -1,12 +1,11 @@
 //! Parselet object represents a callable, user-defined function.
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use super::{BoxedObject, Dict, Object, RefValue};
-
 use crate::error::Error;
 use crate::vm::*;
+use serde;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /** Parselet is the conceptual building block of a Tokay program.
 
@@ -21,7 +20,7 @@ Parselets support static program constructs being left-recursive, and extend
 the generated parse tree automatically until no more input can be consumed.
 */
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct Parselet {
     pub name: String,                   // Parselet's name from source (for debugging)
     pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
@@ -379,3 +378,24 @@ impl PartialOrd for ParseletRef {
         self.id().partial_cmp(&other.id())
     }
 }
+
+impl serde::Serialize for ParseletRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.borrow().serialize(serializer)
+    }
+}
+
+/*
+impl<'de> serde::Deserialize<'de> for ParseletRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Parselet::deserialize(deserializer)?;
+        Ok(ParseletRef(Rc::new(RefCell::new(value))))
+    }
+}
+*/
