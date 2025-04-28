@@ -5111,7 +5111,7 @@ impl Parser {
                                                                                     "children" =>
                                                                                         (value!([
                                                                                             "emit" => "identifier",
-                                                                                            "value" => "Expression"
+                                                                                            "value" => "ExpressionList"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
