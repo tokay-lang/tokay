@@ -10,7 +10,7 @@ extern crate self as tokay;
 
 // todo: The entire Token enum could be split into separate objects.
 
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 pub enum Token {
     Empty,            // Matches the empty word
     EOF,              // Matches End of File
@@ -29,7 +29,9 @@ impl Token {
                 "Alphanumeric" => Some(CharClass::new_with_predicate(|ch| ch.is_alphanumeric())),
                 "Ascii" => Some(CharClass::new_with_predicate(char::is_ascii)),
                 "AsciiAlphabetic" => Some(CharClass::new_with_predicate(char::is_ascii_alphabetic)),
-                "AsciiAlphanumeric" => Some(CharClass::new_with_predicate(char::is_ascii_alphanumeric)),
+                "AsciiAlphanumeric" => {
+                    Some(CharClass::new_with_predicate(char::is_ascii_alphanumeric))
+                }
                 "AsciiControl" => Some(CharClass::new_with_predicate(char::is_ascii_control)),
                 "AsciiDigit" => Some(CharClass::new_with_predicate(char::is_ascii_digit)),
                 "AsciiGraphic" => Some(CharClass::new_with_predicate(char::is_ascii_graphic)),
@@ -188,24 +190,6 @@ impl Object for Token {
                 }
             }
         }
-    }
-}
-
-impl serde::ser::Serialize for Token {
-    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        todo!()
-    }
-}
-
-impl<'de> serde::de::Deserialize<'de> for Token {
-    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        todo!()
     }
 }
 

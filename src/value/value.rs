@@ -1,5 +1,6 @@
 //! Tokay value
-use super::{BoxedObject, Dict, List, Object, ParseletRef, RefValue, Str};
+use super::{BoxedObject, Dict, List, Object, ParseletRef, RefValue, Str, Token};
+use crate::builtin::BuiltinRef;
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -341,7 +342,7 @@ where
         };
     }
 
-    downcast_serializer_to_type!(Str, List, Dict, ParseletRef)
+    downcast_serializer_to_type!(Str, List, Dict, ParseletRef, BuiltinRef, Token)
 }
 
 fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>

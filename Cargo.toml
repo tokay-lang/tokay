@@ -23,9 +23,9 @@ static_expression_evaluation = []
 
 [dependencies]
 # charclass = "0.3"  # use crates.io-version
-charclass = { version = "0.3", path = "../charclass", features = [
+charclass = { version = "0.3", features = [
     "serde",
-] } # use local version
+], path = "../charclass" } # use local version
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
 indexmap = { version = "2.6", features = ["serde"] }

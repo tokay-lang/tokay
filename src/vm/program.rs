@@ -10,6 +10,7 @@ use std::io;
 
 A program is the result of a successful compiler run. */
 #[derive(Debug, serde::Serialize)]
+#[serde(transparent)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
 }
