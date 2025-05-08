@@ -22,20 +22,18 @@ default = ["static_expression_evaluation"]
 static_expression_evaluation = []
 
 [dependencies]
-# charclass = "0.3"  # use crates.io-version
-charclass = { version = "0.3", features = [
-    "serde",
-], path = "../charclass" } # use local version
+# charclass = { version = "0.3", features = ["serde"], path = "../charclass" } # use local version
+# num-parse = { version = "0.1", path = "../num-parse" }         # use local version
+# tokay-macros = { version = "0.5", path = "macros" }            # use local version
+charclass = { version = "0.3", features = ["serde"] }            # use crates.io-version
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
 indexmap = { version = "2.6", features = ["serde"] }
 log = { version = "0.4", features = ["release_max_level_warn"] }
 num = "0.4"
 num-bigint = { version = "0.4", features = ["serde"] }
-num-parse = "0.1" # use crates.io-version
-# num-parse = { version = "0.1", path = "../num-parse" }  # use local version
+num-parse = "0.1"                                                # use crates.io-version
 rustyline = "15.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokay-macros = "0.5"                               # use crates.io-version
-# tokay-macros = { version = "0.5", path = "macros" }  # use local version
+tokay-macros = "0.5"                                             # use crates.io-version
