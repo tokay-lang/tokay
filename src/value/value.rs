@@ -1,14 +1,17 @@
 //! Tokay value
-use super::{BoxedObject, Dict, Object, RefValue};
+use super::{BoxedObject, Dict, List, Object, ParseletRef, RefValue, Str, Token};
+use crate::builtin::BuiltinRef;
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
+use serde::{self, Deserialize, Serialize, ser::SerializeMap};
 use std::any::Any;
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Value {
     // Atomics
     Void,  // void
@@ -17,10 +20,20 @@ pub enum Value {
     False, // false
 
     // Numerics
+    #[serde(
+        serialize_with = "serialize_int_to_i64",
+        deserialize_with = "deserialize_int_from_i64"
+    )]
     Int(BigInt), // int
-    Float(f64),  // float
+
+    Float(f64), // float
 
     // Objects
+    #[serde(
+        untagged,  // https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=bf4276c00019146d787ffb5b710e31fb
+        serialize_with = "serialize_object",
+        deserialize_with = "deserialize_object"
+    )]
     Object(BoxedObject), // object
 }
 
@@ -287,6 +300,79 @@ impl Ord for Value {
             None => self.id().cmp(&other.id()),
         }
     }
+}
+
+// Serialization for Int
+fn serialize_int_to_i64<S>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let i = value
+        .to_i64()
+        .ok_or_else(|| serde::ser::Error::custom("BigInt too big"))?;
+    i.serialize(serializer)
+}
+
+fn deserialize_int_from_i64<'de, D>(deserializer: D) -> Result<BigInt, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(BigInt::from(i64::deserialize(deserializer)?))
+}
+
+// Serialization for Object
+fn serialize_object<S>(value: &BoxedObject, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    macro_rules! downcast_serializer_to_type {
+        () => {
+            unimplemented!("Serializer for '{}' not specified", value.name())
+        };
+
+        ($type:ty $(, $rest:ty)*) => {
+            if let Some(object) = value.as_any().downcast_ref::<$type>() {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(object.name(), object)?;
+                map.end()
+            }
+            else {
+                downcast_serializer_to_type!($($rest),*)
+            }
+        };
+    }
+
+    downcast_serializer_to_type!(Str, List, Dict, ParseletRef, BuiltinRef, Token)
+}
+
+fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct ObjectVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for ObjectVisitor {
+        type Value = BoxedObject;
+
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("map with one key")
+        }
+
+        fn visit_map<V>(self, mut map: V) -> Result<BoxedObject, V::Error>
+        where
+            V: serde::de::MapAccess<'de>,
+        {
+            match map.next_key::<&str>()? {
+                Some("str") => Ok(Box::new(map.next_value::<Str>()?)),
+                Some("list") => Ok(Box::new(map.next_value::<List>()?)),
+                Some("dict") => Ok(Box::new(map.next_value::<Dict>()?)),
+                Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict"])),
+                None => Err(serde::de::Error::custom("expected a single-key map")),
+            }
+        }
+    }
+
+    deserializer.deserialize_map(ObjectVisitor)
 }
 
 impl From<bool> for RefValue {

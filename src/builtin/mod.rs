@@ -3,6 +3,7 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::{Accept, Context, Reject};
+use serde;
 use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
@@ -128,6 +129,33 @@ impl std::fmt::Debug for BuiltinRef {
 impl From<&'static Builtin> for RefValue {
     fn from(builtin: &'static Builtin) -> Self {
         Value::Object(Box::new(BuiltinRef(builtin))).into()
+    }
+}
+
+impl serde::ser::Serialize for BuiltinRef {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(self.0.name)
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for BuiltinRef {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let name = <&str as serde::de::Deserialize>::deserialize(deserializer)?;
+
+        if let Some(builtin) = Builtin::get(name) {
+            Ok(BuiltinRef(builtin))
+        } else {
+            Err(serde::de::Error::custom(format!(
+                "Builtin named '{}' not found",
+                name
+            )))
+        }
     }
 }
 
