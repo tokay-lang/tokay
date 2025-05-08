@@ -1,10 +1,8 @@
 [package]
 name = "tokay"
-version = "0.6.7"
+version = "0.6.8"
 description = "Tokay is a programming language designed for ad-hoc parsing."
-authors = [
-    "Jan Max Meyer <jmm@phorward.de>"
-]
+authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
 repository = "https://github.com/tokay-lang/tokay/"
 license = "MIT"
@@ -13,33 +11,31 @@ categories = [
     "parsing",
     "compilers",
     "command-line-utilities",
-    "development-tools"
+    "development-tools",
 ]
-keywords = [
-    "awk",
-    "dsl",
-    "packrat",
-    "parser",
-    "vm"
-]
+keywords = ["awk", "dsl", "packrat", "parser", "vm"]
 
 [features]
 default = ["static_expression_evaluation"]
-static_expression_evaluation = []  # Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
+
+# Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
+static_expression_evaluation = []
 
 [dependencies]
-charclass = "0.2"  # use crates.io-version
-# charclass = { version = "0.2", path = "../charclass" }  # use local version
+# charclass = "0.3"  # use crates.io-version
+charclass = { version = "0.3", path = "../charclass", features = [
+    "serde",
+] } # use local version
 clap = { version = "4.5", features = ["derive"] }
 env_logger = "0.11"
 indexmap = { version = "2.6", features = ["serde"] }
 log = { version = "0.4", features = ["release_max_level_warn"] }
 num = "0.4"
 num-bigint = { version = "0.4", features = ["serde"] }
-num-parse = "0.1"  # use crates.io-version
+num-parse = "0.1" # use crates.io-version
 # num-parse = { version = "0.1", path = "../num-parse" }  # use local version
 rustyline = "15.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokay-macros = "0.5"  # use crates.io-version
+tokay-macros = "0.5"                               # use crates.io-version
 # tokay-macros = { version = "0.5", path = "macros" }  # use local version

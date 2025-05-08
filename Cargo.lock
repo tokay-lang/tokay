@@ -122,9 +122,10 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "charclass"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8dfc99f793cb9e9b717665a6959468a7ee2d29dc0ffc2f54393d75c1daa488a"
+version = "0.3.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "clap"
@@ -861,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "tokay"
-version = "0.6.7"
+version = "0.6.8"
 dependencies = [
  "charclass",
  "clap 4.5.31",
