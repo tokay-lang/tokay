@@ -28,7 +28,9 @@ impl Token {
                 "Alphanumeric" => Some(CharClass::new_with_predicate(|ch| ch.is_alphanumeric())),
                 "Ascii" => Some(CharClass::new_with_predicate(char::is_ascii)),
                 "AsciiAlphabetic" => Some(CharClass::new_with_predicate(char::is_ascii_alphabetic)),
-                "AsciiAlphanumeric" => Some(CharClass::new_with_predicate(char::is_ascii_alphanumeric)),
+                "AsciiAlphanumeric" => {
+                    Some(CharClass::new_with_predicate(char::is_ascii_alphanumeric))
+                }
                 "AsciiControl" => Some(CharClass::new_with_predicate(char::is_ascii_control)),
                 "AsciiDigit" => Some(CharClass::new_with_predicate(char::is_ascii_digit)),
                 "AsciiGraphic" => Some(CharClass::new_with_predicate(char::is_ascii_graphic)),

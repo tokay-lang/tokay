@@ -723,11 +723,15 @@ fn traverse_node_rvalue(scope: &Scope, node: &Dict, mode: Rvalue) -> ImlOp {
 
             let mut ops = vec![traverse_offset(node)];
 
-            for node in children.iter() {
+            for i in 0..children.len() {
                 ops.push(traverse_node_rvalue(
                     scope,
-                    node.borrow().object::<Dict>().unwrap(),
-                    Rvalue::Load,
+                    children[i].borrow().object::<Dict>().unwrap(),
+                    if i < children.len() - 1 {
+                        Rvalue::CallOrLoad
+                    } else {
+                        Rvalue::Load
+                    },
                 ));
             }
 
