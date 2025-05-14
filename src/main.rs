@@ -1,6 +1,10 @@
 //! Tokay main and REPL
+
+#[cfg(feature = "cli")]
 use clap::Parser;
+#[cfg(feature = "cli")]
 use env_logger;
+#[cfg(feature = "cli")]
 use rustyline;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
@@ -11,6 +15,7 @@ fn print_version() {
     println!("Tokay {}", env!("CARGO_PKG_VERSION"));
 }
 
+#[cfg(feature = "cli")]
 #[derive(clap::Parser)]
 #[clap(
     name = "Tokay",
@@ -67,6 +72,7 @@ struct Opts {
 }
 
 /// Create Readers from provided filesnames
+#[cfg(feature = "cli")]
 fn get_readers(opts: &Opts) -> Vec<Reader> {
     // Try getting files to run on program or repl
     let mut readers: Vec<Reader> = Vec::new();
@@ -96,7 +102,8 @@ fn get_readers(opts: &Opts) -> Vec<Reader> {
     readers
 }
 
-// Read-Eval-Print-Loop (REPL) for Tokay
+/// Read-Eval-Print-Loop (REPL) for Tokay
+#[cfg(feature = "cli")]
 fn repl(opts: &Opts) -> rustyline::Result<()> {
     let mut globals: Vec<RefValue> = Vec::new();
     let mut compiler = Compiler::new();
@@ -184,6 +191,7 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "cli")]
 fn main() -> rustyline::Result<()> {
     // TOKAY_LOG setting has precedes over RUST_LOG setting.
     if std::env::var("TOKAY_LOG").is_err() {
@@ -345,3 +353,39 @@ fn main() -> rustyline::Result<()> {
 
     Ok(())
 }
+
+#[cfg(not(feature = "cli"))]
+pub fn eval(code: String) -> Option<String> {
+    let mut compiler = Compiler::new();
+    let mut dummy = Reader::new(None, Box::new(io::Cursor::new(String::new())));
+
+    match compiler.compile(Reader::new(None, Box::new(io::Cursor::new(code)))) {
+        Ok(None) => None,
+        Ok(Some(program)) => {
+            let mut thread = Thread::new(&program, vec![&mut dummy]);
+            //thread.debug = compiler.debug;
+            //thread.globals = globals;
+
+            match thread.run() {
+                Ok(Some(value)) => Some(value.repr()),
+                Err(error) => Some(error.to_string()),
+                _ => None,
+            }
+
+            //globals = thread.globals;
+        }
+        Err(errors) => Some(format!("{:?}", errors)),
+    }
+}
+
+#[cfg(not(feature = "cli"))]
+fn main() {
+    let input = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
+    let output = eval(input);
+    println!("{:?}", output);
+}
+/*
+fn main() {
+    compile_error!("This binary requires the 'cli' feature");
+}
+*/
