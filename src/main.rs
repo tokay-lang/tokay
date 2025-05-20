@@ -1,4 +1,6 @@
 //! Tokay main and REPL
+#![cfg(feature = "cli")]
+
 use clap::Parser;
 use env_logger;
 use rustyline;
@@ -96,7 +98,7 @@ fn get_readers(opts: &Opts) -> Vec<Reader> {
     readers
 }
 
-// Read-Eval-Print-Loop (REPL) for Tokay
+/// Read-Eval-Print-Loop (REPL) for Tokay
 fn repl(opts: &Opts) -> rustyline::Result<()> {
     let mut globals: Vec<RefValue> = Vec::new();
     let mut compiler = Compiler::new();
