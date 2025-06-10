@@ -261,11 +261,7 @@ fn main() -> rustyline::Result<()> {
         if var.len() == 2 {
             compiler.global(
                 var[0],
-                if let Ok(value) = tokay::eval(var[1], "") {
-                    value
-                } else {
-                    RefValue::from(var[1])
-                },
+                tokay::eval(include_str!("value/value.tok"), var[1]).unwrap(),
             );
         } else {
             compiler.global(var[0], RefValue::from(Value::Void));
