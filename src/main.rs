@@ -6,6 +6,7 @@ use env_logger;
 use rustyline;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
+use tokay;
 use tokay::vm::Thread;
 use tokay::{Compiler, Object, Reader, RefValue, Value};
 
@@ -253,11 +254,19 @@ fn main() -> rustyline::Result<()> {
     // Create a new Tokay compiler
     let mut compiler = Compiler::new();
 
+    // Load variables from command-line into the compiler
     for var in &opts.var {
         let var: Vec<_> = var.splitn(2, "=").collect();
 
         if var.len() == 2 {
-            compiler.global(var[0], RefValue::from(var[1]));
+            compiler.global(
+                var[0],
+                if let Ok(value) = tokay::eval(var[1], "") {
+                    value
+                } else {
+                    RefValue::from(var[1])
+                },
+            );
         } else {
             compiler.global(var[0], RefValue::from(Value::Void));
         }

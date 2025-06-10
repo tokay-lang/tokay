@@ -38,7 +38,7 @@ impl Compiler {
     generics, statics, etc.
     */
     pub fn new() -> Self {
-        // Always create standard statics
+        // Always create standard statics; These are referenced during AST traversal.
         let statics = indexset![
             value!(void),
             value!(null),
