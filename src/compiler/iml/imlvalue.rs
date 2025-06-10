@@ -511,3 +511,9 @@ impl From<RefValue> for ImlValue {
         Self::Value(value)
     }
 }
+
+impl From<Value> for ImlValue {
+    fn from(value: Value) -> Self {
+        Self::from(RefValue::from(value))
+    }
+}
