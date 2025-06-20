@@ -80,7 +80,7 @@ pub(crate) enum Op {
     LoadFast(usize),             // Load local variable by current context
     LoadFastCapture(usize),      // Load capture by known index
     LoadCapture,                 // Load capture by evaluated index
-    LoadItem(bool),              // Load item (true: upsert, if possible)
+    LoadItem { upsert: bool },   // Load item
     LoadAttr,                    // Load attr
     StoreGlobal(usize),          // Store global variable
     StoreGlobalHold(usize),      // Store global variable and keep tos
@@ -511,7 +511,7 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::LoadItem(upsert) => {
+                Op::LoadItem { upsert } => {
                     let item = context.pop();
                     let object = context.pop();
                     let upsert = if *upsert {
