@@ -80,7 +80,7 @@ pub(crate) enum Op {
     LoadFast(usize),             // Load local variable by current context
     LoadFastCapture(usize),      // Load capture by known index
     LoadCapture,                 // Load capture by evaluated index
-    LoadItem,                    // Load item
+    LoadItem { upsert: bool },   // Load item
     LoadAttr,                    // Load attr
     StoreGlobal(usize),          // Store global variable
     StoreGlobalHold(usize),      // Store global variable and keep tos
@@ -511,11 +511,18 @@ impl Op {
                     Ok(Accept::Next)
                 }
 
-                Op::LoadItem => {
+                Op::LoadItem { upsert } => {
                     let item = context.pop();
                     let object = context.pop();
+                    let upsert = if *upsert {
+                        let mut dict = Dict::new();
+                        dict.insert(RefValue::from("upsert"), RefValue::from(true));
+                        Some(dict)
+                    } else {
+                        None
+                    };
 
-                    match object.call_method("get_item", Some(context), vec![item]) {
+                    match object.call_method("get_item", Some(context), vec![item], upsert) {
                         Ok(Some(value)) => context.push(value),
                         Ok(None) => Ok(Accept::Next),
                         Err(msg) => Err(Reject::from(msg)),
@@ -607,7 +614,7 @@ impl Op {
                     let object = context.pop();
                     let value = context.pop();
 
-                    match object.call_method("set_item", Some(context), vec![item, value]) {
+                    match object.call_method("set_item", Some(context), vec![item, value], None) {
                         Ok(value) => {
                             let value = value.unwrap(); // setitem must always return a value!
 
