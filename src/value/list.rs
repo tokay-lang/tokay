@@ -111,18 +111,28 @@ impl List {
         }))
     });
 
-    tokay_method!("list_get_item : @list, item, default=void", {
+    tokay_method!("list_get_item : @list, item, default=void, upsert=false", {
         // In case list is not a list, make it a list.
         if !list.is("list") {
             list = Self::list(vec![list], None)?;
         }
 
-        let list = list.borrow();
+        {
+            let list = list.borrow();
+            let idx = item.to_usize()?;
 
-        if let Ok(item) = item.to_usize() {
-            if let Some(value) = list.object::<List>().unwrap().get(item) {
+            if let Some(value) = list.object::<List>().unwrap().get(idx) {
                 return Ok(value.clone());
             }
+        }
+
+        if upsert.is_true() {
+            // follow the void paradigm; void cannot be upserted, so default to null.
+            if default.is_void() {
+                default = value![null];
+            }
+
+            return Self::list_set_item(vec![list, item, default], None);
         }
 
         Ok(default)
