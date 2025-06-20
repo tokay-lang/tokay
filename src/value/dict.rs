@@ -280,7 +280,10 @@ impl Dict {
 
     /** Retrieve item with `key` from `dict`.
 
-    Creates a new item with the dict's default value, if no value with `key` is present.
+    When `upsert=true`, it creates and returns a new item with the `default` value, if no value with `key` is present.
+    A `default`-value of `void` will become `null` in upsert-mode.
+
+    Otherwise, `default` is just returned when the specified `key` is not present.
 
     This method is also invoked when using the `dict` item syntax.
     */

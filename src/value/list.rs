@@ -65,6 +65,7 @@ impl List {
         }
     }
 
+    /// Constructs a new list from all specified `args`.
     tokay_method!("list : @*args", {
         let list = if args.len() == 1 {
             // In case of an iter, use the collect-method
@@ -99,6 +100,7 @@ impl List {
         }
     });
 
+    /// Returns the length of the specified `list`.
     tokay_method!("list_len : @list", {
         let list = list.borrow();
 
@@ -111,32 +113,44 @@ impl List {
         }))
     });
 
-    tokay_method!("list_get_item : @list, item, default=void, upsert=false", {
-        // In case list is not a list, make it a list.
-        if !list.is("list") {
-            list = Self::list(vec![list], None)?;
-        }
+    /** Retrieves item with `index` from `list`.
 
+    When `upsert=true`, it fills the list to the specified `index` and inserts and returns the `default` value.
+    A `default`-value of `void` will become `null` in upsert-mode.
+
+    Otherwise, `default` is just returned when the specified `item` is not present.
+
+    This method is also invoked when using the `dict` item syntax.
+    */
+    tokay_method!(
+        "list_get_item : @list, index, default=void, upsert=false",
         {
-            let list = list.borrow();
-            let idx = item.to_usize()?;
-
-            if let Some(value) = list.object::<List>().unwrap().get(idx) {
-                return Ok(value.clone());
-            }
-        }
-
-        if upsert.is_true() {
-            // follow the void paradigm; void cannot be upserted, so default to null.
-            if default.is_void() {
-                default = value![null];
+            // In case list is not a list, make it a list.
+            if !list.is("list") {
+                list = Self::list(vec![list], None)?;
             }
 
-            return Self::list_set_item(vec![list, item, default], None);
-        }
+            {
+                let list = list.borrow();
+                let index = index.to_usize()?;
 
-        Ok(default)
-    });
+                if let Some(value) = list.object::<List>().unwrap().get(index) {
+                    return Ok(value.clone());
+                }
+            }
+
+            if upsert.is_true() {
+                // follow the void paradigm; void cannot be upserted, so default to null.
+                if default.is_void() {
+                    default = value![null];
+                }
+
+                return Self::list_set_item(vec![list, index, default], None);
+            }
+
+            Ok(default)
+        }
+    );
 
     tokay_method!("list_set_item : @list, item, value=void", {
         // In case list is not a list, make it a list.
@@ -169,6 +183,7 @@ impl List {
 
             for item in list.iter() {
                 if let Some(list) = item.borrow().object::<List>() {
+                    // TODO: flatten list recursively until a parametrizable depth.
                     for item in list.iter() {
                         ret.push(item.clone());
                     }
