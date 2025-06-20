@@ -515,7 +515,7 @@ impl Op {
                     let item = context.pop();
                     let object = context.pop();
 
-                    match object.call_method("get_item", Some(context), vec![item]) {
+                    match object.call_method("get_item", Some(context), vec![item], None) {
                         Ok(Some(value)) => context.push(value),
                         Ok(None) => Ok(Accept::Next),
                         Err(msg) => Err(Reject::from(msg)),
@@ -607,7 +607,7 @@ impl Op {
                     let object = context.pop();
                     let value = context.pop();
 
-                    match object.call_method("set_item", Some(context), vec![item, value]) {
+                    match object.call_method("set_item", Some(context), vec![item, value], None) {
                         Ok(value) => {
                             let value = value.unwrap(); // setitem must always return a value!
 

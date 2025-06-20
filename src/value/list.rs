@@ -70,7 +70,7 @@ impl List {
             // In case of an iter, use the collect-method
             if args[0].is("iter") {
                 return Ok(args[0]
-                    .call_method("collect", context, Vec::new())?
+                    .call_method("collect", context, Vec::new(), None)?
                     .unwrap());
             }
             // Otherwise, create a list with one item
