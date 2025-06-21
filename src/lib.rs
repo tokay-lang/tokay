@@ -28,10 +28,26 @@ pub use value::{Dict, List, Object, RefValue, Str, Value};
 pub use vm::{Accept, Capture, Context, Program, Reject};
 
 /**
- * Run a piece of code on optional input.
+ * Compile and evaluate a piece of Tokay code on optional input.
+ *
+ * `code` is the actual code being compiled and executed.
+ * `input` is an optional input to work on; This can be an empty str.
+ * `vars` is a way to optionally give global variables into the program.
+ *
+ * Returns Ok(RefValue) with a given result value, or Err(Error) when something went wrong.
  */
-pub fn eval(code: &str, input: &str) -> Result<RefValue, Error> {
+pub fn eval(
+    code: &str,
+    input: &str,
+    vars: Option<std::collections::HashMap<String, RefValue>>,
+) -> Result<RefValue, Error> {
     let mut compiler = Compiler::new();
+
+    if let Some(vars) = vars {
+        for (key, value) in vars.into_iter() {
+            compiler.global(&key, value);
+        }
+    }
 
     match compiler.compile_from_str(code) {
         Ok(None) => Ok(RefValue::from(Value::Void)),
