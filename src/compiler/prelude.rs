@@ -1667,10 +1667,8 @@ impl Compiler {
             /*ETARENEG*/
         ;
 
-        self.restrict = false;
         self.compile_from_ast(&ast, Some("prelude".to_string()))
             .expect("prelude cannot be compiled!")
             .expect("prelude contains no main?");
-        self.restrict = true;
     }
 }
