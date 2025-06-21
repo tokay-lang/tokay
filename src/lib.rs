@@ -64,3 +64,19 @@ pub fn eval(
         Err(mut errors) => Err(errors.remove(0)),
     }
 }
+
+#[test]
+// Simple testcase for eval
+fn test_eval() {
+    assert_eq!(
+        eval(
+            "2 * a + Int",
+            "23",
+            Some(std::collections::HashMap::from([(
+                "a".to_string(),
+                value!(5)
+            )]))
+        ),
+        Ok(value!(33))
+    );
+}
