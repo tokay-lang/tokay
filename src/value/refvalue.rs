@@ -42,6 +42,7 @@ impl RefValue {
         name: &str,
         context: Option<&mut Context>,
         mut args: Vec<RefValue>,
+        nargs: Option<Dict>,
     ) -> Result<Option<RefValue>, String> {
         let builtin = Builtin::get_method(self.name(), name)?;
 
@@ -49,7 +50,7 @@ impl RefValue {
         args.insert(0, self.clone());
 
         // Call the builtin directly.
-        builtin.call(context, args)
+        builtin.call(context, args, nargs)
     }
 
     pub fn unary_op(self, op: &str) -> Result<RefValue, String> {
@@ -95,7 +96,7 @@ impl RefValue {
         };
 
         match Builtin::get_method(name, op) {
-            Ok(builtin) => Ok(builtin.call(None, vec![self])?.unwrap()),
+            Ok(builtin) => Ok(builtin.call(None, vec![self], None)?.unwrap()),
             Err(notfound) => match op {
                 // default fallback for not
                 "not" => Ok(value!(!self.is_true())),
@@ -280,7 +281,7 @@ impl RefValue {
             match Builtin::get_method(name, op) {
                 Ok(builtin) => {
                     return Ok(builtin
-                        .call(None, vec![self, operand.ref_or_copy()])?
+                        .call(None, vec![self, operand.ref_or_copy()], None)?
                         .unwrap());
                 }
                 // default "inline" operation is the non-inline operation assigning the result to itself

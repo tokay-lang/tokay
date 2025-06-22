@@ -6,6 +6,13 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
+### [v0.6.8] WASM Update
+
+- `cli`-feature to make `wasm` target possible (#153)
+- feat: Replace `Token::BuiltinChar` by `Token::Char`
+- fix: Rvalue traversals with calls
+- fix: Use charclass==0.3.0
+
 ### [v0.6.7] Feature update
 
 Released on Apr 29, 2025

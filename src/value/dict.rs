@@ -280,11 +280,25 @@ impl Dict {
         }
     });
 
-    /** Retrieve item with `key` from `dict`. Returns `default` when key is not found.
+    /** Retrieve item with `key` from `dict`.
+
+    When `upsert=true`, it creates and returns a new item with the `default` value, if no value with `key` is present.
+    A `default`-value of `void` will become `null` in upsert-mode.
+
+    Otherwise, `default` is just returned when the specified `key` is not present.
 
     This method is also invoked when using the `dict` item syntax.
     */
-    tokay_method!("dict_get_item : @dict, key, default=void", {
+    tokay_method!("dict_get_item : @dict, key, default=void, upsert=false", {
+        if !dict.is("dict") {
+            return Err(Error::from(format!(
+                "{} only accepts '{}' as parameter, not '{}'",
+                __function,
+                "dict",
+                dict.name()
+            )));
+        }
+
         if !key.is_hashable() {
             return Err(Error::from(format!(
                 "{} unhashable type '{}'",
@@ -293,22 +307,30 @@ impl Dict {
             )));
         }
 
-        // todo: alias dict_get
-        let dict = dict.borrow();
+        if upsert.is_true() {
+            let mut dict = dict.borrow_mut();
+            let dict = dict.object_mut::<Dict>().unwrap();
 
-        if let Some(dict) = dict.object::<Dict>() {
-            if let Some(key) = dict.get(&key) {
-                Ok(key.clone())
+            if let Some(value) = dict.get(&key) {
+                Ok(value.clone())
             } else {
+                // follow the void paradigm; void cannot be upserted, so default to null.
+                if default.is_void() {
+                    default = value![null];
+                }
+
+                dict.insert(key, default.clone());
                 Ok(default)
             }
         } else {
-            Err(Error::from(format!(
-                "{} only accepts '{}' as parameter, not '{}'",
-                __function,
-                "dict",
-                dict.name()
-            )))
+            let dict = dict.borrow();
+            let dict = dict.object::<Dict>().unwrap();
+
+            if let Some(value) = dict.get(&key) {
+                Ok(value.clone())
+            } else {
+                Ok(default)
+            }
         }
     });
 

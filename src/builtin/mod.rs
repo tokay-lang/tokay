@@ -56,9 +56,10 @@ impl Builtin {
         &self,
         context: Option<&mut Context>,
         args: Vec<RefValue>,
+        nargs: Option<Dict>,
     ) -> Result<Option<RefValue>, String> {
         // Call the builtin directly.
-        match (self.func)(context, args, None) {
+        match (self.func)(context, args, nargs) {
             Ok(Accept::Next | Accept::Hold) => Ok(None),
             Ok(Accept::Push(capture)) => Ok(Some(capture.get_value())),
             Err(Reject::Error(error)) => Err(error.message),
