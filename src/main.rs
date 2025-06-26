@@ -55,10 +55,6 @@ struct Opts {
     #[clap(short, long, action)]
     files: bool,
 
-    /// Dump program as JSON (serde test)
-    #[clap(short, long, action)]
-    json: bool,
-
     /// Run Tokay without verbose outputs
     #[clap(short, long, action)]
     quiet: bool,
@@ -152,11 +148,6 @@ fn repl(opts: &Opts) -> rustyline::Result<()> {
             _ => match compiler.compile(Reader::new(None, Box::new(io::Cursor::new(code)))) {
                 Ok(None) => {}
                 Ok(Some(program)) => {
-                    if opts.json {
-                        let serialized_program = serde_json::to_string(&program).unwrap();
-                        println!("{}", serialized_program);
-                    }
-
                     let mut readers = get_readers(&opts);
 
                     // In case no stream was specified and REPL fires up, read on an empty string.
@@ -257,11 +248,6 @@ fn main() -> rustyline::Result<()> {
         match compiler.compile(program) {
             Ok(None) => {}
             Ok(Some(program)) => {
-                if opts.json {
-                    let serialized_program = serde_json::to_string(&program).unwrap();
-                    println!("{}", serialized_program);
-                }
-
                 let mut readers = get_readers(&opts);
 
                 // In case no stream but a program is specified, use stdin as input stream.

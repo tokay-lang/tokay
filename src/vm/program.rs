@@ -9,7 +9,7 @@ use std::io;
 /** Programs are containers holding statics and a pointer to the main parselet.
 
 A program is the result of a successful compiler run. */
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
