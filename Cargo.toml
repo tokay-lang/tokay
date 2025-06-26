@@ -1,6 +1,6 @@
 [package]
 name = "tokay"
-version = "0.6.8"
+version = "0.6.9"
 description = "Tokay is a programming language designed for ad-hoc parsing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
@@ -18,10 +18,11 @@ keywords = ["awk", "dsl", "packrat", "parser", "vm"]
 [features]
 default = ["static_expression_evaluation", "cli"]
 
-# Command-line interface (with REPL)
+# Compile with a command-line interface (including REPL)
 cli = ["clap", "env_logger", "rustyline"]
 
-# Evaluates static expressions like 1+2+3 during compile-time to reduce resulting operations
+# Evaluates static expressions like 1+2+3 directly to 6
+# during compile-time to reduce resulting operations
 static_expression_evaluation = []
 
 [dependencies]

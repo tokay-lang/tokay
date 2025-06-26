@@ -96,10 +96,6 @@ impl Parselet {
             }
         }
 
-        if main {
-            assert!(self.signature.is_empty());
-        }
-
         let args_len = args.len();
 
         // Check for provided argument count bounds first
@@ -126,64 +122,72 @@ impl Parselet {
         }
 
         if main {
-            // Initialize global variables
+            for global in &self.signature {
+                if let Some(addr) = global.1 {
+                    thread.globals.push(thread.program.statics[addr].clone())
+                } else {
+                    thread.globals.push(crate::value!(void));
+                }
+            }
+
+            // Initialize remaining global variables
             thread
                 .globals
                 .resize_with(self.locals, || crate::value!(void));
         } else {
             // Initialize local variables
             args.resize(self.locals, Capture::Empty);
-        }
 
-        // Set remaining parameters to their defaults
-        for (i, arg) in (&self.signature[args_len..]).iter().enumerate() {
-            // args parameters are previously pushed onto the stack.
-            let var = &mut args[args_len + i];
+            // Set remaining parameters to their defaults
+            for (i, arg) in (&self.signature[args_len..]).iter().enumerate() {
+                // args parameters are previously pushed onto the stack.
+                let var = &mut args[args_len + i];
 
-            //println!("{} {:?} {:?}", i, arg, var);
-            if matches!(var, Capture::Empty) {
-                // In case the parameter is empty, try to get it from nargs...
-                if let Some(ref mut nargs) = nargs {
-                    if let Some(value) = nargs.remove_str(&arg.0) {
-                        *var = Capture::Value(value, None, 0);
+                //println!("{} {:?} {:?}", i, arg, var);
+                if matches!(var, Capture::Empty) {
+                    // In case the parameter is empty, try to get it from nargs...
+                    if let Some(ref mut nargs) = nargs {
+                        if let Some(value) = nargs.remove_str(&arg.0) {
+                            *var = Capture::Value(value, None, 0);
+                            continue;
+                        }
+                    }
+
+                    // Otherwise, use default value if available.
+                    if let Some(addr) = arg.1 {
+                        // fixme: This might leak the immutable static value to something mutable...
+                        *var = Capture::Value(thread.program.statics[addr].clone(), None, 0);
+                        //println!("{} receives default {:?}", arg.0, var);
                         continue;
                     }
-                }
 
-                // Otherwise, use default value if available.
-                if let Some(addr) = arg.1 {
-                    // fixme: This might leak the immutable static value to something mutable...
-                    *var = Capture::Value(thread.program.statics[addr].clone(), None, 0);
-                    //println!("{} receives default {:?}", arg.0, var);
-                    continue;
+                    return Error::new(
+                        None,
+                        format!("{}() expected argument '{}'", self.name, arg.0),
+                    )
+                    .into();
                 }
-
-                return Error::new(
-                    None,
-                    format!("{}() expected argument '{}'", self.name, arg.0),
-                )
-                .into();
             }
-        }
 
-        // Check for remaining nargs
-        // todo: Not executed when **nargs-catchall is implemented
-        if let Some(mut nargs) = nargs {
-            if let Some((name, _)) = nargs.pop() {
-                return Err(match nargs.len() {
-                    0 => format!(
-                        "{}() doesn't accept named argument '{}'",
-                        self.name,
-                        name.to_string()
-                    ),
-                    n => format!(
-                        "{}() doesn't accept named arguments ({} given)",
-                        self.name,
-                        n + 1
-                    ),
+            // Check for remaining nargs
+            // todo: Not executed when **nargs-catchall is implemented
+            if let Some(mut nargs) = nargs {
+                if let Some((name, _)) = nargs.pop() {
+                    return Err(match nargs.len() {
+                        0 => format!(
+                            "{}() doesn't accept named argument '{}'",
+                            self.name,
+                            name.to_string()
+                        ),
+                        n => format!(
+                            "{}() doesn't accept named arguments ({} given)",
+                            self.name,
+                            n + 1
+                        ),
+                    }
+                    .into())
+                    .into();
                 }
-                .into())
-                .into();
             }
         }
 

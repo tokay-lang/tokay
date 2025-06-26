@@ -6,8 +6,9 @@ use env_logger;
 use rustyline;
 use std::fs::{self, File};
 use std::io::{self, BufReader};
+use tokay;
 use tokay::vm::Thread;
-use tokay::{Compiler, Object, Reader, RefValue};
+use tokay::{Compiler, Object, Reader, RefValue, Value};
 
 fn print_version() {
     println!("Tokay {}", env!("CARGO_PKG_VERSION"));
@@ -35,6 +36,7 @@ When a PROGRAM is not specified, {bin} turns into an interactive REPL.
 Visit https://tokay.dev/ for help and further information."#
 )]
 struct Opts {
+    // vvv--- positional ---vvv
     /// Program to compile and run.
     #[clap(value_parser)]
     program: Option<String>,
@@ -43,6 +45,7 @@ struct Opts {
     #[clap(value_parser, last = true)]
     input: Vec<String>,
 
+    // vvv--- named short/long options (sorted by alphabet) ---vvv
     /// Sets the debug level.
     #[clap(short, long, action = clap::ArgAction::Count)]
     debug: u8,
@@ -55,6 +58,10 @@ struct Opts {
     #[clap(short, long, action)]
     files: bool,
 
+    /// Show license agreement and exit.
+    #[clap(short, long, action)]
+    license: bool,
+
     /// Run Tokay without verbose outputs
     #[clap(short, long, action)]
     quiet: bool,
@@ -63,9 +70,12 @@ struct Opts {
     #[clap(short, long, action)]
     repl: bool,
 
-    /// Show license agreement and exit.
-    #[clap(short, long, action)]
-    license: bool,
+    /// Set variables in the format var=value.
+    ///
+    /// The value will be tried to be converted into a Tokay value,
+    /// and fallsback to str.
+    #[clap(short, long, num_args(0..))]
+    var: Vec<String>,
 }
 
 /// Create Readers from provided filesnames
@@ -99,9 +109,8 @@ fn get_readers(opts: &Opts) -> Vec<Reader> {
 }
 
 /// Read-Eval-Print-Loop (REPL) for Tokay
-fn repl(opts: &Opts) -> rustyline::Result<()> {
+fn repl(compiler: &mut Compiler, opts: &Opts) -> rustyline::Result<()> {
     let mut globals: Vec<RefValue> = Vec::new();
-    let mut compiler = Compiler::new();
 
     // todo: Implement a completer?
     let mut readline = rustyline::DefaultEditor::new()?;
@@ -242,9 +251,32 @@ fn main() -> rustyline::Result<()> {
         }
     }
 
-    if let Some(program) = program {
-        let mut compiler = Compiler::new();
+    // Create a new Tokay compiler
+    let mut compiler = Compiler::new();
 
+    // Load variables from command-line into the compiler
+    for var in &opts.var {
+        let var: Vec<_> = var.splitn(2, "=").collect();
+
+        if var.len() == 2 {
+            /*
+            FIXME: This is absolutely inperformant due to the current implementation.
+            It builds a new Tokay parser for every value being provided here!
+
+                1. the Tokay parser instance must be globally unique
+                2. value/value.tok is a subset of compiler/tokay.tok - modularity needed.
+            */
+            compiler.global(
+                var[0],
+                tokay::eval(include_str!("value/value.tok"), var[1], None).unwrap(),
+            );
+        } else {
+            compiler.global(var[0], RefValue::from(Value::Void));
+        }
+    }
+
+    // When a program is provided, compile and run it
+    if let Some(program) = program {
         match compiler.compile(program) {
             Ok(None) => {}
             Ok(Some(program)) => {
@@ -342,7 +374,7 @@ fn main() -> rustyline::Result<()> {
             print_version();
         }
 
-        repl(&opts)?
+        repl(&mut compiler, &opts)?
     }
 
     Ok(())
