@@ -26,14 +26,13 @@ pub use reader::Reader;
 pub use value::{Dict, List, Object, RefValue, Str, Value};
 pub use vm::{Accept, Capture, Context, Program, Reject};
 
-/**
- * Compile and evaluate a piece of Tokay code on optional input.
- *
- * `code` is the actual code being compiled and executed.
- * `input` is an optional input to work on; This can be an empty str.
- * `vars` is a way to optionally give global variables into the program.
- *
- * Returns Ok(RefValue) with a given result value, or Err(Error) when something went wrong.
+/** Compile and evaluate a piece of Tokay code on optional input.
+
+`code` is the actual code being compiled and executed.
+`input` is an optional input to work on; This can be an empty str.
+`vars` is a way to optionally hand global variables over into the program.
+
+Returns Ok(RefValue) with a given result value, or Err(Error) when something went wrong.
  */
 pub fn eval(
     code: &str,

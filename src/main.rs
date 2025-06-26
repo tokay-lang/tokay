@@ -259,6 +259,13 @@ fn main() -> rustyline::Result<()> {
         let var: Vec<_> = var.splitn(2, "=").collect();
 
         if var.len() == 2 {
+            /*
+            FIXME: This is absolutely inperformant due to the current implementation.
+            It builds a new Tokay parser for every value being provided here!
+
+                1. the Tokay parser instance must be globally unique
+                2. value/value.tok is a subset of compiler/tokay.tok - modularity needed.
+            */
             compiler.global(
                 var[0],
                 tokay::eval(include_str!("value/value.tok"), var[1], None).unwrap(),
