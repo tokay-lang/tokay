@@ -4,12 +4,13 @@ use crate::vm::*;
 use charclass::CharClass;
 use num_bigint::BigInt;
 use num_parse::*;
+use serde;
 use tokay_macros::tokay_token;
 extern crate self as tokay;
 
 // todo: The entire Token enum could be split into separate objects.
 
-#[derive(Debug, Clone, Hash, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Hash, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 pub enum Token {
     Empty,            // Matches the empty word
     EOF,              // Matches End of File

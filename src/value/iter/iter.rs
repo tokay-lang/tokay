@@ -3,6 +3,7 @@ use crate::value::{MethodIter, Object, RefValue, Value};
 use crate::{Context, Error};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
+use serde;
 
 // BoxedRefValueIter type
 type BoxedRefValueIter = Box<dyn RefValueIter>;
@@ -188,6 +189,24 @@ impl PartialEq for Iter {
 impl PartialOrd for Iter {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
+    }
+}
+
+impl serde::ser::Serialize for Iter {
+    fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        unimplemented!()
+    }
+}
+
+impl<'de> serde::de::Deserialize<'de> for Iter {
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        unimplemented!()
     }
 }
 
