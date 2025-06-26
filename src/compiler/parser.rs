@@ -8862,7 +8862,6 @@ impl Parser {
     }
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
-        //self.0.dump();
         let mut thread = Thread::new(&self.0, vec![&mut reader]);
 
         if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
@@ -8982,6 +8981,6 @@ fn parser_eol() {
     for eol in ["\n", "\r", "\r\n", ";"] {
         let tok = format!("a = 1{}a + 2", eol);
         println!("EOL test {:?}", tok);
-        assert_eq!(crate::run(&tok, ""), Ok(Some(crate::value!(3))));
+        assert_eq!(crate::eval(&tok, "", None), Ok(value!(3)));
     }
 }
