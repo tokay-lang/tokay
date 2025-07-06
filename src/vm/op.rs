@@ -105,8 +105,8 @@ pub(crate) enum Op {
     Copy(usize), // copy indexed element as TOS
     Swap(usize), // swap indexed element with TOS
 
-    UnaryOp(&'static str),  // Operation with one operand
-    BinaryOp(&'static str), // Operation with two operands
+    UnaryOp(UnaryOp),   // Operation with one operand
+    BinaryOp(BinaryOp), // Operation with two operands
 }
 
 impl Op {

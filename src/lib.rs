@@ -24,7 +24,7 @@ pub use compiler::Compiler;
 pub use error::Error;
 pub use reader::Reader;
 pub use value::{Dict, List, Object, RefValue, Str, Value};
-pub use vm::{Accept, Capture, Context, Program, Reject};
+pub use vm::{Accept, BinaryOp, Capture, Context, Program, Reject, UnaryOp};
 
 /** Compile and evaluate a piece of Tokay code on optional input.
 

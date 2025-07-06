@@ -1,7 +1,7 @@
 //! Dictionary object
 use super::{BoxedObject, MethodIter, Object, RefValue, Str};
-use crate::Error;
 use crate::value;
+use crate::{Error, UnaryOp};
 use indexmap::IndexMap;
 use tokay_macros::tokay_method;
 extern crate self as tokay;
@@ -127,7 +127,7 @@ impl Dict {
                 dict.clone(),
                 "values",
                 None,
-                "iinc",
+                UnaryOp::Inc,
             )))
         } else {
             Err(Error::from(format!(
@@ -184,7 +184,7 @@ impl Dict {
                 dict.clone(),
                 "keys",
                 None,
-                "iinc",
+                UnaryOp::Inc,
             )));
         }
 
@@ -219,7 +219,7 @@ impl Dict {
                 dict.clone(),
                 "values",
                 None,
-                "iinc",
+                UnaryOp::Inc,
             )));
         }
 
@@ -256,7 +256,7 @@ impl Dict {
                 dict.clone(),
                 "items",
                 None,
-                "iinc",
+                UnaryOp::Inc,
             )));
         }
 

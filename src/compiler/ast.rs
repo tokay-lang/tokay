@@ -816,12 +816,12 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 ops.push(traverse_node_rvalue(scope, value, Rvalue::CallOrLoad));
 
                 ops.push(match parts[1] {
-                    "add" => ImlOp::from(Op::BinaryOp("iadd")),
-                    "sub" => ImlOp::from(Op::BinaryOp("isub")),
-                    "mul" => ImlOp::from(Op::BinaryOp("imul")),
-                    "div" => ImlOp::from(Op::BinaryOp("idiv")),
-                    "divi" => ImlOp::from(Op::BinaryOp("idivi")),
-                    "mod" => ImlOp::from(Op::BinaryOp("imod")),
+                    "add" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Add)))),
+                    "sub" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Sub)))),
+                    "mul" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Mul)))),
+                    "div" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Div)))),
+                    "divi" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::DivI)))),
+                    "mod" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Mod)))),
                     _ => unreachable!(),
                 });
 
@@ -1078,12 +1078,12 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 }
 
                 ops.push(ImlOp::from(match emit {
-                    "cmp_eq" => Op::BinaryOp("eq"),
-                    "cmp_neq" => Op::BinaryOp("neq"),
-                    "cmp_lteq" => Op::BinaryOp("lteq"),
-                    "cmp_gteq" => Op::BinaryOp("gteq"),
-                    "cmp_lt" => Op::BinaryOp("lt"),
-                    "cmp_gt" => Op::BinaryOp("gt"),
+                    "cmp_eq" => Op::BinaryOp(BinaryOp::Eq),
+                    "cmp_neq" => Op::BinaryOp(BinaryOp::Neq),
+                    "cmp_lteq" => Op::BinaryOp(BinaryOp::LtEq),
+                    "cmp_gteq" => Op::BinaryOp(BinaryOp::GtEq),
+                    "cmp_lt" => Op::BinaryOp(BinaryOp::Lt),
+                    "cmp_gt" => Op::BinaryOp(BinaryOp::Gt),
                     _ => unimplemented!("{}", emit),
                 }));
 
@@ -1216,9 +1216,9 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
             match parts[1] {
                 "pre" => {
                     ops.push(ImlOp::from(if parts[2] == "inc" {
-                        Op::UnaryOp("iinc")
+                        Op::UnaryOp(UnaryOp::Inc)
                     } else {
-                        Op::UnaryOp("idec")
+                        Op::UnaryOp(UnaryOp::Dec)
                     }));
                     ops.push(ImlOp::from(Op::Sep)); // Separate TOS
                 }
@@ -1227,9 +1227,9 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                         ImlOp::from(Op::Dup),
                         ImlOp::from(Op::Swap(2)),
                         ImlOp::from(if parts[2] == "inc" {
-                            Op::UnaryOp("iinc")
+                            Op::UnaryOp(UnaryOp::Inc)
                         } else {
-                            Op::UnaryOp("idec")
+                            Op::UnaryOp(UnaryOp::Dec)
                         }),
                         ImlOp::from(Op::Drop),
                     ]);
@@ -1314,9 +1314,17 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                     let res = traverse_node_rvalue(scope, children, Rvalue::CallOrLoad);
 
+                    let op = match parts[2] {
+                        "idec" => UnaryOp::Dec,
+                        "iinc" => UnaryOp::Inc,
+                        "neg" => UnaryOp::Neg,
+                        "not" => UnaryOp::Not,
+                        _ => unimplemented!("{}", emit),
+                    };
+
                     // Evaluate operation at compile-time if possible
                     if let Ok(value) = res.get_evaluable_value() {
-                        if let Ok(value) = value.unary_op(parts[2]) {
+                        if let Ok(value) = value.unary_op(&op) {
                             return ImlOp::load(
                                 scope,
                                 traverse_node_offset(node),
@@ -1330,13 +1338,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     // Push operation position here
                     ops.push(traverse_offset(node));
 
-                    ImlOp::from(match parts[2] {
-                        "not" => Op::UnaryOp("not"),
-                        "neg" => Op::UnaryOp("neg"),
-                        _ => {
-                            unimplemented!("{}", emit);
-                        }
-                    })
+                    ImlOp::from(Op::UnaryOp(op))
                 }
 
                 "binary" | "logical" => {
@@ -1380,11 +1382,23 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                             }
                         }
                         _ => {
+                            let op = match parts[2] {
+                                "add" => BinaryOp::Add,
+                                "sub" => BinaryOp::Sub,
+                                "mul" => BinaryOp::Mul,
+                                "div" => BinaryOp::Div,
+                                "divi" => BinaryOp::DivI,
+                                "mod" => BinaryOp::Mod,
+                                _ => {
+                                    unimplemented!("{}", emit);
+                                }
+                            };
+
                             // When both operands are direct values, evaluate operation at compile-time
                             if let (Ok(left), Ok(right)) =
                                 (left.get_evaluable_value(), right.get_evaluable_value())
                             {
-                                if let Ok(value) = left.binary_op(right, parts[2]) {
+                                if let Ok(value) = left.binary_op(right, &op) {
                                     return ImlOp::load(
                                         scope,
                                         traverse_node_offset(node),
@@ -1400,17 +1414,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                             // Push operation position here
                             ops.push(traverse_offset(node));
 
-                            ImlOp::from(match parts[2] {
-                                "add" => Op::BinaryOp("add"),
-                                "sub" => Op::BinaryOp("sub"),
-                                "mul" => Op::BinaryOp("mul"),
-                                "div" => Op::BinaryOp("div"),
-                                "divi" => Op::BinaryOp("divi"),
-                                "mod" => Op::BinaryOp("mod"),
-                                _ => {
-                                    unimplemented!("{}", emit);
-                                }
-                            })
+                            ImlOp::from(Op::BinaryOp(op))
                         }
                     }
                 }
