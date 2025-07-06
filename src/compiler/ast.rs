@@ -816,12 +816,12 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                 ops.push(traverse_node_rvalue(scope, value, Rvalue::CallOrLoad));
 
                 ops.push(match parts[1] {
-                    "add" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Add)))),
-                    "sub" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Sub)))),
-                    "mul" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Mul)))),
-                    "div" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Div)))),
-                    "divi" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::DivI)))),
-                    "mod" => ImlOp::from(Op::BinaryOp(BinaryOp::Inline(Box::new(BinaryOp::Mod)))),
+                    "add" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineAdd)),
+                    "sub" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineSub)),
+                    "mul" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineMul)),
+                    "div" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineDiv)),
+                    "divi" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineDivI)),
+                    "mod" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineMod)),
                     _ => unreachable!(),
                 });
 
@@ -1324,7 +1324,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
 
                     // Evaluate operation at compile-time if possible
                     if let Ok(value) = res.get_evaluable_value() {
-                        if let Ok(value) = value.unary_op(&op) {
+                        if let Ok(value) = value.unary_op(op.to_str()) {
                             return ImlOp::load(
                                 scope,
                                 traverse_node_offset(node),
@@ -1398,7 +1398,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                             if let (Ok(left), Ok(right)) =
                                 (left.get_evaluable_value(), right.get_evaluable_value())
                             {
-                                if let Ok(value) = left.binary_op(right, &op) {
+                                if let Ok(value) = left.binary_op(right, op.to_str()) {
                                     return ImlOp::load(
                                         scope,
                                         traverse_node_offset(node),

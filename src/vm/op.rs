@@ -730,13 +730,13 @@ impl Op {
 
                 Op::UnaryOp(op) => {
                     let value = context.pop();
-                    context.push(value.unary_op(op)?)
+                    context.push(value.unary_op(op.to_str())?)
                 }
 
                 Op::BinaryOp(op) => {
                     let last = context.pop();
                     let first = context.pop();
-                    context.push(first.binary_op(last, op)?)
+                    context.push(first.binary_op(last, op.to_str())?)
                 }
             };
 

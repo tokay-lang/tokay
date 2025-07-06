@@ -1,7 +1,7 @@
 use super::{BoxedObject, Dict, Method, Object, Str, Token, Value};
 use crate::builtin::{Builtin, BuiltinRef};
 use crate::value;
-use crate::{Accept, BinaryOp, Context, Error, Reject, UnaryOp};
+use crate::{Accept, Context, Error, Reject};
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
 use std::cell::RefCell;
@@ -52,7 +52,7 @@ impl RefValue {
         builtin.call(context, args, nargs)
     }
 
-    pub fn unary_op(self, op: &UnaryOp) -> Result<RefValue, String> {
+    pub fn unary_op(self, op: &str) -> Result<RefValue, String> {
         let name = {
             let this = &mut *self.borrow_mut();
 
@@ -61,59 +61,57 @@ impl RefValue {
                 Value::Float(float) => {
                     // float fast lane neg, iinc, idec
                     match op {
-                        UnaryOp::Neg => return Ok(value!(-*float)),
-                        UnaryOp::Not => return Ok(value!(*float == 0.0)),
-                        UnaryOp::Inc => {
+                        "neg" => return Ok(value!(-*float)),
+                        "not" => return Ok(value!(*float == 0.0)),
+                        "iinc" => {
                             *float += 1.0;
                             return Ok(self.clone());
                         }
-                        UnaryOp::Dec => {
+                        "idec" => {
                             *float -= 1.0;
                             return Ok(self.clone());
-                        } // _ => "float",
+                        }
+                        _ => "float",
                     }
                 }
                 Value::Int(int) => {
                     // int fast lane neg, iinc, idec
                     match op {
-                        UnaryOp::Neg => return Ok(value!(-int.clone())),
-                        UnaryOp::Not => return Ok(value!(int.is_zero())),
-                        UnaryOp::Inc => {
+                        "neg" => return Ok(value!(-int.clone())),
+                        "not" => return Ok(value!(int.is_zero())),
+                        "iinc" => {
                             *int += 1;
                             return Ok(self.clone());
                         }
-                        UnaryOp::Dec => {
+                        "idec" => {
                             *int -= 1;
                             return Ok(self.clone());
-                        } // _ => "int",
+                        }
+                        _ => "int",
                     }
                 }
                 _ => "int", // fallback for any other type (void, null, bool)
             }
         };
 
-        match Builtin::get_method(name, op.to_str()) {
+        match Builtin::get_method(name, op) {
             Ok(builtin) => Ok(builtin.call(None, vec![self], None)?.unwrap()),
-            Err(notfound) => {
-                match op {
-                    // default fallback for not
-                    UnaryOp::Not => Ok(value!(!self.is_true())),
-                    // default fallback for inline inc is an inline add by 1
-                    UnaryOp::Inc if name == "int" => Ok(self
-                        .binary_op(value!(1 as i64), &BinaryOp::Inline(Box::new(BinaryOp::Add)))?),
-                    // default fallback for inline dec is an inline sub by 1
-                    UnaryOp::Dec if name == "int" => Ok(self
-                        .binary_op(value!(1 as i64), &BinaryOp::Inline(Box::new(BinaryOp::Sub)))?),
-                    _ => Err(notfound),
-                }
-            }
+            Err(notfound) => match op {
+                // default fallback for not
+                "not" => Ok(value!(!self.is_true())),
+                // default fallback for inline inc is an inline add by 1
+                "iinc" if name == "int" => Ok(self.binary_op(value!(1 as i64), "iadd")?),
+                // default fallback for inline dec is an inline sub by 1
+                "idec" if name == "int" => Ok(self.binary_op(value!(1 as i64), "isub")?),
+                _ => Err(notfound),
+            },
         }
     }
 
-    pub fn binary_op(self, operand: RefValue, op: &BinaryOp) -> Result<RefValue, String> {
+    pub fn binary_op(self, operand: RefValue, op: &str) -> Result<RefValue, String> {
         let name = {
-            // Handle inline operations
-            if let BinaryOp::Inline(op) = &op {
+            // Operations starting with "i" are inline
+            if op.starts_with("i") {
                 // For fast-lane inline operations, self must be borrowed mutable.
                 let mut this = self.borrow_mut();
 
@@ -130,16 +128,16 @@ impl RefValue {
                         }
 
                         // Float inline fast-lane
-                        (Value::Float(float), _) => match **op {
-                            BinaryOp::Add => {
+                        (Value::Float(float), _) => match op {
+                            "iadd" => {
                                 *float += that.to_f64()?;
                                 return Ok(self.clone());
                             }
-                            BinaryOp::Mul => {
+                            "imul" => {
                                 *float *= that.to_f64()?;
                                 return Ok(self.clone());
                             }
-                            BinaryOp::Sub => {
+                            "isub" => {
                                 *float -= that.to_f64()?;
                                 return Ok(self.clone());
                             }
@@ -147,16 +145,16 @@ impl RefValue {
                         },
 
                         // Int inline fast-lane
-                        (Value::Int(int), no_float) if !no_float.is("float") => match **op {
-                            BinaryOp::Add => {
+                        (Value::Int(int), no_float) if !no_float.is("float") => match op {
+                            "iadd" => {
                                 *int += that.to_i64()?;
                                 return Ok(self.clone());
                             }
-                            BinaryOp::Mul => {
+                            "imul" => {
                                 *int *= that.to_i64()?;
                                 return Ok(self.clone());
                             }
-                            BinaryOp::Sub => {
+                            "isub" => {
                                 *int -= that.to_i64()?;
                                 return Ok(self.clone());
                             }
@@ -174,12 +172,12 @@ impl RefValue {
 
                 // Try to match operation
                 match op {
-                    BinaryOp::Eq => return Ok(value!(this == that)),
-                    BinaryOp::Neq => return Ok(value!(this != that)),
-                    BinaryOp::Lt => return Ok(value!(this < that)),
-                    BinaryOp::LtEq => return Ok(value!(this <= that)),
-                    BinaryOp::Gt => return Ok(value!(this > that)),
-                    BinaryOp::GtEq => return Ok(value!(this >= that)),
+                    "eq" => return Ok(value!(this == that)),
+                    "neq" => return Ok(value!(this != that)),
+                    "lt" => return Ok(value!(this < that)),
+                    "lteq" => return Ok(value!(this <= that)),
+                    "gt" => return Ok(value!(this > that)),
+                    "gteq" => return Ok(value!(this >= that)),
                     _ => {}
                 }
 
@@ -194,50 +192,48 @@ impl RefValue {
                         }
                     }
 
-                    (Value::Float(_), _) | (_, Value::Float(_)) if *op != BinaryOp::DivI => {
-                        match op {
-                            BinaryOp::Add => return Ok(value!(this.to_f64()? + that.to_f64()?)),
-                            BinaryOp::Mul => return Ok(value!(this.to_f64()? * that.to_f64()?)),
-                            BinaryOp::Sub => return Ok(value!(this.to_f64()? - that.to_f64()?)),
-                            BinaryOp::Div | BinaryOp::Mod => {
-                                let dividend = this.to_f64()?;
-                                let divisor = that.to_f64()?;
+                    (Value::Float(_), _) | (_, Value::Float(_)) if op != "divi" => match op {
+                        "add" => return Ok(value!(this.to_f64()? + that.to_f64()?)),
+                        "mul" => return Ok(value!(this.to_f64()? * that.to_f64()?)),
+                        "sub" => return Ok(value!(this.to_f64()? - that.to_f64()?)),
+                        "div" | "mod" => {
+                            let dividend = this.to_f64()?;
+                            let divisor = that.to_f64()?;
 
-                                if divisor == 0.0 {
-                                    if *op == BinaryOp::Mod {
-                                        return Err(String::from("Modulo by zero"));
-                                    } else {
-                                        return Err(String::from("Division by zero"));
-                                    }
-                                }
-
-                                if *op == BinaryOp::Mod {
-                                    return Ok(value!(dividend % divisor));
-                                } else {
-                                    return Ok(value!(dividend / divisor));
-                                }
-                            }
-                            _ => None,
-                        }
-                    }
-
-                    (_, _) => match op {
-                        BinaryOp::Add => return Ok(value!(this.to_bigint()? + that.to_bigint()?)),
-                        BinaryOp::Mul => return Ok(value!(this.to_bigint()? * that.to_bigint()?)),
-                        BinaryOp::Sub => return Ok(value!(this.to_bigint()? - that.to_bigint()?)),
-                        BinaryOp::Div | BinaryOp::DivI | BinaryOp::Mod => {
-                            let dividend = this.to_bigint()?;
-                            let divisor = that.to_bigint()?;
-
-                            if divisor.is_zero() {
-                                if *op == BinaryOp::Mod {
+                            if divisor == 0.0 {
+                                if op == "mod" {
                                     return Err(String::from("Modulo by zero"));
                                 } else {
                                     return Err(String::from("Division by zero"));
                                 }
                             }
 
-                            if *op == BinaryOp::DivI {
+                            if op == "mod" {
+                                return Ok(value!(dividend % divisor));
+                            } else {
+                                return Ok(value!(dividend / divisor));
+                            }
+                        }
+                        _ => None,
+                    },
+
+                    (_, _) => match op {
+                        "add" => return Ok(value!(this.to_bigint()? + that.to_bigint()?)),
+                        "mul" => return Ok(value!(this.to_bigint()? * that.to_bigint()?)),
+                        "sub" => return Ok(value!(this.to_bigint()? - that.to_bigint()?)),
+                        "div" | "divi" | "mod" => {
+                            let dividend = this.to_bigint()?;
+                            let divisor = that.to_bigint()?;
+
+                            if divisor.is_zero() {
+                                if op == "mod" {
+                                    return Err(String::from("Modulo by zero"));
+                                } else {
+                                    return Err(String::from("Division by zero"));
+                                }
+                            }
+
+                            if op == "divi" {
                                 return Ok(value!(dividend / divisor));
                             }
 
@@ -245,12 +241,12 @@ impl RefValue {
 
                             // If there's no remainder, perform an integer division
                             if modres.is_zero() {
-                                if *op == BinaryOp::Mod {
+                                if op == "mod" {
                                     return Ok(value!(0));
                                 } else {
                                     return Ok(value!(dividend / divisor));
                                 }
-                            } else if *op == BinaryOp::Mod {
+                            } else if op == "mod" {
                                 return Ok(value!(modres));
                             }
                             // Otherwise do a floating point division
@@ -281,26 +277,23 @@ impl RefValue {
 
         // When a type name was emitted, try to call builtin-function for operation
         if let Some(name) = name {
-            match Builtin::get_method(name, op.to_str()) {
+            match Builtin::get_method(name, op) {
                 Ok(builtin) => {
                     return Ok(builtin
                         .call(None, vec![self, operand.ref_or_copy()], None)?
                         .unwrap());
                 }
                 // default "inline" operation is the non-inline operation assigning the result to itself
-                Err(_) if matches!(op, BinaryOp::Inline(_)) => {}
+                Err(_) if op.starts_with("i") => {}
                 Err(err) => return Err(err),
             }
         }
 
         // Perform expensive inline operation
-        if let BinaryOp::Inline(op) = op {
-            let res = self.clone().binary_op(operand, op)?;
-            *self.borrow_mut() = res.into();
-            Ok(self)
-        } else {
-            unimplemented!()
-        }
+        assert!(op.starts_with("i"));
+        let res = self.clone().binary_op(operand, &op[1..])?;
+        *self.borrow_mut() = res.into();
+        Ok(self)
     }
 }
 
