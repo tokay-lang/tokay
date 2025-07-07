@@ -289,7 +289,7 @@ impl RefValue {
             }
         }
 
-        // Perform expensive inline operation
+        // Otherwise, perform expensive inline operation
         assert!(op.starts_with("i"));
         let res = self.clone().binary_op(operand, &op[1..])?;
         *self.borrow_mut() = res.into();
