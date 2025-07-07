@@ -7,6 +7,76 @@ use std::io;
 use std::io::prelude::*;
 use std::rc::Rc;
 
+// --- UnaryOp -----------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub(crate) enum UnaryOp {
+    Dec,
+    Inc,
+    Neg,
+    Not,
+}
+
+impl UnaryOp {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::Dec => "idec",
+            Self::Inc => "iinc",
+            Self::Neg => "neg",
+            Self::Not => "not",
+        }
+    }
+}
+
+// --- BinaryOp ----------------------------------------------------------------
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub(crate) enum BinaryOp {
+    Add,
+    Div,
+    Eq,
+    Gt,
+    GtEq,
+    InlineAdd,
+    InlineDiv,
+    InlineIntDiv,
+    InlineMod,
+    InlineMul,
+    InlineSub,
+    IntDiv,
+    Lt,
+    LtEq,
+    Mod,
+    Mul,
+    Neq,
+    Sub,
+}
+
+impl BinaryOp {
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::Add => "add",
+            Self::Div => "div",
+            Self::Eq => "eq",
+            Self::Gt => "gt",
+            Self::GtEq => "gteq",
+            Self::InlineAdd => "iadd",
+            Self::InlineDiv => "idiv",
+            Self::InlineIntDiv => "idivi",
+            Self::InlineMod => "imod",
+            Self::InlineMul => "imul",
+            Self::InlineSub => "isub",
+            Self::IntDiv => "divi",
+            Self::Lt => "lt",
+            Self::LtEq => "lteq",
+            Self::Mod => "mod",
+            Self::Mul => "mul",
+            Self::Neq => "neq",
+            Self::Sub => "sub",
+        }
+    }
+}
+
 // --- Op ----------------------------------------------------------------------
 
 /**
@@ -106,8 +176,8 @@ pub(crate) enum Op {
     Copy(usize), // copy indexed element as TOS
     Swap(usize), // swap indexed element with TOS
 
-    UnaryOp(&'static str),  // Operation with one operand
-    BinaryOp(&'static str), // Operation with two operands
+    UnaryOp(UnaryOp),   // Operation with one operand
+    BinaryOp(BinaryOp), // Operation with two operands
 }
 
 impl Op {
@@ -731,13 +801,13 @@ impl Op {
 
                 Op::UnaryOp(op) => {
                     let value = context.pop();
-                    context.push(value.unary_op(op)?)
+                    context.push(value.unary_op(op.to_str())?)
                 }
 
                 Op::BinaryOp(op) => {
                     let last = context.pop();
                     let first = context.pop();
-                    context.push(first.binary_op(last, op)?)
+                    context.push(first.binary_op(last, op.to_str())?)
                 }
             };
 
