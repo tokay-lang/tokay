@@ -820,7 +820,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     "sub" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineSub)),
                     "mul" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineMul)),
                     "div" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineDiv)),
-                    "divi" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineDivI)),
+                    "divi" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineIntDiv)),
                     "mod" => ImlOp::from(Op::BinaryOp(BinaryOp::InlineMod)),
                     _ => unreachable!(),
                 });
@@ -1387,7 +1387,7 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                                 "sub" => BinaryOp::Sub,
                                 "mul" => BinaryOp::Mul,
                                 "div" => BinaryOp::Div,
-                                "divi" => BinaryOp::DivI,
+                                "divi" => BinaryOp::IntDiv,
                                 "mod" => BinaryOp::Mod,
                                 _ => {
                                     unimplemented!("{}", emit);
