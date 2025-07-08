@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 // --- UnaryOp -----------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum UnaryOp {
     Dec,
     Inc,
@@ -30,7 +30,7 @@ impl UnaryOp {
 
 // --- BinaryOp ----------------------------------------------------------------
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum BinaryOp {
     Add,
     Div,
@@ -84,7 +84,7 @@ Atomic operations.
 
 Specifies all atomic level VM code operations to run the Tokay VM.
 */
-#[derive(Debug, Clone, Hash, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Op {
     Nop,
     Offset(Box<Offset>), // Source offset position for debugging

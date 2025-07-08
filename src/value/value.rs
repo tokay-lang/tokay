@@ -366,7 +366,8 @@ where
                 Some("str") => Ok(Box::new(map.next_value::<Str>()?)),
                 Some("list") => Ok(Box::new(map.next_value::<List>()?)),
                 Some("dict") => Ok(Box::new(map.next_value::<Dict>()?)),
-                Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict"])),
+                Some("parselet") => Ok(Box::new(map.next_value::<ParseletRef>()?)),
+                Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict", "parselet"])),
                 None => Err(serde::de::Error::custom("expected a single-key map")),
             }
         }

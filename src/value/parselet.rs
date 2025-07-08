@@ -20,7 +20,7 @@ Parselets support static program constructs being left-recursive, and extend
 the generated parse tree automatically until no more input can be consumed.
 */
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Parselet {
     pub name: String,                   // Parselet's name from source (for debugging)
     pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
@@ -392,7 +392,6 @@ impl serde::Serialize for ParseletRef {
     }
 }
 
-/*
 impl<'de> serde::Deserialize<'de> for ParseletRef {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -402,4 +401,3 @@ impl<'de> serde::Deserialize<'de> for ParseletRef {
         Ok(ParseletRef(Rc::new(RefCell::new(value))))
     }
 }
-*/
