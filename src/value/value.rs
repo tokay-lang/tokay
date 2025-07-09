@@ -367,7 +367,12 @@ where
                 Some("list") => Ok(Box::new(map.next_value::<List>()?)),
                 Some("dict") => Ok(Box::new(map.next_value::<Dict>()?)),
                 Some("parselet") => Ok(Box::new(map.next_value::<ParseletRef>()?)),
-                Some(k) => Err(serde::de::Error::unknown_field(k, &["str", "list", "dict", "parselet"])),
+                Some("builtin") => Ok(Box::new(map.next_value::<BuiltinRef>()?)),
+                Some("token") => Ok(Box::new(map.next_value::<Token>()?)),
+                Some(k) => Err(serde::de::Error::unknown_field(
+                    k,
+                    &["str", "list", "dict", "parselet", "builtin", "token"],
+                )),
                 None => Err(serde::de::Error::custom("expected a single-key map")),
             }
         }
