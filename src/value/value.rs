@@ -1,17 +1,24 @@
 //! Tokay value
-use super::{BoxedObject, Dict, List, Object, ParseletRef, RefValue, Str, Token};
-use crate::builtin::BuiltinRef;
+use super::{BoxedObject, Dict, Object, RefValue};
+
 use crate::{Accept, Context, Error, Reject};
 use tokay_macros::tokay_method;
 extern crate self as tokay;
 use num::{ToPrimitive, Zero};
 use num_bigint::BigInt;
-use serde::{self, Deserialize, Serialize, ser::SerializeMap};
 use std::any::Any;
 use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[cfg(feature = "serde")]
+use super::{List, ParseletRef, Str, Token};
+#[cfg(feature = "serde")]
+use crate::builtin::BuiltinRef;
+#[cfg(feature = "serde")]
+use serde::{self, Deserialize, Serialize, ser::SerializeMap};
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum Value {
     // Atomics
     Void,  // void
@@ -20,20 +27,23 @@ pub enum Value {
     False, // false
 
     // Numerics
-    #[serde(
-        serialize_with = "serialize_int_to_i64",
-        deserialize_with = "deserialize_int_from_i64"
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            serialize_with = "serialize_int_to_i64",
+            deserialize_with = "deserialize_int_from_i64"
+        )
     )]
     Int(BigInt), // int
 
     Float(f64), // float
 
     // Objects
-    #[serde(
+    #[cfg_attr(feature = "serde", serde(
         untagged,  // https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=bf4276c00019146d787ffb5b710e31fb
         serialize_with = "serialize_object",
         deserialize_with = "deserialize_object"
-    )]
+    ))]
     Object(BoxedObject), // object
 }
 
@@ -303,6 +313,7 @@ impl Ord for Value {
 }
 
 // Serialization for Int
+#[cfg(feature = "serde")]
 fn serialize_int_to_i64<S>(value: &BigInt, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -313,6 +324,7 @@ where
     i.serialize(serializer)
 }
 
+#[cfg(feature = "serde")]
 fn deserialize_int_from_i64<'de, D>(deserializer: D) -> Result<BigInt, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -321,6 +333,7 @@ where
 }
 
 // Serialization for Object
+#[cfg(feature = "serde")]
 fn serialize_object<S>(value: &BoxedObject, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
@@ -345,6 +358,8 @@ where
     downcast_serializer_to_type!(Str, List, Dict, ParseletRef, BuiltinRef, Token)
 }
 
+// Deserialization for Object
+#[cfg(feature = "serde")]
 fn deserialize_object<'de, D>(deserializer: D) -> Result<BoxedObject, D::Error>
 where
     D: serde::Deserializer<'de>,

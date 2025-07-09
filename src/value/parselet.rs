@@ -3,7 +3,6 @@
 use super::{BoxedObject, Dict, Object, RefValue};
 use crate::error::Error;
 use crate::vm::*;
-use serde;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -20,7 +19,8 @@ Parselets support static program constructs being left-recursive, and extend
 the generated parse tree automatically until no more input can be consumed.
 */
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Parselet {
     pub name: String,                   // Parselet's name from source (for debugging)
     pub(crate) consuming: Option<bool>, // Indicator for consuming & left-recursion
@@ -383,6 +383,7 @@ impl PartialOrd for ParseletRef {
     }
 }
 
+#[cfg(feature = "serde")]
 impl serde::Serialize for ParseletRef {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -392,6 +393,7 @@ impl serde::Serialize for ParseletRef {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for ParseletRef {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

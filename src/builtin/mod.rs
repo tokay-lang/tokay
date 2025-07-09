@@ -3,7 +3,6 @@ use crate::_builtins::BUILTINS;
 use crate::value;
 use crate::value::{Dict, Object, RefValue, Value};
 use crate::{Accept, Context, Reject};
-use serde;
 use std::io::{self, Write};
 extern crate self as tokay;
 use tokay_macros::tokay_function;
@@ -133,6 +132,7 @@ impl From<&'static Builtin> for RefValue {
     }
 }
 
+#[cfg(feature = "serde")]
 impl serde::ser::Serialize for BuiltinRef {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -142,6 +142,7 @@ impl serde::ser::Serialize for BuiltinRef {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> serde::de::Deserialize<'de> for BuiltinRef {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

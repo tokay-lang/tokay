@@ -2,15 +2,15 @@ use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
 use crate::value::{ParseletRef, RefValue};
-use serde;
 use std::fs::File;
 use std::io;
 
 /** Programs are containers holding statics and a pointer to the main parselet.
 
 A program is the result of a successful compiler run. */
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(transparent)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Program {
     pub(crate) statics: Vec<RefValue>, // Static values referenced by this program
 }
