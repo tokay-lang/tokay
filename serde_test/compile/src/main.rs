@@ -1,21 +1,19 @@
 use std::fs::File;
-use std::io::{self, Write};
+use std::io::Write;
 use tokay;
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut compiler = tokay::Compiler::new();
 
     let s = include_str!("../../../examples/expr_from_readme.tok");
+    //let s = "42";
     let program = compiler.compile_from_str(s).unwrap();
 
-    /*
-    let byte_program: Vec<u8> = bincode::serde::encode_to_vec(&program, bincode::config::standard()).expect("Encoding failed");
-    */
+    let cbor_program = serde_cbor::to_vec(&program)?;
+    //let json_program = serde_json::to_string(&program).unwrap();
 
-    let json_program = serde_json::to_string(&program).unwrap();
-
-    let mut file = File::create("../program.json")?;
-    file.write_all(&json_program.as_bytes())?;
+    let mut file = File::create("../program.cbor")?;
+    file.write_all(&cbor_program)?;
     file.flush()?;
 
     println!("OK");

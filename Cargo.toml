@@ -35,8 +35,6 @@ num-bigint = { version = "0.4", features = ["serde"] }
 num-parse = "0.1"                                                # use crates.io-version
 # num-parse = { version = "0.1", path = "../num-parse" }  # use local version
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-bincode = { version = "2.0.1", features = ["serde"] }
 tokay-macros = "0.5" # use crates.io-version
 # tokay-macros = { version = "0.5", path = "macros" }  # use local version
 
