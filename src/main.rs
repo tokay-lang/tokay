@@ -379,3 +379,19 @@ fn main() -> rustyline::Result<()> {
 
     Ok(())
 }
+
+/*
+fn serde_main() -> Result<(), Box<dyn std::error::Error>> {
+    let val = value![[void, null, 1337, "hello", [1, 2, 3]]];
+    // let val = value![[void, null, 1337, 42.5, "Hello", "World", ["a" => 1, "b" => 2]]];
+    println!("Original (Tokay):     {}", val.repr());
+
+    let serialized = serde_json::to_string(&val).unwrap();
+    println!("Serialized (JSON):    {}", serialized);
+
+    let deserialized: RefValue = serde_json::from_str(&serialized)?;
+    println!("Deserialized (Tokay): {}", deserialized.repr());
+
+    Ok(())
+}
+*/

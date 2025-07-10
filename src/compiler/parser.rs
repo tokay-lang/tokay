@@ -8853,12 +8853,20 @@ impl Parser {
         let mut compiler = Compiler::new();
         compiler.debug = 0; // unset debug always
 
-        Self(
-            compiler
-                .compile_from_ast(&ast, Some("parser".to_string()))
-                .expect("Tokay grammar cannot be compiled!")
-                .expect("Tokay grammar contains no main?"),
-        )
+        #[cfg(feature = "tokay_use_cbor_parser")]
+        {
+            Self(serde_cbor::from_slice(include_bytes!("tokay.cbor")).unwrap())
+        }
+
+        #[cfg(not(feature = "tokay_use_cbor_parser"))]
+        {
+            Self(
+                compiler
+                    .compile_from_ast(&ast, Some("parser".to_string()))
+                    .expect("Tokay grammar cannot be compiled!")
+                    .expect("Tokay grammar contains no main?"),
+            )
+        }
     }
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
