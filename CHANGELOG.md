@@ -6,6 +6,13 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
+### [v0.6.9] `tokay::eval` & variable setting
+
+- feat: `UnaryOp` and `BinaryOp` types (#156)
+- feat: Set global variables from outside (`-v`-parameter) (#154)
+- feat: `upsert`-feature for `dict` and `list` (#155)
+- feat: Accept `nargs` for `Builtin::call()` and `RefValue::call_method()`
+
 ### [v0.6.8] WASM Update
 
 - `cli`-feature to make `wasm` target possible (#153)
