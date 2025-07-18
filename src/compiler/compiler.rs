@@ -226,18 +226,18 @@ impl Compiler {
     }
 
     /** Register a named constant within a compiler instance. */
-    // pub fn constant(&mut self, name: &str, value: RefValue) {
-    //     self.constants
-    //         .insert(name.to_string(), ImlValue::from(value));
-    // }
+    pub fn constant(&mut self, name: &str, value: RefValue) {
+        log::trace!("constant name = {:?} value = {:?}", name, value);
+        self.constants
+            .insert(name.to_string(), ImlValue::from(value));
+    }
 
     /** Register a global variable with a given value. */
     pub fn global(&mut self, name: &str, value: RefValue) {
+        log::trace!("global name = {:?} value = {:?}", name, value);
         self.main
             .signature
             .insert(name.to_string(), Some(ImlValue::from(value)));
         self.main.var(name);
-
-        // println!("{:#?}", self.main);
     }
 }
