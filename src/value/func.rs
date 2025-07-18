@@ -1,24 +1,25 @@
 use crate::{Accept, Context, Dict, Object, RefValue, Reject, Value};
-use std::rc::Rc;
 
 // Better abstraction of a built-in function
-#[derive(Clone)]
 pub struct Func {
-    pub func: Rc<
+    pub name: &'static str,
+    pub func: Box<
         dyn Fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>
             + Send
             + Sync,
-    >, // Function
+    >,
 }
 
-impl Object for Func {
+#[derive(Clone)]
+pub struct FuncRef(std::rc::Rc<Func>);
+
+impl Object for FuncRef {
     fn name(&self) -> &'static str {
-        "func"
+        self.0.name
     }
 
     fn repr(&self) -> String {
-        //self.0.name.to_string()
-        "func".to_string()
+        self.0.name.to_string()
     }
 
     fn is_callable(&self, _without_arguments: bool) -> bool {
@@ -26,8 +27,7 @@ impl Object for Func {
     }
 
     fn is_consuming(&self) -> bool {
-        false
-        //crate::utils::identifier_is_consumable(self.0.name)
+        crate::utils::identifier_is_consumable(self.0.name)
     }
 
     fn call(
@@ -36,7 +36,7 @@ impl Object for Func {
         args: Vec<RefValue>,
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
-        (self.func)(context, args, nargs)
+        (self.0.func)(context, args, nargs)
     }
 
     fn call_direct(
@@ -46,33 +46,30 @@ impl Object for Func {
         nargs: Option<Dict>,
     ) -> Result<Accept, Reject> {
         let args = context.drain(args);
-        (self.func)(Some(context), args, nargs)
+        (self.0.func)(Some(context), args, nargs)
     }
 }
 
-impl PartialEq for Func {
+impl PartialEq for FuncRef {
     fn eq(&self, other: &Self) -> bool {
-        //self.0.name == other.0.name
-        false
+        self.0.name == other.0.name
     }
 }
 
-impl PartialOrd for Func {
+impl PartialOrd for FuncRef {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        //self.0.name.partial_cmp(&other.0.name)
-        None
+        self.0.name.partial_cmp(&other.0.name)
     }
 }
 
-impl std::fmt::Debug for Func {
+impl std::fmt::Debug for FuncRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        //write!(f, "{}", self.0.name)
-        write!(f, "func")
+        write!(f, "{}", self.0.name)
     }
 }
 
 impl From<Func> for RefValue {
     fn from(func: Func) -> Self {
-        Value::Object(Box::new(func)).into()
+        Value::Object(Box::new(FuncRef(std::rc::Rc::new(func)))).into()
     }
 }

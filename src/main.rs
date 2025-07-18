@@ -256,7 +256,8 @@ fn main() -> rustyline::Result<()> {
     compiler.constant(
         "printH",
         RefValue::from(tokay::value::Func {
-            func: std::rc::Rc::new(|context, args, nargs| {
+            name: "printH",
+            func: Box::new(|context, args, nargs| {
                 println!("Hello World");
                 Value::Void.into()
             }),
