@@ -5,8 +5,6 @@ pub struct Func {
     pub name: &'static str,
     pub func: Box<
         dyn Fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>
-            + Send
-            + Sync,
     >,
 }
 

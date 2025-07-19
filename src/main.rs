@@ -253,6 +253,8 @@ fn main() -> rustyline::Result<()> {
 
     // Create a new Tokay compiler
     let mut compiler = Compiler::new();
+
+    /*
     compiler.constant(
         "printH",
         RefValue::from(tokay::value::Func {
@@ -263,6 +265,7 @@ fn main() -> rustyline::Result<()> {
             }),
         }),
     );
+    */
 
     // Load variables from command-line into the compiler
     for var in &opts.var {
