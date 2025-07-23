@@ -1,7 +1,14 @@
+/**
+ * This is a temporary solution for Tokay v0.7 which implements "dynamic builtin objects".
+ *
+ * It shall be replaced by a more generic solution later and merge Builtin and DynBuiltin
+ * together. It is currently required by tokay-wasm to overwrite the default print-function.
+ */
+
 use crate::{Accept, Context, Dict, Object, RefValue, Reject, Value};
 
-// Better abstraction of a built-in function
-pub struct Func {
+/// Dynamic abstraction of built-in functions.
+pub struct DynBuiltin {
     pub name: &'static str,
     pub func: Box<
         dyn Fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>
@@ -9,9 +16,9 @@ pub struct Func {
 }
 
 #[derive(Clone)]
-pub struct FuncRef(std::rc::Rc<Func>);
+pub struct DynBuiltinRef(std::rc::Rc<DynBuiltin>);
 
-impl Object for FuncRef {
+impl Object for DynBuiltinRef {
     fn name(&self) -> &'static str {
         self.0.name
     }
@@ -48,26 +55,26 @@ impl Object for FuncRef {
     }
 }
 
-impl PartialEq for FuncRef {
+impl PartialEq for DynBuiltinRef {
     fn eq(&self, other: &Self) -> bool {
         self.0.name == other.0.name
     }
 }
 
-impl PartialOrd for FuncRef {
+impl PartialOrd for DynBuiltinRef {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.0.name.partial_cmp(&other.0.name)
     }
 }
 
-impl std::fmt::Debug for FuncRef {
+impl std::fmt::Debug for DynBuiltinRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0.name)
     }
 }
 
-impl From<Func> for RefValue {
-    fn from(func: Func) -> Self {
-        Value::Object(Box::new(FuncRef(std::rc::Rc::new(func)))).into()
+impl From<DynBuiltin> for RefValue {
+    fn from(func: DynBuiltin) -> Self {
+        Value::Object(Box::new(DynBuiltinRef(std::rc::Rc::new(func)))).into()
     }
 }

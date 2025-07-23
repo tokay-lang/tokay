@@ -257,7 +257,7 @@ fn main() -> rustyline::Result<()> {
     /*
     compiler.constant(
         "printH",
-        RefValue::from(tokay::value::Func {
+        RefValue::from(tokay::value::DynBuiltin {
             name: "printH",
             func: Box::new(|context, args, nargs| {
                 println!("Hello World");
