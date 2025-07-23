@@ -6,6 +6,10 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
+### [v0.6.10] `DynBuiltin`
+
+- feat: DynBuiltins to overwrite builtin-function constants (#158)
+
 ### [v0.6.9] `tokay::eval` & variable setting
 
 - feat: `UnaryOp` and `BinaryOp` types (#156)
