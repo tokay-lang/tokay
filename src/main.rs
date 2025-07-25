@@ -254,6 +254,19 @@ fn main() -> rustyline::Result<()> {
     // Create a new Tokay compiler
     let mut compiler = Compiler::new();
 
+    /*
+    compiler.constant(
+        "printH",
+        RefValue::from(tokay::value::DynBuiltin {
+            name: "printH",
+            func: Box::new(|context, args, nargs| {
+                println!("Hello World");
+                Value::Void.into()
+            }),
+        }),
+    );
+    */
+
     // Load variables from command-line into the compiler
     for var in &opts.var {
         let var: Vec<_> = var.splitn(2, "=").collect();
