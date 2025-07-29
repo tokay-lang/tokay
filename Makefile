@@ -33,7 +33,7 @@ reset-builtins:
 
 
 # parser ----------------------------------------------------------------------
-PARSER=src/compiler/parser.rs
+PARSER=src/compiler/_parser.rs
 
 parser: $(PARSER)
 

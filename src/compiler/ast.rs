@@ -1852,7 +1852,7 @@ tokay_function!("ast2rust : @ast, level=0", {
             let children = d.get_str("children");
 
             print!(
-                "{space:indent$}{br_left}value!([\n{space:indent$}    \"emit\" => {emit:?}",
+                "{space:indent$}{br_left}crate::value!([\n{space:indent$}    \"emit\" => {emit:?}",
                 space = "",
                 indent = indent * 4,
                 br_left = br_left,
@@ -1886,7 +1886,7 @@ tokay_function!("ast2rust : @ast, level=0", {
             );
         } else if let Some(l) = value.object::<List>() {
             print!(
-                "{space:indent$}{br_left}value!([\n",
+                "{space:indent$}{br_left}crate::value!([\n",
                 space = "",
                 indent = indent * 4,
                 br_left = br_left
