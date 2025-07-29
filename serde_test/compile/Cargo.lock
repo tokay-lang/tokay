@@ -889,7 +889,7 @@ dependencies = [
 
 [[package]]
 name = "tokay"
-version = "0.6.9"
+version = "0.6.10"
 dependencies = [
  "charclass",
  "clap 4.5.40",
@@ -901,6 +901,7 @@ dependencies = [
  "num-parse",
  "rustyline 15.0.0",
  "serde",
+ "serde_cbor",
  "tokay-macros",
 ]
 
@@ -910,7 +911,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_cbor",
- "tokay 0.6.9",
+ "tokay 0.6.10",
 ]
 
 [[package]]
