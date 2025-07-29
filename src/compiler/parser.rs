@@ -1,4 +1,7 @@
 //! The Tokay parser, implemented in Tokay itself.
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::thread_local;
 
 use super::*;
 use crate::error::Error;
@@ -6,7 +9,20 @@ use crate::reader::Reader;
 use crate::value;
 use crate::value::{Dict, RefValue};
 
-pub struct Parser(Program);
+thread_local! {
+    static PARSER: Rc<RefCell<Program>> = {
+        {
+            let parser_program = {
+                #[cfg(feature = "tokay_use_cbor_parser")]
+                serde_cbor::from_slice(include_bytes!("tokay.cbor")).unwrap()
+            };
+
+            Rc::new(RefCell::new(parser_program))
+        }
+    }
+}
+
+pub struct Parser(Rc<RefCell<Program>>);
 
 impl Parser {
     pub fn new() -> Self {
@@ -8855,7 +8871,7 @@ impl Parser {
 
         #[cfg(feature = "tokay_use_cbor_parser")]
         {
-            Self(serde_cbor::from_slice(include_bytes!("tokay.cbor")).unwrap())
+            Self(PARSER.with(|parser| parser.clone()))
         }
 
         #[cfg(not(feature = "tokay_use_cbor_parser"))]
@@ -8870,7 +8886,8 @@ impl Parser {
     }
 
     pub fn parse(&self, mut reader: Reader) -> Result<RefValue, Error> {
-        let mut thread = Thread::new(&self.0, vec![&mut reader]);
+        let program = self.0.borrow();
+        let mut thread = Thread::new(&*program, vec![&mut reader]);
 
         if let Ok(level) = std::env::var("TOKAY_PARSER_DEBUG") {
             thread.debug = level.parse::<u8>().unwrap_or_default();
