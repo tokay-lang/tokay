@@ -307,7 +307,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     file.write_all(&cbor_program)?;
                     file.flush()?;
 
-                    return Ok(())
+                    return Ok(());
                 }
 
                 let mut readers = get_readers(&opts);

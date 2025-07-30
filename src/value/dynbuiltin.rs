@@ -4,15 +4,13 @@
  * It shall be replaced by a more generic solution later and merge Builtin and DynBuiltin
  * together. It is currently required by tokay-wasm to overwrite the default print-function.
  */
-
 use crate::{Accept, Context, Dict, Object, RefValue, Reject, Value};
 
 /// Dynamic abstraction of built-in functions.
 pub struct DynBuiltin {
     pub name: &'static str,
-    pub func: Box<
-        dyn Fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>
-    >,
+    pub func:
+        Box<dyn Fn(Option<&mut Context>, Vec<RefValue>, Option<Dict>) -> Result<Accept, Reject>>,
 }
 
 #[derive(Clone)]
