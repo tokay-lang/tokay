@@ -6,6 +6,13 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
+### [v0.6.11] `serde`-support and `_tokay.cbor`-based parser
+
+- feat: `serde`-support
+  - `Value` and `RefValue` (limited to atomics: void, null, bool, int, float, str, list and dict)
+  - `Parselet`, `Op` and `Program` to serialize and deserialize a VM program
+- feat: Use `_tokay.cbor` parser as fast, built-in, binary-encoded Tokay VM program (compiled `tokay.tok`)
+
 ### [v0.6.10] `DynBuiltin`
 
 - feat: DynBuiltins to overwrite builtin-function constants (#158)
