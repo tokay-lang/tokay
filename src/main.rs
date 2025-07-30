@@ -4,7 +4,9 @@ use clap::Parser;
 use env_logger;
 use rustyline;
 use std::fs::{self, File};
-use std::io::{self, BufReader, Write};
+use std::io::{self, BufReader};
+#[cfg(feature = "tokay_use_cbor_parser")]
+use std::io::Write;
 use tokay;
 use tokay::vm::Thread;
 use tokay::{Compiler, Object, Reader, RefValue, Value};
@@ -202,9 +204,13 @@ fn repl(compiler: &mut Compiler, opts: &Opts) -> rustyline::Result<()> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TOKAY_LOG setting has precedes over RUST_LOG setting.
-    if std::env::var("TOKAY_LOG").is_err() {
-        env_logger::init();
+    if let Ok(level) = std::env::var("TOKAY_LOG") {
+        unsafe {
+            std::env::set_var("RUST_LOG", level.clone());
+        }
     }
+
+    env_logger::init();
 
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();

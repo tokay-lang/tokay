@@ -1,8 +1,17 @@
-//! The Tokay parser, implemented in Tokay itself.
+/** The Tokay parser is implemented in Tokay itself.
+
+Because the parser must be some kind of bootstrapped to run in the Tokay VM,
+it can be either loaded as a pre-compiled binary VM program from `_tokay.cbor`,
+or it can be previously compiled once from a pre-generated AST representation
+expressed in Rust (`_tokay.rs`).
+
+Both sources are generated, either by the serde_cbor serialization, or by the
+scripting toolchain etareneg.awk and the ast2rust builtin.
+*/
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread_local;
-
+use log;
 use super::*;
 use crate::error::Error;
 use crate::reader::Reader;
@@ -10,13 +19,13 @@ use crate::value::{Dict, RefValue};
 
 thread_local! {
     // Keep a single Tokay parser for every thread.
-    // The Tokay parser is implemented in Tokay itself, and is a program for the Tokay VM.
     static PARSER: Rc<RefCell<Program>> = {
         {
             let parser_program = {
                 // `_tokay.cbor` is a pre-compiled Tokay VM program in a binary format that implements the Tokay parser implemented in `tokay.tok`.
                 #[cfg(feature = "tokay_use_cbor_parser")]
                 {
+                    log::info!("Using pre-compiled parser: _tokay.cbor");
                     serde_cbor::from_slice(include_bytes!("_tokay.cbor")).unwrap()
                 }
 
@@ -25,6 +34,8 @@ thread_local! {
                 {
                     let mut compiler = Compiler::new();
                     compiler.debug = 0; // unset debug always
+
+                    log::info!("Using ast-based parser: _tokay.rs");
                     compiler
                         .compile_from_ast(&include!("_tokay.rs"), Some("parser".to_string()))
                         .expect("Tokay grammar cannot be compiled!")
