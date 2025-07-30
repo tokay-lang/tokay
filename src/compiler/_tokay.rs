@@ -1,7 +1,9 @@
-// First of all: DON'T PANIC!
+// This is the "old" way to integrate the Tokay parser.
+// It is replaced by the feature `tokay_use_cbor_parser` and the pre-compiled VM program in `_tokay.cbor`.
 
 // Below code blob between the markers GENERATE and ETARENEG (which is "GENERATE" reversed!)
-// is injected by Tokay itself, by running the program `tokay.tok` with tokay, parsing itself.
+// is injected by Tokay itself, by running the program `tokay.tok` with Tokay, parsing itself.
+
 // This generates an abstract syntax tree (AST) representation of `tokay.tok` in form of
 // value!-macro calls, which is injected below between the two markers.
 
@@ -10,7 +12,7 @@
 // The best way is to test grammar changes with `tokay.tok` intensely before rebuilding the
 // parser, to ensure all runs well.
 
-// To update this file, run `make parser` in a shell.
+// To update this file, run `make parser-ast` in a shell.
 
 /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"))/g' src/compiler/tokay.tok`" -- src/compiler/tokay.tok */
 crate::value!([

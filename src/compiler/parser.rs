@@ -9,20 +9,24 @@ use crate::reader::Reader;
 use crate::value::{Dict, RefValue};
 
 thread_local! {
+    // Keep a single Tokay parser for every thread.
+    // The Tokay parser is implemented in Tokay itself, and is a program for the Tokay VM.
     static PARSER: Rc<RefCell<Program>> = {
         {
             let parser_program = {
+                // `_tokay.cbor` is a pre-compiled Tokay VM program in a binary format that implements the Tokay parser implemented in `tokay.tok`.
                 #[cfg(feature = "tokay_use_cbor_parser")]
                 {
-                    serde_cbor::from_slice(include_bytes!("_parser.cbor")).unwrap()
+                    serde_cbor::from_slice(include_bytes!("_tokay.cbor")).unwrap()
                 }
 
+                // `_tokay.rs` is a generated representation of the abstract syntax tree of `tokay.tok` itself, which is the internally compiled by the Tokay compiler.
                 #[cfg(not(feature = "tokay_use_cbor_parser"))]
                 {
                     let mut compiler = Compiler::new();
                     compiler.debug = 0; // unset debug always
                     compiler
-                        .compile_from_ast(&include!("_parser.rs"), Some("parser".to_string()))
+                        .compile_from_ast(&include!("_tokay.rs"), Some("parser".to_string()))
                         .expect("Tokay grammar cannot be compiled!")
                         .expect("Tokay grammar contains no main?")
                 }

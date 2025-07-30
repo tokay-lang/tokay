@@ -1,20 +1,26 @@
 .PHONY: .FORCE
+
 ETARENEG=awk -f etareneg.awk
+TOKAY_BIN=cargo run --
+TOKAY_TOK=src/compiler/tokay.tok
 
 help:
 	@echo "No target specified."
+	@echo ""
 	@echo "See README.md build-section for details."
 	@echo ""
-	@echo "  make builtins  update src/_builtins.rs"
-	@echo "  make parser    update src/compiler/parser.rs from src/compiler/tokay.tok"
-	@echo "  make prelude   update src/compiler/prelude.rs from src/prelude.tok"
+	@echo "  make builtins     update src/_builtins.rs"
+	@echo "  make parser-cbor  update src/compiler/_tokay.cbor from $(TOKAY_TOK)"
+	@echo "  make parser-ast   update src/compiler/_tokay.rs from $(TOKAY_TOK)"
+	@echo "  make prelude      update src/compiler/prelude.rs from src/prelude.tok"
 	@echo ""
 	@echo "This is the Tokay source generation toolchain."
-	@echo "To just build Tokay, simply use 'cargo build'."
+	@echo "To build Tokay, simply run 'cargo build' or 'cargo run'."
 
 all:
 	make prelude
-	make parser
+	make parser-cbor
+	make parser-ast
 	make builtins
 
 # builtins --------------------------------------------------------------------
@@ -31,20 +37,30 @@ show-builtins:
 reset-builtins:
 	git checkout $(BUILTINS)
 
+# parser-cbor ------------------------------------------------------------------
+PARSER_CBOR=src/compiler/_tokay.cbor
 
-# parser ----------------------------------------------------------------------
-PARSER=src/compiler/_parser.rs
+parser-cbor: $(PARSER_CBOR)
 
-parser: $(PARSER)
+$(PARSER_CBOR): .FORCE
+	$(TOKAY_BIN) -c $(PARSER_CBOR) $(TOKAY_TOK)
 
-$(PARSER): .FORCE
+reset-parser-cbor:
+	git checkout $(PARSER_CBOR)
+
+# parser-ast -------------------------------------------------------------------
+PARSER_AST=src/compiler/_tokay.rs
+
+parser-ast: $(PARSER_AST)
+
+$(PARSER_AST): .FORCE
 	$(ETARENEG) $@ >$@.1 && mv $@.1 $@
 
-show-parser:
-	$(ETARENEG) $(PARSER) 2>/dev/null
+show-parser-ast:
+	$(ETARENEG) $(PARSER_AST) 2>/dev/null
 
-reset-parser:
-	git checkout $(PARSER)
+reset-parser-ast:
+	git checkout $(PARSER_AST)
 
 # prelude ----------------------------------------------------------------------
 PRELUDE=src/compiler/prelude.rs
