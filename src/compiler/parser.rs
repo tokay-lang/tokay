@@ -1,3 +1,8 @@
+use super::*;
+use crate::error::Error;
+use crate::reader::Reader;
+use crate::value::{Dict, RefValue};
+use log;
 /** The Tokay parser is implemented in Tokay itself.
 
 Because the parser must be some kind of bootstrapped to run in the Tokay VM,
@@ -11,11 +16,6 @@ scripting toolchain etareneg.awk and the ast2rust builtin.
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::thread_local;
-use log;
-use super::*;
-use crate::error::Error;
-use crate::reader::Reader;
-use crate::value::{Dict, RefValue};
 
 thread_local! {
     // Keep a single Tokay parser for every thread.
