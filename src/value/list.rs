@@ -9,6 +9,8 @@ type InnerList = Vec<RefValue>;
 
 /// List object type
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct List {
     list: InnerList,
 }

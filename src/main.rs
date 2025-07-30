@@ -1,10 +1,11 @@
 //! Tokay main and REPL
 #![cfg(feature = "cli")]
-
 use clap::Parser;
 use env_logger;
 use rustyline;
 use std::fs::{self, File};
+#[cfg(feature = "tokay_use_cbor_parser")]
+use std::io::Write;
 use std::io::{self, BufReader};
 use tokay;
 use tokay::vm::Thread;
@@ -21,8 +22,9 @@ fn print_version() {
     version,
     about,
     help_template = r#"{bin} {version}
-© 2025 by {author}
 {about}
+
+Copyright © 2025 by {author}
 {bin} is free software released under the MIT license.
 
 {all-args}
@@ -44,6 +46,11 @@ struct Opts {
     /// Input for program to operate on.
     #[clap(value_parser, last = true)]
     input: Vec<String>,
+
+    #[cfg(feature = "tokay_use_cbor_parser")]
+    /// Compile a program into a cbor binary.
+    #[clap(short, long, action, value_name = "FILENAME")]
+    compile: Option<String>,
 
     // vvv--- named short/long options (sorted by alphabet) ---vvv
     /// Sets the debug level.
@@ -195,11 +202,15 @@ fn repl(compiler: &mut Compiler, opts: &Opts) -> rustyline::Result<()> {
     Ok(())
 }
 
-fn main() -> rustyline::Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TOKAY_LOG setting has precedes over RUST_LOG setting.
-    if std::env::var("TOKAY_LOG").is_err() {
-        env_logger::init();
+    if let Ok(level) = std::env::var("TOKAY_LOG") {
+        unsafe {
+            std::env::set_var("RUST_LOG", level.clone());
+        }
     }
+
+    env_logger::init();
 
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();
@@ -293,6 +304,18 @@ fn main() -> rustyline::Result<()> {
         match compiler.compile(program) {
             Ok(None) => {}
             Ok(Some(program)) => {
+                #[cfg(feature = "tokay_use_cbor_parser")]
+                if let Some(filename) = &opts.compile {
+                    let cbor_program = serde_cbor::to_vec(&program)?;
+                    //let json_program = serde_json::to_string(&program).unwrap();
+
+                    let mut file = File::create(filename)?;
+                    file.write_all(&cbor_program)?;
+                    file.flush()?;
+
+                    return Ok(());
+                }
+
                 let mut readers = get_readers(&opts);
 
                 // In case no stream but a program is specified, use stdin as input stream.
@@ -380,6 +403,12 @@ fn main() -> rustyline::Result<()> {
     } else {
         if opts.repl {
             eprintln!("No PROGRAM was specified, can't turn into a REPL for PROGRAM");
+            std::process::exit(1);
+        }
+
+        #[cfg(feature = "tokay_use_cbor_parser")]
+        if opts.compile.is_some() {
+            eprintln!("No PROGRAM was specified, can't use `--compile` with a REPL.");
             std::process::exit(1);
         }
 

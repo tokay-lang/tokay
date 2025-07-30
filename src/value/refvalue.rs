@@ -482,3 +482,26 @@ impl From<BoxedObject> for RefValue {
         }
     }
 }
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for RefValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.value.borrow().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for RefValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        Ok(RefValue {
+            value: Rc::new(RefCell::new(value)),
+        })
+    }
+}

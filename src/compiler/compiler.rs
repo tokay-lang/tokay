@@ -7,7 +7,6 @@ use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
 #[cfg(feature = "cli")]
-use env_logger;
 use indexmap::{IndexMap, IndexSet, indexset};
 use log;
 use std::cell::RefCell;
@@ -182,16 +181,6 @@ impl Compiler {
         if self.debug > 0 {
             ast::print(&ast);
             //println!("###\n{:#?}\n###", ast);
-        }
-
-        // When TOKAY_LOG is set, set RUST_LOG to the setting *after* internal compilations
-        #[cfg(feature = "cli")]
-        if let Ok(log) = std::env::var("TOKAY_LOG") {
-            // FIXME: Avoid use of unsafe!
-            unsafe {
-                std::env::set_var("RUST_LOG", log.clone());
-            }
-            env_logger::init();
         }
 
         self.compile_from_ast(&ast, None)
