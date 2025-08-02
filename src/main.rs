@@ -53,9 +53,6 @@ struct Opts {
     compile: Option<String>,
 
     // vvv--- named short/long options (sorted by alphabet) ---vvv
-    /// Sets the debug level.
-    #[clap(short, long, action = clap::ArgAction::Count)]
-    debug: u8,
 
     /// Echo result of executed main parselet
     #[clap(short, long, action)]
@@ -203,25 +200,10 @@ fn repl(compiler: &mut Compiler, opts: &Opts) -> rustyline::Result<()> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // TOKAY_LOG setting has precedes over RUST_LOG setting.
-    if let Ok(level) = std::env::var("TOKAY_LOG") {
-        unsafe {
-            std::env::set_var("RUST_LOG", level.clone());
-        }
-    }
-
     env_logger::init();
 
     // Handle command-line arguments from Opts.
     let opts = Opts::parse();
-
-    // Set TOKAY_DEBUG when debug flag was set.
-    if opts.debug > 0 {
-        // FIXME: Avoid use of unsafe!
-        unsafe {
-            std::env::set_var("TOKAY_DEBUG", format!("{}", opts.debug));
-        }
-    }
 
     // Show license and exit?
     if opts.license {
