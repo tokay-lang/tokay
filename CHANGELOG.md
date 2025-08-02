@@ -6,6 +6,11 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
+### [v0.6.12] Removal of any `unsafe`-stuff again, bugfix release
+
+- Fixed a bug related to `cli`-feature-dependent compilation
+- Removed `-d` command-line flags and updated docs
+
 ### [v0.6.11] `serde`-support and `_tokay.cbor`-based parser
 
 - feat: `serde`-support

@@ -22,9 +22,9 @@ fn print_version() {
     version,
     about,
     help_template = r#"{bin} {version}
-{about}
+Programming language, designed for ad-hoc parsing and syntax-based development.
 
-Copyright © 2025 by {author}
+Copyright © 2025 by Jan Max Meyer, Phorward Software Technologies.
 {bin} is free software released under the MIT license.
 
 {all-args}

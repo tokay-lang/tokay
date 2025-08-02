@@ -6,7 +6,6 @@ use crate::reader::*;
 use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
-#[cfg(feature = "cli")]
 use indexmap::{IndexMap, IndexSet, indexset};
 use log;
 use std::cell::RefCell;
