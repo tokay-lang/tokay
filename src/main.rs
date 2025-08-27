@@ -4,7 +4,7 @@ use clap::Parser;
 use env_logger;
 use rustyline;
 use std::fs::{self, File};
-#[cfg(feature = "tokay_use_cbor_parser")]
+#[cfg(feature = "cbor")]
 use std::io::Write;
 use std::io::{self, BufReader};
 use tokay;
@@ -47,13 +47,12 @@ struct Opts {
     #[clap(value_parser, last = true)]
     input: Vec<String>,
 
-    #[cfg(feature = "tokay_use_cbor_parser")]
-    /// Compile a program into a cbor binary.
-    #[clap(short, long, action, value_name = "FILENAME")]
+    #[cfg(feature = "cbor")]
+    /// Compile PROGRAM into CBOR binary file OUTPUT.
+    #[clap(short, long, action, value_name = "OUTPUT")]
     compile: Option<String>,
 
     // vvv--- named short/long options (sorted by alphabet) ---vvv
-
     /// Echo result of executed main parselet
     #[clap(short, long, action)]
     echo: bool,
@@ -286,7 +285,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match compiler.compile(program) {
             Ok(None) => {}
             Ok(Some(program)) => {
-                #[cfg(feature = "tokay_use_cbor_parser")]
+                #[cfg(feature = "cbor")]
                 if let Some(filename) = &opts.compile {
                     let cbor_program = serde_cbor::to_vec(&program)?;
                     //let json_program = serde_json::to_string(&program).unwrap();
@@ -388,7 +387,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::process::exit(1);
         }
 
-        #[cfg(feature = "tokay_use_cbor_parser")]
+        #[cfg(feature = "cbor")]
         if opts.compile.is_some() {
             eprintln!("No PROGRAM was specified, can't use `--compile` with a REPL.");
             std::process::exit(1);

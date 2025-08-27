@@ -1,6 +1,6 @@
 [package]
 name = "tokay"
-version = "0.6.12"
+version = "0.6.13"
 description = "Tokay is a programming language designed for ad-hoc parsing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
@@ -19,7 +19,7 @@ keywords = ["awk", "dsl", "packrat", "parser", "vm"]
 default = [
     "cli",
     "static_expression_evaluation",
-    "tokay_use_cbor_parser"
+    "use_cbor_parser",
 ]
 
 # Compile with a command-line interface (including REPL)
@@ -33,15 +33,15 @@ serde = [
     "num-bigint/serde",
 ]
 
+# Compile with CBOR features
+cbor = ["serde", "dep:serde_cbor"]
+
 # Evaluates static expressions like 1+2+3 directly to 6
 # during compile-time to reduce resulting operations
 static_expression_evaluation = []
 
 # Use pre-compiled CBOR parser
-tokay_use_cbor_parser = [
-    "serde",
-    "serde_cbor"
-]
+use_cbor_parser = ["cbor"]
 
 [dependencies]
 charclass = "0.3"  # use crates.io-version
@@ -63,5 +63,5 @@ rustyline = { version = "15.0", optional = true }
 # dependencies for "serde"
 serde = { version = "1.0", features = ["derive"], optional = true }
 
-# dependencies for "tokay_use_cbor_parser"
+# dependencies for "use_cbor_parser"
 serde_cbor = { version = "0.11", optional = true }

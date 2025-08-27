@@ -19,7 +19,7 @@
 
 # Tokay
 
-Tokay is a programming language, designed for ad-hoc parsing and syntax-based development.
+Tokay is a programming language, designed for ad-hoc parsing and syntax-driven development.
 
 
 > [!IMPORTANT]
@@ -199,6 +199,16 @@ $ cargo build --release
 ```
 
 Additionally, parts of Tokay's source code are generated using a `Makefile`-based tooling, which is described below.
+
+### Build features
+
+Tokay can be built with the following features. Features marked with `(*)` are default features.
+
+- `cbor` (*): Serialize and deserialize VM-programs into and from CBOR binaries (includes `serde`)
+- `cli` (*): Command-line interface (main.rs)
+- `serde`: General `serde` features
+- `static_expression_evaluation` (*): Evaluates static expressions like `1 + 2 + 3` directly to static value 6 during compile-time to reduce amount of resulting operations
+- `use_cbor_parser` (*): Compiles Tokay with integrated binary-encoded CBOR parser for faster compile times (includes `serde` and `cbor`)
 
 ### `make builtins` - update Tokay's builtin registry from the Rust sources
 

@@ -1,5 +1,5 @@
 // This is the "old" way to integrate the Tokay parser.
-// It is replaced by the feature `tokay_use_cbor_parser` and the pre-compiled VM program in `_tokay.cbor`.
+// It is replaced by the feature `use_cbor_parser` and the pre-compiled VM program in `_tokay.cbor`.
 
 // Below code blob between the markers GENERATE and ETARENEG (which is "GENERATE" reversed!)
 // is injected by Tokay itself, by running the program `tokay.tok` with Tokay, parsing itself.
