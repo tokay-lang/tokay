@@ -251,7 +251,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
                                     else {
                                         format!(
                                             "Argument named '{}' invalid; Use a name starting in lower-case, e.g. '{}{}'",
-                                            name, &name[0..1].to_lowercase(), &name[1..]
+                                            name, name.chars().next().unwrap().to_lowercase(), name.chars().skip(1).collect::<String>()
                                         )
                                     }
                             );
@@ -570,7 +570,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
                         Some(_) => {
                             scope.push_error(
                                 traverse_node_offset(node),
-                                format!("Cannot assign to constant '{}'", name),
+                                format!("Cannot assign variable value to constant '{}'", name),
                             );
                             break 'load;
                         }
@@ -591,7 +591,7 @@ fn traverse_node_lvalue(scope: &Scope, node: &Dict, store: bool, hold: bool) -> 
                                 scope.push_error(
                                     traverse_node_offset(node),
 
-                                    if &name[0..1] == "_" {
+                                    if name.chars().nth(0) == Some('_') {
                                         format!(
                                             "The variable '{}' is invalid, only constants may start with '_'",
                                             name
@@ -1165,8 +1165,8 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     scope.push_error(
                         traverse_node_offset(node),
                         format!(
-                            "Cannot assign to constant '{}' as consumable. Use an identifier starting in upper-case, e.g. '{}{}'",
-                            ident, &ident[0..1].to_uppercase(), &ident[1..]
+                            "Cannot assign consumable to constant '{}'. Use an identifier starting in upper-case, e.g. '{}{}'",
+                            ident, ident.chars().next().unwrap().to_uppercase(),  ident.chars().skip(1).collect::<String>()
                         )
                     );
 
@@ -1177,14 +1177,14 @@ fn traverse_node(scope: &Scope, node: &Dict) -> ImlOp {
                     traverse_node_offset(node),
                     if ident.starts_with("_") {
                         format!(
-                            "Cannot assign to constant '{}', because it must be consumable. Use an identifier not starting with '_'.",
+                            "Cannot assign non-consumable to constant '{}'. Use an identifier not starting with '_'.",
                             ident
                         )
                     }
                     else {
                         format!(
-                            "Cannot assign to constant '{}', because it must be consumable. Use an identifier starting in lower-case, e.g. '{}{}'",
-                            ident, &ident[0..1].to_lowercase(), &ident[1..]
+                            "Cannot assign non-consumable to constant '{}'. Use an identifier starting in lower-case, e.g. '{}{}'",
+                            ident, ident.chars().next().unwrap().to_lowercase(), ident.chars().skip(1).collect::<String>()
                         )
                     }
                 );
