@@ -1,8 +1,8 @@
 .PHONY: .FORCE
 
 ETARENEG=awk -f etareneg.awk
-TOKAY_BIN=cargo run --
-TOKAY_TOK=src/compiler/tokay.tok
+TOKAY_BIN=tokay
+TOKAY_TOK=src/compiler/Tokay.tok
 
 help:
 	@echo "No target specified."

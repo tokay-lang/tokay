@@ -269,11 +269,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             It builds a new Tokay parser for every value being provided here!
 
                 1. the Tokay parser instance must be globally unique
-                2. value/value.tok is a subset of compiler/tokay.tok - modularity needed.
+                2. value/Value.tok is a subset of compiler/Tokay.tok - modularity needed.
             */
             compiler.global(
                 var[0],
-                tokay::eval(include_str!("value/value.tok"), var[1], None).unwrap(),
+                tokay::eval(include_str!("value/Value.tok"), var[1], None).unwrap(),
             );
         } else {
             compiler.global(var[0], RefValue::from(Value::Void));

@@ -12,7 +12,7 @@ impl Compiler {
     pub(super) fn load_prelude(&mut self) {
         // fixme: Make this lazy_static, so its created only once!
         let ast =
-            /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"), level=3)/g' src/compiler/tokay.tok`" -- src/prelude.tok */
+            /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"), level=3)/g' src/compiler/Tokay.tok`" -- src/prelude.tok */
             value!([
                 "emit" => "main",
                 "children" =>

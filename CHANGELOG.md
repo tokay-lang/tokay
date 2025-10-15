@@ -2,9 +2,14 @@
 
 This file contains a short note on relevant changes to the Tokay programming language.
 
-## [main]
+### [main]
 
 Current main branch.
+
+- Renamed `tokay.tok` into `Tokay.tok`
+- Re-organized build features
+- Bugfixes:
+  - Handling of non-ASCII identifiers
 
 ### [v0.6.12] Removal of any `unsafe`-stuff again, bugfix release
 
