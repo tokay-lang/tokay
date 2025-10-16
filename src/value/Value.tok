@@ -1,4 +1,4 @@
-# value.tok is a subset of tokay.tok
+# Value.tok is a subset of Tokay.tok
 # It implements a recognizer for Tokay atomic values.
 # This file can be entirely replaced when there is a modularization available.
 

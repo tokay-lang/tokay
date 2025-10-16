@@ -22,14 +22,14 @@ thread_local! {
     static PARSER: Rc<RefCell<Program>> = {
         {
             let parser_program = {
-                // `_tokay.cbor` is a pre-compiled Tokay VM program in a binary format that implements the Tokay parser implemented in `tokay.tok`.
+                // `_tokay.cbor` is a pre-compiled Tokay VM program in a binary format that implements the Tokay parser implemented in `Tokay.tok`.
                 #[cfg(feature = "use_cbor_parser")]
                 {
                     log::info!("Using pre-compiled parser: _tokay.cbor");
                     serde_cbor::from_slice(include_bytes!("_tokay.cbor")).unwrap()
                 }
 
-                // `_tokay.rs` is a generated representation of the abstract syntax tree of `tokay.tok` itself, which is the internally compiled by the Tokay compiler.
+                // `_tokay.rs` is a generated representation of the abstract syntax tree of `Tokay.tok` itself, which is the internally compiled by the Tokay compiler.
                 #[cfg(not(feature = "use_cbor_parser"))]
                 {
                     let mut compiler = Compiler::new();

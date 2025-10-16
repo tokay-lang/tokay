@@ -1,8 +1,15 @@
 .PHONY: .FORCE
 
+# Tokay Parser
+TOKAY_TOK=src/compiler/Tokay.tok
+
+# Tokay binary: Uses `tokay` executable in PATH by default;
+# This can be changed to `cargo run --` as well, to use the freshly built version
+TOKAY_BIN=tokay
+
+# etareneg.awk is a currently used awk-tool for in-source modification;
+# TODO: https://github.com/tokay-lang/tokay/issues/137
 ETARENEG=awk -f etareneg.awk
-TOKAY_BIN=cargo run --
-TOKAY_TOK=src/compiler/tokay.tok
 
 help:
 	@echo "No target specified."

@@ -415,6 +415,21 @@ Tokay : @{
     Sequences T_EOL?
 }
 
-_ Tokay* Expect<EOF>  ast("main")
-#_ Tokay* Expect<EOF>  ast2rust(ast("main"))
-#_ Tokay* Expect<EOF>  ast_print(ast("main"))
+begin {
+    if mode == void {
+        mode = "default"  # https://github.com/tokay-lang/tokay/issues/163
+    }
+
+    if level == void {
+        level = 0  # https://github.com/tokay-lang/tokay/issues/163
+    }
+}
+
+_ Tokay* Expect<EOF>  {
+    if mode == "ast2rust"
+        ast2rust(ast("main"), level=level)
+    else if mode == "ast_print"
+        ast_print(ast("main"))
+    else
+        ast("main")
+}

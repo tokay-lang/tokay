@@ -6,55 +6,54 @@ fundamental parts of the Tokay language itself.
 It's defined in src/prelude.tok and pre-compiled as an AST within the code.
 */
 use super::*;
-use crate::value;
 
 impl Compiler {
     pub(super) fn load_prelude(&mut self) {
         // fixme: Make this lazy_static, so its created only once!
         let ast =
-            /*GENERATE cargo run -- "`sed 's/ast("main")/ast2rust(ast("main"), level=3)/g' src/compiler/tokay.tok`" -- src/prelude.tok */
-            value!([
+            /*GENERATE tokay -vmode=ast2rust -vlevel=3 src/compiler/Tokay.tok -- src/prelude.tok */
+            crate::value!([
                 "emit" => "main",
                 "children" =>
-                    (value!([
-                        (value!([
+                    (crate::value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Not"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "sequence",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "P"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "op_reject"
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "Empty"
                                                             ]))
@@ -64,38 +63,38 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Peek"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "sequence",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "P"
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "op_reset"
                                                                     ]))
                                                                 ]))
@@ -105,136 +104,136 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Expect"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "sig",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "msg"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_void"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_accept",
                                                                 "children" =>
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "P"
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "call",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "error"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "callarg",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "op_logical_or",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "msg"
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "op_binary_add",
                                                                                                 "children" =>
-                                                                                                    (value!([
-                                                                                                        (value!([
+                                                                                                    (crate::value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "op_binary_add",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "op_binary_add",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
-                                                                                                                                (value!([
+                                                                                                                            (crate::value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "value_string",
                                                                                                                                     "value" => "Expecting "
                                                                                                                                 ])),
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "op_deref",
                                                                                                                                     "children" =>
-                                                                                                                                        (value!([
+                                                                                                                                        (crate::value!([
                                                                                                                                             "emit" => "identifier",
                                                                                                                                             "value" => "P"
                                                                                                                                         ]))
                                                                                                                                 ]))
                                                                                                                             ]))
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "value_string",
                                                                                                                         "value" => ", but got "
                                                                                                                     ]))
                                                                                                                 ]))
                                                                                                         ])),
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "call",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "identifier",
                                                                                                                         "value" => "repr"
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "callarg",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
+                                                                                                                            (crate::value!([
                                                                                                                                 "emit" => "value_instance",
                                                                                                                                 "children" =>
-                                                                                                                                    (value!([
-                                                                                                                                        (value!([
+                                                                                                                                    (crate::value!([
+                                                                                                                                        (crate::value!([
                                                                                                                                             "emit" => "identifier",
                                                                                                                                             "value" => "Peek"
                                                                                                                                         ])),
-                                                                                                                                        (value!([
+                                                                                                                                        (crate::value!([
                                                                                                                                             "emit" => "instarg",
                                                                                                                                             "children" =>
-                                                                                                                                                (value!([
+                                                                                                                                                (crate::value!([
                                                                                                                                                     "emit" => "block",
                                                                                                                                                     "children" =>
-                                                                                                                                                        (value!([
-                                                                                                                                                            (value!([
+                                                                                                                                                        (crate::value!([
+                                                                                                                                                            (crate::value!([
                                                                                                                                                                 "emit" => "identifier",
                                                                                                                                                                 "value" => "Token"
                                                                                                                                                             ])),
-                                                                                                                                                            (value!([
+                                                                                                                                                            (crate::value!([
                                                                                                                                                                 "emit" => "value_token_any"
                                                                                                                                                             ])),
-                                                                                                                                                            (value!([
+                                                                                                                                                            (crate::value!([
                                                                                                                                                                 "emit" => "value_string",
                                                                                                                                                                 "value" => "end-of-file"
                                                                                                                                                             ]))
@@ -259,153 +258,153 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Repeat"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "min"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_integer",
                                                                 "value" => 1
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "max"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_void"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "blur"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_true"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "assign_drop",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "res"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "list"
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "assign_drop",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "cnt"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "value_integer",
                                                                             "value" => 0
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_loop",
                                                                 "children" =>
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "block",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "sequence",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "P"
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "block",
                                                                                                 "children" =>
-                                                                                                    (value!([
-                                                                                                        (value!([
+                                                                                                    (crate::value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "call",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "rvalue",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
-                                                                                                                                (value!([
+                                                                                                                            (crate::value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "identifier",
                                                                                                                                     "value" => "res"
                                                                                                                                 ])),
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "attribute",
                                                                                                                                     "children" =>
-                                                                                                                                        (value!([
+                                                                                                                                        (crate::value!([
                                                                                                                                             "emit" => "value_string",
                                                                                                                                             "value" => "push"
                                                                                                                                         ]))
                                                                                                                                 ]))
                                                                                                                             ]))
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "callarg",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
+                                                                                                                            (crate::value!([
                                                                                                                                 "emit" => "capture_index",
                                                                                                                                 "children" =>
-                                                                                                                                    (value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "value_integer",
                                                                                                                                         "value" => 1
                                                                                                                                     ]))
@@ -413,48 +412,48 @@ impl Compiler {
                                                                                                                     ]))
                                                                                                                 ]))
                                                                                                         ])),
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "assign_add_drop",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "lvalue",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
+                                                                                                                            (crate::value!([
                                                                                                                                 "emit" => "identifier",
                                                                                                                                 "value" => "cnt"
                                                                                                                             ]))
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "value_integer",
                                                                                                                         "value" => 1
                                                                                                                     ]))
                                                                                                                 ]))
                                                                                                         ])),
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "op_if",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "op_logical_and",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
-                                                                                                                                (value!([
+                                                                                                                            (crate::value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "identifier",
                                                                                                                                     "value" => "max"
                                                                                                                                 ])),
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "comparison",
                                                                                                                                     "children" =>
-                                                                                                                                        (value!([
-                                                                                                                                            (value!([
+                                                                                                                                        (crate::value!([
+                                                                                                                                            (crate::value!([
                                                                                                                                                 "emit" => "identifier",
                                                                                                                                                 "value" => "cnt"
                                                                                                                                             ])),
-                                                                                                                                            (value!([
+                                                                                                                                            (crate::value!([
                                                                                                                                                 "emit" => "cmp_eq",
                                                                                                                                                 "children" =>
-                                                                                                                                                    (value!([
+                                                                                                                                                    (crate::value!([
                                                                                                                                                         "emit" => "identifier",
                                                                                                                                                         "value" => "max"
                                                                                                                                                     ]))
@@ -463,7 +462,7 @@ impl Compiler {
                                                                                                                                 ]))
                                                                                                                             ]))
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "op_break"
                                                                                                                     ]))
                                                                                                                 ]))
@@ -472,174 +471,174 @@ impl Compiler {
                                                                                             ]))
                                                                                         ]))
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "op_if",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "comparison",
                                                                                                 "children" =>
-                                                                                                    (value!([
-                                                                                                        (value!([
+                                                                                                    (crate::value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "identifier",
                                                                                                             "value" => "cnt"
                                                                                                         ])),
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "cmp_lt",
                                                                                                             "children" =>
-                                                                                                                (value!([
+                                                                                                                (crate::value!([
                                                                                                                     "emit" => "identifier",
                                                                                                                     "value" => "min"
                                                                                                                 ]))
                                                                                                         ]))
                                                                                                     ]))
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "op_reject"
                                                                                             ]))
                                                                                         ]))
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "op_break"
                                                                                 ]))
                                                                             ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_if",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "comparison",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "identifier",
                                                                                         "value" => "cnt"
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "cmp_lt",
                                                                                         "children" =>
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "min"
                                                                                             ]))
                                                                                     ]))
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "op_reject"
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_if",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "blur"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "block",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "op_if",
                                                                                         "children" =>
-                                                                                            (value!([
-                                                                                                (value!([
+                                                                                            (crate::value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "comparison",
                                                                                                     "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
+                                                                                                        (crate::value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "rvalue",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
-                                                                                                                        (value!([
+                                                                                                                    (crate::value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "identifier",
                                                                                                                             "value" => "res"
                                                                                                                         ])),
-                                                                                                                        (value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "attribute",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "value_string",
                                                                                                                                     "value" => "len"
                                                                                                                                 ]))
                                                                                                                         ]))
                                                                                                                     ]))
                                                                                                             ])),
-                                                                                                            (value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "cmp_eq",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "value_integer",
                                                                                                                         "value" => 0
                                                                                                                     ]))
                                                                                                             ]))
                                                                                                         ]))
                                                                                                 ])),
-                                                                                                (value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "op_accept",
                                                                                                     "children" =>
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "value_void"
                                                                                                         ]))
                                                                                                 ]))
                                                                                             ]))
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "op_if",
                                                                                         "children" =>
-                                                                                            (value!([
-                                                                                                (value!([
+                                                                                            (crate::value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "comparison",
                                                                                                     "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
+                                                                                                        (crate::value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "rvalue",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
-                                                                                                                        (value!([
+                                                                                                                    (crate::value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "identifier",
                                                                                                                             "value" => "res"
                                                                                                                         ])),
-                                                                                                                        (value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "attribute",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "value_string",
                                                                                                                                     "value" => "len"
                                                                                                                                 ]))
                                                                                                                         ]))
                                                                                                                     ]))
                                                                                                             ])),
-                                                                                                            (value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "cmp_eq",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "value_integer",
                                                                                                                         "value" => 1
                                                                                                                     ]))
                                                                                                             ]))
                                                                                                         ]))
                                                                                                 ])),
-                                                                                                (value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "op_accept",
                                                                                                     "children" =>
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "rvalue",
                                                                                                             "children" =>
-                                                                                                                (value!([
-                                                                                                                    (value!([
+                                                                                                                (crate::value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "identifier",
                                                                                                                         "value" => "res"
                                                                                                                     ])),
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "item",
                                                                                                                         "children" =>
-                                                                                                                            (value!([
+                                                                                                                            (crate::value!([
                                                                                                                                 "emit" => "value_integer",
                                                                                                                                 "value" => 0
                                                                                                                             ]))
@@ -653,7 +652,7 @@ impl Compiler {
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "res"
                                                             ]))
@@ -663,67 +662,67 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Pos"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "blur"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_true"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "value_instance",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "Repeat"
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "instarg",
                                                                         "children" =>
-                                                                            (value!([
+                                                                            (crate::value!([
                                                                                 "emit" => "identifier",
                                                                                 "value" => "P"
                                                                             ]))
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "instarg_named",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "blur"
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "blur"
                                                                                 ]))
@@ -736,85 +735,85 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Kle"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "blur"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_true"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "op_logical_or",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "value_instance",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "Repeat"
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "instarg",
                                                                                     "children" =>
-                                                                                        (value!([
+                                                                                        (crate::value!([
                                                                                             "emit" => "identifier",
                                                                                             "value" => "P"
                                                                                         ]))
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "instarg_named",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "min"
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "value_integer",
                                                                                                 "value" => 0
                                                                                             ]))
                                                                                         ]))
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "instarg_named",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "blur"
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "blur"
                                                                                             ]))
@@ -822,7 +821,7 @@ impl Compiler {
                                                                                 ]))
                                                                             ]))
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "value_void"
                                                                     ]))
                                                                 ]))
@@ -832,38 +831,38 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Opt"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "block",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "P"
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "Empty"
                                                                     ]))
@@ -874,43 +873,43 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "List"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "Separator"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "sequence",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "value_token_touch",
                                                                             "value" => ","
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "_"
                                                                         ]))
@@ -918,55 +917,55 @@ impl Compiler {
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "empty"
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "value_true"
                                                             ]))
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "sequence",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "Self"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "Separator"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "P"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "op_binary_add",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "capture_index",
                                                                                         "children" =>
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "value_integer",
                                                                                                 "value" => 1
                                                                                             ]))
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "capture_index",
                                                                                         "children" =>
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "value_integer",
                                                                                                 "value" => 3
                                                                                             ]))
@@ -975,23 +974,23 @@ impl Compiler {
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_if",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "empty"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "sequence",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "identifier",
                                                                                         "value" => "Self"
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "identifier",
                                                                                         "value" => "Separator"
                                                                                     ]))
@@ -999,21 +998,21 @@ impl Compiler {
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "sequence",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "P"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "list",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "capture_index",
                                                                                     "children" =>
-                                                                                        (value!([
+                                                                                        (crate::value!([
                                                                                             "emit" => "value_integer",
                                                                                             "value" => 1
                                                                                         ]))
@@ -1027,57 +1026,57 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Keyword"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "gen",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "P"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "sequence",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "identifier",
                                                                         "value" => "P"
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "value_instance",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "Not"
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "instarg",
                                                                                     "children" =>
-                                                                                        (value!([
+                                                                                        (crate::value!([
                                                                                             "emit" => "block",
                                                                                             "children" =>
-                                                                                                (value!([
-                                                                                                    (value!([
+                                                                                                (crate::value!([
+                                                                                                    (crate::value!([
                                                                                                         "emit" => "identifier",
                                                                                                         "value" => "Alphanumeric"
                                                                                                     ])),
-                                                                                                    (value!([
+                                                                                                    (crate::value!([
                                                                                                         "emit" => "value_token_touch",
                                                                                                         "value" => "_"
                                                                                                     ]))
@@ -1093,23 +1092,23 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Number"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "block",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "identifier",
                                                     "value" => "Float"
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "identifier",
                                                     "value" => "Int"
                                                 ]))
@@ -1117,27 +1116,27 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "Token"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "block",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "identifier",
                                                     "value" => "AsciiPunctuation"
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "identifier",
                                                     "value" => "Word"
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "identifier",
                                                     "value" => "Number"
                                                 ]))
@@ -1145,55 +1144,55 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "max"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "sig",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "value"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "rvalue",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "call",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "iter"
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "callarg",
                                                                                     "children" =>
-                                                                                        (value!([
+                                                                                        (crate::value!([
                                                                                             "emit" => "identifier",
                                                                                             "value" => "value"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "attribute",
                                                                         "children" =>
-                                                                            (value!([
+                                                                            (crate::value!([
                                                                                 "emit" => "value_string",
                                                                                 "value" => "max"
                                                                             ]))
@@ -1205,55 +1204,55 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "min"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "sig",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "value"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "rvalue",
                                                             "children" =>
-                                                                (value!([
-                                                                    (value!([
+                                                                (crate::value!([
+                                                                    (crate::value!([
                                                                         "emit" => "call",
                                                                         "children" =>
-                                                                            (value!([
-                                                                                (value!([
+                                                                            (crate::value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "iter"
                                                                                 ])),
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "callarg",
                                                                                     "children" =>
-                                                                                        (value!([
+                                                                                        (crate::value!([
                                                                                             "emit" => "identifier",
                                                                                             "value" => "value"
                                                                                         ]))
                                                                                 ]))
                                                                             ]))
                                                                     ])),
-                                                                    (value!([
+                                                                    (crate::value!([
                                                                         "emit" => "attribute",
                                                                         "children" =>
-                                                                            (value!([
+                                                                            (crate::value!([
                                                                                 "emit" => "value_string",
                                                                                 "value" => "min"
                                                                             ]))
@@ -1265,79 +1264,79 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "sum"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "sig",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "value"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "assign_drop",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "res"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "value_void"
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_for",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "i"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "value"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "block",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "assign_add_drop",
                                                                                     "children" =>
-                                                                                        (value!([
-                                                                                            (value!([
+                                                                                        (crate::value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "lvalue",
                                                                                                 "children" =>
-                                                                                                    (value!([
+                                                                                                    (crate::value!([
                                                                                                         "emit" => "identifier",
                                                                                                         "value" => "res"
                                                                                                     ]))
                                                                                             ])),
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "i"
                                                                                             ]))
@@ -1346,7 +1345,7 @@ impl Compiler {
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "identifier",
                                                                 "value" => "res"
                                                             ]))
@@ -1356,110 +1355,110 @@ impl Compiler {
                                     ]))
                                 ]))
                         ])),
-                        (value!([
+                        (crate::value!([
                             "emit" => "constant",
                             "children" =>
-                                (value!([
-                                    (value!([
+                                (crate::value!([
+                                    (crate::value!([
                                         "emit" => "identifier",
                                         "value" => "avg"
                                     ])),
-                                    (value!([
+                                    (crate::value!([
                                         "emit" => "value_parselet",
                                         "children" =>
-                                            (value!([
-                                                (value!([
+                                            (crate::value!([
+                                                (crate::value!([
                                                     "emit" => "sig",
                                                     "children" =>
-                                                        (value!([
+                                                        (crate::value!([
                                                             "emit" => "identifier",
                                                             "value" => "value"
                                                         ]))
                                                 ])),
-                                                (value!([
+                                                (crate::value!([
                                                     "emit" => "body",
                                                     "children" =>
-                                                        (value!([
-                                                            (value!([
+                                                        (crate::value!([
+                                                            (crate::value!([
                                                                 "emit" => "assign_drop",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "res"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "value_void"
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "assign_drop",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "cnt"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "value_integer",
                                                                             "value" => 0
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_for",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "lvalue",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "identifier",
                                                                                     "value" => "i"
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "value"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "block",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "assign_add_drop",
                                                                                         "children" =>
-                                                                                            (value!([
-                                                                                                (value!([
+                                                                                            (crate::value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "lvalue",
                                                                                                     "children" =>
-                                                                                                        (value!([
+                                                                                                        (crate::value!([
                                                                                                             "emit" => "identifier",
                                                                                                             "value" => "res"
                                                                                                         ]))
                                                                                                 ])),
-                                                                                                (value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "identifier",
                                                                                                     "value" => "i"
                                                                                                 ]))
                                                                                             ]))
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "inplace_post_inc",
                                                                                         "children" =>
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "lvalue",
                                                                                                 "children" =>
-                                                                                                    (value!([
+                                                                                                    (crate::value!([
                                                                                                         "emit" => "identifier",
                                                                                                         "value" => "cnt"
                                                                                                     ]))
@@ -1469,92 +1468,92 @@ impl Compiler {
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_if",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "op_logical_or",
                                                                             "children" =>
-                                                                                (value!([
-                                                                                    (value!([
+                                                                                (crate::value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "op_unary_not",
                                                                                         "children" =>
-                                                                                            (value!([
+                                                                                            (crate::value!([
                                                                                                 "emit" => "identifier",
                                                                                                 "value" => "cnt"
                                                                                             ]))
                                                                                     ])),
-                                                                                    (value!([
+                                                                                    (crate::value!([
                                                                                         "emit" => "op_logical_and",
                                                                                         "children" =>
-                                                                                            (value!([
-                                                                                                (value!([
+                                                                                            (crate::value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "op_logical_and",
                                                                                                     "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
+                                                                                                        (crate::value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "op_logical_and",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
-                                                                                                                        (value!([
+                                                                                                                    (crate::value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "comparison",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
-                                                                                                                                    (value!([
+                                                                                                                                (crate::value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "call",
                                                                                                                                         "children" =>
-                                                                                                                                            (value!([
-                                                                                                                                                (value!([
+                                                                                                                                            (crate::value!([
+                                                                                                                                                (crate::value!([
                                                                                                                                                     "emit" => "identifier",
                                                                                                                                                     "value" => "type"
                                                                                                                                                 ])),
-                                                                                                                                                (value!([
+                                                                                                                                                (crate::value!([
                                                                                                                                                     "emit" => "callarg",
                                                                                                                                                     "children" =>
-                                                                                                                                                        (value!([
+                                                                                                                                                        (crate::value!([
                                                                                                                                                             "emit" => "identifier",
                                                                                                                                                             "value" => "res"
                                                                                                                                                         ]))
                                                                                                                                                 ]))
                                                                                                                                             ]))
                                                                                                                                     ])),
-                                                                                                                                    (value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "cmp_neq",
                                                                                                                                         "children" =>
-                                                                                                                                            (value!([
+                                                                                                                                            (crate::value!([
                                                                                                                                                 "emit" => "value_string",
                                                                                                                                                 "value" => "int"
                                                                                                                                             ]))
                                                                                                                                     ]))
                                                                                                                                 ]))
                                                                                                                         ])),
-                                                                                                                        (value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "comparison",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
-                                                                                                                                    (value!([
+                                                                                                                                (crate::value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "call",
                                                                                                                                         "children" =>
-                                                                                                                                            (value!([
-                                                                                                                                                (value!([
+                                                                                                                                            (crate::value!([
+                                                                                                                                                (crate::value!([
                                                                                                                                                     "emit" => "identifier",
                                                                                                                                                     "value" => "type"
                                                                                                                                                 ])),
-                                                                                                                                                (value!([
+                                                                                                                                                (crate::value!([
                                                                                                                                                     "emit" => "callarg",
                                                                                                                                                     "children" =>
-                                                                                                                                                        (value!([
+                                                                                                                                                        (crate::value!([
                                                                                                                                                             "emit" => "identifier",
                                                                                                                                                             "value" => "res"
                                                                                                                                                         ]))
                                                                                                                                                 ]))
                                                                                                                                             ]))
                                                                                                                                     ])),
-                                                                                                                                    (value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "cmp_neq",
                                                                                                                                         "children" =>
-                                                                                                                                            (value!([
+                                                                                                                                            (crate::value!([
                                                                                                                                                 "emit" => "value_string",
                                                                                                                                                 "value" => "float"
                                                                                                                                             ]))
@@ -1563,32 +1562,32 @@ impl Compiler {
                                                                                                                         ]))
                                                                                                                     ]))
                                                                                                             ])),
-                                                                                                            (value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "comparison",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
-                                                                                                                        (value!([
+                                                                                                                    (crate::value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "call",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
-                                                                                                                                    (value!([
+                                                                                                                                (crate::value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "identifier",
                                                                                                                                         "value" => "type"
                                                                                                                                     ])),
-                                                                                                                                    (value!([
+                                                                                                                                    (crate::value!([
                                                                                                                                         "emit" => "callarg",
                                                                                                                                         "children" =>
-                                                                                                                                            (value!([
+                                                                                                                                            (crate::value!([
                                                                                                                                                 "emit" => "identifier",
                                                                                                                                                 "value" => "res"
                                                                                                                                             ]))
                                                                                                                                     ]))
                                                                                                                                 ]))
                                                                                                                         ])),
-                                                                                                                        (value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "cmp_neq",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "value_string",
                                                                                                                                     "value" => "bool"
                                                                                                                                 ]))
@@ -1597,32 +1596,32 @@ impl Compiler {
                                                                                                             ]))
                                                                                                         ]))
                                                                                                 ])),
-                                                                                                (value!([
+                                                                                                (crate::value!([
                                                                                                     "emit" => "comparison",
                                                                                                     "children" =>
-                                                                                                        (value!([
-                                                                                                            (value!([
+                                                                                                        (crate::value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "call",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
-                                                                                                                        (value!([
+                                                                                                                    (crate::value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "identifier",
                                                                                                                             "value" => "type"
                                                                                                                         ])),
-                                                                                                                        (value!([
+                                                                                                                        (crate::value!([
                                                                                                                             "emit" => "callarg",
                                                                                                                             "children" =>
-                                                                                                                                (value!([
+                                                                                                                                (crate::value!([
                                                                                                                                     "emit" => "identifier",
                                                                                                                                     "value" => "res"
                                                                                                                                 ]))
                                                                                                                         ]))
                                                                                                                     ]))
                                                                                                             ])),
-                                                                                                            (value!([
+                                                                                                            (crate::value!([
                                                                                                                 "emit" => "cmp_neq",
                                                                                                                 "children" =>
-                                                                                                                    (value!([
+                                                                                                                    (crate::value!([
                                                                                                                         "emit" => "value_string",
                                                                                                                         "value" => "null"
                                                                                                                     ]))
@@ -1633,24 +1632,24 @@ impl Compiler {
                                                                                     ]))
                                                                                 ]))
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "op_accept",
                                                                             "children" =>
-                                                                                (value!([
+                                                                                (crate::value!([
                                                                                     "emit" => "value_void"
                                                                                 ]))
                                                                         ]))
                                                                     ]))
                                                             ])),
-                                                            (value!([
+                                                            (crate::value!([
                                                                 "emit" => "op_binary_div",
                                                                 "children" =>
-                                                                    (value!([
-                                                                        (value!([
+                                                                    (crate::value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "res"
                                                                         ])),
-                                                                        (value!([
+                                                                        (crate::value!([
                                                                             "emit" => "identifier",
                                                                             "value" => "cnt"
                                                                         ]))
