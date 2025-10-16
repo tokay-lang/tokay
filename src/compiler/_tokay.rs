@@ -8786,49 +8786,96 @@ crate::value!([
                         "emit" => "block",
                         "children" =>
                             (crate::value!([
-                                "emit" => "op_if",
-                                "children" =>
-                                    (crate::value!([
+                                (crate::value!([
+                                    "emit" => "op_if",
+                                    "children" =>
                                         (crate::value!([
-                                            "emit" => "comparison",
-                                            "children" =>
-                                                (crate::value!([
+                                            (crate::value!([
+                                                "emit" => "comparison",
+                                                "children" =>
                                                     (crate::value!([
-                                                        "emit" => "identifier",
-                                                        "value" => "mode"
-                                                    ])),
+                                                        (crate::value!([
+                                                            "emit" => "identifier",
+                                                            "value" => "mode"
+                                                        ])),
+                                                        (crate::value!([
+                                                            "emit" => "cmp_eq",
+                                                            "children" =>
+                                                                (crate::value!([
+                                                                    "emit" => "value_void"
+                                                                ]))
+                                                        ]))
+                                                    ]))
+                                            ])),
+                                            (crate::value!([
+                                                "emit" => "block",
+                                                "children" =>
                                                     (crate::value!([
-                                                        "emit" => "cmp_eq",
+                                                        "emit" => "assign_drop",
                                                         "children" =>
                                                             (crate::value!([
-                                                                "emit" => "value_void"
+                                                                (crate::value!([
+                                                                    "emit" => "lvalue",
+                                                                    "children" =>
+                                                                        (crate::value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "mode"
+                                                                        ]))
+                                                                ])),
+                                                                (crate::value!([
+                                                                    "emit" => "value_string",
+                                                                    "value" => "default"
+                                                                ]))
                                                             ]))
                                                     ]))
-                                                ]))
-                                        ])),
-                                        (crate::value!([
-                                            "emit" => "block",
-                                            "children" =>
-                                                (crate::value!([
-                                                    "emit" => "assign_drop",
-                                                    "children" =>
-                                                        (crate::value!([
-                                                            (crate::value!([
-                                                                "emit" => "lvalue",
-                                                                "children" =>
-                                                                    (crate::value!([
-                                                                        "emit" => "identifier",
-                                                                        "value" => "mode"
-                                                                    ]))
-                                                            ])),
-                                                            (crate::value!([
-                                                                "emit" => "value_string",
-                                                                "value" => "default"
-                                                            ]))
-                                                        ]))
-                                                ]))
+                                            ]))
                                         ]))
-                                    ]))
+                                ])),
+                                (crate::value!([
+                                    "emit" => "op_if",
+                                    "children" =>
+                                        (crate::value!([
+                                            (crate::value!([
+                                                "emit" => "comparison",
+                                                "children" =>
+                                                    (crate::value!([
+                                                        (crate::value!([
+                                                            "emit" => "identifier",
+                                                            "value" => "level"
+                                                        ])),
+                                                        (crate::value!([
+                                                            "emit" => "cmp_eq",
+                                                            "children" =>
+                                                                (crate::value!([
+                                                                    "emit" => "value_void"
+                                                                ]))
+                                                        ]))
+                                                    ]))
+                                            ])),
+                                            (crate::value!([
+                                                "emit" => "block",
+                                                "children" =>
+                                                    (crate::value!([
+                                                        "emit" => "assign_drop",
+                                                        "children" =>
+                                                            (crate::value!([
+                                                                (crate::value!([
+                                                                    "emit" => "lvalue",
+                                                                    "children" =>
+                                                                        (crate::value!([
+                                                                            "emit" => "identifier",
+                                                                            "value" => "level"
+                                                                        ]))
+                                                                ])),
+                                                                (crate::value!([
+                                                                    "emit" => "value_integer",
+                                                                    "value" => 0
+                                                                ]))
+                                                            ]))
+                                                    ]))
+                                            ]))
+                                        ]))
+                                ]))
                             ]))
                     ]))
             ])),
@@ -8919,6 +8966,20 @@ crate::value!([
                                                                                     ]))
                                                                             ]))
                                                                         ]))
+                                                                ]))
+                                                        ])),
+                                                        (crate::value!([
+                                                            "emit" => "callarg_named",
+                                                            "children" =>
+                                                                (crate::value!([
+                                                                    (crate::value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "level"
+                                                                    ])),
+                                                                    (crate::value!([
+                                                                        "emit" => "identifier",
+                                                                        "value" => "level"
+                                                                    ]))
                                                                 ]))
                                                         ]))
                                                     ]))
