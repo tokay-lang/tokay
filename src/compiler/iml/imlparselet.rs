@@ -207,6 +207,22 @@ impl ImlRefParselet {
         }
     }
 
+    // Resolve generics
+    pub fn resolve(&self, name: &str) -> Option<ImlValue> {
+        // Find name along the origins starting at from.
+        let mut origin = Some(self.clone());
+
+        while let Some(inner) = origin {
+            if let Some(value) = inner.borrow().generics.get(name) {
+                return Some(value.clone()?);
+            } else {
+                origin = inner.borrow().origin.clone();
+            }
+        }
+
+        None
+    }
+
     /** Derives an intermediate parselet instance from the view of
     another intermediate parselet instance (`from`).
 
@@ -244,21 +260,7 @@ impl ImlRefParselet {
                 if name == "Self" || name == "self" {
                     *value = Some(ImlValue::Parselet(from.clone()));
                 } else {
-                    // Find name along the origins starting at from.
-                    let mut origin = Some(from.clone());
-                    let mut found = false;
-
-                    while let Some(inner) = origin {
-                        if let Some(generic) = inner.borrow().generics.get(name) {
-                            *value = generic.clone();
-                            found = true;
-                            break;
-                        } else {
-                            origin = inner.borrow().origin.clone();
-                        }
-                    }
-
-                    assert!(found);
+                    *value = from.resolve(name);
                 }
 
                 changes = true;

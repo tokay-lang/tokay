@@ -354,7 +354,7 @@ impl ImlValue {
                 name,
                 offset: generic_offset,
             } => {
-                return current.0.borrow().generics[name].as_ref().unwrap().compile(
+                return current.0.resolve(name).as_ref().unwrap().compile(
                     program,
                     current,
                     &generic_offset.or(*offset),

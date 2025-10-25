@@ -194,7 +194,7 @@ impl ImlProgram {
                     }
                 }
                 ImlValue::Generic { name, .. } => finalize_value(
-                    current.borrow().generics[name].as_ref().unwrap(),
+                    current.resolve(name).as_ref().unwrap(),
                     current,
                     visited,
                     configs,
