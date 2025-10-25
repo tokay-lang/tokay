@@ -290,6 +290,7 @@ fn traverse_node_value(scope: &Scope, node: &Dict, name: Option<String>) -> ImlV
             let new_parselet = ImlRefParselet::new(ImlParselet::new(
                 Some(ImlParseletModel::new(Some(signature))),
                 Some(generics),
+                Some(scope.parselet().clone()),
                 traverse_node_offset(node),
                 name,
                 5,
@@ -444,6 +445,7 @@ fn traverse_node_static(scope: &Scope, assign: Option<String>, node: &Dict) -> I
         let implicit_parselet = ImlRefParselet::new(ImlParselet::new(
             None,
             None,
+            Some(scope.parselet().clone()),
             traverse_node_offset(node),
             assign,
             5,

@@ -264,6 +264,7 @@ impl ImlValue {
                     let parselet = ImlRefParselet::new(ImlParselet {
                         model: parselet.model.clone(),
                         generics,
+                        origin: Some(scope.parselet().clone()),
                         offset: instance.offset,
                         name: parselet.name.clone(),
                         severity: instance.severity.unwrap_or(parselet.severity),

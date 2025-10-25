@@ -85,6 +85,7 @@ impl Compiler {
             Some(self.main.clone()),
             None,
             None,
+            None,
             Some(name.unwrap_or("__main__".to_string())),
             5,
             false,

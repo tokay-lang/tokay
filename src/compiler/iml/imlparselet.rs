@@ -108,6 +108,7 @@ can be turned into a executable parselet.
 pub(in crate::compiler) struct ImlParselet {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
     pub generics: IndexMap<String, Option<ImlValue>>, // Generic signature with default configuration
+    pub origin: Option<ImlRefParselet>,               // Origin parselet of this instance
     pub offset: Option<Offset>,                       // Offset of definition
     pub name: Option<String>,                         // Assigned name from source (for debugging)
     pub severity: u8,                                 // Capture push severity
@@ -119,6 +120,7 @@ impl ImlParselet {
     pub fn new(
         model: Option<ImlParseletModel>,
         generics: Option<IndexMap<String, Option<ImlValue>>>,
+        origin: Option<ImlRefParselet>,
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
@@ -127,6 +129,7 @@ impl ImlParselet {
         Self {
             model: Rc::new(RefCell::new(model.unwrap_or(ImlParseletModel::new(None)))),
             generics: generics.unwrap_or(IndexMap::new()),
+            origin,
             offset,
             name,
             severity,
@@ -241,7 +244,21 @@ impl ImlRefParselet {
                 if name == "Self" || name == "self" {
                     *value = Some(ImlValue::Parselet(from.clone()));
                 } else {
-                    *value = from.borrow().generics.get(name).unwrap().clone();
+                    // Find name along the origins starting at from.
+                    let mut origin = Some(from.clone());
+                    let mut found = false;
+
+                    while let Some(inner) = origin {
+                        if let Some(generic) = inner.borrow().generics.get(name) {
+                            *value = generic.clone();
+                            found = true;
+                            break;
+                        } else {
+                            origin = inner.borrow().origin.clone();
+                        }
+                    }
+
+                    assert!(found);
                 }
 
                 changes = true;
@@ -277,6 +294,7 @@ impl ImlRefParselet {
         let derived = Self::new(ImlParselet {
             model: parselet.model.clone(),
             generics,
+            origin: from.borrow().origin.clone(),
             offset: parselet.offset.clone(),
             name: parselet.name.clone(),
             severity: parselet.severity,
