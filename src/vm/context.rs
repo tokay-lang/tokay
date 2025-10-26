@@ -502,18 +502,12 @@ impl<'program, 'reader, 'thread, 'parselet> Context<'program, 'reader, 'thread, 
         let mut first = true;
         ret = loop {
             match self.execute("body", &self.parselet.body) {
-                Err(Reject::Skip) => {}
+                Err(Reject::Skip) | Ok(Accept::Repeat) => {}
                 Ok(Accept::Next) => break ret,
                 Ok(Accept::Push(capture)) => break capture,
-                Ok(Accept::Repeat) => {
-                    // break on eof
-                    if self.thread.reader.eof {
-                        break ret;
-                    }
-                }
                 Ok(accept) => return Ok(accept.into_push(self.parselet.severity)),
                 Err(Reject::Next) if !first && !self.parselet.end.is_empty() => {
-                    break Capture::Empty
+                    break Capture::Empty;
                 }
                 other => return other,
             }

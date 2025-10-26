@@ -1,0 +1,20 @@
+#testmode:repl
+s = "hello"
+
+s.find("l",3)
+s.find("l",2)
+s.find("l",1)
+s.find("l",0)
+s.find("l",4)
+s.find("l",3,4)
+s.find("l",3,3)
+s.find("l",3,2)
+#---
+#3
+#2
+#2
+#2
+#-1
+#3
+#-1
+#-1

@@ -49,11 +49,11 @@ impl Iter {
 
     tokay_method!("iter : @value", {
         // If parameter is already an iterator, just return it
-        if value.is("iter") || value.is_void() {
+        if value.is("iter") {
             Ok(value)
         }
         // Check for an available iter() method on the provided value first
-        else if let Ok(Some(iter)) = value.call_method("iter", context, Vec::new()) {
+        else if let Ok(Some(iter)) = value.call_method("iter", context, Vec::new(), None) {
             Ok(iter)
         }
         // Default fallback to Iter on the object
@@ -91,6 +91,26 @@ impl Iter {
                 1
             },
         ))
+    });
+
+    tokay_method!("iter_max : @iter", {
+        let mut borrowed_iter = iter.borrow_mut();
+
+        if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
+            Ok(iter.max().unwrap_or(RefValue::from(Value::Void)))
+        } else {
+            Ok(iter.clone())
+        }
+    });
+
+    tokay_method!("iter_min : @iter", {
+        let mut borrowed_iter = iter.borrow_mut();
+
+        if let Some(iter) = borrowed_iter.object_mut::<Iter>() {
+            Ok(iter.min().unwrap_or(RefValue::from(Value::Void)))
+        } else {
+            Ok(iter.clone())
+        }
     });
 
     tokay_method!("iter_rev : @iter", {

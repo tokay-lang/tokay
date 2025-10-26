@@ -3,7 +3,7 @@ String : @{
         #'\\' EscapeSequence
         Char<^\\\">
         EOF  error("Unclosed string, expecting '\"'")
-    }*  str_join("", $2) expect '"' _
+    }*  str_join("", $2) Expect<'"'> _
 }
 
 Key : @{

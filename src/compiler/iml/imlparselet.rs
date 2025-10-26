@@ -3,6 +3,7 @@ use super::*;
 use crate::reader::Offset;
 use crate::value::Parselet;
 use indexmap::IndexMap;
+use log;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -20,19 +21,20 @@ during compilation.
 */
 #[derive(Debug, Clone)]
 pub(in crate::compiler) struct ImlParseletModel {
-    pub is_consuming: bool,                    // Flag if parselet is consuming
-    pub locals: usize, // Total number of local variables present (including arguments)
-    pub signature: IndexMap<String, ImlValue>, // Arguments signature with default values
+    pub is_consuming: bool, // Flag if parselet is consuming
+    pub locals: usize,      // Total number of local variables present (including arguments)
+    pub signature: IndexMap<String, Option<ImlValue>>, // Arguments signature with default values
     pub variables: IndexMap<String, usize>, // Named local variables
     pub temporaries: Vec<usize>, // Unnamed temporary variables
-    pub begin: ImlOp,  // Begin intermediate operations
-    pub end: ImlOp,    // End intermediate operations
-    pub body: ImlOp,   // Body intermediate Operations
+    pub begin: ImlOp,       // Begin intermediate operations
+    pub end: ImlOp,         // End intermediate operations
+    pub body: ImlOp,        // Body intermediate Operations
 }
 
 impl ImlParseletModel {
-    pub fn new(signature: Option<IndexMap<String, ImlValue>>) -> Self {
+    pub fn new(signature: Option<IndexMap<String, Option<ImlValue>>>) -> Self {
         let signature = signature.unwrap_or(IndexMap::new());
+
         // Generate variables from signature, addresses are enumerated!
         let variables = signature
             .keys()
@@ -65,7 +67,7 @@ impl ImlParseletModel {
     }
 
     /// Declare new or return address of named variables
-    pub fn get_named(&mut self, name: &str) -> usize {
+    pub fn var(&mut self, name: &str) -> usize {
         match self.variables.get(name) {
             Some(addr) => *addr,
             None => {
@@ -79,7 +81,7 @@ impl ImlParseletModel {
     /// Claim temporary (unnamed) variable.
     /// The variable is either being reused or freshly allocated.
     /// After use of the temporary address, return_temporary should be called.
-    pub fn claim_temp(&mut self) -> usize {
+    pub fn temp(&mut self) -> usize {
         match self.temporaries.pop() {
             Some(addr) => addr,
             None => self.allocate(),
@@ -87,36 +89,38 @@ impl ImlParseletModel {
     }
 
     // Returns a temporary variable address for (eventual) reuse later.
-    pub fn return_temp(&mut self, addr: usize) {
+    pub fn untemp(&mut self, addr: usize) {
         self.temporaries.push(addr)
     }
 }
 
-// ImlParseletInstance
+// ImlParselet
 // ----------------------------------------------------------------------------
 
-/** Intermediate parselet instance.
+/** Intermediate parselet.
 
-A parselet instance is a model with as given generics definition.
-The generics definition needs to be resolved first, before a parselet instance
-is turned into a executable parselet.
+An intermediate parselet is a parselet model with as given generics definition.
+The generics definition needs to be resolved first, before an intermediate parselet
+can be turned into a executable parselet.
 */
 #[allow(dead_code)]
 #[derive(Debug)]
-pub(in crate::compiler) struct ImlParseletInstance {
+pub(in crate::compiler) struct ImlParselet {
     pub model: Rc<RefCell<ImlParseletModel>>, // Parselet base model
-    pub generics: IndexMap<String, ImlValue>, // Generic signature with default configuration
-    pub offset: Option<Offset>,               // Offset of definition
-    pub name: Option<String>,                 // Assigned name from source (for debugging)
-    pub severity: u8,                         // Capture push severity
-    pub is_generated: bool,                   // Flag if parselet instance is auto-generated
+    pub generics: IndexMap<String, Option<ImlValue>>, // Generic signature with default configuration
+    pub origin: Option<ImlRefParselet>,               // Origin parselet of this instance
+    pub offset: Option<Offset>,                       // Offset of definition
+    pub name: Option<String>,                         // Assigned name from source (for debugging)
+    pub severity: u8,                                 // Capture push severity
+    pub is_generated: bool,                           // Flag if parselet is auto-generated
 }
 
-/** Representation of parselet instance in intermediate code. */
-impl ImlParseletInstance {
+/** Representation of parselet parselet in intermediate code. */
+impl ImlParselet {
     pub fn new(
         model: Option<ImlParseletModel>,
-        generics: Option<IndexMap<String, ImlValue>>,
+        generics: Option<IndexMap<String, Option<ImlValue>>>,
+        origin: Option<ImlRefParselet>,
         offset: Option<Offset>,
         name: Option<String>,
         severity: u8,
@@ -125,6 +129,7 @@ impl ImlParseletInstance {
         Self {
             model: Rc::new(RefCell::new(model.unwrap_or(ImlParseletModel::new(None)))),
             generics: generics.unwrap_or(IndexMap::new()),
+            origin,
             offset,
             name,
             severity,
@@ -133,25 +138,25 @@ impl ImlParseletInstance {
     }
 
     pub fn id(&self) -> usize {
-        self as *const ImlParseletInstance as usize
+        self as *const ImlParselet as usize
     }
 }
 
-impl std::fmt::Display for ImlParseletInstance {
+impl std::fmt::Display for ImlParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "{}",
-            self.name.as_deref().unwrap_or("<anonymous parselet>")
+            self.name.as_deref().unwrap_or("__AnonymousParselet__")
         )?;
 
         if !self.generics.is_empty() {
             write!(f, "<")?;
             for (i, (name, value)) in self.generics.iter().enumerate() {
-                if matches!(value, ImlValue::Unset) {
-                    write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
-                } else {
+                if let Some(value) = value {
                     write!(f, "{}{}:{}", if i > 0 { ", " } else { "" }, name, value)?;
+                } else {
+                    write!(f, "{}{}", if i > 0 { ", " } else { "" }, name)?;
                 }
             }
             write!(f, ">")?;
@@ -161,47 +166,65 @@ impl std::fmt::Display for ImlParseletInstance {
     }
 }
 
-impl std::cmp::PartialEq for ImlParseletInstance {
+impl std::cmp::PartialEq for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn eq(&self, other: &Self) -> bool {
         self.model.borrow().id() == other.model.borrow().id() && self.generics == other.generics
     }
 }
 
-impl Eq for ImlParseletInstance {}
+impl Eq for ImlParselet {}
 
-impl std::hash::Hash for ImlParseletInstance {
+impl std::hash::Hash for ImlParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash is generated from the model and the generics configuration
         let model = &*self.model.borrow();
         (model as *const ImlParseletModel as usize).hash(state);
         self.generics.iter().collect::<Vec<_>>().hash(state);
     }
 }
 
-impl std::cmp::PartialOrd for ImlParseletInstance {
+impl std::cmp::PartialOrd for ImlParselet {
     // It satisfies to just compare the parselet's memory address for equality
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.id().partial_cmp(&other.id())
     }
 }
 
-// ImlParselet
+// ImlRefParselet
 // ----------------------------------------------------------------------------
 
-/// Shared ImlParseletInstance
+/// Shared ImlParselet
 #[derive(Clone, Eq, PartialEq)]
-pub(in crate::compiler) struct ImlParselet {
-    instance: Rc<RefCell<ImlParseletInstance>>,
+pub(in crate::compiler) struct ImlRefParselet {
+    parselet: Rc<RefCell<ImlParselet>>,
 }
 
-impl ImlParselet {
-    pub fn new(parselet: ImlParseletInstance) -> Self {
+impl ImlRefParselet {
+    pub fn new(parselet: ImlParselet) -> Self {
         Self {
-            instance: Rc::new(RefCell::new(parselet)),
+            parselet: Rc::new(RefCell::new(parselet)),
         }
     }
 
-    /** Derives an intermediate parselet by another intermediate parselet (`from`).
+    // Resolve generics
+    pub fn resolve(&self, name: &str) -> Option<ImlValue> {
+        // Find name along the origins starting at from.
+        let mut origin = Some(self.clone());
+
+        while let Some(inner) = origin {
+            if let Some(value) = inner.borrow().generics.get(name) {
+                return Some(value.clone()?);
+            } else {
+                origin = inner.borrow().origin.clone();
+            }
+        }
+
+        None
+    }
+
+    /** Derives an intermediate parselet instance from the view of
+    another intermediate parselet instance (`from`).
 
     The namespace defines the constant configuration of a surrounding parselet (`from`),
     and extends the intermediate parselet's constant configuration, making it a derivation.
@@ -216,64 +239,87 @@ impl ImlParselet {
     The function either returns a derived parselet in case it was derived, otherwise it returns
     a clone of itself.
     */
-    pub fn derive(&self, from: &ImlParselet) -> Result<Self, String> {
-        let instance = self.instance.borrow();
-        let mut generics = instance.generics.clone();
+    pub fn derive(&self, from: &ImlRefParselet) -> Result<Self, String> {
+        let parselet = self.parselet.borrow();
+
+        // Fast track
+        if parselet.generics.is_empty() {
+            return Ok(self.clone());
+        }
+
+        let mut generics = parselet.generics.clone();
         let mut changes = false;
         let mut required = Vec::new();
 
+        log::debug!("  deriving {} from {}", self, from);
+
         for (name, value) in generics.iter_mut() {
-            // Replace any generics until no more are open
-            while let ImlValue::Generic { name, .. } = value {
-                *value = from.borrow().generics.get(name).unwrap().clone();
+            // Replace any generics until no more are open;
+            // need to do it in a loop, as generics can reference other generics.
+            while let Some(ImlValue::Generic { name, .. }) = value {
+                if name == "Self" || name == "self" {
+                    *value = Some(ImlValue::Parselet(from.clone()));
+                } else {
+                    *value = from.resolve(name);
+                }
+
                 changes = true;
             }
 
-            match value {
-                ImlValue::SelfValue | ImlValue::SelfToken => {
-                    // Replace any references of self by from
-                    *value = ImlValue::Parselet(from.clone());
-                    changes = true;
-                }
-                ImlValue::Unset => required.push(name.to_string()),
-                _ => {}
+            // Generics pointing to ImlValue::SelfToken/SelfValue must be replaced, too
+            if changes && matches!(value, Some(ImlValue::SelfToken | ImlValue::SelfValue)) {
+                *value = Some(ImlValue::Parselet(from.clone()));
+            }
+
+            if value.is_none() {
+                required.push(name.to_string());
             }
         }
 
         // Check for accepted constant configuration
         if !required.is_empty() {
             return Err(format!(
-                "{} requires assignment of generic argument {}",
-                instance.name.as_deref().unwrap_or("<anonymous parselet>"),
+                "'{}' requires assignment of generic argument '{}'",
+                parselet.name.as_deref().unwrap_or("__AnonymousParselet__"),
                 required.join(", ")
             ));
         }
 
         // When there is no change, there is no derivation
         if !changes {
+            log::debug!("  no derivation");
+            // log::warn!("  {} => {}", self, self);
             return Ok(self.clone());
         }
 
-        Ok(Self::new(ImlParseletInstance {
-            model: instance.model.clone(),
+        // Create new derivative parselet
+        let derived = Self::new(ImlParselet {
+            model: parselet.model.clone(),
             generics,
-            offset: instance.offset.clone(),
-            name: instance.name.clone(),
-            severity: instance.severity,
-            is_generated: instance.is_generated,
-        }))
+            origin: from.borrow().origin.clone(),
+            offset: parselet.offset.clone(),
+            name: parselet.name.clone(),
+            severity: parselet.severity,
+            is_generated: parselet.is_generated,
+        });
+
+        log::debug!("  derived = {}", derived);
+        // log::warn!("* {} => {}", self, derived);
+        Ok(derived)
     }
 
     /** Compiles an intermediate parselet into a compiled VM parselet,
-    which is part of the provided `program` and indexed by `this`. */
-    pub fn compile(&self, program: &mut ImlProgram, this: usize) -> Parselet {
-        let instance = self.instance.borrow();
-        let model = instance.model.borrow();
+    which is part of the provided `program` and indexed by `index`. */
+    pub fn compile(&self, program: &mut ImlProgram, index: usize) -> Parselet {
+        let parselet = self.parselet.borrow();
+        let model = parselet.model.borrow();
+
+        log::debug!("compiling {}", parselet);
 
         Parselet::new(
-            Some(format!("{}", instance)),
+            Some(format!("{}", parselet)),
             None,
-            instance.severity,
+            parselet.severity,
             model
                 .signature
                 .iter()
@@ -282,30 +328,30 @@ impl ImlParselet {
                         // Copy parameter name
                         var_value.0.clone(),
                         // Register default value, if any
-                        match &var_value.1 {
-                            ImlValue::Unset => None,
-                            value => Some(program.register(value)),
-                        },
+                        var_value
+                            .1
+                            .as_ref()
+                            .and_then(|value| Some(program.register(value).unwrap_or_default())),
                     )
                 })
                 .collect(),
             model.locals,
-            model.begin.compile_to_vec(program, (self, this)),
-            model.end.compile_to_vec(program, (self, this)),
-            model.body.compile_to_vec(program, (self, this)),
+            model.begin.compile_to_vec(program, (self, index)),
+            model.end.compile_to_vec(program, (self, index)),
+            model.body.compile_to_vec(program, (self, index)),
         )
     }
 }
 
-impl std::hash::Hash for ImlParselet {
+impl std::hash::Hash for ImlRefParselet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.instance.borrow().hash(state);
+        self.parselet.borrow().hash(state);
     }
 }
 
-impl std::fmt::Debug for ImlParselet {
+impl std::fmt::Debug for ImlRefParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.instance.borrow())
+        write!(f, "{}", self.parselet.borrow())
         // Avoid endless recursion in case of recursive parselets
         /*
         if self.0.try_borrow_mut().is_ok() {
@@ -317,28 +363,28 @@ impl std::fmt::Debug for ImlParselet {
     }
 }
 
-impl std::fmt::Display for ImlParselet {
+impl std::fmt::Display for ImlRefParselet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.instance.borrow())
+        write!(f, "{}", self.parselet.borrow())
     }
 }
 
-impl std::ops::Deref for ImlParselet {
-    type Target = Rc<RefCell<ImlParseletInstance>>;
+impl std::ops::Deref for ImlRefParselet {
+    type Target = Rc<RefCell<ImlParselet>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.instance
+        &self.parselet
     }
 }
 
-impl std::ops::DerefMut for ImlParselet {
+impl std::ops::DerefMut for ImlRefParselet {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.instance
+        &mut self.parselet
     }
 }
 
-impl From<ImlParselet> for ImlValue {
-    fn from(parselet: ImlParselet) -> Self {
+impl From<ImlRefParselet> for ImlValue {
+    fn from(parselet: ImlRefParselet) -> Self {
         ImlValue::Parselet(parselet)
     }
 }

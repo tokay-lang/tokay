@@ -5,8 +5,8 @@
 
 use crate::builtin::Builtin;
 
-/*GENERATE cargo run -- _builtins.tok -- `find . -name "*.rs"` */
-pub static BUILTINS: [Builtin; 64] = [
+/*GENERATE cargo run -- src/_builtins.tok -- `find src -name "*.rs"` */
+pub static BUILTINS: [Builtin; 71] = [
     Builtin {
         name: "Float",
         func: crate::value::token::tokay_token_float,
@@ -64,6 +64,10 @@ pub static BUILTINS: [Builtin; 64] = [
         func: crate::value::dict::Dict::tokay_method_dict_items,
     },
     Builtin {
+        name: "dict_iter",
+        func: crate::value::dict::Dict::tokay_method_dict_iter,
+    },
+    Builtin {
         name: "dict_keys",
         func: crate::value::dict::Dict::tokay_method_dict_keys,
     },
@@ -80,12 +84,12 @@ pub static BUILTINS: [Builtin; 64] = [
         func: crate::value::dict::Dict::tokay_method_dict_pop,
     },
     Builtin {
-        name: "dict_push",
-        func: crate::value::dict::Dict::tokay_method_dict_push,
-    },
-    Builtin {
         name: "dict_set_item",
         func: crate::value::dict::Dict::tokay_method_dict_set_item,
+    },
+    Builtin {
+        name: "dict_values",
+        func: crate::value::dict::Dict::tokay_method_dict_values,
     },
     Builtin {
         name: "eof",
@@ -136,6 +140,14 @@ pub static BUILTINS: [Builtin; 64] = [
         func: crate::value::iter::mapiter::MapIter::tokay_method_iter_map,
     },
     Builtin {
+        name: "iter_max",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_max,
+    },
+    Builtin {
+        name: "iter_min",
+        func: crate::value::iter::iter::Iter::tokay_method_iter_min,
+    },
+    Builtin {
         name: "iter_next",
         func: crate::value::iter::iter::Iter::tokay_method_iter_next,
     },
@@ -152,6 +164,14 @@ pub static BUILTINS: [Builtin; 64] = [
         func: crate::value::list::List::tokay_method_list_add,
     },
     Builtin {
+        name: "list_clone",
+        func: crate::value::list::List::tokay_method_list_clone,
+    },
+    Builtin {
+        name: "list_extend",
+        func: crate::value::list::List::tokay_method_list_extend,
+    },
+    Builtin {
         name: "list_flatten",
         func: crate::value::list::List::tokay_method_list_flatten,
     },
@@ -162,6 +182,10 @@ pub static BUILTINS: [Builtin; 64] = [
     Builtin {
         name: "list_iadd",
         func: crate::value::list::List::tokay_method_list_iadd,
+    },
+    Builtin {
+        name: "list_index",
+        func: crate::value::list::List::tokay_method_list_index,
     },
     Builtin {
         name: "list_len",
@@ -218,6 +242,10 @@ pub static BUILTINS: [Builtin; 64] = [
     Builtin {
         name: "str_endswith",
         func: crate::value::str::Str::tokay_method_str_endswith,
+    },
+    Builtin {
+        name: "str_find",
+        func: crate::value::str::Str::tokay_method_str_find,
     },
     Builtin {
         name: "str_get_item",

@@ -6,6 +6,15 @@ l += 2
 l += (3, 4)
 l
 
+# iadd with void
+x += (1,2,3)
+x
+
+# iadd with int
+i = 1
+i += (2,3)
+i
+
 # iadd to itself
 a = (1,2)
 b = (3,4)
@@ -21,9 +30,27 @@ l = (1,)
 l + (2, 3)
 l
 
+# iadd with imutable object
+l = ,
+i = 0
+l += i
+l ++i
+
+# iadd with mutable object
+l = ,
+m = 1,2,3
+l += m
+l += m,
+m += 4
+l
+
 #---
 
 #(1, 2, 3, 4)
+
+#(1, 2, 3)
+
+#(1, 2, 3)
 
 #(1, 2, 3, 4)
 #(1, 2)
@@ -33,3 +60,7 @@ l
 
 #(1, 2, 3)
 #(1, )
+
+#((0, ), 1)
+
+#(1, 2, 3, (1, 2, 3, 4))

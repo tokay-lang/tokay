@@ -1,14 +1,7 @@
-n1 = 0
-n2 = 1
-count = 0
-until = Int
+fibonacci : @n {
+    if n <= 1 n else fibonacci(n - 1) + fibonacci(n - 2)
+}
 
-print("These are the first " + until + " numbers in the Fibonacci sequence:")
-
-loop count++ < until {
-    fib = n1
-    print(fib)
-
-    n1 = n2
-    n2 = fib + n2
+for i in range(10) {
+    print(fibonacci(i))
 }

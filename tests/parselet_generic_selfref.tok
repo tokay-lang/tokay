@@ -1,12 +1,16 @@
-Y: X<Y>
-
-X: @<X> {
-    'x' X
+A : @<E, I: A> {
+    Ident '=' Expect<I>  ast("assign")
+    E                    ast("value")
 }
 
-Y<'a'> print("Ja!")
-X<'x'> print("Jx!")
+AA : A<Int, AA>
+
+ast_print(AA)
+
 #---
-#ERR:SKIP
-#ERR:not yet implemented: Recursive resolve() impossible by design, see bug #127
-#ERR:SKIP
+#a=b=c=42
+#---
+#assign [start 1:1, end 1:9]
+# assign [start 1:3, end 1:9]
+#  assign [start 1:5, end 1:9]
+#   value [start 1:7, end 1:9] => 42

@@ -6,7 +6,8 @@ use crate::reader::*;
 use crate::value;
 use crate::value::RefValue;
 use crate::vm::*;
-use indexmap::{indexset, IndexMap, IndexSet};
+use indexmap::{IndexMap, IndexSet, indexset};
+use log;
 use std::cell::RefCell;
 
 /** Tokay compiler instance
@@ -19,7 +20,7 @@ won't be removed and can be accessed on later calls.
 pub struct Compiler {
     parser: Option<parser::Parser>, // Internal Tokay parser
     pub debug: u8,                  // Compiler debug mode
-    pub(super) restrict: bool,      // Restrict assignment of reserved identifiers
+    pub(super) restrict: bool, // Restrict assignment of reserved identifiers (required by prelude bootstrap)
     pub(super) statics: RefCell<IndexSet<RefValue>>, // Static values collected during compilation
 
     // TODO: As workaround to emulate old behavior of the Compiler struct
@@ -33,13 +34,9 @@ impl Compiler {
     The compiler serves functions to compile Tokay source code into programs executable by
     the Tokay VM. It uses an intermediate language representation to implement derives of
     generics, statics, etc.
-
-    The compiler struct serves as some kind of helper that should be used during traversal of a
-    Tokay program's AST. It therefore offers functions to open particular blocks and handle symbols
-    in different levels. Parselets are created by using the parselet_pop() function with provided
-    parameters.
     */
     pub fn new() -> Self {
+        // Always create standard statics; These are referenced during AST traversal.
         let statics = indexset![
             value!(void),
             value!(null),
@@ -49,10 +46,11 @@ impl Compiler {
             value!(1),
         ];
 
+        // Create compiler instance
         let mut compiler = Self {
             parser: None,
             debug: 0,
-            restrict: true,
+            restrict: false,
             statics: RefCell::new(statics),
             // TODO: workaround...
             main: ImlParseletModel::new(None),
@@ -61,6 +59,7 @@ impl Compiler {
 
         // Compile with the default prelude
         compiler.load_prelude();
+        compiler.restrict = true;
 
         // Set compiler debug level afterwards
         compiler.debug = if let Ok(level) = std::env::var("TOKAY_DEBUG") {
@@ -76,14 +75,18 @@ impl Compiler {
     pub(super) fn compile_from_ast(
         &mut self,
         ast: &RefValue,
+        name: Option<String>,
     ) -> Result<Option<Program>, Vec<Error>> {
+        log::trace!("compile_from_ast");
+
         // Create main parselet from current main model
-        let main_parselet = ImlParselet::new(ImlParseletInstance::new(
+        let main_parselet = ImlRefParselet::new(ImlParselet::new(
             // TODO: Keep backward compatible: copy Compiler's main model into the main_parselet
             Some(self.main.clone()),
             None,
             None,
-            Some("__main__".to_string()),
+            None,
+            Some(name.unwrap_or("__main__".to_string())),
             5,
             false,
         ));
@@ -106,15 +109,14 @@ impl Compiler {
             // try to resolve any open usages
             global_scope.resolve_usages();
 
+            // println!("constants {:#?}, {} usages", global_scope.constants, global_scope.usages.borrow().len());
+
             // Report unresolved names
+            // println!("usages = {:?}", global_scope.usages);
+
             for usage in global_scope.usages.borrow_mut().drain(..) {
-                if let ImlValue::Unresolved(usage) = usage {
-                    let usage = usage.borrow();
-                    if let ImlValue::Name { offset, name } = &*usage {
-                        global_scope
-                            .error(offset.clone(), format!("Use of undefined name '{}'", name));
-                    }
-                }
+                global_scope
+                    .push_error(usage.offset(), format!("Use of undefined name '{}'", usage));
             }
 
             // Break on error
@@ -144,8 +146,7 @@ impl Compiler {
             println!("--- Intermediate main ---\n{:#?}", main_parselet);
         }
 
-        let mut program = ImlProgram::new(ImlValue::from(main_parselet));
-        program.debug = self.debug > 1;
+        let program = ImlProgram::new(main_parselet);
 
         match program.compile() {
             Ok(program) => {
@@ -162,6 +163,8 @@ impl Compiler {
 
     /** Compile a Tokay program from a Reader source into the compiler. */
     pub fn compile(&mut self, reader: Reader) -> Result<Option<Program>, Vec<Error>> {
+        log::trace!("compile");
+
         // Create the Tokay parser when not already done
         if self.parser.is_none() {
             self.parser = Some(Parser::new());
@@ -176,12 +179,11 @@ impl Compiler {
         };
 
         if self.debug > 0 {
-            println!("--- Abstract Syntax Tree ---");
             ast::print(&ast);
             //println!("###\n{:#?}\n###", ast);
         }
 
-        self.compile_from_ast(&ast)
+        self.compile_from_ast(&ast, None)
     }
 
     /// Shortcut to compile a Tokay program from a &str into the compiler.
@@ -195,16 +197,36 @@ impl Compiler {
     /** Register a static value within a compiler instance.
 
     This avoids that the compiler produces multiple results pointing to effectively the same values
-    (althought they are different objects, but  the same value)
+    (althought they are different objects, but the same value)
     */
     pub(super) fn register_static(&self, value: RefValue) -> ImlValue {
+        log::trace!("register_static value = {:?}", value);
         let mut statics = self.statics.borrow_mut();
 
         if let Some(value) = statics.get(&value) {
+            log::trace!("value already known");
             ImlValue::Value(value.clone())
         } else {
             statics.insert(value.clone());
+
+            log::trace!("value added to registry");
             ImlValue::Value(value)
         }
+    }
+
+    /** Register a named constant within a compiler instance. */
+    pub fn constant(&mut self, name: &str, value: RefValue) {
+        log::trace!("constant name = {:?} value = {:?}", name, value);
+        self.constants
+            .insert(name.to_string(), ImlValue::from(value));
+    }
+
+    /** Register a global variable with a given value. */
+    pub fn global(&mut self, name: &str, value: RefValue) {
+        log::trace!("global name = {:?} value = {:?}", name, value);
+        self.main
+            .signature
+            .insert(name.to_string(), Some(ImlValue::from(value)));
+        self.main.var(name);
     }
 }
