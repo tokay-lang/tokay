@@ -1,0 +1,28 @@
+Double : @<T> {
+    print("Double   ->", *T)
+    T T
+}
+
+Single : @<U> {
+    print("Single   ->", *U)
+    U | 'X'
+}
+
+Test : @<V: 'x'> {
+    print("Test     ->", *V)
+    # Single<V>  print("YES")
+    Double<Single<V>>  print("YES")
+    #Double<(V | 'X')>
+}
+
+Test
+
+#---
+#xx
+#---
+
+#Test     -> 'x'
+#Double   -> <parselet Single<U:'x'>>
+#Single   -> 'x'
+#Single   -> 'x'
+#YES
