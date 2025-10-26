@@ -56,7 +56,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
         scope
     }
 
-    /// Create a new scope with given level and and shadow self until the new scope outlives
+    /// Create a new scope with given level and shadow scope self until this newly created scope outlives
     pub fn shadow(&'parent self, level: ScopeLevel) -> Self {
         Self::new(self.compiler, level, Some(self))
     }
