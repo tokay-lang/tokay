@@ -6,10 +6,14 @@ This file contains a short note on relevant changes to the Tokay programming lan
 
 Current main branch.
 
-- Renamed `tokay.tok` into `Tokay.tok`
-- Re-organized build features
-- Bugfixes:
+### [v0.6.13] Preliminaries towards v0.7
+
+- Renamed `tokay.tok` into `Tokay.tok` (#164)
+- Re-organized some build features
+- Fixes:
   - Handling of non-ASCII identifiers
+  - `repeat` should control repeating a parselet regardless of EOF
+  - Generic access within implicit parselet fails to compile (#130)
 
 ### [v0.6.12] Removal of any `unsafe`-stuff again, bugfix release
 
