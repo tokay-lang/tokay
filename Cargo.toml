@@ -1,6 +1,6 @@
 [package]
 name = "tokay"
-version = "0.6.13"
+version = "0.6.14"
 description = "Tokay is a programming language designed for ad-hoc parsing."
 authors = ["Jan Max Meyer <jmm@phorward.de>"]
 homepage = "https://tokay.dev/"
@@ -52,8 +52,9 @@ num = "0.4"
 num-bigint = "0.4"
 num-parse = "0.1"  # use crates.io-version
 # num-parse = { version = "0.1", path = "../num-parse" }  # use local version
-tokay-macros = "0.5" # use crates.io-version
-# tokay-macros = { version = "0.5", path = "macros" }  # use local version
+
+# tokay-macros = "0.6" # use crates.io-version
+tokay-macros = { version = "0.6", path = "macros" }  # use local version
 
 # dependencies for "cli"
 clap = { version = "4.5", features = ["derive"], optional = true }

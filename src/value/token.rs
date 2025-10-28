@@ -315,3 +315,25 @@ tokay_token!("Word : @min=1 max=void", {
         Err(Reject::Next)
     }
 });
+
+// Dynamic Touch as a callable token builtin
+tokay_token!("Touch : @s", {
+    let s = s.to_string();
+    if s.len() == 0 {
+        Err(Reject::Next)
+    }
+    else {
+        Token::Touch(s.to_string()).call(Some(context), Vec::new(), None)
+    }
+});
+
+// Dynamic Match as a callable token builtin
+tokay_token!("Match : @s", {
+    let s = s.to_string();
+    if s.len() == 0 {
+        Err(Reject::Next)
+    }
+    else {
+        Token::Match(s.to_string()).call(Some(context), Vec::new(), None)
+    }
+});
