@@ -344,9 +344,10 @@ pub fn tokay_token(input: TokenStream) -> TokenStream {
     }
 
     let function = syn::Ident::new(
-        &name.to_string().to_lowercase(),
+        &name.to_string(),
         proc_macro2::Span::call_site(),
     );
+
     let callable = syn::Ident::new(
         &format!("tokay_token_{}", name.to_string().to_lowercase()),
         proc_macro2::Span::call_site(),
