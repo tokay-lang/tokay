@@ -50,17 +50,19 @@ impl Reader {
 
     /// Internal function for reading a line.
     fn read_line(&mut self) -> Option<usize> {
-        if let Ok(n) = self.reader.read_line(&mut self.buffer) {
-            if n == 0 {
-                self.eof = true;
-                return None;
-            }
+        let n = self
+            .reader
+            .read_line(&mut self.buffer)
+            // FIXME: Currently non-UTF-8 input is directly escalated as a panic.
+            // See issue https://github.com/tokay-lang/tokay/issues/169
+            .unwrap_or_else(|err| panic!("read_line failed: {}", err));
 
-            Some(n)
-        } else {
+        if n == 0 {
             self.eof = true;
-            None
+            return None;
         }
+
+        Some(n)
     }
 
     pub fn tell(&self) -> Offset {
