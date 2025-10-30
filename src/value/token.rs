@@ -316,24 +316,34 @@ tokay_token!("Word : @min=1 max=void", {
     }
 });
 
-// Dynamic Touch as a callable token builtin
+/* Provides a dynamic Touch as a callable token builtin.
+
+In Tokay syntax, a touch is normally defined with static string using single quotation marks `'touch'`.
+It parses exactly the string provided and pushes it with a whitespace severity.
+
+Using the `Touch`-token, a dynamic input string can be provided, so `Touch("touch")` is equal to `'touch'`
+*/
 tokay_token!("Touch : @s", {
     let s = s.to_string();
     if s.len() == 0 {
         Err(Reject::Next)
-    }
-    else {
+    } else {
         Token::Touch(s.to_string()).call(Some(context), Vec::new(), None)
     }
 });
 
-// Dynamic Match as a callable token builtin
+/* Provides a dynamic Match as a callable token builtin.
+
+In Tokay syntax, a match is normally defined with static string using two single quotation marks `''match''`.
+It parses exactly the string provided and pushes it with a token severity.
+
+Using the `Match`-token, a dynamic input string can be provided, so `Match("match")` is equal to `''match''`
+*/
 tokay_token!("Match : @s", {
     let s = s.to_string();
     if s.len() == 0 {
         Err(Reject::Next)
-    }
-    else {
+    } else {
         Token::Match(s.to_string()).call(Some(context), Vec::new(), None)
     }
 });

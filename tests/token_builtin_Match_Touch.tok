@@ -1,0 +1,10 @@
+#testmode:repl
+'"' Word Touch($1)
+''"'' Word Match($1)
+#---
+#Tokay
+#"Hello"
+#"World"
+#---
+#("Hello", "World")
+#(("\"", "Hello", "\""), ("\"", "World", "\""))
