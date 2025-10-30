@@ -1,15 +1,21 @@
-Until : @<P, Escape: Void, empty: false> {
+Until : @<P, Escape: Void, empty: true> {
     Peek<P>  if empty accept $0 else if $0 accept $0 else reject
     (Escape P | Char)  repeat
     reject
 }
 
-String: @<Start: Char<'">, End: Void, Escape: '\\'> {
-    Start Until<(End | Start), Escape, empty: true> Match($1)  $2
+Span : @<P, Escape: Void> {
+    Until<P, Escape> P  accept $1
 }
 
-# print(Until<Char<A-Za-z_>>)
+String: @<Start: Char<'">, End: Void, Escape: '\\'> {
+    Start Until<(End | Start), Escape> Match($1)  $2
+}
 
-print("STRING  : ", String)
+Line : Span<('\n' | '\r' '\n'? | EOF)>
+
+# print(Until<Char<A-Za-z_>>)
+print("LINE    : ", Line)
+# print("STRING  : ", String)
 #print("UNTIL   : ", Until<Char<"!>>)
 #print("CHAR    : ", Char)
