@@ -28,7 +28,7 @@ String: @<Start: Char<'">, End: Void, Escape: '\\', empty: true> {
 
 # Implements a parselet that reads a line.
 Line : @<EOL: @{'\n' | '\r' '\n'?}> {
-    Span<(EOL | EOF)>
+    Span<(EOL | EOF), empty: true>
 }
 
 # print(Until<Char<A-Za-z_>>)
