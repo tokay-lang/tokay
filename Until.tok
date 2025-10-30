@@ -1,21 +1,38 @@
+# Implements a parselet that reads until `P` is matched.
+#
+# `P` can be escaped by `Escape`.
+# `empty` indicates whether an empty string (which occurs when `P` is directly matched) is allowed or not.
+#
 Until : @<P, Escape: Void, empty: true> {
     Peek<P>  if empty accept $0 else if $0 accept $0 else reject
     (Escape P | Char)  repeat
     reject
 }
 
-Span : @<P, Escape: Void> {
-    Until<P, Escape> P  accept $1
+# Variation of `Until`, which also consumes the `P`, but returns only the spanned content.
+Span : @<P, Escape: Void, empty: false> {
+    Until<P, Escape, empty: empty> P  accept $1
 }
 
-String: @<Start: Char<'">, End: Void, Escape: '\\'> {
-    Start Until<(End | Start), Escape> Match($1)  $2
+# Implements a parselet for string literals.
+#
+# - `Start` defines the start indicator of the string,
+# - `End` its end indicator. When `End` is not given,
+#   `Start` will be used also for the string end indicator.
+# - `empty` indicates whether empty strings are matched or not.
+#
+# Returns the parsed string's content.
+String: @<Start: Char<'">, End: Void, Escape: '\\', empty: true> {
+    Start Until<(End | Start), Escape, empty: empty> Match($1)  $2
 }
 
-Line : Span<('\n' | '\r' '\n'? | EOF)>
+# Implements a parselet that reads a line.
+Line : @<EOL: @{'\n' | '\r' '\n'?}> {
+    Span<(EOL | EOF)>
+}
 
 # print(Until<Char<A-Za-z_>>)
-print("LINE    : ", Line)
+# print("LINE    : ", Line)
 # print("STRING  : ", String)
-#print("UNTIL   : ", Until<Char<"!>>)
-#print("CHAR    : ", Char)
+# print("UNTIL   : ", Until<Char<"!>>)
+# print("CHAR    : ", Char)
