@@ -208,19 +208,21 @@ impl ImlRefParselet {
     }
 
     // Resolve generics
-    pub fn resolve(&self, name: &str) -> Option<ImlValue> {
+    pub fn resolve(&self, name: &str) -> ImlValue {
         // Find name along the origins starting at from.
         let mut origin = Some(self.clone());
 
-        while let Some(inner) = origin {
-            if let Some(value) = inner.borrow().generics.get(name) {
-                return Some(value.clone()?);
+        while let Some(inner) = &origin {
+            origin = if let Some(Some(value)) = inner.borrow().generics.get(name) {
+                // println!(":) {} in {:?}", name, origin);
+                return value.clone();
             } else {
-                origin = inner.borrow().origin.clone();
+                // println!(":( {} not in {:?}", name, origin);
+                inner.borrow().origin.clone()
             }
         }
 
-        None
+        panic!("Missing generic {name:?} in {:?}", self);
     }
 
     /** Derives an intermediate parselet instance from the view of
@@ -242,10 +244,10 @@ impl ImlRefParselet {
     pub fn derive(&self, from: &ImlRefParselet) -> Result<Self, String> {
         let parselet = self.parselet.borrow();
 
-        // Fast track
-        if parselet.generics.is_empty() {
-            return Ok(self.clone());
-        }
+        // Fast track: Is any derivation possible?
+        // if parselet.generics.is_empty() {
+        //     return Ok(self.clone());
+        // }
 
         let mut generics = parselet.generics.clone();
         let mut changes = false;
@@ -260,7 +262,7 @@ impl ImlRefParselet {
                 if name == "Self" || name == "self" {
                     *value = Some(ImlValue::Parselet(from.clone()));
                 } else {
-                    *value = from.resolve(name);
+                    *value = Some(from.resolve(name));
                 }
 
                 changes = true;
@@ -286,17 +288,17 @@ impl ImlRefParselet {
         }
 
         // When there is no change, there is no derivation
-        if !changes {
-            log::debug!("  no derivation");
-            // log::warn!("  {} => {}", self, self);
-            return Ok(self.clone());
-        }
+        // if !changes {
+        //     log::debug!("  no derivation");
+        //     // log::warn!("  {} => {}", self, self);
+        //     return Ok(self.clone());
+        // }
 
         // Create new derivative parselet
         let derived = Self::new(ImlParselet {
             model: parselet.model.clone(),
             generics,
-            origin: from.borrow().origin.clone(),
+            origin: Some(from.clone()),
             offset: parselet.offset.clone(),
             name: parselet.name.clone(),
             severity: parselet.severity,
