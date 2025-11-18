@@ -127,29 +127,37 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
 
     /// Resolve a name starting from the current scope.
     pub fn resolve_name(&self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
-        let mut top = Some(self);
-        let mut top_parselet = true;
+        let mut visited_parselets: Vec<ImlRefParselet> = Vec::new();
+        let mut current_scope: Option<&Scope<'compiler, 'parent>> = Some(self);
 
-        while let Some(scope) = top {
+        while let Some(scope) = current_scope {
             // Check constants of scope
             if let Some(value) = scope.constants.borrow().get(name) {
                 return Some(value.clone());
             }
 
             if let ScopeLevel::Parselet(parselet) = &scope.level {
-                if top_parselet
-                    && (parselet.borrow().generics.get(name).is_some()
-                        || name == "Self"
-                        || name == "self")
+                if parselet.borrow().generics.get(name).is_some()
+                    || name == "Self"
+                    || name == "self"
                 {
-                    return Some(ImlValue::Generic {
+                    let generic = ImlValue::Generic {
                         offset,
                         name: name.to_string(),
-                    });
+                    };
+
+                    for parselet in visited_parselets {
+                        let mut parselet = parselet.borrow_mut();
+                        parselet
+                            .generics
+                            .insert(name.to_string(), Some(generic.clone()));
+                    }
+
+                    return Some(generic);
                 }
 
                 // Check for variable only in first or global scope
-                if scope.parent.is_none() || top_parselet {
+                if scope.parent.is_none() || visited_parselets.is_empty() {
                     let parselet = parselet.borrow();
 
                     if let Some(addr) = parselet.model.borrow().variables.get(name) {
@@ -162,10 +170,10 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
                     };
                 }
 
-                top_parselet = false;
+                visited_parselets.push(parselet.clone());
             }
 
-            top = scope.parent.as_deref();
+            current_scope = scope.parent.as_deref();
         }
 
         // Check for a builtin function
