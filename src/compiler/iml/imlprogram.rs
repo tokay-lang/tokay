@@ -193,12 +193,9 @@ impl ImlProgram {
                         None
                     }
                 }
-                ImlValue::Generic { name, .. } => finalize_value(
-                    &current.resolve(name),
-                    current,
-                    visited,
-                    configs,
-                ),
+                ImlValue::Generic { name, .. } => {
+                    finalize_value(&current.resolve(name), current, visited, configs)
+                }
                 _ => None,
             }
         }

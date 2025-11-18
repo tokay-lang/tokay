@@ -148,7 +148,9 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
 
                     for parselet in visited_parselets {
                         let mut parselet = parselet.borrow_mut();
-                        parselet.generics.insert(name.to_string(), Some(generic.clone()));
+                        parselet
+                            .generics
+                            .insert(name.to_string(), Some(generic.clone()));
                     }
 
                     return Some(generic);

@@ -253,7 +253,7 @@ impl ImlRefParselet {
         let mut changes = false;
         let mut required = Vec::new();
 
-        println!("  deriving {} from {}", self, from);
+        log::debug!("  deriving {} from {}", self, from);
 
         for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open;
