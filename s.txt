@@ -1,10 +1,1 @@
-println!("Hello Rust");
-console.log('Hello JS');
-println!("Hello\n\"Rust1\"");
-println!("Hello\n'Rust2'");
-console.log('Hello\n\'JS\'');
-empty "" or
-multiline "Hello
-World"
-unfinished "Hello
-xdoofx
+"Eumel"xy

@@ -15,7 +15,7 @@ String : @<
     Escape: '\\',     # escape sequence for escaping End
     empty: true,      # allow empty strings
 > {
-    Start Until<(End | Start), Escape, empty> (End | Start)  $2
+    Start Until<(Pos<Start> 'x'), Escape, empty> (End | Start)  $2
 }
 
 print(String<'"'>)

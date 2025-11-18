@@ -127,10 +127,10 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
 
     /// Resolve a name starting from the current scope.
     pub fn resolve_name(&self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
-        let mut top = Some(self);
-        let mut is_topmost_parselet = true;
+        let mut visited_parselets: Vec<ImlRefParselet> = Vec::new();
+        let mut current_scope: Option<&Scope<'compiler, 'parent>> = Some(self);
 
-        while let Some(scope) = top {
+        while let Some(scope) = current_scope {
             // Check constants of scope
             if let Some(value) = scope.constants.borrow().get(name) {
                 return Some(value.clone());
@@ -146,18 +146,16 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
                         name: name.to_string(),
                     };
 
-                    if !is_topmost_parselet {
-                        let parselet = self.parselet();
+                    for parselet in visited_parselets {
                         let mut parselet = parselet.borrow_mut();
                         parselet.generics.insert(name.to_string(), Some(generic.clone()));
-                        // println!("{:?} is NOT defined in this topmost parselet {:?} defined in {:?}", name, parselet, parselet.borrow().origin);
                     }
 
                     return Some(generic);
                 }
 
                 // Check for variable only in first or global scope
-                if scope.parent.is_none() || is_topmost_parselet {
+                if scope.parent.is_none() || visited_parselets.is_empty() {
                     let parselet = parselet.borrow();
 
                     if let Some(addr) = parselet.model.borrow().variables.get(name) {
@@ -170,10 +168,10 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
                     };
                 }
 
-                is_topmost_parselet = false;
+                visited_parselets.push(parselet.clone());
             }
 
-            top = scope.parent.as_deref();
+            current_scope = scope.parent.as_deref();
         }
 
         // Check for a builtin function
