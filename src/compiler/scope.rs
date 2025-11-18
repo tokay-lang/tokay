@@ -128,7 +128,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
     /// Resolve a name starting from the current scope.
     pub fn resolve_name(&self, offset: Option<Offset>, name: &str) -> Option<ImlValue> {
         let mut top = Some(self);
-        let mut top_parselet = true;
+        let mut is_topmost_parselet = true;
 
         while let Some(scope) = top {
             // Check constants of scope
@@ -137,19 +137,27 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
             }
 
             if let ScopeLevel::Parselet(parselet) = &scope.level {
-                if top_parselet
-                    && (parselet.borrow().generics.get(name).is_some()
-                        || name == "Self"
-                        || name == "self")
+                if parselet.borrow().generics.get(name).is_some()
+                    || name == "Self"
+                    || name == "self"
                 {
-                    return Some(ImlValue::Generic {
+                    let generic = ImlValue::Generic {
                         offset,
                         name: name.to_string(),
-                    });
+                    };
+
+                    if !is_topmost_parselet {
+                        let parselet = self.parselet();
+                        let mut parselet = parselet.borrow_mut();
+                        parselet.generics.insert(name.to_string(), Some(generic.clone()));
+                        // println!("{:?} is NOT defined in this topmost parselet {:?} defined in {:?}", name, parselet, parselet.borrow().origin);
+                    }
+
+                    return Some(generic);
                 }
 
                 // Check for variable only in first or global scope
-                if scope.parent.is_none() || top_parselet {
+                if scope.parent.is_none() || is_topmost_parselet {
                     let parselet = parselet.borrow();
 
                     if let Some(addr) = parselet.model.borrow().variables.get(name) {
@@ -162,7 +170,7 @@ impl<'compiler, 'parent> Scope<'compiler, 'parent> {
                     };
                 }
 
-                top_parselet = false;
+                is_topmost_parselet = false;
             }
 
             top = scope.parent.as_deref();

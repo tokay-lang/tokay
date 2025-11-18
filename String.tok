@@ -15,9 +15,6 @@ String : @<
     Escape: '\\',     # escape sequence for escaping End
     empty: true,      # allow empty strings
 > {
-    # End : @<Start, End> {
-    #     End | Start
-    # }
     Start Until<(End | Start), Escape, empty> (End | Start)  $2
 }
 

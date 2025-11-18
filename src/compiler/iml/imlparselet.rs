@@ -245,15 +245,15 @@ impl ImlRefParselet {
         let parselet = self.parselet.borrow();
 
         // Fast track: Is any derivation possible?
-        // if parselet.generics.is_empty() {
-        //     return Ok(self.clone());
-        // }
+        if parselet.generics.is_empty() {
+            return Ok(self.clone());
+        }
 
         let mut generics = parselet.generics.clone();
         let mut changes = false;
         let mut required = Vec::new();
 
-        log::debug!("  deriving {} from {}", self, from);
+        println!("  deriving {} from {}", self, from);
 
         for (name, value) in generics.iter_mut() {
             // Replace any generics until no more are open;
@@ -288,11 +288,11 @@ impl ImlRefParselet {
         }
 
         // When there is no change, there is no derivation
-        // if !changes {
-        //     log::debug!("  no derivation");
-        //     // log::warn!("  {} => {}", self, self);
-        //     return Ok(self.clone());
-        // }
+        if !changes {
+            log::debug!("  no derivation");
+            // log::warn!("  {} => {}", self, self);
+            return Ok(self.clone());
+        }
 
         // Create new derivative parselet
         let derived = Self::new(ImlParselet {
