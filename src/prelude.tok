@@ -1,4 +1,15 @@
 # Tokay default prelude
+# Copyright © 2025 by Jan Max Meyer, Phorward Software Technologies.
+# Licensed under the MIT license. See LICENSE for more information.
+#
+# This Tokay file defines symbols that are also internally used by Tokay itself,
+# to provide several built-in language constructs.
+#
+# It generates the content of `compiler/prelude.rs`.
+# See `README.md` build-section for details.
+#
+
+# --- Parselets ---
 
 # The `Not`-builtin runs its parser and returns its negated result,
 # so that `P` occurence becomes rejected.
@@ -88,6 +99,46 @@ List : @<P, Separator: (',' _), empty: true> {
     P  $1,
 }
 
+# Parse anything until `P` is matched.
+#
+# `P` can be escaped by `Escape`, to allow it to be embedded in some kind.
+# `empty` indicates whether an empty string (which occurs when `P` is directly matched) is allowed or not.
+#
+Until : @<P, Escape: Void, empty: true> {
+    # stop conddition, when P is matched
+    Peek<P>  if empty accept $0 else if $0 accept $0 else reject
+
+    # repeat parselet on escaped P or any Char
+    (Escape P | Char)  repeat
+
+    # Anything else is rejected
+    reject
+}
+
+# Variation of `Until`, which also consumes the `P`, but returns only the spanned content.
+Span : @<P, Escape: Void, empty: false> {
+    Until<P, Escape, empty: empty> P  accept $1
+}
+
+# Implements a parselet for string literals.
+#
+# - `Start` defines the start indicator of the string,
+# - `End` its end indicator. When `End` is not given,
+#   `Start` will be used also for the string end indicator.
+# - `empty` indicates whether empty strings are matched or not.
+#
+
+# Returns the parsed string's content.
+
+String : @<
+    Start: Char<'">,  # start sequence
+    End: Void,        # end sequence, fallback is Start
+    Escape: '\\',     # escape sequence for escaping End
+    empty: true,      # allow empty strings
+> {
+    Start Until<(End | Start), Escape, empty: empty> Match($1)  $2
+}
+
 # Parse keywords, which may not be the prefix of another identifier.
 Keyword : @<P> {
     P Not<(Alphanumeric | '_')>
@@ -99,7 +150,15 @@ Number : Float | Int
 # Parse any token, which is just no whitespace in default terms.
 Token : AsciiPunctuation | Word | Number
 
-# Functions
+# Specification for End-of-Line / Line separator
+EOL : ('\n' | '\r' '\n'?)
+
+# Read a single line
+Line : @<EOL: EOL> {
+    Span<(EOL | EOF), empty: true>
+}
+
+# --- Functions ---
 
 # Calculates the maximum of a value.
 #
