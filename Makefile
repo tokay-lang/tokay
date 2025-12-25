@@ -1,7 +1,7 @@
 .PHONY: .FORCE
 
 # Tokay Parser
-TOKAY_TOK=src/compiler/Tokay.tok
+TOKAY_TOK=src/compiler/parser/Tokay.tok
 
 # Tokay binary: Uses `tokay` executable in PATH by default;
 # This can be changed to `cargo run --` as well, to use the freshly built version
@@ -45,7 +45,7 @@ reset-builtins:
 	git checkout $(BUILTINS)
 
 # parser-cbor ------------------------------------------------------------------
-PARSER_CBOR=src/compiler/_tokay.cbor
+PARSER_CBOR=src/compiler/parser/_tokay.cbor
 
 parser-cbor: $(PARSER_CBOR)
 
@@ -56,7 +56,7 @@ reset-parser-cbor:
 	git checkout $(PARSER_CBOR)
 
 # parser-ast -------------------------------------------------------------------
-PARSER_AST=src/compiler/_tokay.rs
+PARSER_AST=src/compiler/parser/_tokay.rs
 
 parser-ast: $(PARSER_AST)
 

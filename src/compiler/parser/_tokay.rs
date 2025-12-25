@@ -14,7 +14,7 @@
 
 // To update this file, run `make parser-ast` in a shell.
 
-/*GENERATE tokay -vmode=ast2rust src/compiler/Tokay.tok -- src/compiler/Tokay.tok */
+/*GENERATE tokay -vmode=ast2rust src/compiler/parser/Tokay.tok -- src/compiler/parser/Tokay.tok */
 crate::value!([
     "emit" => "main",
     "children" =>
