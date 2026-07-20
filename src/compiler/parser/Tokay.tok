@@ -370,7 +370,7 @@ Assignment : @<Source> mode = "hold" {
 Statement : @{
     Keyword<'accept'> _ Expression?  ast("op_accept")
     Keyword<'break'> _ Expression?  ast("op_break")
-    Keyword<'continue'> _ Expression?  ast("op_continue")
+    Keyword<'continue'> _  ast("op_continue")
     Keyword<'exit'> _ Expression?  ast("op_exit")
     Keyword<'next'> _  ast("op_next")
     Keyword<'push'> _ Expression?  ast("op_push")

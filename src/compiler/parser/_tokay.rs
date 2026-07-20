@@ -7493,14 +7493,6 @@ crate::value!([
                                                             "value" => "_"
                                                         ])),
                                                         (crate::value!([
-                                                            "emit" => "op_mod_opt",
-                                                            "children" =>
-                                                                (crate::value!([
-                                                                    "emit" => "identifier",
-                                                                    "value" => "Expression"
-                                                                ]))
-                                                        ])),
-                                                        (crate::value!([
                                                             "emit" => "call",
                                                             "children" =>
                                                                 (crate::value!([
