@@ -11,7 +11,7 @@ impl Compiler {
     pub(super) fn load_prelude(&mut self) {
         // fixme: Make this lazy_static, so its created only once!
         let ast =
-            /*GENERATE tokay -vmode=ast2rust -vlevel=3 src/compiler/Tokay.tok -- src/prelude.tok */
+            /*GENERATE tokay -vmode=ast2rust -vlevel=3 src/compiler/parser/Tokay.tok -- src/prelude.tok */
             crate::value!([
                 "emit" => "main",
                 "children" =>
